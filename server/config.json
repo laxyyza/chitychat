@@ -1,0 +1,7 @@
+{
+    "root_dir": "client/public",
+    "addr_ip": "any",
+    "addr_port": 8080,
+    "addr_version": "ipv4",
+    "database": "server/chitychat.db"
+}
