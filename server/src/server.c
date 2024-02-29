@@ -261,6 +261,13 @@ static void server_read_fd(server_t* server, const i32 fd)
 {
     ssize_t bytes_recv;
     client_t* client = server_get_client_fd(server, fd);
+    if (!client)
+    {
+        // TODO: Fix missing clients
+        warn("fd: %d no client?\n", fd);
+        server_ep_delfd(server, fd);
+        return;
+    }
 
     u8* buffer = client->recv_buffer + client->recv_buf_index;
     size_t buffer_left = CLIENT_RECV_BUFFER - client->recv_buf_index;
