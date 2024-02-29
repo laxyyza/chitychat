@@ -135,7 +135,6 @@ static http_t* parse_http(client_t* client, char* buf, size_t buf_len)
     char* header_line;
 
     http = calloc(1, sizeof(http_t));
-    memset(http, 0, sizeof(http_t));
 
     header = strsplit(buf, HTTP_END, &saveptr);
     if (!header)
