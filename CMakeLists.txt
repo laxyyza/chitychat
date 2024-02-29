@@ -10,6 +10,7 @@ target_sources(chitychat PRIVATE
     server/src/server_http.c
     server/src/server_websocket.c
     server/src/server_db.c
+    server/src/server_util.c
 )
 
 target_include_directories(chitychat PRIVATE
