@@ -125,7 +125,7 @@ static void set_client_connection(client_t* client, http_header_t* header)
         else if (!strncmp(token, "close", HTTP_HEAD_VAL_LEN))
             client->state = CLIENT_STATE_SHORT_LIVE;
         else if (!strncmp(token, "Upgrade", HTTP_HEAD_VAL_LEN))
-            client->state |= CLIENT_STATE_UPGRADE_PEDDING;
+            client->state |= CLIENT_STATE_UPGRADE_PENDING;
         else
             warn("HTTP Connection: '%s' not implemented.\n", token);
 
@@ -135,7 +135,7 @@ static void set_client_connection(client_t* client, http_header_t* header)
 
 static void handle_http_upgrade(client_t* client, http_t* http, http_header_t* header)
 {
-    if (client->state & CLIENT_STATE_UPGRADE_PEDDING)
+    if (client->state & CLIENT_STATE_UPGRADE_PENDING)
     {
         if (!strncmp(header->val, "websocket", HTTP_HEAD_VAL_LEN))
         {
@@ -307,7 +307,7 @@ static void http_free(http_t* http)
 
 static void server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
 {
-    client->state ^= CLIENT_STATE_UPGRADE_PEDDING;
+    client->state ^= CLIENT_STATE_UPGRADE_PENDING;
 }
 
 static void http_add_header(http_t* http, const char* name, const char* val)
@@ -462,7 +462,7 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
 
 static void server_handle_http_get(server_t* server, client_t* client, http_t* http)
 {
-    if (client->state & CLIENT_STATE_UPGRADE_PEDDING)
+    if (client->state & CLIENT_STATE_UPGRADE_PENDING)
         server_handle_client_upgrade(server, client, http);
     else
         server_http_do_get_req(server, client, http);
