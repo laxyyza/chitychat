@@ -80,7 +80,14 @@ static bool server_init_socket(server_t* server)
         if (!strncmp(server->conf.addr_ip, "any", 3))
             server->addr_in.sin_addr.s_addr = INADDR_ANY;
         else
+        {
             server->addr_in.sin_addr.s_addr = inet_addr(server->conf.addr_ip);
+            if (server->addr_in.sin_addr.s_addr == INADDR_NONE)
+            {
+                fatal("Invalid IP in address: '%s'.\n", server->conf.addr_ip);
+                return false;
+            }
+        }
     }
     else
     {
