@@ -12,6 +12,8 @@
 #define CLIENT_STATE_WEBSOCKET       0x0002
 #define CLIENT_STATE_KEEP_ALIVE      0x0004
 
+#define CLIENT_RECV_BUFFER           4096
+
 typedef struct 
 {
     u64     id;
@@ -24,6 +26,9 @@ typedef struct client
     u16 state;
 
     client_user_t ws_user;
+
+    u8 recv_buffer[CLIENT_RECV_BUFFER];
+    size_t recv_buf_index;
 
     struct client* next;
     struct client* prev;

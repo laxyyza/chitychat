@@ -259,6 +259,36 @@ static void server_accept_conn(server_t* server)
         client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
 }
 
+static void server_read_fd(server_t* server, const i32 fd)
+{
+    ssize_t bytes_recv;
+    client_t* client = server_get_client_fd(server, fd);
+
+    u8* buffer = client->recv_buffer + client->recv_buf_index;
+    size_t buffer_left = CLIENT_RECV_BUFFER - client->recv_buf_index;
+    if (client->recv_buf_index == 0)
+        memset(buffer, 0, buffer_left);
+
+    bytes_recv = recv(client->addr.sock, buffer, buffer_left, 0);
+    if (bytes_recv == -1)
+    {
+        error("Client (fd:%d, IP: %s:%s) recv error: %s\n", client->addr.sock, client->addr.ip_str, client->addr.serv);
+        server_del_client(server, client);
+        return;
+    }
+    else if (bytes_recv == 0)
+    {
+        debug("Client recv 0 bytes, disconnecting...\n");
+        server_del_client(server, client);
+        return;
+    }
+
+    if (client->state & CLIENT_STATE_WEBSOCKET)
+        server_ws_parse(server, client, buffer, bytes_recv);
+    else
+        server_http_parse(server, client, buffer, bytes_recv);
+}
+
 static void server_ep_event(server_t* server, const struct epoll_event* event)
 {
     const i32 fd = event->data.fd;
@@ -277,6 +307,7 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
     else if (ev & EPOLLIN)
     {
         // fd ready for read
+        server_read_fd(server, fd);
     }
     else
     {

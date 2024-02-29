@@ -7,6 +7,8 @@
 #include <linux/limits.h>
 #include "server_net.h"
 #include "common.h"
+#include "server_http.h"
+#include "server_websocket.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
