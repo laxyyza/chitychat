@@ -2,6 +2,8 @@
 #include "server_log.h"
 
 #include <sys/stat.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 char* strsplit(char* restrict str, const char* restrict delm, char** restrict saveprr)
 {
@@ -105,4 +107,19 @@ void mask(u8* buf, size_t buf_len, const u8* maskkey, size_t maskkey_len)
 {
     for (size_t i = 0; i < buf_len; i++)
         buf[i] ^= maskkey[i % 4];
+}
+
+bool file_isdir(const char* filepath)
+{
+    if (!filepath)
+        return false;
+
+    struct stat file_stat;
+    if (stat(filepath, &file_stat) == -1)
+    {
+        error("stat on '%s': %s\n", filepath, ERRSTR);
+        return false;
+    }
+
+    return S_ISDIR(file_stat.st_mode);
 }

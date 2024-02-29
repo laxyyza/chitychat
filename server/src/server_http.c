@@ -454,6 +454,9 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
     else
         snprintf(path, PATH_MAX, "%s%s", server->conf.root_dir, http->req.url); 
         //strncpy(path, http->req.url, HTTP_URL_LEN);
+    
+    if (file_isdir(path))
+        strcat(path, "/index.html");
 
     if (strstr(path, ".html"))
         content_type = "text/html";
@@ -540,7 +543,7 @@ ssize_t http_send(client_t* client, http_t* http)
     ssize_t bytes_sent = 0;
     http_to_str_t to_str = http_to_str(http);
 
-    debug("HTTP send to fd:%d (%s:%s)\n%s", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.str);
+    debug("HTTP send to fd:%d (%s:%s)\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.str);
 
     if ((bytes_sent = send(client->addr.sock, to_str.str, to_str.len, 0)) == -1)
     {
