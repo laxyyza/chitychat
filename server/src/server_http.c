@@ -456,8 +456,15 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
         snprintf(path, PATH_MAX, "%s%s", server->conf.root_dir, http->req.url); 
         //strncpy(path, http->req.url, HTTP_URL_LEN);
     
-    if (file_isdir(path))
+    i32 isdir = file_isdir(path);
+    if (isdir == -1)
+    {
+        server_http_resp_404_not_found(client);
+        return;
+    }
+    else if (isdir)
         strcat(path, "/index.html");
+
 
     if (strstr(path, ".html"))
         content_type = "text/html";
@@ -468,7 +475,7 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
     else if (strstr(path, ".ico"))
         content_type = "image/x-icon";
     else
-        warn("Path: '%s' dont know what content-type should be.\n");
+        warn("Path: '%s' dont know what content-type should be.\n", path);
 
     fd = open(path, O_RDONLY);
     if (fd == -1)

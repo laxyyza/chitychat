@@ -1,12 +1,114 @@
 #include "server_websocket.h"
 #include "server.h"
 #include <sys/uio.h>
+#include <json-c/json.h>
 
 static void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len)
 {
     info("Web Socket message from fd:%d, IP: %s:%s:\n\t'%s'\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv, buf
     );
+
+    json_object* respond_json = json_object_new_object();
+    json_object* payload = json_tokener_parse(buf);
+    json_object* type_json = json_object_object_get(payload, "type");
+    const char* type = json_object_get_string(type_json);
+    const char* error_msg = NULL;
+
+    if (client->state & CLIENT_STATE_LOGGED_IN)
+    {
+
+    }
+    else
+    {
+        json_object* username_json = json_object_object_get(payload, "username");
+        json_object* password_json = json_object_object_get(payload, "password");
+        json_object* displayname_json = json_object_object_get(payload, "displayname");
+
+        const char* username = json_object_get_string(username_json);
+        const char* password = json_object_get_string(password_json);
+        const char* displayname = json_object_get_string(displayname_json);
+
+        if (!username_json || !username)
+        {
+            error_msg = "Require username.";
+            goto error;
+        }
+        if (!password_json || !password)
+        {
+            error_msg = "Require password.";
+            goto error;
+        }
+
+        if (!strcmp(type, "login"))
+        {
+            dbuser_t* user = server_db_get_user_from_name(server, username);
+            if (!user)
+            {
+                error_msg = "Incorrect Username or password";
+                goto error;
+            }
+
+            info("Found user: %zu|%s|%s|%s|%s\n", user->user_id, user->username, user->displayname, user->bio, user->password);
+
+            if (strncmp(password, user->password, DB_PASSWORD_MAX))
+            {
+                error_msg = "Incorrect Username or password";
+                goto error;
+            }
+            else
+            {
+                info("Logged in!!!\n");
+            }
+            // Find user by username from database
+            // Compare the passwords
+
+            free(user);
+        }
+        else if (!strcmp(type, "register"))
+        {
+            if (!displayname_json || !displayname)
+            {
+                error_msg = "Require display name.";
+                goto error;
+            }
+            // Insert new user  
+
+            dbuser_t new_user;
+            memset(&new_user, 0, sizeof(dbuser_t));
+            strncpy(new_user.username, username, DB_USERNAME_MAX);
+            strncpy(new_user.displayname, displayname, DB_USERNAME_MAX);
+            strncpy(new_user.password, password, DB_PASSWORD_MAX);
+
+            if (!server_db_insert_user(server, &new_user))
+            {
+                error_msg = "Username already taken";
+                goto error;
+            }
+        }
+        else
+        {
+            error_msg = "Not logged in.";
+            goto error;
+            // NOPE
+        }
+    }
+
+error:;
+    if (error_msg)
+    {
+        error("error:msg: %s\n", error_msg);
+        json_object_object_add(respond_json, "type", json_object_new_string("error"));
+        json_object_object_add(respond_json, "error_msg", json_object_new_string(error_msg));
+
+        size_t len;
+        const char* respond = json_object_to_json_string_length(respond_json, 0, &len);
+
+        ws_send(client, respond, len);
+    }
+
+    json_object_put(payload);
+    json_object_put(respond_json);
 }
 
 void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)

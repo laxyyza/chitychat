@@ -47,7 +47,9 @@ void server_log(enum server_log_level level, const char* filename, int line, con
     if (log_level < level)
         return;
 
-    char* output = calloc(1, SERVER_LOG_MAX);
+    char output[SERVER_LOG_MAX];
+    memset(output, 0, SERVER_LOG_MAX);
+    //char* output = calloc(1, SERVER_LOG_MAX);
     FILE* file = (level <= SERVER_WARN) ? stderr : stdout;
 
     va_list args;
@@ -66,5 +68,5 @@ void server_log(enum server_log_level level, const char* filename, int line, con
 
     fflush(file);
 
-    free(output);
+    // free(output);
 }

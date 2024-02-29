@@ -15,6 +15,7 @@ bool        server_load_config(server_t* server, const char* config_path)
     json_object* addr_port;
     json_object* addr_version;
     json_object* database;
+    json_object* sql_filepaths;
 
     config = json_object_from_file(config_path);
     if (!config)
@@ -57,6 +58,20 @@ bool        server_load_config(server_t* server, const char* config_path)
     //     (server->conf.addr_version == IPv4) ? "IPv4" : "IPv6",   
     //     server->conf.database
     // );
+
+    server->conf.sql_schema = "server/sql/schema.sql";
+    server->conf.sql_insert_user = "server/sql/insert_user.sql";
+    server->conf.sql_select_user = "server/sql/select_user.sql";
+    server->conf.sql_delete_user = "server/sql/delete_user.sql";
+    server->conf.sql_insert_group = "server/sql/insert_group.sql";
+    server->conf.sql_select_group = "server/sql/select_group.sql";
+    server->conf.sql_delete_group = "server/sql/delete_group.sql";
+    server->conf.sql_insert_groupmember = "server/sql/insert_groupmember.sql";
+    server->conf.sql_select_groupmember = "server/sql/select_groupmember.sql";
+    server->conf.sql_delete_groupmember = "server/sql/delete_groupmember.sql";
+    server->conf.sql_insert_msg = "server/sql/insert_msg.sql";
+    server->conf.sql_select_msg = "server/sql/select_msg.sql";
+    server->conf.sql_delete_msg = "server/sql/delete_msg.sql";
 
     return true;
 }

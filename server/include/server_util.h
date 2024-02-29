@@ -6,7 +6,7 @@
 char* strsplit(char* restrict str, const char* restrict delm, char** restrict saveptr);
 void print_hex(const char* str, size_t len);
 size_t fdsize(int fd);
-bool    file_isdir(const char* filepath);
+i32     file_isdir(const char* filepath);
 
 // Copy n bytes swapped order
 void swpcpy(u8* restrict dest, const u8* restrict src, size_t n);

@@ -109,16 +109,16 @@ void mask(u8* buf, size_t buf_len, const u8* maskkey, size_t maskkey_len)
         buf[i] ^= maskkey[i % 4];
 }
 
-bool file_isdir(const char* filepath)
+i32 file_isdir(const char* filepath)
 {
     if (!filepath)
-        return false;
+        return -1;
 
     struct stat file_stat;
     if (stat(filepath, &file_stat) == -1)
     {
         error("stat on '%s': %s\n", filepath, ERRSTR);
-        return false;
+        return -1;
     }
 
     return S_ISDIR(file_stat.st_mode);

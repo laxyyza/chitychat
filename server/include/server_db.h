@@ -9,6 +9,7 @@
 #define DB_DISPLAYNAME_MAX 50
 #define DB_MESSAGE_MAX  512
 #define DB_BIO_MAX 256
+#define DB_PASSWORD_MAX 50
 
 typedef struct 
 {
@@ -16,6 +17,7 @@ typedef struct
     char username[DB_USERNAME_MAX];
     char displayname[DB_DISPLAYNAME_MAX];
     char bio[DB_BIO_MAX];
+    char password[DB_PASSWORD_MAX];
     bool online;
 } dbuser_t;
 
@@ -39,6 +41,37 @@ typedef struct
 typedef struct 
 {
     sqlite3* db;
+
+    char* schema;
+    size_t schema_len;
+
+    char* insert_user;
+    size_t insert_user_len;
+    char* select_user;
+    size_t select_user_len;
+    char* delete_user;
+    size_t delete_user_len;
+
+    char* insert_group;
+    size_t insert_group_len;
+    char* select_group;
+    size_t select_group_len;
+    char* delete_group;
+    size_t delete_group_len;
+
+    char* insert_groupmember;
+    size_t insert_groupmember_len;
+    char* select_groupmember;
+    size_t select_groupmember_len;
+    char* delete_groupmember;
+    size_t delete_groupmember_len;
+
+    char* insert_msg;
+    size_t insert_msg_len;
+    char* select_msg;
+    size_t select_msg_len;
+    char* delete_msg;
+    size_t delete_msg_len;
 } server_db_t;
 
 bool        server_db_open(server_t* server);

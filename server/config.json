@@ -3,17 +3,5 @@
     "addr_ip": "any",
     "addr_port": 8080,
     "addr_version": "ipv4",
-    "database": "server/chitychat.db",
-    "sql_filepaths": {
-        "schema": "server/sql/schema.sql",
-        "insert_user": "server/sql/insert_user.sql",
-        "select_user": "server/sql/select_user.sql",
-        "delete_user": "server/sql/delete_user.sql",
-        "insert_group": "server/sql/insert_group.sql",
-        "select_group": "server/sql/select_user.sql",
-        "delete_group": "server/sql/delete_user.sql",
-        "insert_msg": "server/sql/insert_msg.sql",
-        "select_msg": "server/sql/select_msg.sql",
-        "delete_msg": "server/sql/delete_msg.sql"
-    }
+    "database": "server/chitychat.db"
 }
