@@ -48,11 +48,6 @@ bool        server_load_config(server_t* server, const char* config_path)
     const char* database_str = json_object_get_string(database);
     strncpy(server->conf.database, database_str, CONFIG_PATH_LEN);
 
-    json_object_put(root_dir);
-    json_object_put(addr_ip);
-    json_object_put(addr_port);
-    json_object_put(addr_version);
-    json_object_put(database);
     json_object_put(config);
 
     // info("config:\n\troot_dir: %s\n\taddr_ip: %s\n\taddr_port: %u\n\taddr_version: %s\n\tdatabase: %s\n",
