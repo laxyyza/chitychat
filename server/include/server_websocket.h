@@ -96,5 +96,7 @@ typedef struct
 } ws_t;
 
 void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len);
+ssize_t ws_send(client_t* client, const char* buf, size_t len);
+ssize_t ws_send_adv(client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey);
 
 #endif // _SERVER_WEBSOCKET_H_

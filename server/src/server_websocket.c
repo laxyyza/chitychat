@@ -1,5 +1,6 @@
 #include "server_websocket.h"
 #include "server.h"
+#include <sys/uio.h>
 
 static void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len)
 {
@@ -70,4 +71,77 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
             debug("UNKNOWN FRAME (%u): %s\n", ws.frame.opcode, ws.payload);
             break;
     }
+}
+
+ssize_t ws_send_adv(client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey)
+{
+    ssize_t bytes_sent = 0;
+    struct iovec iov[4];
+    size_t i = 0;
+    ws_t ws = {
+        .frame.fin = 1,
+        .frame.rsv1 = 0,
+        .frame.rsv2 = 0,
+        .frame.rsv3 = 0,
+        .frame.opcode = opcode,
+        .frame.mask = (maskkey) ? 1 : 0,
+        .frame.payload_len = len
+    };
+
+    iov[i].iov_base = &ws.frame;
+    iov[i].iov_len = sizeof(ws_frame_t);
+
+    if (len >= 125)
+    {
+        i++;
+        if (len >= UINT16_MAX)
+        {
+            debug("WS SEND 64-bit\n");
+            ws.frame.payload_len = 127;
+            swpcpy((u8*)&ws.ext.u64, (u8*)&len, sizeof(u64));
+            iov[i].iov_base = &ws.ext.u64;
+            iov[i].iov_len = sizeof(u64);
+        }
+        else
+        {
+            debug("WS SEND 16-bit\n");
+            ws.frame.payload_len = 126;
+            swpcpy((u8*)&ws.ext.u16, (const u8*)&len, sizeof(u16));
+            iov[i].iov_base = &ws.ext.u16;
+            iov[i].iov_len = sizeof(u16);
+        }
+    }
+
+    if (ws.frame.mask)
+    {
+        i++;
+        iov[i].iov_base = (u8*)maskkey;
+        iov[i].iov_len = WS_MASKKEY_LEN;
+
+        if (buf)
+            mask((u8*)buf, len, maskkey, WS_MASKKEY_LEN);
+
+    }
+
+    if (buf)
+    {
+        i++;
+        iov[i].iov_base = (char*)buf;
+        iov[i].iov_len = len;
+    }
+
+    i++;
+    if ((bytes_sent = writev(client->addr.sock, iov, i)) == -1)
+    {
+        error("WS Send to (fd:%d, IP: %s:%s): %s\n",
+            client->addr.sock, client->addr.ip_str, client->addr.serv
+        );
+    }
+
+    return bytes_sent;
+}
+
+ssize_t ws_send(client_t* client, const char* buf, size_t len)
+{
+    return ws_send_adv(client, WS_TEXT_FRAME, buf, len, NULL);
 }
