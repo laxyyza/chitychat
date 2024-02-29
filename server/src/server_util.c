@@ -100,3 +100,9 @@ void swpcpy(u8* restrict dest, const u8* restrict src, size_t n)
     for (size_t i = 0; i < n; i++) 
         dest[i] = src[n - 1 - i];
 }
+
+void mask(u8* buf, size_t buf_len, const u8* maskkey, size_t maskkey_len)
+{
+    for (size_t i = 0; i < buf_len; i++)
+        buf[i] ^= maskkey[i % 4];
+}
