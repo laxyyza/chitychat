@@ -206,6 +206,9 @@ server_t*   server_init(const char* config_path)
     if (!server_init_client_list(server))
         goto error;
 
+    if (!server_db_init(server))
+        goto error;
+
     server->running = true;
 
     return server;

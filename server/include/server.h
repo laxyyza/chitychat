@@ -9,6 +9,7 @@
 #include "common.h"
 #include "server_http.h"
 #include "server_websocket.h"
+#include "server_db.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
@@ -19,7 +20,7 @@ typedef struct
 {
     char root_dir[CONFIG_PATH_LEN];
     char addr_ip[INET6_ADDRSTRLEN];
-    uint16_t    addr_port;
+    uint16_t addr_port;
     enum ip_version addr_version;
     char database[CONFIG_PATH_LEN];
 } server_config_t;
