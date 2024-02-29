@@ -13,6 +13,7 @@ socket.addEventListener('message', (event) => {
     if (respond.type === "session")
     {
         console.log("Sucsess: ", respond.id)
+        localStorage.setItem("session_id", respond.id);
     }
     else
     {

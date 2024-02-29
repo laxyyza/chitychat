@@ -3,6 +3,7 @@
 
 #include "server_net.h"
 #include "common.h"
+#include "server_db.h"
 
 #define USERNAME_MAX 50
 #define DISPLAYNAME_MAX 50
@@ -15,18 +16,12 @@
 
 #define CLIENT_RECV_BUFFER           4096
 
-typedef struct 
-{
-    u64     id;
-    char    username[USERNAME_MAX];
-} client_user_t;
-
 typedef struct client
 {
     net_addr_t addr;
     u16 state;
 
-    client_user_t ws_user;
+    dbuser_t dbuser;
 
     u8 recv_buffer[CLIENT_RECV_BUFFER];
     size_t recv_buf_index;

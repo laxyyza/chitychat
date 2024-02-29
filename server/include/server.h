@@ -17,6 +17,8 @@
 #define CONFIG_PATH_LEN 512
 #define CONFIG_ADDR_VRESION_LEN 10
 
+#define MAX_SESSIONS 10
+
 typedef struct 
 {
     char root_dir[CONFIG_PATH_LEN];
@@ -40,6 +42,13 @@ typedef struct
     const char* sql_delete_msg;
 } server_config_t;
 
+
+typedef struct
+{
+    u32 session_id;
+    u32 user_id;
+} session_t;
+
 typedef struct server
 {
     int sock;
@@ -56,6 +65,8 @@ typedef struct server
 
     client_t* client_head;
     client_t* client_tail;
+
+    session_t sessions[MAX_SESSIONS];
 
     bool running;
 } server_t;

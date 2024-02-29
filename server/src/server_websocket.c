@@ -2,6 +2,7 @@
 #include "server.h"
 #include <sys/uio.h>
 #include <json-c/json.h>
+#include <sys/random.h>
 
 static void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len)
 {
@@ -56,12 +57,8 @@ static void server_ws_handle_text_frame(server_t* server, client_t* client, char
                 error_msg = "Incorrect Username or password";
                 goto error;
             }
-            else
-            {
-                info("Logged in!!!\n");
-            }
-            // Find user by username from database
-            // Compare the passwords
+
+            info("Logged in!!!\n");
 
             free(user);
         }
@@ -92,7 +89,32 @@ static void server_ws_handle_text_frame(server_t* server, client_t* client, char
             goto error;
             // NOPE
         }
+
+        session_t* session;
+        dbuser_t* user = server_db_get_user_from_name(server, username);
+        for (size_t i = 0; i < MAX_SESSIONS; i++)
+        {
+            if (server->sessions[i].session_id == 0)
+            {
+                session = &server->sessions[i];
+                break;
+            }
+        }
+
+        getrandom(&session->session_id, sizeof(u32), 0);
+        session->user_id = user->user_id;
+
+        json_object_object_add(respond_json, "type", json_object_new_string("session"));
+        json_object_object_add(respond_json, "id", json_object_new_uint64(session->session_id));
+
+        size_t len;
+        const char* respond = json_object_to_json_string_length(respond_json, 0, &len);
+
+        ws_send(client, respond, len);
+
+        free(user);
     }
+
 
 error:;
     if (error_msg)
