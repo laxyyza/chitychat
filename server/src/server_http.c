@@ -385,6 +385,7 @@ static void http_add_body(http_t* restrict http, const char* restrict body, size
     http->body = calloc(1, body_len);
     strncpy(http->body, body, body_len);
     http->body_inheap = true;
+    http->body_len = body_len;
 
     char val[HTTP_HEAD_VAL_LEN];
     snprintf(val, HTTP_HEAD_VAL_LEN, "%zu", body_len);
