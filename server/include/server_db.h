@@ -41,7 +41,8 @@ typedef struct
     sqlite3* db;
 } server_db_t;
 
-bool        server_db_init(server_t* server);
+bool        server_db_open(server_t* server);
+void        server_db_close(server_t* server);
 
 dbuser_t*   server_db_get_user_from_id(server_t* server, u64 user_id);
 dbuser_t*   server_db_get_user_from_name(server_t* server, const char* username);

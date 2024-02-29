@@ -30,6 +30,7 @@ typedef struct server
     int sock;
     int epfd;
     server_config_t conf;
+    server_db_t db;
 
     struct sockaddr* addr;
     union {

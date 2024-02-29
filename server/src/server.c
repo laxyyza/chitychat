@@ -206,7 +206,7 @@ server_t*   server_init(const char* config_path)
     if (!server_init_client_list(server))
         goto error;
 
-    if (!server_db_init(server))
+    if (!server_db_open(server))
         goto error;
 
     server->running = true;
@@ -381,6 +381,7 @@ void server_cleanup(server_t* server)
         return;
 
     server_del_all_clients(server);
+    server_db_close(server);
 
     if (server->epfd)
         close(server->epfd);
