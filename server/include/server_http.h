@@ -8,6 +8,7 @@
 
 #define HTTP_END "\r\n\r\n"
 #define HTTP_NL "\r\n"
+#define HTTP_VERSION "HTTP/1.1"
 
 #define HTTP_METHOD_LEN 16
 #define HTTP_VERSION_LEN 16
@@ -27,6 +28,7 @@
 #define HTTP_HEAD_CONTENT_LEN "Content-Length"
 #define HTTP_HEAD_WS_ACCEPT   "Sec-WebSocket-Accept"
 #define HTTP_HEAD_CONN_UPGRADE "Upgrade"
+#define HTTP_HEAD_CONTENT_TYPE "Content-Type"
 
 enum http_keep_alive
 {
@@ -51,10 +53,10 @@ typedef struct
 typedef struct 
 {
     char version[HTTP_VERSION_LEN];
-    uint8_t code;
+    u16 code;
     char msg[HTTP_STATUS_MSG_LEN];
 } http_resp_t;
- 
+
 typedef struct 
 {
     char name[HTTP_HEAD_NAME_LEN];
