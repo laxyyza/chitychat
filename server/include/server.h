@@ -10,6 +10,7 @@
 #include "server_http.h"
 #include "server_websocket.h"
 #include "server_db.h"
+#include "server_util.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
