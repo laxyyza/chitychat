@@ -90,5 +90,7 @@ typedef struct
 } http_to_str_t;
 
 void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len);
+http_t* http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_len);
+ssize_t http_send(client_t* client, http_t* http);
 
 #endif // _SERVER_HTTP_H_

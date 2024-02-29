@@ -305,9 +305,17 @@ static void http_free(http_t* http)
     free(http);
 }
 
-static void server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
+const char* http_get_header(http_t* http, const char* name)
 {
-    client->state ^= CLIENT_STATE_UPGRADE_PENDING;
+    for (size_t i = 0; i < http->n_headers; i++)
+    {
+        http_header_t* header = http->headers + i;
+
+        if (NAME_CMP(name))
+            return header->val;
+    }
+
+    return NULL;
 }
 
 static void http_add_header(http_t* http, const char* name, const char* val)
@@ -343,6 +351,35 @@ static void http_add_header(http_t* http, const char* name, const char* val)
     strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN);
 }
 
+static void server_upgrade_client_to_websocket(server_t* server, client_t* client, http_t* req_http)
+{
+    http_t* http = http_new_resp(HTTP_CODE_SW_PROTO, "Switching Protocols", NULL, 0);
+    http_add_header(http, "Connection", HTTP_HEAD_CONN_UPGRADE);
+    http_add_header(http, "Upgrade", "websocket");
+    http_add_header(http, HTTP_HEAD_WS_ACCEPT, req_http->websocket_key);
+
+    if (http_send(client, http) != -1)
+        client->state |= CLIENT_STATE_WEBSOCKET;
+}
+
+static void server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
+{
+    const char* upgrade = http_get_header(http, HTTP_HEAD_CONN_UPGRADE);
+    if (upgrade == NULL)
+    {
+        warn("Client fd:%d (Upgrade pending): No upgrade header in HTTP.\n", client->addr.sock);
+        client->state ^= CLIENT_STATE_UPGRADE_PENDING;
+        return;
+    }
+
+    if (!strncmp(upgrade, "websocket", HTTP_HEAD_VAL_LEN))
+        server_upgrade_client_to_websocket(server, client, http);
+    else
+        warn("Connection upgrade '%s' not implemented.\n", upgrade);
+
+    client->state ^= CLIENT_STATE_UPGRADE_PENDING;
+}
+
 static void http_add_body(http_t* restrict http, const char* restrict body, size_t body_len)
 {
     http->body = calloc(1, body_len);
@@ -374,25 +411,19 @@ static void server_http_resp_ok(client_t* client, char* content, size_t content_
 {
     http_t* http = http_new_resp(HTTP_CODE_OK, "OK", content, content_len);
     http_add_header(http, HTTP_HEAD_CONTENT_TYPE, content_type);
-    http_to_str_t to_str = http_to_str(http);
 
-    if (send(client->addr.sock, to_str.str, to_str.len, 0) == -1)
-        error("http_resp_ok send() failed: %s\n", ERRSTR);
+    http_send(client, http);
 
     http_free(http);
-    free(to_str.str);
 }
 
 static void server_http_resp_error(client_t* client, u16 error_code, const char* status_msg)
 {
     http_t* http = http_new_resp(error_code, status_msg, NULL, 0);
-    http_to_str_t to_str = http_to_str(http);
 
-    if (send(client->addr.sock, to_str.str, to_str.len, 0) == -1)
-        error("http_resp_error send() failed: %s\n", ERRSTR);
+    http_send(client, http);
 
     http_free(http);
-    free(to_str.str);
 }
 
 static void server_http_resp_404_not_found(client_t* client)
@@ -401,13 +432,10 @@ static void server_http_resp_404_not_found(client_t* client)
     size_t len = strlen(not_found_html);
 
     http_t* http = http_new_resp(HTTP_CODE_NOT_FOUND, "Not Found", not_found_html, len);
-    http_to_str_t to_str = http_to_str(http);
 
-    if (send(client->addr.sock, to_str.str, to_str.len, 0) == -1)
-        error("http_resp_404_not_found send() failed: %s\n", ERRSTR);
+    http_send(client, http);
 
     http_free(http);
-    free(to_str.str);
 }
 
 static void server_http_do_get_req(server_t* server, client_t* client, http_t* http)
@@ -505,4 +533,23 @@ void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_l
         warn("Unknown http type: %d. Request or Respond? Ignored.\n", http->type);
 
     http_free(http);
+}
+
+ssize_t http_send(client_t* client, http_t* http)
+{
+    ssize_t bytes_sent = 0;
+    http_to_str_t to_str = http_to_str(http);
+
+    debug("HTTP send to fd:%d (%s:%s)\n%s", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.str);
+
+    if ((bytes_sent = send(client->addr.sock, to_str.str, to_str.len, 0)) == -1)
+    {
+        error("HTTP send to (fd: %d, IP: %s:%s): %s\n",
+            client->addr.sock, client->addr.ip_str, client->addr.serv
+        );
+    }
+
+    free(to_str.str);
+
+    return bytes_sent;
 }
