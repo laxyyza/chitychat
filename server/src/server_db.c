@@ -124,28 +124,28 @@ void server_db_close(server_t* server)
     sqlite3_close(server->db.db);
 }
 
-dbuser_t *server_db_get_user(server_t *server, u64 user_id,
-                             const char *username) {
+dbuser_t* server_db_get_user(server_t* server, u64 user_id, const char* username_to) 
+{
     dbuser_t* user = calloc(1, sizeof(dbuser_t));
 
     sqlite3_stmt* stmt;
     i32 ret = sqlite3_prepare_v2(server->db.db, server->db.select_user, -1, &stmt, NULL);
 
     sqlite3_bind_int(stmt, 1, user_id);
-    sqlite3_bind_text(stmt, 2, username, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, username_to, -1, SQLITE_TRANSIENT);
     bool found = false;
 
     while ((ret = sqlite3_step(stmt)) == SQLITE_ROW)
     {
         user->user_id = sqlite3_column_int(stmt, 0);
-        const char* username = sqlite3_column_text(stmt, 1);
+        const char* username = (const char*)sqlite3_column_text(stmt, 1);
         strncpy(user->username, username, DB_USERNAME_MAX);
-        const char* displayname = sqlite3_column_text(stmt, 2);
+        const char* displayname = (const char*)sqlite3_column_text(stmt, 2);
         strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
-        const char* bio = sqlite3_column_text(stmt, 3);
+        const char* bio = (const char*)sqlite3_column_text(stmt, 3);
         if (bio)
             strncpy(user->bio, bio, DB_BIO_MAX);
-        const char* password = sqlite3_column_text(stmt, 4);
+        const char* password = (const char*)sqlite3_column_text(stmt, 4);
         strncpy(user->password, password, DB_PASSWORD_MAX);
 
         found = true;
