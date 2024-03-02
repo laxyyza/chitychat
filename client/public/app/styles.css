@@ -1,165 +1,212 @@
-body, html{
+body, html {
     margin: 0px;
     padding: 0px;
-    background-color: black;
+    height: 100%;
+    background-color: rgb(20, 20, 20);
     color: white;
+    font-family: 'Roboto';
+    /* overflow: hidden; */
+}
+
+h1, h2, h3 {
+    font-family: 'Roboto';
+    font-weight: 700; /* Use Roboto Bold for headings */
+}
+
+.grid{
+    display: grid;
     height: 100%;
+    grid-template-columns: 15% auto 15%;
 }
 
-.con {
-    display: flex;
+.left{
+    /* border: 1px solid white; */
+    display: grid;
+    grid-template-rows: 93% 7%;
+    background-color: rgb(15, 15, 15);
+}
+
+.me_info_con{
+    background-color: black;
+}
+
+.me_info{
+    /* border: 1px solid red; */
+    width: 100%;
     height: 100%;
-}
-
-.left {
-    position: relative;
-    width: 300px;
-    background-color: rgb(44, 44, 44);
-    border-right: 1px solid black;
-    overflow-y: auto;
-}
-
-.group{
-    border: 1px solid black;
-    border-radius: 13px;
-    padding: 10px;
-    margin: 10px 10px;
+    text-align: left ;
     font-size: 20px;
-    z-index: 0;
 }
 
-.group:hover{
-    background-color: rgb(71, 71, 71);
+#main{
+    /* border: 1px solid green; */
+    display: grid;
+    grid-template-rows: auto 55px;
 }
 
-.msg_con{
-    flex: 1;
-    background-color: rgb(44, 44, 44);
+#messages_con{
     position: relative;
-    border: 1px solid black;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
-.groupmem{
-    border: 1px solid black;
-    border-radius: 13px;
-    padding: 10px;
-    margin: 10px 10px;
-    font-size: 20px;
-}
-
-.right{
-    position: relative;
-    background-color: red;
-    background-color: rgb(44, 44, 44);
-    width: 300px;
-    overflow-y: auto;
-}
-
-.input_con{
-    background-color: rgb(44, 44, 44);
-    width: 900px;
-    height: 40px;
-    top: 97%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    line-height: 50px;
-    position: fixed;
-    border-radius: 13px;
-    border: 1px solid black;
-}
-
-.input_text {
+#messages{
+    position: absolute;
     width: 100%;
-    height: 100%;
-    border: none;
-    box-shadow: none;
-    padding: 5px;
-    box-sizing: border-box;
-    background-color: transparent;
-    font-size: 30px;
-    border-radius: 13px;
-    color: white;
-    outline: none;
+    /* background-color: red; */
 }
 
 .msg{
-    width: 100%;
-    height: 100px;
-    border: 1px solid black;
-    border-radius: 13px;
+    /* background-color: green; */
     padding: 5px;
     margin: 10px;
-    box-sizing: border-box;
-    /* background-color: red; */
+    /* height: 90px; */
+    border-radius: 13px;
+    /* border: 2px solid black; */
 }
 
-.group_list{
-    /* position: absolute; */
-    overflow-y: auto;
-    width: 100%;
+.msg:hover{
+    background-color: rgb(34, 34, 34);
 }
 
-.bottom_con{
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background-color: rgb(44, 44, 44);
+.msg_displayname{
+    font-size: 20px;
+    color: yellow;
     padding: 10px;
-    box-sizing: border-box;
-    border-top: 1px solid black;
+    font-weight: 700; /* Use Roboto Bold for headings */
 }
 
-.bottom {
+.msg_username{
+    font-size: 13px;
+}
+
+.msg_content_con{
+    padding: 5px;
+    margin: 5px;
+}
+
+.msg_content{
+    white-space: pre-wrap;
+    font-weight: 400; /* Use Roboto Bold for headings */
+}
+
+.msg_timestamp{
+    font-size: 13px;
+}
+
+.input_con{
+    /* background-color: green; */
+    padding: 10px;
+}
+
+.input_box{
+    position: relative;
+    /* background-color: green; */
+    background-color: rgb(34, 34, 34);
+    width: 100%;
+    height: 100%;
+    padding: 0px;
+    margin: 0px;
+    border-radius: 10px;
+}
+
+.input_box_box{
+    /* position: fixed; */
+    border-radius: 10px;
+}
+
+#msg_input{
+    background-color: transparent;
+    /* background-color: rgb(255, 0, 0); */
+    color: white;
+    outline: none;
+    border: none;
+    resize: none;
+    width: 90%;
+    height: 100%;
+    font-size: 20px;
+    float: left;
+    padding-left: 10px;
+
+    /* border: none;
+    background-color: rgb(34, 34, 34);
+    width: calc(100% - 20px);
+    height: calc(100% - 20px);
+    max-width: 100%;
+    max-height: 100%;
+    resize: none;
+    outline: none;
+    font-size: 20px;
+    margin: 10px;
+    box-sizing: border-box;
+    border-radius: 13px;
+    color: white; */
+}
+
+#msg_input_button{
+    background-color: rgb(17, 17, 17);
+    border: none;
+    float: right;
+    /* border-radius: 10px; */
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    width: calc(10% - 20px);
+    height: 100%;
+    color: white;
+    font-size: 25px;
+}
+
+#msg_input_button:hover{
+    background-color: rgb(65, 65, 65);
+}
+
+.group_list_con{
     position: relative;
 }
 
-.user_info{
-    /* background-color: red; */
-    width: 80%;
-    padding-bottom: 10px;
-}
-
-.join_button {
-    /* position: absolute;  */
-    right: 0;
-    top: 0;
+#group_list{
+    position: absolute;
+    overflow-y: auto;
+    /* background-color: white; */
+    width: 100%;
     height: 100%;
-    /* border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0; */
-    background-color: rgb(34, 34, 34);
-    border: none;
-    border-left: 3px solid black;
-    padding: 10px;
-    font-size: 15px;
-    color: white;
 }
 
-.join_button:hover{
-    background-color: rgb(104, 160, 51);
-    color: black;
+.group_members_list_con{
+    position: relative;
+    background-color: rgb(15, 15, 15);
 }
 
-.settings_button{
-    /* position: absolute;  */
-    right: 0;
-    top: 0;
+.group_members_list{
+    position: absolute;
+    /* border: 1px solid red; */
+    width: 100%;
     height: 100%;
-    /* border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0; */
-    background-color: rgb(34, 34, 34);
-    border: none;
-    border-left: 3px solid black;
-    padding: 10px;
-    font-size: 15px;
-    color: white;
+    overflow-y: auto;
 }
 
-.settings_button:hover{
-    background-color: rgb(104, 160, 51);
-    color: black;
+.group_member{
+    /* background-color: pink; */
+    padding: 10px;
+    margin: 10px;
+    border-radius: 13px;
+}
+
+.group_member:hover{
+    background-color: rgb(34, 34, 34);
+}
+
+.group{
+    max-width: 100%;
+    max-height: 100%;
+    position: relative;
+    /* border: 1px solid white; */
+    padding: 10px;
+    margin: 10px;
+    border-radius: 13px;
+    /* border: 1px solid black; */
+}
+
+.group:hover{
+    background-color: rgb(34, 34, 34);
 }
