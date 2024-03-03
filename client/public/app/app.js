@@ -119,7 +119,14 @@ function start_popup_create_group(width, height)
         if (input.value == "")
             return;
 
-        groups.push(new Group(-1, input.value, null));
+        var packet = {
+            type: "group_create",
+            name: input.value
+        };
+
+        socket.send(JSON.stringify(packet));
+
+        // groups.push(new Group(-1, input.value, null));
         input.value = "";
 
         stop_popup();
@@ -322,13 +329,17 @@ socket.addEventListener("message", (event) => {
 
     if (logged_in)
     {
-        if (packet.type == "client_user_info")
+        if (packet.type === "client_user_info")
         {
             client_user = new User(packet.id, packet.username, packet.displayname, packet.bio);
             var me_displayname = document.getElementById("me_displayname");
             me_displayname.innerHTML = client_user.displayname;
             var me_username = document.getElementById("me_username");
             me_username.innerHTML = client_user.username;
+        }
+        else if (packet.type === "group")
+        {
+            groups.push(new Group(packet.id, packet.name, null));
         }
         else
         {

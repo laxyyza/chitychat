@@ -26,6 +26,7 @@ typedef struct
     u64 group_id;
     u64 owner_id;
     char displayname[DB_DISPLAYNAME_MAX];
+    char desc[DB_DISPLAYNAME_MAX];
     u64* messages;
     size_t n_messages;
 } dbgroup_t;

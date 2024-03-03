@@ -214,7 +214,26 @@ dbgroup_t* server_db_get_user_groups(server_t* server, u64 user_id, u32* n)
 
 bool server_db_insert_group(server_t* server, dbgroup_t* group)
 {
-    return false;
+    sqlite3_stmt* stmt;
+    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_group, -1, &stmt, NULL);
+    bool ret = true;
+
+    sqlite3_bind_text(stmt, 1, group->displayname, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, group->desc, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 3, group->owner_id);
+
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    {
+        error("Failed to insert group: %s\n", sqlite3_errmsg(server->db.db));
+        ret = false;
+    }
+    sqlite3_int64 rowid = sqlite3_last_insert_rowid(server->db.db);
+    group->group_id = rowid;
+
+    sqlite3_finalize(stmt);
+
+    return ret;
 }
 
 dbmsg_t* server_db_get_msg(server_t* server, u64 msg_id)

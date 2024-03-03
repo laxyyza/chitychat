@@ -48,6 +48,31 @@ static void server_ws_handle_text_frame(server_t* server, client_t* client, char
 
             ws_json_send(client, respond_json);
         }
+        else if (!strcmp(type, "group_create"))
+        {
+            json_object* name_json = json_object_object_get(payload, "name");
+            const char* name = json_object_get_string(name_json);
+
+            dbgroup_t new_group;
+            memset(&new_group, 0, sizeof(dbgroup_t));
+            new_group.owner_id = client->dbuser.user_id;
+            strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
+
+            if (!server_db_insert_group(server, &new_group))
+            {
+                error_msg = "Failed to create group";
+                goto error;
+            }
+
+            info("Creating new group, id: %u, name: '%s', owner_id: %u\n", new_group.group_id, name, new_group.owner_id);
+
+            json_object_object_add(respond_json, "type", json_object_new_string("group"));
+            json_object_object_add(respond_json, "id", json_object_new_int(new_group.group_id));
+            json_object_object_add(respond_json, "name", json_object_new_string(new_group.displayname));
+            json_object_object_add(respond_json, "desc", json_object_new_string(new_group.desc));
+
+            ws_json_send(client, respond_json);
+        }
     }
     else
     {
