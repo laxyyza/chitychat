@@ -8,53 +8,33 @@
 
 #define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
 
-static u8* hash_key(const char* key)
+char* compute_websocket_key(const char* websocket_key)
 {
+    char *concatenated = malloc(strlen(websocket_key) + sizeof(WEBSOCKET_GUID) + 1);
+    strcpy(concatenated, websocket_key);
+    strcat(concatenated, WEBSOCKET_GUID);
 
-    size_t len = strlen(key);
+    unsigned char sha1_hash[SHA_DIGEST_LENGTH];
+    SHA1((u8*)concatenated, strlen(concatenated), sha1_hash);
+    free(concatenated);
 
-    char* combined = calloc(1, len + sizeof(WEBSOCKET_GUID));
-    strcat(combined, key);
-    strcat(combined, WEBSOCKET_GUID);
-
-    SHA_CTX sha1_ctx;
-    unsigned char* hash = calloc(1, SHA_DIGEST_LENGTH);
-
-    SHA1_Init(&sha1_ctx);
-    SHA1_Update(&sha1_ctx, combined, strlen(combined));
-    SHA1_Final(hash, &sha1_ctx);
-    
-    free(combined);
-
-    return hash;
-}
-
-static char *b64_encode(const unsigned char *buffer, size_t len) 
-{
-    BIO* bio;
-    BIO* b64;
-    BUF_MEM* buffer_ptr;
-
-    b64 = BIO_new(BIO_f_base64());
+    BIO *bio, *b64;
+    BUF_MEM *bufferPtr;
     bio = BIO_new(BIO_s_mem());
+    b64 = BIO_new(BIO_f_base64());
     bio = BIO_push(b64, bio);
 
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    BIO_write(bio, buffer, len);
+    BIO_write(bio, sha1_hash, sizeof(sha1_hash));
     BIO_flush(bio);
-    BIO_get_mem_ptr(bio, &buffer_ptr);
-    BIO_set_close(bio, BIO_NOCLOSE);
+    BIO_get_mem_ptr(bio, &bufferPtr);
+
+    char *b64_data = malloc(bufferPtr->length);
+    memcpy(b64_data, bufferPtr->data, bufferPtr->length);
+    b64_data[bufferPtr->length - 1] = 0x00;
+
     BIO_free_all(bio);
 
-    return buffer_ptr->data;
-}
-
-char* compute_websocket_key(char* key)
-{
-    unsigned char* hash = hash_key(key);
-    char* b64 = b64_encode(hash, strlen((char*)hash));
-    free(hash);
-    return b64;
+    return b64_data;
 }
 
 
@@ -155,7 +135,6 @@ static void handle_http_upgrade(client_t* client, http_t* http, http_header_t* h
 static void handle_websocket_key(client_t* client, http_t* http, http_header_t* header)
 {
     http->websocket_key = compute_websocket_key(header->val);
-    http->websocket_key[28] = 0x00;
 }
 
 static void handle_http_header(client_t* client, http_t* http, http_header_t* header)
