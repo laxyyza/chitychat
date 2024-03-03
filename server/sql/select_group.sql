@@ -1,1 +1,1 @@
-SELECT * FROM Groups WHERE group_id = ?
+SELECT * FROM Groups WHERE group_id = ? OR owner_id = ?

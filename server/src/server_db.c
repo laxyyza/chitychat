@@ -207,9 +207,51 @@ dbgroup_t* server_db_get_group(server_t* server, u64 group_id)
     return NULL;
 }
 
-dbgroup_t* server_db_get_user_groups(server_t* server, u64 user_id, u32* n)
+dbgroup_t* server_db_get_user_groups(server_t* server, u64 user_id, u32* n_ptr)
 {
-    return NULL;
+    u32 n = 0;
+    u32 i = 0;
+    dbgroup_t* groups = malloc(sizeof(dbgroup_t));
+    sqlite3_stmt* stmt;
+    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_group, -1, &stmt, NULL);
+
+
+    sqlite3_bind_int(stmt, 1, -1);
+    sqlite3_bind_int(stmt, 2, user_id);
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
+    {
+        n++;
+        if (n > 1)
+            groups = realloc(groups, sizeof(dbgroup_t) * n);
+
+
+        dbgroup_t* group = groups + (n - 1);
+        memset(group, 0, sizeof(dbgroup_t));
+
+        group->group_id = sqlite3_column_int(stmt, 0);
+        warn("Getting group: %u\n", group->group_id);
+        group->owner_id = sqlite3_column_int(stmt, 1);
+        const char* name = (const char*)sqlite3_column_text(stmt, 2);
+        strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
+        const char* desc = (const char*)sqlite3_column_text(stmt, 3);
+        strncpy(group->desc, desc, DB_DESC_MAX);
+    }
+    if (rc != SQLITE_OK)
+    {
+        error("Failed while getting groups: %s\n", sqlite3_errmsg(server->db.db));
+    }
+
+    sqlite3_finalize(stmt);
+
+    if (n == 0)
+    {
+        free(groups);
+        groups = NULL;
+    }
+    *n_ptr = n;
+
+    return groups;
 }
 
 bool server_db_insert_group(server_t* server, dbgroup_t* group)

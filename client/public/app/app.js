@@ -341,6 +341,14 @@ socket.addEventListener("message", (event) => {
         {
             groups.push(new Group(packet.id, packet.name, null));
         }
+        else if (packet.type === "client_groups")
+        {
+            for (var i = 0; i < packet.groups.length; i++)
+            {
+                const group = packet.groups[i];
+                groups.push(new Group(group.id, group.name, null));
+            }
+        }
         else
         {
             console.warn("Packet type: " + packet.type + " not implemented");
@@ -356,6 +364,9 @@ socket.addEventListener("message", (event) => {
                 type: "client_user_info"
             };
 
+            socket.send(JSON.stringify(req_packet));
+
+            req_packet.type = "client_groups";
             socket.send(JSON.stringify(req_packet));
         }
         else

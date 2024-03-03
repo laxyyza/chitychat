@@ -9,6 +9,7 @@
 #define DB_DISPLAYNAME_MAX 50
 #define DB_MESSAGE_MAX  512
 #define DB_BIO_MAX 256
+#define DB_DESC_MAX 256
 #define DB_PASSWORD_MAX 50
 
 typedef struct 
@@ -26,7 +27,7 @@ typedef struct
     u64 group_id;
     u64 owner_id;
     char displayname[DB_DISPLAYNAME_MAX];
-    char desc[DB_DISPLAYNAME_MAX];
+    char desc[DB_DESC_MAX];
     u64* messages;
     size_t n_messages;
 } dbgroup_t;

@@ -73,6 +73,37 @@ static void server_ws_handle_text_frame(server_t* server, client_t* client, char
 
             ws_json_send(client, respond_json);
         }
+        else if (!strcmp(type, "client_groups"))
+        {
+            dbgroup_t* groups;
+            u32 n_groups;
+
+            groups = server_db_get_user_groups(server, client->dbuser.user_id, &n_groups);
+
+            if (!groups)
+            {
+                error_msg = "Server failed to get user groups";
+                goto error;
+            }
+
+            json_object_object_add(respond_json, "type", type_json);
+            json_object_object_add(respond_json, "groups", json_object_new_array());
+            json_object* array_json = json_object_object_get(respond_json, "groups");
+
+            for (size_t i = 0; i < n_groups; i++)
+            {
+                const dbgroup_t* g = groups + i;
+                json_object* group_json = json_object_new_object();
+                json_object_object_add(group_json, "id", json_object_new_int(g->group_id));
+                json_object_object_add(group_json, "name", json_object_new_string(g->displayname));
+                json_object_object_add(group_json, "desc", json_object_new_string(g->desc));
+                json_object_array_add(array_json, group_json);
+            }
+
+            ws_json_send(client, respond_json);
+
+            free(groups);
+        }
     }
     else
     {
