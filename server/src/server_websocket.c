@@ -21,14 +21,11 @@ ssize_t ws_json_send(client_t* client, json_object* json)
     size_t len;
     const char* string = json_object_to_json_string_length(json, 0, &len);
 
-    debug("ws_json_send, len: %zu:\n\t'%s'\n", len, string);
-
     return ws_send(client, string, len);
 }
 
 static const char* server_handle_logged_in_client(server_t* server, client_t* client, json_object* payload, json_object* respond_json, const char* type)
 {
-    debug("server_handle_logged_in_client()\n");
     if (!strcmp(type, "client_user_info"))
     {
         json_object_object_add(respond_json, "type", json_object_new_string("client_user_info"));
@@ -198,7 +195,6 @@ static void server_create_client_session(server_t* server, client_t* client, con
 
 static const char* server_handle_not_logged_in_client(server_t* server, client_t* client, json_object* payload, json_object* respond_json, const char* type)
 {
-    debug("server_handle_not_logged_in_client()\n");
     json_object* username_json = json_object_object_get(payload, "username");
     json_object* password_json = json_object_object_get(payload, "password");
     json_object* displayname_json = json_object_object_get(payload, "displayname");
@@ -226,19 +222,8 @@ static const char* server_handle_not_logged_in_client(server_t* server, client_t
     return NULL;
 }
 
-static void print_each_char(char* buf)
-{
-    size_t i = 0;
-    while (*buf)
-    {
-        const char c = *buf++;
-        debug("Char:\t%zu:\t'%c'\t(%02X;\t%u)\n", i, c, c, c);
-        i++;
-    }
-}
-
-static void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len)
-{
+static void server_ws_handle_text_frame(server_t *server, client_t *client,
+                                        char *buf, size_t buf_len) {
 
     debug("Web Socket message from fd:%d, IP: %s:%s:\n\t'%s'\n",
          client->addr.sock, client->addr.ip_str, client->addr.serv, buf);
@@ -261,9 +246,9 @@ static void server_ws_handle_text_frame(server_t* server, client_t* client, char
     const char* type = json_object_get_string(type_json);
     const char* error_msg = NULL;
 
-    debug("payload: %p\n", payload);
-    debug("type_json: %p\n", type_json);
-    debug("type: '%s'\n", type);
+    // debug("payload: %p\n", payload);
+    // debug("type_json: %p\n", type_json);
+    // debug("type: '%s'\n", type);
 
     if (client->state & CLIENT_STATE_LOGGED_IN)
         error_msg = server_handle_logged_in_client(server, client, payload, respond_json, type);
@@ -291,13 +276,13 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
 
     memcpy(&ws.frame, buf, sizeof(ws_frame_t));
 
-    debug("FIN: %u\n", ws.frame.fin);
-    debug("RSV1: %u\n", ws.frame.rsv1);
-    debug("RSV2: %u\n", ws.frame.rsv2);
-    debug("RSV3: %u\n", ws.frame.rsv3);
-    debug("MASK: %u\n", ws.frame.mask);
-    debug("OPCODE: %02X\n", ws.frame.opcode);
-    debug("PAYLOAD LEN: %u\n", ws.frame.payload_len);
+    // debug("FIN: %u\n", ws.frame.fin);
+    // debug("RSV1: %u\n", ws.frame.rsv1);
+    // debug("RSV2: %u\n", ws.frame.rsv2);
+    // debug("RSV3: %u\n", ws.frame.rsv3);
+    // debug("MASK: %u\n", ws.frame.mask);
+    // debug("OPCODE: %02X\n", ws.frame.opcode);
+    // debug("PAYLOAD LEN: %u\n", ws.frame.payload_len);
 
     if (ws.frame.payload_len == 126)
     {
@@ -419,8 +404,6 @@ ssize_t ws_send_adv(client_t *client, u8 opcode, const char *buf, size_t len,
             client->addr.sock, client->addr.ip_str, client->addr.serv
         );
     }
-
-    debug("Bytes sent: %zu\n", bytes_sent);
 
     return bytes_sent;
 }
