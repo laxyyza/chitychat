@@ -14,6 +14,7 @@ socket.addEventListener('message', (event) => {
     {
         console.log("Sucsess: ", respond.id)
         localStorage.setItem("session_id", respond.id);
+        window.location.href = "/app";
     }
     else
     {

@@ -16,32 +16,87 @@ h1, h2, h3 {
 .grid{
     display: grid;
     height: 100%;
-    grid-template-columns: 15% auto 15%;
+    grid-template-columns: 250px auto 250px;
 }
 
 .left{
     /* border: 1px solid white; */
     display: grid;
-    grid-template-rows: 93% 7%;
+    grid-template-rows: auto 40px 60px;
     background-color: rgb(15, 15, 15);
 }
 
-.me_info_con{
-    background-color: black;
+#create_group{
+    /* background-color: red; */
+    display: grid;
+    grid-template-columns: 50% 50%;
 }
 
-.me_info{
-    /* border: 1px solid red; */
-    width: 100%;
-    height: 100%;
+#me_info_con{
+    background-color: rgb(12, 12, 12);
+    padding: 10px;
+    display: grid;
+    grid-template-columns: auto 20%;
+    /* grid-column-start: 10px; */
+    /* grid-row-start: auto; */
+    /* grid-template-columns: auto; */
+}
+
+#me_info{
+    display: grid;
+    grid-template-rows: auto auto;
+}
+
+#me_displayname{
+    /* background-color: green; */
     text-align: left ;
     font-size: 20px;
+    color: yellow;
+}
+
+#me_username{
+    /* background-color: red; */
+    font-size: 12px;
+}
+
+#create_group_button{
+    background-color: black;
+    color: white;
+    border: none;
+    /* height: calc(100% - 10px);
+    width: calc(50% - 10px); */
+    border-radius: 7px;
+    margin: 5px;
+    font-size: 15px;
+}
+
+#join_group_button{
+    background-color: black;
+    color: white;
+    border: none;
+    /* height: calc(100% - 10px);
+    width: calc(50% - 10px); */
+    border-radius: 7px;
+    margin: 5px;
+    font-size: 15px;
+}
+
+#create_group_button:hover{
+    background-color: green;
+}
+
+#join_group_button:hover{
+    background-color: green;
 }
 
 #main{
     /* border: 1px solid green; */
     display: grid;
     grid-template-rows: auto 55px;
+}
+
+.group_members_list_con{
+    display: "block";
 }
 
 #messages_con{
@@ -160,6 +215,10 @@ h1, h2, h3 {
     background-color: rgb(65, 65, 65);
 }
 
+#msg_input_button:active{
+    background-color: rgb(90, 90, 90);
+}
+
 .group_list_con{
     position: relative;
 }
@@ -172,12 +231,12 @@ h1, h2, h3 {
     height: 100%;
 }
 
-.group_members_list_con{
+#group_members_list_con{
     position: relative;
     background-color: rgb(15, 15, 15);
 }
 
-.group_members_list{
+#group_members_list{
     position: absolute;
     /* border: 1px solid red; */
     width: 100%;
@@ -196,6 +255,10 @@ h1, h2, h3 {
     background-color: rgb(34, 34, 34);
 }
 
+.group_member:active{
+    background-color: red;
+}
+
 .group{
     max-width: 100%;
     max-height: 100%;
@@ -209,4 +272,166 @@ h1, h2, h3 {
 
 .group:hover{
     background-color: rgb(34, 34, 34);
+}
+
+.group.active{
+    background-color: rgb(53, 52, 52);
+}
+
+#popup_con{
+    display: none;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+}
+
+#popup{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgb(41, 41, 41);
+    /* padding: 20px; */
+    width: 20%;
+    height: 20%;
+    border-radius: 13px;
+
+    display: flex;
+    justify-content: center;
+    /* align-items: center; */
+}
+
+.popup_header{
+    text-align: center;
+}
+
+#popup_create_group_input{
+    text-align: center;
+    width: 100%;
+    height: 30px;
+    outline: none;
+    border: none;
+    background-color: rgb(19, 19, 19);
+    color: white;
+    border-radius: 5px;
+    font-size: 20px;
+}
+
+#popup_create_group{
+    display: none;
+    margin: 0 auto;
+    /* background-color: red; */
+    height: 100%;
+    width: 300px;
+}
+
+.popup_group{
+    max-width: 100%;
+    max-height: 100%;
+    position: relative;
+    /* border: 1px solid white; */
+    padding: 10px;
+    margin: 10px;
+    border-radius: 13px;
+    /* border: 1px solid black; */
+}
+
+.popup_group:hover {
+    background-color: rgb(46, 46, 46);
+}
+
+#popup_join_group{
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+#popup_group_list_con{
+    background-color: rgb(20, 20, 20);
+    width: 500px;
+    height: 650px;
+    border-radius: 13px;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.popup_group{
+    background-color: inherit;
+    border-radius: 13px;
+}
+
+#popup_group_name{
+    font-size: 20px;
+    padding-right: 15px;
+    font-weight: 800;
+}
+
+#popup_group_owner{
+    font-size: 16px;
+    padding-right: 5px;
+    color: yellow;
+}
+
+#popup_group_owner_username{
+    font-size: 14px;
+    /* color: red; */
+}
+
+#popup_join_group_button{
+    position: absolute;
+    background-color: inherit;
+    border: none;
+    height: 100%;
+    border-top-right-radius: inherit;
+    border-bottom-right-radius: inherit;
+    right: 0;
+    margin: -10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    color: transparent;
+    font-size: 20px;
+}
+
+#popup_join_group_button:hover{
+    background-color: green;
+    color: white; 
+}
+
+#popup_create_group_button{
+    width: calc(100% - 20px);
+    height: 30px;
+    margin-top: 50px;
+    margin-left: 10px;
+    margin-right: 10px;
+    background-color: green;
+    border: none;
+    border-radius: 13px;
+    font-size: 20px;
+}
+
+#popup_create_group_button:hover{
+    background-color: rgb(0, 255, 0);
+}
+
+#close_popup{
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    cursor: pointer;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 5px;
+    padding-bottom: 5px; 
+    /* border-radius: 13px; */
+    border-top-right-radius: 13px;
+    border-bottom-left-radius: 5px;
+    font-size: 20px;
+}
+
+#close_popup:hover{
+    background-color: red;
 }

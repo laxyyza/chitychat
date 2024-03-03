@@ -534,7 +534,7 @@ void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_l
         return;
     }
 
-    print_parsed_http(http);
+    // print_parsed_http(http);
 
     if (http->type == HTTP_REQUEST)
         server_handle_http_req(server, client, http);
@@ -551,7 +551,7 @@ ssize_t http_send(client_t* client, http_t* http)
     ssize_t bytes_sent = 0;
     http_to_str_t to_str = http_to_str(http);
 
-    debug("HTTP send to fd:%d (%s:%s)\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.str);
+    // debug("HTTP send to fd:%d (%s:%s)\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.str);
 
     if ((bytes_sent = send(client->addr.sock, to_str.str, to_str.len, 0)) == -1)
     {

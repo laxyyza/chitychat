@@ -4,6 +4,26 @@
 #include <json-c/json.h>
 #include <sys/random.h>
 
+static session_t* server_find_session(server_t* server, u32 id)
+{
+    if (id == 0)
+        return NULL;
+
+    for (size_t i = 0; i < MAX_SESSIONS; i++)
+        if (server->sessions[i].session_id == id)
+            return &server->sessions[i];
+
+    return NULL;
+}
+
+ssize_t ws_json_send(client_t* client, json_object* json)
+{
+    size_t len;
+    const char* string = json_object_to_json_string_length(json, 0, &len);
+
+    return ws_send(client, string, len);
+}
+
 static void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len)
 {
     info("Web Socket message from fd:%d, IP: %s:%s:\n\t'%s'\n", 
@@ -18,13 +38,58 @@ static void server_ws_handle_text_frame(server_t* server, client_t* client, char
 
     if (client->state & CLIENT_STATE_LOGGED_IN)
     {
+        if (!strcmp(type, "client_user_info"))
+        {
+            json_object_object_add(respond_json, "type", json_object_new_string("client_user_info"));
+            json_object_object_add(respond_json, "id", json_object_new_int(client->dbuser.user_id));
+            json_object_object_add(respond_json, "username", json_object_new_string(client->dbuser.username));
+            json_object_object_add(respond_json, "displayname", json_object_new_string(client->dbuser.displayname));
+            json_object_object_add(respond_json, "bio", json_object_new_string(client->dbuser.bio));
 
+            ws_json_send(client, respond_json);
+        }
     }
     else
     {
         json_object* username_json = json_object_object_get(payload, "username");
         json_object* password_json = json_object_object_get(payload, "password");
         json_object* displayname_json = json_object_object_get(payload, "displayname");
+
+
+        if (!strcmp(type, "session"))
+        {
+            json_object* session_id_json = json_object_object_get(payload, "id");
+            const u32 session_id = json_object_get_int(session_id_json);
+
+            const session_t* session = server_find_session(server, session_id);
+            if (!session)
+            {
+                error_msg = "Invalid session ID or session expired";
+                goto error;
+            }
+
+            dbuser_t* dbuser = server_db_get_user_from_id(server, session->user_id);
+            if (!dbuser)
+            {
+                error_msg = "Server cuold not find user in database";
+                goto error;
+            }
+            memcpy(&client->dbuser, dbuser, sizeof(dbuser_t));
+            free(dbuser);
+
+            json_object_object_add(respond_json, "type", json_object_new_string("session"));
+            json_object_object_add(respond_json, "id", json_object_new_uint64(session->session_id));
+
+            size_t len;
+            const char* respond = json_object_to_json_string_length(respond_json, 0, &len);
+
+            if (ws_send(client, respond, len) != -1)
+                client->state |= CLIENT_STATE_LOGGED_IN;
+
+            info("Client with session ID: %u, logged in as: %u\n", session->session_id, session->user_id);
+
+            goto error;
+        }
 
         const char* username = json_object_get_string(username_json);
         const char* password = json_object_get_string(password_json);
@@ -110,7 +175,10 @@ static void server_ws_handle_text_frame(server_t* server, client_t* client, char
         size_t len;
         const char* respond = json_object_to_json_string_length(respond_json, 0, &len);
 
+        info("New session created: %u\n", session->session_id);
+
         ws_send(client, respond, len);
+        client->state |= CLIENT_STATE_LOGGED_IN;
 
         free(user);
     }
