@@ -1,0 +1,1 @@
+SELECT * FROM GroupMembers WHERE group_id = ?

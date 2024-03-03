@@ -51,6 +51,8 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
             return "Failed to create group";
         }
 
+        server_db_insert_group_member(server, new_group.group_id, client->dbuser.user_id);
+
         info("Creating new group, id: %u, name: '%s', owner_id: %u\n", new_group.group_id, name, new_group.owner_id);
 
         json_object_object_add(respond_json, "type", json_object_new_string("group"));
@@ -89,6 +91,106 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
         ws_json_send(client, respond_json);
 
         free(groups);
+    }
+    else if (!strcmp(type, "group_members"))
+    {
+        json_object* group_id_json = json_object_object_get(payload, "group_id");
+        u64 group_id = json_object_get_int(group_id_json);
+
+        u32 n_members;
+        dbgroup_member_t* gmembers = server_db_get_group_members(server, group_id, &n_members);
+
+        if (!n_members)
+            return "Group has no members";
+
+        json_object_object_add(respond_json, "type", json_object_new_string("group_members"));
+        json_object_object_add(respond_json, "group_id", json_object_new_int(group_id));
+        json_object_object_add(respond_json, "members", json_object_new_array_ext(n_members));
+        json_object* members_array = json_object_object_get(respond_json, "members");
+
+        for (size_t i = 0; i < n_members; i++)
+        {
+            const dbgroup_member_t* member = gmembers + i;
+            json_object_array_add(members_array, json_object_new_int(member->user_id));
+        }
+
+        ws_json_send(client, respond_json);
+
+        free(gmembers);
+    }
+    else if (!strcmp(type, "get_user"))
+    {
+        json_object* user_id_json = json_object_object_get(payload, "id");
+        u64 user_id = json_object_get_int(user_id_json);
+
+        dbuser_t* dbuser = server_db_get_user_from_id(server, user_id);
+        if (!dbuser)
+            return "User not found";
+
+        json_object_object_add(respond_json, "type", json_object_new_string("get_user"));
+        json_object_object_add(respond_json, "id", json_object_new_int(dbuser->user_id));
+        json_object_object_add(respond_json, "username", json_object_new_string(dbuser->username));
+        json_object_object_add(respond_json, "displayname", json_object_new_string(dbuser->displayname));
+        json_object_object_add(respond_json, "bio", json_object_new_string(dbuser->bio));
+
+        ws_json_send(client, respond_json);
+
+        free(dbuser);
+    }
+    else if (!strcmp(type, "get_all_groups"))
+    {
+        u32 n_groups;
+        dbgroup_t* groups = server_db_get_all_groups(server, &n_groups);
+        if (!groups)
+            return "Failed to get groups";
+
+        json_object_object_add(respond_json, "type", json_object_new_string("get_all_groups"));
+        json_object_object_add(respond_json, "groups", json_object_new_array_ext(n_groups));
+        json_object* groups_json = json_object_object_get(respond_json, "groups");
+
+        for (size_t i = 0; i < n_groups; i++)
+        {
+            dbgroup_t* g = groups + i;
+
+            json_object* group_json = json_object_new_object();
+            json_object_object_add(group_json, "id", json_object_new_int(g->group_id));
+            json_object_object_add(group_json, "name", json_object_new_string(g->displayname));
+            json_object_object_add(group_json, "desc", json_object_new_string(g->desc));
+            json_object_array_add(groups_json, group_json);
+        }
+
+        ws_json_send(client, respond_json);
+
+        free(groups);
+    }
+    else if (!strcmp(type, "join_group"))
+    {
+        json_object* group_id_json = json_object_object_get(payload, "group_id");
+        const u64 group_id = json_object_get_int(group_id_json);
+
+        dbgroup_t* group = server_db_get_group(server, group_id);
+        if (!group)
+            return "Group not found";
+
+        if (!server_db_insert_group_member(server, group->group_id, client->dbuser.user_id))
+            return "Failed to join";
+
+        json_object_object_add(respond_json, "type", json_object_new_string("join_group"));
+        json_object_object_add(respond_json, "groups", json_object_new_array_ext(1));
+        json_object* array_json = json_object_object_get(respond_json, "groups");
+
+        // TODO: DRY!
+        json_object* group_json = json_object_new_object();
+        json_object_object_add(group_json, "id", json_object_new_int(group->group_id));
+        json_object_object_add(group_json, "name", json_object_new_string(group->displayname));
+        json_object_object_add(group_json, "desc", json_object_new_string(group->desc));
+        json_object_array_add(array_json, group_json);
+
+        // TODO: Send to all other online clients in that group that a new user joined
+        
+        ws_json_send(client, respond_json);
+
+        free(group);
     }
     else
         warn("Unknown packet type: '%s'\n", type);
