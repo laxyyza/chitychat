@@ -360,14 +360,16 @@ socket.addEventListener("message", (event) => {
         {
             logged_in = true;
 
-            var req_packet = {
+            const req_user_info = {
                 type: "client_user_info"
             };
+            const req_groups = {
+                type: "client_groups"
+            };
 
-            socket.send(JSON.stringify(req_packet));
+            socket.send(JSON.stringify(req_user_info));
 
-            req_packet.type = "client_groups";
-            socket.send(JSON.stringify(req_packet));
+            socket.send(JSON.stringify(req_groups));
         }
         else
         {

@@ -307,6 +307,8 @@ static void server_read_fd(server_t* server, const i32 fd)
         server_ws_parse(server, client, buffer, bytes_recv);
     else
         server_http_parse(server, client, buffer, bytes_recv);
+
+    client->recv_buf_index = 0;
 }
 
 static void server_ep_event(server_t* server, const struct epoll_event* event)
