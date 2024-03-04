@@ -289,6 +289,12 @@ static void server_create_client_session(server_t* server, client_t* client, con
 {
     session_t* session;
     dbuser_t* user = server_db_get_user_from_name(server, username);
+    if (!user)
+    {
+        warn("create_client_session: db_get_user_from_name returned NULL!\n");
+        return;
+    }
+
     for (size_t i = 0; i < MAX_SESSIONS; i++)
     {
         if (server->sessions[i].session_id == 0)
@@ -334,9 +340,9 @@ static const char* server_handle_not_logged_in_client(server_t* server, client_t
         return "Require password.";
 
     if (!strcmp(type, "login"))
-        server_handle_client_login(server, client, username, password);
+        return server_handle_client_login(server, client, username, password);
     else if (!strcmp(type, "register"))
-        server_handle_client_register(server, client, username, displayname_json, displayname, password);
+        return server_handle_client_register(server, client, username, displayname_json, displayname, password);
     else
         return "Not logged in.";
 
