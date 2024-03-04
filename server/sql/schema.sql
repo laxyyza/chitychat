@@ -1,6 +1,6 @@
 PRAGMA foreign_keys = ON;
 
-CREATE TABLE Users(
+CREATE TABLE IF NOT EXISTS Users(
     user_id         INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     username        VARCHAR(50) NOT NULL UNIQUE,
     displayname     VARCHAR(50) NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE Users(
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE Groups(
+CREATE TABLE IF NOT EXISTS Groups(
     group_id        INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     owner_id        INTEGER,
     name            VARCHAR(50) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE Groups(
     FOREIGN KEY (owner_id) REFERENCES Users(user_id)
 );
 
-CREATE TABLE GroupMembers(
+CREATE TABLE IF NOT EXISTS GroupMembers(
     user_id         INTEGER,
     group_id        INTEGER,
     join_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -27,7 +27,7 @@ CREATE TABLE GroupMembers(
     FOREIGN KEY (group_id) REFERENCES Groups(group_id)
 );
 
-CREATE TABLE Messages(
+CREATE TABLE IF NOT EXISTS Messages(
     msg_id      INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     user_id     INTEGER, 
     group_id    INTEGER,
@@ -39,7 +39,9 @@ CREATE TABLE Messages(
         REFERENCES GroupMembers(user_id, group_id)
 );
 
-CREATE TRIGGER insert_owner_group_member
+-- Everytime when a group is created, 
+-- owner will automatically be a group member.
+CREATE TRIGGER IF NOT EXISTS insert_owner_group_member
 AFTER INSERT ON Groups 
 FOR EACH ROW
 BEGIN
