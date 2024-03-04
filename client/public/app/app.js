@@ -15,7 +15,8 @@ var group_class = document.getElementsByClassName("group");
 
 var socket = new WebSocket("ws://" + window.location.host);
 
-var groups = [];
+var groups = {};
+var current_group;
 var users = {};
 var client_user = null;
 
@@ -95,6 +96,7 @@ class Group
 
             //     socket.send(JSON.stringify(packet));
             // }
+            current_group = this;
         });
 
         this.members = [];
@@ -129,17 +131,54 @@ class Group
         this.members.push(member);
     }
 
+    add_msg(user, content)
+    {
+        var div_msg = document.createElement("div");
+        div_msg.className = "msg";
+
+        var span_displayname = document.createElement("span");
+        span_displayname.className = "msg_displayname";
+        span_displayname.innerHTML = user.displayname;
+
+        var span_timestamp = document.createElement("span");
+        span_timestamp.className = "msg_timestamp";
+        span_timestamp.innerHTML = "1AM Today";
+
+        var div_content = document.createElement("div");
+        div_content.className = "msg_content_con";
+
+        var span_msg_content = document.createElement("span");
+        span_msg_content.className = "msg_content";
+        span_msg_content.innerHTML = content;
+        div_content.appendChild(span_msg_content);
+
+        div_msg.appendChild(span_displayname);
+        div_msg.appendChild(span_timestamp);
+        div_msg.appendChild(div_content);
+
+
+        // var messages = document.getElementById("messages");
+        var messages = this.div_chat_messages;
+
+        messages.appendChild(div_msg);
+
+        messages_container.scrollTo(0, messages_container.scrollHeight);
+
+        set_input_height(0);
+    }
+
     // TODO: Add a `update_member()` method.
 }
 
 function check_if_in_group(group_id)
 {
-    for (var i = 0; i < groups.length; i++)
-    {
-        if (groups[i].id === group_id)
-            return true;
-    }
-    return false;
+    return groups[group_id];
+    // for (var i = 0; i < groups.length; i++)
+    // {
+    //     if (groups[i].id === group_id)
+    //         return true;
+    // }
+    // return false;
 }
 
 function start_popup_create_group(width, height)
@@ -372,13 +411,17 @@ function send_message()
     if (msg == "")
         return;
 
-    user = {
-        displayname: client_user.displayname 
+    const packet = {
+        type: "group_msg",
+        group_id: current_group.id,
+        content: msg
     };
 
-    create_msg_box(user, msg);
+    socket.send(JSON.stringify(packet));
+
+    // create_msg_box(user, msg);
     
-    console.log("Sending msg:", msg);
+    // console.log("Sending msg:", msg);
 
     input_msg.value = "";
 }
@@ -445,13 +488,14 @@ function check_have_user(id)
 
 function get_group(id)
 {
-    for (var i = 0; i < groups.length; i++)
-    {
-        const group = groups[i];
-        if (group.id === id)
-            return group;
-    }
-    return null;
+    return groups[id];
+    // for (var i = 0; i < groups.length; i++)
+    // {
+    //     const group = groups[i];
+    //     if (group.id === id)
+    //         return group;
+    // }
+    // return null;
 }
 
 function get_user(id)
@@ -478,7 +522,8 @@ socket.addEventListener("message", (event) => {
         }
         else if (packet.type === "group")
         {
-            groups.push(new Group(packet.id, packet.name));
+            groups[packet.id] = new Group(packet.id, packet.name);
+            // groups.push();
         }
         else if (packet.type === "client_groups")
         {
@@ -486,7 +531,7 @@ socket.addEventListener("message", (event) => {
             {
                 const group = packet.groups[i];
                 const new_group = new Group(group.id, group.name, group.members_id);
-                groups.push(new_group);
+                groups[group.id] = new_group;
             }
         }
         else if (packet.type === "group_members")
@@ -524,9 +569,9 @@ socket.addEventListener("message", (event) => {
             var new_user = new User(packet.id, packet.username, packet.displayname, packet.bio);
             users[new_user.id] = new_user;
 
-            for (var i = 0; i < groups.length; i++)
+            for (let group_id in groups)
             {
-                const group = groups[i];
+                var group = groups[group_id];
                 for (var m = 0; m < group.members_id.length; m++)
                 {
                     var member_id = group.members_id[m];
@@ -596,6 +641,19 @@ socket.addEventListener("message", (event) => {
             }
 
             start_popup_join_group_style_modifiers();
+        }
+        else if (packet.type === "group_msg")
+        {
+            var user = users[packet.user_id];
+            var group = groups[packet.group_id];
+            if (!user)
+            {
+                user = {
+                    displayname: toString(packet.user_id),
+                };
+            }
+
+            group.add_msg(user, packet.content);
         }
         else
         {
