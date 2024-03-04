@@ -217,11 +217,28 @@ static const char* join_group(server_t* server, client_t* client, json_object* p
     json_object_object_add(group_json, "members_id", json_object_new_array_ext(n_members));
     json_object* members_array_json = json_object_object_get(group_json, "members_id");
 
+    json_object* other_clients_respond = json_object_new_object();
+    json_object_object_add(other_clients_respond, "type", 
+        json_object_new_string("join_group"));
+    json_object_object_add(other_clients_respond, "user_id", 
+        json_object_new_int(client->dbuser.user_id));
+    json_object_object_add(other_clients_respond, "group_id", 
+        json_object_new_int(group_id));
+
     for (u32 m = 0; m < n_members; m++)
     {
         const dbuser_t* member = gmembers + m;
+        const client_t* member_client = server_get_client_user_id(server, member->user_id);
+
+        if (member_client)
+        {
+            ws_json_send(member_client, other_clients_respond);
+        }
+
         json_object_array_add(members_array_json, json_object_new_int(member->user_id));
     }
+
+    json_object_put(other_clients_respond);
 
     json_object_array_add(array_json, group_json);
 

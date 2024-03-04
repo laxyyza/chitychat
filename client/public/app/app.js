@@ -681,6 +681,24 @@ socket.addEventListener("message", (event) => {
                 group.add_msg(user, msg);
             }
         }
+        else if (packet.type === "join_group")
+        {
+            var group = groups[packet.group_id];
+            var user = users[packet.user_id];
+            group.members_id.push(packet.user_id);
+            if (!user)
+            {
+                const get_user_packet = {
+                    type: "get_user",
+                    id: packet.user_id
+                };
+
+                socket.send(JSON.stringify(get_user_packet));
+                return;
+            }
+
+            group.add_member(user);
+        }
         else
         {
             console.warn("Packet type: " + packet.type + " not implemented");
