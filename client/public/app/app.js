@@ -2,7 +2,7 @@
 var main_element = document.getElementById("main");
 var input_msg = document.getElementById("msg_input");
 var send_button = document.getElementById("msg_input_button");
-var messages_container = document.getElementById("messages_con")
+var messages_container = document.getElementById("messages_con");
 var group_member_container = document.getElementById("group_members_list_con");
 var create_group_button = document.getElementById("create_group_button");
 var join_group_button = document.getElementById("join_group_button");
@@ -14,6 +14,10 @@ var close_popup_button = document.getElementById("close_popup");
 var group_class = document.getElementsByClassName("group");
 
 var socket = new WebSocket("ws://" + window.location.host);
+
+var groups = [];
+var users = {};
+var client_user = null;
 
 var input_pixels = 55;
 const input_pixels_default = input_pixels;
@@ -37,11 +41,11 @@ class User
 
 class Group
 {
-    constructor(id, name, group_members)
+    constructor(id, name, members_id)
     {
         this.name = name;
-        this.id = "group_" + id;
-        console.log("new group: ", this.id, this.name);
+        this.id = id;
+        this.members_id = members_id;
 
         this.div_chat_messages = document.createElement("div");
         this.div_chat_messages.id = "messages";
@@ -51,7 +55,7 @@ class Group
 
         this.div_list = document.createElement("div");
         this.div_list.className = "group";
-        this.div_list.id = this.id;
+        this.div_list.id = "group_" + this.id;
         this.div_list.innerHTML = this.name;
         this.div_list.addEventListener("click", () => {
             if (selected_group)
@@ -79,14 +83,36 @@ class Group
                 group_member_container.appendChild(this.div_group_members);
 
             messages_container.scrollTo(0, messages_container.scrollHeight);
+
+            // console.log(this.members);
+        
+            // if (this.members.length <= 1)
+            // {
+            //     const packet = {
+            //         type: "group_members",
+            //         group_id: this.id,
+            //     };
+
+            //     socket.send(JSON.stringify(packet));
+            // }
         });
 
-        if (group_members)
+        this.members = [];
+
+        for (var m = 0; m < this.members_id.length; m++)
         {
-            for (var i = 0; i < group_members.length; i++)
+            const id = this.members_id[m];
+            const user = get_user(id);
+            if (user)
+                this.add_member(user);
+            else
             {
-                const member = group_members[i];
-                this.add_member(member);
+                const packet = {
+                    type: "get_user",
+                    id: id
+                };
+
+                socket.send(JSON.stringify(packet));
             }
         }
 
@@ -100,11 +126,21 @@ class Group
         div_member.innerHTML = member.displayname;
 
         this.div_group_members.appendChild(div_member);
+        this.members.push(member);
     }
+
+    // TODO: Add a `update_member()` method.
 }
 
-var groups = [];
-var client_user = null;
+function check_if_in_group(group_id)
+{
+    for (var i = 0; i < groups.length; i++)
+    {
+        if (groups[i].id === group_id)
+            return true;
+    }
+    return false;
+}
 
 function start_popup_create_group(width, height)
 {
@@ -133,13 +169,90 @@ function start_popup_create_group(width, height)
     });
 }
 
+var popup_join = false;
+
 function start_popup_join_group(width, height)
 {
     popup_container.style.display = "block";
     popup.style.width = width + "px";
     popup.style.height = height + "px";
     popup_join_group.style.display = "block";
+    var group_list = document.getElementById("popup_group_list_con");
+    group_list.innerHTML = "";
 
+    const packet = {
+        type: "get_all_groups"
+    };
+
+    socket.send(JSON.stringify(packet));
+    popup_join = true;
+
+    // const group = {
+    //     id: 1,
+    //     name: "The KKK",
+    //     owner: {
+    //         username: "laxy",
+    //         displayname: "Laxyy"
+    //     }
+    // };
+    // popup_join_group_add_group(group);
+    // start_popup_join_group_style_modifiers();
+}
+
+function popup_join_group_add_group(group)
+{
+    var group_div = document.createElement("div");
+    group_div.className = "popup_group";
+
+    var span_name = document.createElement("span");
+    // span_name.id = "popup_group_name";
+    span_name.className = "popup_group_name";
+    span_name.innerHTML = group.name;
+    group_div.appendChild(span_name);
+
+    var span_owner = document.createElement("span");
+    span_owner.className = "popup_group_owner";
+    span_owner.id = "popup_group_owner" + group.owner_id;
+    span_owner.innerHTML = group.owner.displayname;
+    group_div.appendChild(span_owner);
+
+    var span_owner_username = document.createElement("span");
+    span_owner_username.className = "popup_group_owner_username";
+    span_owner_username.id = "popup_group_owner_username" + group.owner_id;
+    span_owner_username.innerHTML = group.owner.username;
+    group_div.appendChild(span_owner_username);
+
+    var join_button = document.createElement("button");
+    join_button.id = "popup_join_group_button";
+    if (check_if_in_group(group.id))
+    {
+        join_button.innerHTML = "Joined";
+    }
+    else
+    {
+        join_button.innerHTML = "Join";
+        join_button.addEventListener("click", (event) => {
+            join_button.innerHTML = "Joining...";
+
+            join_button.style.backgroundColor = "rgb(50, 200, 50)";
+            join_button.style.color = "white";
+
+            const packet = {
+                type: "join_group",
+                group_id: group.id
+            };
+
+            socket.send(JSON.stringify(packet));
+        });
+    }
+    group_div.appendChild(join_button);
+
+    var group_list = document.getElementById("popup_group_list_con");
+    group_list.appendChild(group_div);
+}
+
+function start_popup_join_group_style_modifiers()
+{
     var groups = document.querySelectorAll(".popup_group");
     groups.forEach(group => {
         group.addEventListener("mouseenter", () => {
@@ -159,11 +272,12 @@ function start_popup_join_group(width, height)
         });
         group.addEventListener("mouseleave", () => {
             var join_button = group.querySelector("#popup_join_group_button");
+            if (join_button.innerHTML === "Joining...")
+                return;
             join_button.style.backgroundColor = "inherit";
             join_button.style.color = "transparent";
         });
     });
-
 }
 
 function stop_popup()
@@ -171,6 +285,8 @@ function stop_popup()
     popup_container.style.display = "none";
     popup_create_group.style.display = "none";
     popup_join_group.style.display = "none";
+
+    popup_join = false;
 }
 
 close_popup_button.addEventListener("click", () => {
@@ -322,6 +438,27 @@ socket.addEventListener("open", (event) => {
     socket.send(JSON.stringify(session_packet));
 });
 
+function check_have_user(id)
+{
+    return users[id];
+}
+
+function get_group(id)
+{
+    for (var i = 0; i < groups.length; i++)
+    {
+        const group = groups[i];
+        if (group.id === id)
+            return group;
+    }
+    return null;
+}
+
+function get_user(id)
+{
+    return users[id];
+}
+
 socket.addEventListener("message", (event) => {
     const packet = JSON.parse(event.data);
 
@@ -332,6 +469,8 @@ socket.addEventListener("message", (event) => {
         if (packet.type === "client_user_info")
         {
             client_user = new User(packet.id, packet.username, packet.displayname, packet.bio);
+            users[client_user.id] = client_user;
+            // users.push(client_user);
             var me_displayname = document.getElementById("me_displayname");
             me_displayname.innerHTML = client_user.displayname;
             var me_username = document.getElementById("me_username");
@@ -339,15 +478,124 @@ socket.addEventListener("message", (event) => {
         }
         else if (packet.type === "group")
         {
-            groups.push(new Group(packet.id, packet.name, null));
+            groups.push(new Group(packet.id, packet.name));
         }
         else if (packet.type === "client_groups")
         {
             for (var i = 0; i < packet.groups.length; i++)
             {
                 const group = packet.groups[i];
-                groups.push(new Group(group.id, group.name, null));
+                const new_group = new Group(group.id, group.name, group.members_id);
+                groups.push(new_group);
             }
+        }
+        else if (packet.type === "group_members")
+        {
+            var group = get_group(packet.group_id);
+            if (!group)
+            {
+                console.warn("no group", packet.group_id);
+                return;
+            }
+            
+            for (var i = 0; i < packet.members.length; i++)
+            {
+                const user_id = packet.members[i];
+                group.members_id.push(user_id);
+                const user = check_have_user(user_id);
+                if (user)
+                {
+                    group.add_member(user);
+                    continue;
+                }
+
+                const new_packet = {
+                    type: "get_user",
+                    id: user_id
+                };
+
+                socket.send(JSON.stringify(new_packet));
+            }
+        }
+        else if (packet.type === "get_user")
+        {
+            if (get_user(packet.id))
+                return;
+            var new_user = new User(packet.id, packet.username, packet.displayname, packet.bio);
+            users[new_user.id] = new_user;
+
+            for (var i = 0; i < groups.length; i++)
+            {
+                const group = groups[i];
+                for (var m = 0; m < group.members_id.length; m++)
+                {
+                    var member_id = group.members_id[m];
+                    if (member_id === new_user.id)
+                    {
+                        group.add_member(new_user);
+                    }
+                }
+            }
+
+            if (popup_join)
+            {
+                var owner_lists = document.querySelectorAll("#popup_group_owner" + new_user.id);
+                var owner_username_lists = document.querySelectorAll("#popup_group_owner_username" + new_user.id);
+
+                for (var i = 0; i < owner_lists.length; i++)
+                {
+                    // var span_owner = document.getElementById("popup_group_owner" + new_user.id);
+                    var span_owner = owner_lists[i];
+                    span_owner.innerHTML = new_user.displayname;
+                }
+
+                for (var i = 0; i < owner_username_lists.length; i++)
+                {
+                    // var span_owner_username = document.getElementById("popup_group_owner_username" + new_user.id);
+                    var span_owner_username = owner_username_lists[i];
+                    span_owner_username.innerHTML = new_user.username;
+                }
+            }
+        }
+        else if (packet.type == "get_all_groups")
+        {
+            var requested_users = [];
+            for (var i = 0; i < packet.groups.length; i++)
+            {
+                var group = packet.groups[i];
+                var owner = get_user(group.owner_id);
+                if (owner)
+                {
+                    group.owner = {
+                        username: owner.username,
+                        displayname: owner.displayname 
+                    };
+                }
+                else
+                {
+                    group.owner = {
+                        username: "?",
+                        displayname: "?"
+                    };
+
+                    if (!requested_users.includes(group.owner_id))
+                    {
+                        const req_packet = {
+                            type: "get_user",
+                            id: group.owner_id
+                        };
+
+                        const json_string = JSON.stringify(req_packet);
+
+                        socket.send(json_string);
+                        requested_users.push(group.owner_id);
+                    }
+                }
+
+                popup_join_group_add_group(group);
+            }
+
+            start_popup_join_group_style_modifiers();
         }
         else
         {

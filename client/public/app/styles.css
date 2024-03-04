@@ -364,19 +364,19 @@ h1, h2, h3 {
     border-radius: 13px;
 }
 
-#popup_group_name{
+.popup_group_name{
     font-size: 20px;
     padding-right: 15px;
     font-weight: 800;
 }
 
-#popup_group_owner{
+.popup_group_owner{
     font-size: 16px;
     padding-right: 5px;
     color: yellow;
 }
 
-#popup_group_owner_username{
+.popup_group_owner_username{
     font-size: 14px;
     /* color: red; */
 }
