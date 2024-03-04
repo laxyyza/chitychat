@@ -50,12 +50,11 @@ static i32 db_exec_sql(server_t* server, const char* sql, void* callback)
         return -1;
     }
 
-    debug("Executing SQL:\n%s\n==================== Done\n", sql);
-
     char* errmsg;
     ret = sqlite3_exec(server->db.db, sql, callback, server, &errmsg);
     if (ret != SQLITE_OK)
     {
+        debug("Executing SQL:\n%s\n==================== Done\n", sql);
         error("sqlite3_exec() failed: %s\n", errmsg);
         sqlite3_free(errmsg);
     }
