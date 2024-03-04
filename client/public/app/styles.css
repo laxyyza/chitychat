@@ -401,6 +401,25 @@ h1, h2, h3 {
     color: white; 
 }
 
+#popup_join_group_button.active{
+    background-color: green;
+    color: white; 
+}
+#popup_join_group_button.active:hover{
+    background-color: rgb(0, 238, 0);
+    color: white; 
+}
+
+#popup_join_group_button.joining{
+    background-color: red;
+    color: black;
+}
+
+#popup_join_group_button.joined{
+    background-color: rgb(0, 80, 0);
+    color: white;
+}
+
 #popup_create_group_button{
     width: calc(100% - 20px);
     height: 30px;

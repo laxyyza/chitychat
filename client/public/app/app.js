@@ -284,15 +284,18 @@ function popup_join_group_add_group(group)
     if (check_if_in_group(group.id))
     {
         join_button.innerHTML = "Joined";
+        join_button.classList.add("joined");
     }
     else
     {
         join_button.innerHTML = "Join";
         join_button.addEventListener("click", (event) => {
             join_button.innerHTML = "Joining...";
+            join_button.classList.add("joining");
+            join_button.setAttribute("joining_group", group.id)
 
-            join_button.style.backgroundColor = "rgb(50, 200, 50)";
-            join_button.style.color = "white";
+            // join_button.style.backgroundColor = "rgb(50, 200, 50)";
+            // join_button.style.color = "white";
 
             const packet = {
                 type: "join_group",
@@ -314,25 +317,13 @@ function start_popup_join_group_style_modifiers()
     groups.forEach(group => {
         group.addEventListener("mouseenter", () => {
             var join_button = group.querySelector("#popup_join_group_button");
-            join_button.style.backgroundColor = "rgb(50, 100, 50)";
-            join_button.style.color = "white";
+            if (!join_button.classList.contains("joined"))
+                join_button.classList.add("active");
 
-            join_button.addEventListener("mouseenter", () => {
-                join_button.style.backgroundColor = "rgb(50, 200, 50)";
-                join_button.style.color = "white";
-            });
-
-            join_button.addEventListener("mouseleave", () => {
-                join_button.style.backgroundColor = "rgb(50, 100, 50)";
-                join_button.style.color = "white";
-            });
         });
         group.addEventListener("mouseleave", () => {
             var join_button = group.querySelector("#popup_join_group_button");
-            if (join_button.innerHTML === "Joining...")
-                return;
-            join_button.style.backgroundColor = "inherit";
-            join_button.style.color = "transparent";
+            join_button.classList.remove("active");
         });
     });
 }
@@ -545,6 +536,17 @@ socket.addEventListener("message", (event) => {
                 const group = packet.groups[i];
                 const new_group = new Group(group.id, group.name, group.desc, group.members_id);
                 groups[group.id] = new_group;
+
+                if (popup_join)
+                {
+                    var joining_button = document.querySelector("[joining_group=\"" + new_group.id + "\"]");
+                    if (joining_button)
+                    {
+                        joining_button.innerHTML = "Joined";
+                        joining_button.classList.remove("joining");
+                        joining_button.classList.add("joined");
+                    }
+                }
             }
         }
         else if (packet.type === "group_members")
