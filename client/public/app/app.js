@@ -42,11 +42,12 @@ class User
 
 class Group
 {
-    constructor(id, name, members_id)
+    constructor(id, name, desc, members_id)
     {
         this.name = name;
         this.id = id;
         this.members_id = members_id;
+        this.desc = desc;
 
         this.div_chat_messages = document.createElement("div");
         this.div_chat_messages.id = "messages";
@@ -97,9 +98,22 @@ class Group
             //     socket.send(JSON.stringify(packet));
             // }
             current_group = this;
+
+            if (this.messages.length === 0)
+            {
+                const packet = {
+                    type: "get_group_msgs",
+                    group_id: this.id
+                };
+
+                socket.send(JSON.stringify(packet));
+            }
         });
 
         this.members = [];
+        this.messages = [];
+
+        console.log(this.members_id, members_id);
 
         for (var m = 0; m < this.members_id.length; m++)
         {
@@ -131,8 +145,10 @@ class Group
         this.members.push(member);
     }
 
-    add_msg(user, content)
+    add_msg(user, msg)
     {
+        const content = msg.content;
+
         var div_msg = document.createElement("div");
         div_msg.className = "msg";
 
@@ -142,7 +158,7 @@ class Group
 
         var span_timestamp = document.createElement("span");
         span_timestamp.className = "msg_timestamp";
-        span_timestamp.innerHTML = "1AM Today";
+        span_timestamp.innerHTML = msg.timestamp;
 
         var div_content = document.createElement("div");
         div_content.className = "msg_content_con";
@@ -165,6 +181,8 @@ class Group
         messages_container.scrollTo(0, messages_container.scrollHeight);
 
         set_input_height(0);
+
+        this.messages.push(msg);
     }
 
     // TODO: Add a `update_member()` method.
@@ -520,17 +538,12 @@ socket.addEventListener("message", (event) => {
             var me_username = document.getElementById("me_username");
             me_username.innerHTML = client_user.username;
         }
-        else if (packet.type === "group")
-        {
-            groups[packet.id] = new Group(packet.id, packet.name);
-            // groups.push();
-        }
         else if (packet.type === "client_groups")
         {
             for (var i = 0; i < packet.groups.length; i++)
             {
                 const group = packet.groups[i];
-                const new_group = new Group(group.id, group.name, group.members_id);
+                const new_group = new Group(group.id, group.name, group.desc, group.members_id);
                 groups[group.id] = new_group;
             }
         }
@@ -653,7 +666,18 @@ socket.addEventListener("message", (event) => {
                 };
             }
 
-            group.add_msg(user, packet.content);
+            group.add_msg(user, packet);
+        }
+        else if (packet.type === "get_group_msgs")
+        {
+            var group = groups[packet.group_id];
+
+            for (var i = 0; i < packet.messages.length; i++)
+            {
+                const msg = packet.messages[i];
+                var user = users[msg.user_id];
+                group.add_msg(user, msg);
+            }
         }
         else
         {
