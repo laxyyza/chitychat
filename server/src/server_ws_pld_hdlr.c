@@ -56,18 +56,41 @@ static const char* group_create(server_t* server, client_t* client, json_object*
 
     info("Creating new group, id: %u, name: '%s', owner_id: %u\n", new_group.group_id, name, new_group.owner_id);
 
-    json_object_object_add(respond_json, "type", json_object_new_string("group"));
-    json_object_object_add(respond_json, "id", json_object_new_int(new_group.group_id));
-    json_object_object_add(respond_json, "name", json_object_new_string(new_group.displayname));
-    json_object_object_add(respond_json, "desc", json_object_new_string(new_group.desc));
+    json_object_object_add(respond_json, "type", json_object_new_string("client_groups"));
+    json_object_object_add(respond_json, "groups", json_object_new_array_ext(1));
+    json_object* group_array_json = json_object_object_get(respond_json, "groups");
+
+    dbgroup_t* g = server_db_get_group(server, new_group.group_id);
+    json_object* group_json = json_object_new_object();
+    json_object_object_add(group_json, "id", json_object_new_int(g->group_id));
+    json_object_object_add(group_json, "name", json_object_new_string(g->displayname));
+    json_object_object_add(group_json, "desc", json_object_new_string(g->desc));
+
+    u32 n_members;
+    dbuser_t* gmembers = server_db_get_group_members(server, g->group_id, &n_members);
+    
+    json_object_object_add(group_json, "members_id", json_object_new_array_ext(n_members));
+    json_object* members_array_json = json_object_object_get(group_json, "members_id");
+
+    // TODO: Add full user info in packet
+    for (u32 m = 0; m < n_members; m++)
+    {
+        const dbuser_t* member = gmembers + m;
+        json_object_array_add(members_array_json, json_object_new_int(member->user_id));
+    }
+
+    json_object_array_add(group_array_json, group_json);
 
     ws_json_send(client, respond_json);
+    
+    free(g);
+    free(gmembers);
 
     return NULL;
 }
 
-static const char* client_groups(server_t* server, client_t* client, json_object* respond_json)
-{
+static const char *client_groups(server_t *server, client_t *client,
+                                 json_object *respond_json) {
     dbgroup_t* groups;
     u32 n_groups;
 
@@ -187,12 +210,26 @@ static const char* join_group(server_t* server, client_t* client, json_object* p
     json_object_object_add(group_json, "id", json_object_new_int(group->group_id));
     json_object_object_add(group_json, "name", json_object_new_string(group->displayname));
     json_object_object_add(group_json, "desc", json_object_new_string(group->desc));
+
+    u32 n_members;
+    dbuser_t* gmembers = server_db_get_group_members(server, group->group_id, &n_members);
+
+    json_object_object_add(group_json, "members_id", json_object_new_array_ext(n_members));
+    json_object* members_array_json = json_object_object_get(group_json, "members_id");
+
+    for (u32 m = 0; m < n_members; m++)
+    {
+        const dbuser_t* member = gmembers + m;
+        json_object_array_add(members_array_json, json_object_new_int(member->user_id));
+    }
+
     json_object_array_add(array_json, group_json);
 
     // TODO: Send to all other online clients in that group that a new user joined
     
     ws_json_send(client, respond_json);
 
+    free(gmembers);
     free(group);
 
     return NULL;
@@ -216,17 +253,24 @@ static const char* group_msg(server_t* server, client_t* client, json_object* pa
     {
         return "Failed to send message";
     }
+
+    dbmsg_t* dbmsg = server_db_get_msg(server, new_msg.msg_id);
     // Update all other online group members
 
     u32 n_memebrs;
     dbuser_t* gmemebrs = server_db_get_group_members(server, group_id, &n_memebrs);
     if (!gmemebrs)
+    {
+        free(dbmsg);
         return "Failed to get group members";
+    }
 
     json_object_object_add(respond_json, "type", json_object_new_string("group_msg"));
-    json_object_object_add(respond_json, "group_id", json_object_new_int(group_id));
-    json_object_object_add(respond_json, "user_id", json_object_new_int(user_id));
-    json_object_object_add(respond_json, "content", json_object_new_string(content));
+    json_object_object_add(respond_json, "msg_id", json_object_new_int(dbmsg->msg_id));
+    json_object_object_add(respond_json, "group_id", json_object_new_int(dbmsg->group_id));
+    json_object_object_add(respond_json, "user_id", json_object_new_int(dbmsg->user_id));
+    json_object_object_add(respond_json, "content", json_object_new_string(dbmsg->content));
+    json_object_object_add(respond_json, "timestamp", json_object_new_string(dbmsg->timestamp));
 
     for (size_t i = 0; i < n_memebrs; i++)
     {
@@ -238,8 +282,47 @@ static const char* group_msg(server_t* server, client_t* client, json_object* pa
             ws_json_send(member_client, respond_json);
     }
 
+    free(dbmsg);
     free(gmemebrs);
 
+    return NULL;
+}
+
+static const char* get_group_msgs(server_t* server, client_t* client, json_object* payload, json_object* respond_json)
+{
+    json_object* group_id_json = json_object_object_get(payload, "group_id");
+    json_object* max_json = json_object_object_get(payload, "max");
+
+    const u64 group_id = json_object_get_int(group_id_json);
+    const u32 max = (max_json) ? json_object_get_int(max_json) : -1;
+
+    u32 n_msgs;
+    dbmsg_t* msgs = server_db_get_msgs_from_group(server, group_id, max, &n_msgs);
+
+    if (!msgs)
+        return "Failed to get messages";
+
+    json_object_object_add(respond_json, "type", json_object_new_string("get_group_msgs"));
+    json_object_object_add(respond_json, "group_id", json_object_new_int(group_id));
+    json_object_object_add(respond_json, "messages", json_object_new_array_ext(n_msgs));
+    json_object* msgs_json = json_object_object_get(respond_json, "messages");
+
+    for (u32 i = 0; i < n_msgs; i++)
+    {
+        const dbmsg_t* msg = msgs + i;
+
+        json_object* msg_in_array = json_object_new_object();
+        json_object_object_add(msg_in_array, "msg_id", json_object_new_int(msg->msg_id));
+        json_object_object_add(msg_in_array, "user_id", json_object_new_int(msg->user_id));
+        json_object_object_add(msg_in_array, "group_id", json_object_new_int(msg->group_id));
+        json_object_object_add(msg_in_array, "content", json_object_new_string(msg->content));
+        json_object_object_add(msg_in_array, "timestamp", json_object_new_string(msg->timestamp));
+        json_object_array_add(msgs_json, msg_in_array);
+    }
+
+    ws_json_send(client, respond_json);
+
+    free(msgs);
     return NULL;
 }
 
@@ -259,6 +342,8 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
         return join_group(server, client, payload, respond_json);
     else if (!strcmp(type, "group_msg"))
         return group_msg(server, client, payload, respond_json);
+    else if (!strcmp(type, "get_group_msgs"))
+        return get_group_msgs(server, client, payload, respond_json);
     else
         warn("Unknown packet type: '%s'\n", type);
 

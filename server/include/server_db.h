@@ -8,6 +8,7 @@
 #define DB_USERNAME_MAX 50
 #define DB_DISPLAYNAME_MAX 50
 #define DB_MESSAGE_MAX  512
+#define DB_TIMESTAMP_MAX 64
 #define DB_BIO_MAX 256
 #define DB_DESC_MAX 256
 #define DB_PASSWORD_MAX 50
@@ -44,6 +45,7 @@ typedef struct
     u64 user_id;
     u64 group_id;
     char content[DB_MESSAGE_MAX];
+    char timestamp[DB_TIMESTAMP_MAX];
 } dbmsg_t;
 
 typedef struct 
