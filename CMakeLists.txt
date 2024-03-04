@@ -11,6 +11,7 @@ target_sources(chitychat PRIVATE
     server/src/server_client.c
     server/src/server_http.c
     server/src/server_websocket.c
+    server/src/server_ws_pld_hdlr.c
     server/src/server_db.c
     server/src/server_util.c
 )
