@@ -38,3 +38,11 @@ CREATE TABLE Messages(
         FOREIGN KEY (user_id, group_id)
         REFERENCES GroupMembers(user_id, group_id)
 );
+
+CREATE TRIGGER insert_owner_group_member
+AFTER INSERT ON Groups 
+FOR EACH ROW
+BEGIN
+    INSERT INTO GroupMembers(user_id, group_id)
+    VALUES (NEW.owner_id, NEW.group_id);
+END;

@@ -51,7 +51,8 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
             return "Failed to create group";
         }
 
-        server_db_insert_group_member(server, new_group.group_id, client->dbuser.user_id);
+        // Not needed anymore.
+        // server_db_insert_group_member(server, new_group.group_id, client->dbuser.user_id);
 
         info("Creating new group, id: %u, name: '%s', owner_id: %u\n", new_group.group_id, name, new_group.owner_id);
 
@@ -154,6 +155,7 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
 
             json_object* group_json = json_object_new_object();
             json_object_object_add(group_json, "id", json_object_new_int(g->group_id));
+            json_object_object_add(group_json, "owner_id", json_object_new_int(g->owner_id));
             json_object_object_add(group_json, "name", json_object_new_string(g->displayname));
             json_object_object_add(group_json, "desc", json_object_new_string(g->desc));
             json_object_array_add(groups_json, group_json);
@@ -175,7 +177,7 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
         if (!server_db_insert_group_member(server, group->group_id, client->dbuser.user_id))
             return "Failed to join";
 
-        json_object_object_add(respond_json, "type", json_object_new_string("join_group"));
+        json_object_object_add(respond_json, "type", json_object_new_string("client_groups"));
         json_object_object_add(respond_json, "groups", json_object_new_array_ext(1));
         json_object* array_json = json_object_object_get(respond_json, "groups");
 
