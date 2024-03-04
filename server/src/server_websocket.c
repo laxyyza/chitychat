@@ -75,7 +75,7 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
     }
 }
 
-ssize_t ws_send_adv(client_t *client, u8 opcode, const char *buf, size_t len,
+ssize_t ws_send_adv(const client_t *client, u8 opcode, const char *buf, size_t len,
                     const u8 *maskkey) {
     ssize_t bytes_sent = 0;
     struct iovec iov[4];
@@ -143,7 +143,7 @@ ssize_t ws_send_adv(client_t *client, u8 opcode, const char *buf, size_t len,
     return bytes_sent;
 }
 
-ssize_t ws_send(client_t* client, const char* buf, size_t len)
+ssize_t ws_send(const client_t* client, const char* buf, size_t len)
 {
     return ws_send_adv(client, WS_TEXT_FRAME, buf, len, NULL);
 }

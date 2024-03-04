@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS Messages(
     msg_id      INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
     user_id     INTEGER, 
     group_id    INTEGER,
+    content     TEXT,
     timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (group_id) REFERENCES Groups(group_id),

@@ -41,7 +41,7 @@ client_t*   server_get_client_user_id(server_t* server, u64 id)
 
     while (node)
     {
-        if (node->state & CLIENT_STATE_WEBSOCKET && node->dbuser.user_id == id)
+        if (node->state & CLIENT_STATE_LOGGED_IN && node->dbuser.user_id == id)
             return node;
         node = node->next;
     }

@@ -201,12 +201,12 @@ bool server_db_insert_user(server_t* server, dbuser_t* user)
     return ret;
 }
 
-dbgroup_member_t* server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr)
+dbuser_t* server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr)
 {
     sqlite3_stmt* stmt;
-    size_t n = 0;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_groupmember, -1, &stmt, NULL);
-    dbgroup_member_t* gmembers = malloc(sizeof(dbgroup_member_t));
+    dbuser_t* users = malloc(sizeof(dbuser_t));
+    u32 n = 0;
 
     sqlite3_bind_int(stmt, 1, group_id);
 
@@ -214,22 +214,61 @@ dbgroup_member_t* server_db_get_group_members(server_t* server, u64 group_id, u3
     {
         n++;
         if (n > 1)
-            gmembers = realloc(gmembers, sizeof(dbgroup_member_t) * n);
+            users = realloc(users, sizeof(dbuser_t) * n);
+        dbuser_t* user = users + (n - 1);
+        memset(user, 0, sizeof(dbuser_t));
 
-        dbgroup_member_t* member = gmembers + (n - 1);
-        member->user_id = sqlite3_column_int(stmt, 0);
-        member->group_id = sqlite3_column_int(stmt, 1);
-        if (member->group_id != group_id)
-            warn("member->group_id != group_id\n");
+        user->user_id = sqlite3_column_int(stmt, 0);
+        const char* username = (const char*)sqlite3_column_text(stmt, 1);
+        strncpy(user->username, username, DB_USERNAME_MAX);
+        const char* displayname = (const char*)sqlite3_column_text(stmt, 2);
+        strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
+        const char* bio = (const char*)sqlite3_column_text(stmt, 3);
+        if (bio)
+            strncpy(user->bio, bio, DB_BIO_MAX);
+        // info("ID: %zu, username: '%s', displayname: '%s'\n", user->user_id, user->username, user->displayname);
+    }
+    if (rc != SQLITE_OK && rc != SQLITE_ROW && rc != SQLITE_DONE)
+    {
+        error("Failed while getting group members: %s\n", sqlite3_errmsg(server->db.db));
     }
 
+    sqlite3_finalize(stmt);
     if (n == 0)
     {
-        free(gmembers);
-        gmembers = NULL;
+        free(users);
+        users = NULL;
     }
     *n_ptr = n;
-    return gmembers;
+    return users;
+
+    // sqlite3_stmt* stmt;
+    // size_t n = 0;
+    // i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_groupmember, -1, &stmt, NULL);
+    // dbgroup_member_t* gmembers = malloc(sizeof(dbgroup_member_t));
+
+    // sqlite3_bind_int(stmt, 1, group_id);
+
+    // while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
+    // {
+    //     n++;
+    //     if (n > 1)
+    //         gmembers = realloc(gmembers, sizeof(dbgroup_member_t) * n);
+
+    //     dbgroup_member_t* member = gmembers + (n - 1);
+    //     member->user_id = sqlite3_column_int(stmt, 0);
+    //     member->group_id = sqlite3_column_int(stmt, 1);
+    //     if (member->group_id != group_id)
+    //         warn("member->group_id != group_id\n");
+    // }
+
+    // if (n == 0)
+    // {
+    //     free(gmembers);
+    //     gmembers = NULL;
+    // }
+    // *n_ptr = n;
+    // return gmembers;
 }
 
 bool server_db_user_in_group(server_t* server, u64 group_id, u64 user_id)
@@ -393,5 +432,22 @@ dbmsg_t* server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 max, 
 
 bool server_db_insert_msg(server_t* server, dbmsg_t* msg)
 {
-    return false;
+    sqlite3_stmt* stmt;
+    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_msg, -1, &stmt, NULL);
+    bool ret = true;
+
+    sqlite3_bind_int(stmt, 1, msg->user_id);
+    sqlite3_bind_int(stmt, 2, msg->group_id);
+    sqlite3_bind_text(stmt, 3, msg->content, -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    {
+        error("Failed to insert msg: %s\n", sqlite3_errmsg(server->db.db));
+        ret = false;
+    }
+
+    sqlite3_finalize(stmt);
+
+    return ret;
 }

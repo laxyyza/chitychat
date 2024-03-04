@@ -13,7 +13,7 @@ static session_t* server_find_session(server_t* server, u32 id)
     return NULL;
 }
 
-ssize_t ws_json_send(client_t* client, json_object* json)
+ssize_t ws_json_send(const client_t* client, json_object* json)
 {
     size_t len;
     const char* string = json_object_to_json_string_length(json, 0, &len);
@@ -91,14 +91,15 @@ static const char* client_groups(server_t* server, client_t* client, json_object
         json_object_object_add(group_json, "desc", json_object_new_string(g->desc));
 
         u32 n_members;
-        dbgroup_member_t* gmembers = server_db_get_group_members(server, g->group_id, &n_members);
+        dbuser_t* gmembers = server_db_get_group_members(server, g->group_id, &n_members);
         
         json_object_object_add(group_json, "members_id", json_object_new_array_ext(n_members));
         json_object* members_array_json = json_object_object_get(group_json, "members_id");
 
+        // TODO: Add full user info in packet
         for (u32 m = 0; m < n_members; m++)
         {
-            const dbgroup_member_t* member = gmembers + m;
+            const dbuser_t* member = gmembers + m;
             json_object_array_add(members_array_json, json_object_new_int(member->user_id));
         }
 
@@ -197,6 +198,51 @@ static const char* join_group(server_t* server, client_t* client, json_object* p
     return NULL;
 }
 
+static const char* group_msg(server_t* server, client_t* client, json_object* payload, json_object* respond_json)
+{
+    json_object* group_id_json = json_object_object_get(payload, "group_id");
+    json_object* content_json = json_object_object_get(payload, "content");
+    const u64 group_id = json_object_get_int(group_id_json);
+    const char* content = json_object_get_string(content_json);
+    const u64 user_id = client->dbuser.user_id;
+
+    dbmsg_t new_msg = {
+        .user_id = user_id,
+        .group_id = group_id,
+    };
+    strncpy(new_msg.content, content, DB_MESSAGE_MAX);
+
+    if (!server_db_insert_msg(server, &new_msg))
+    {
+        return "Failed to send message";
+    }
+    // Update all other online group members
+
+    u32 n_memebrs;
+    dbuser_t* gmemebrs = server_db_get_group_members(server, group_id, &n_memebrs);
+    if (!gmemebrs)
+        return "Failed to get group members";
+
+    json_object_object_add(respond_json, "type", json_object_new_string("group_msg"));
+    json_object_object_add(respond_json, "group_id", json_object_new_int(group_id));
+    json_object_object_add(respond_json, "user_id", json_object_new_int(user_id));
+    json_object_object_add(respond_json, "content", json_object_new_string(content));
+
+    for (size_t i = 0; i < n_memebrs; i++)
+    {
+        const dbuser_t* member = gmemebrs + i;
+        const client_t* member_client = server_get_client_user_id(server, member->user_id);
+
+        // If member_client is not NULL it means they are online.
+        if (member_client)
+            ws_json_send(member_client, respond_json);
+    }
+
+    free(gmemebrs);
+
+    return NULL;
+}
+
 static const char* server_handle_logged_in_client(server_t* server, client_t* client, json_object* payload, json_object* respond_json, const char* type)
 {
     if (!strcmp(type, "client_user_info"))
@@ -208,9 +254,11 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
     else if (!strcmp(type, "get_user"))
         return get_user(server, client, payload, respond_json);
     else if (!strcmp(type, "get_all_groups"))
-        get_all_groups(server, client, respond_json);
+        return get_all_groups(server, client, respond_json);
     else if (!strcmp(type, "join_group"))
-        join_group(server, client, payload, respond_json);
+        return join_group(server, client, payload, respond_json);
+    else if (!strcmp(type, "group_msg"))
+        return group_msg(server, client, payload, respond_json);
     else
         warn("Unknown packet type: '%s'\n", type);
 

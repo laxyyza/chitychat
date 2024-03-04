@@ -90,9 +90,9 @@ dbuser_t*   server_db_get_user_from_name(server_t* server, const char* username)
 dbuser_t*   server_db_get_users_from_group(server_t* server, u64 group_id, u32* n);
 bool        server_db_insert_user(server_t* server, dbuser_t* user);
 
-dbgroup_member_t*   server_db_get_group_members(server_t* server, u64 group_id, u32* n);
-bool                server_db_user_in_group(server_t* server, u64 group_id, u64 user_id);
-bool                server_db_insert_group_member(server_t* server, u64 group_id, u64 user_id);
+dbuser_t*   server_db_get_group_members(server_t* server, u64 group_id, u32* n);
+bool        server_db_user_in_group(server_t* server, u64 group_id, u64 user_id);
+bool        server_db_insert_group_member(server_t* server, u64 group_id, u64 user_id);
 
 dbgroup_t*  server_db_get_group(server_t* server, u64 group_id);
 dbgroup_t*  server_db_get_all_groups(server_t* server, u32* n);
