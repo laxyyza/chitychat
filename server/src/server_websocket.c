@@ -77,7 +77,7 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
 
         json_object_object_add(respond_json, "type", json_object_new_string("client_groups"));
         json_object_object_add(respond_json, "groups", json_object_new_array_ext(n_groups));
-        json_object* array_json = json_object_object_get(respond_json, "groups");
+        json_object* group_array_json = json_object_object_get(respond_json, "groups");
 
         for (size_t i = 0; i < n_groups; i++)
         {
@@ -86,39 +86,52 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
             json_object_object_add(group_json, "id", json_object_new_int(g->group_id));
             json_object_object_add(group_json, "name", json_object_new_string(g->displayname));
             json_object_object_add(group_json, "desc", json_object_new_string(g->desc));
-            json_object_array_add(array_json, group_json);
+
+            u32 n_members;
+            dbgroup_member_t* gmembers = server_db_get_group_members(server, g->group_id, &n_members);
+            
+            json_object_object_add(group_json, "members_id", json_object_new_array_ext(n_members));
+            json_object* members_array_json = json_object_object_get(group_json, "members_id");
+
+            for (u32 m = 0; m < n_members; m++)
+            {
+                const dbgroup_member_t* member = gmembers + m;
+                json_object_array_add(members_array_json, json_object_new_int(member->user_id));
+            }
+
+            json_object_array_add(group_array_json, group_json);
         }
 
         ws_json_send(client, respond_json);
 
         free(groups);
     }
-    else if (!strcmp(type, "group_members"))
-    {
-        json_object* group_id_json = json_object_object_get(payload, "group_id");
-        u64 group_id = json_object_get_int(group_id_json);
+    // else if (!strcmp(type, "group_members"))
+    // {
+    //     json_object* group_id_json = json_object_object_get(payload, "group_id");
+    //     u64 group_id = json_object_get_int(group_id_json);
 
-        u32 n_members;
-        dbgroup_member_t* gmembers = server_db_get_group_members(server, group_id, &n_members);
+    //     u32 n_members;
+    //     dbgroup_member_t* gmembers = server_db_get_group_members(server, group_id, &n_members);
 
-        if (!n_members)
-            return "Group has no members";
+    //     if (!n_members)
+    //         return "Group has no members";
 
-        json_object_object_add(respond_json, "type", json_object_new_string("group_members"));
-        json_object_object_add(respond_json, "group_id", json_object_new_int(group_id));
-        json_object_object_add(respond_json, "members", json_object_new_array_ext(n_members));
-        json_object* members_array = json_object_object_get(respond_json, "members");
+    //     json_object_object_add(respond_json, "type", json_object_new_string("group_members"));
+    //     json_object_object_add(respond_json, "group_id", json_object_new_int(group_id));
+    //     json_object_object_add(respond_json, "members", json_object_new_array_ext(n_members));
+    //     json_object* members_array = json_object_object_get(respond_json, "members");
 
-        for (size_t i = 0; i < n_members; i++)
-        {
-            const dbgroup_member_t* member = gmembers + i;
-            json_object_array_add(members_array, json_object_new_int(member->user_id));
-        }
+    //     for (size_t i = 0; i < n_members; i++)
+    //     {
+    //         const dbgroup_member_t* member = gmembers + i;
+    //         json_object_array_add(members_array, json_object_new_int(member->user_id));
+    //     }
 
-        ws_json_send(client, respond_json);
+    //     ws_json_send(client, respond_json);
 
-        free(gmembers);
-    }
+    //     free(gmembers);
+    // }
     else if (!strcmp(type, "get_user"))
     {
         json_object* user_id_json = json_object_object_get(payload, "id");
