@@ -6,6 +6,8 @@
     <title>Chity Chat</title>
     <link rel="stylesheet" href="/app/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
 </head>
 <body>
     <div class="grid">
@@ -28,12 +30,26 @@
                         ? 
                     </span>
                 </div>
+                <div id="me_settings">
+                    <button class="fas fa-cog" id="settings_button"></button>
+                </div>
             </div>
         </div>
         <div id="main">
             <div id="messages_con">
-                <!-- <div id="messages">
-                </div> -->
+                <div id="messages">
+                    <div class="msg">
+                        <input type="file" name="pfp" id="pfp_file">
+                        <!-- <img class="msg_img" src="" alt=""> -->
+                        <img class="msg_img" src="/img/default.png" alt="">
+                        <!-- <img class="msg_img" src="https://upload.wikimedia.org/wikipedia/en/1/1b/NPC_wojak_meme.png" alt=""> -->
+                        <span class="msg_displayname">Display Name</span>
+                        <span class="msg_timestamp">1AM Today</span>
+                        <div class="msg_content_con">
+                            <span class="msg_content">Message content</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="input_con">
                 <div class="input_box">
@@ -51,7 +67,6 @@
     <div id="popup_con">
         <div id="popup">
             <div class="popup_content">
-                <span id="close_popup">&times;</span>
                 <div id="popup_create_group">
                     <h1 class="popup_header">Create Group</h1>
                     <input id="popup_create_group_input" type="text" placeholder="Group Name" required> 
@@ -60,79 +75,59 @@
                 <div id="popup_join_group">
                     <h1 class="popup_header">Join Group</h1>
                     <div id="popup_group_list_con">
-                        <!-- <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <span id="popup_group_owner_username">laxyy41</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">Poese</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">Die manne</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">Groot poese</span>
-                            <span id="popup_group_owner">Deathsmoke</span>
-                            <span id="popup_group_owner_username">deathsmoke</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div>
-                        <div class="popup_group">
-                            <span id="popup_group_name">KKK</span>
-                            <span id="popup_group_owner">Laxyy</span>
-                            <button id="popup_join_group_button">Join </button>
-                        </div> -->
                     </div>
                 </div>
+                <div id="popup_settings">
+                    <h1 class="popup_header">Settings</h1>
+                    <div id="popup_settings_sections">
+                        <div class="settings_section">
+                            <span class="settings_section_name">Account</span> 
+                        </div>
+                        <div class="settings_section">
+                            <span class="settings_section_name">Log out</span> 
+                        </div>
+                    </div>
+                    <div id="popup_settings_content">
+                        <div id="settings_account">
+                            <div id="settings_user_info">
+                                <img id="settings_img" src="/img/default.png" alt="">
+                                <div id="settings_user_info_names">
+                                    <span id="settings_displayname">Laxyy</span>
+                                    <span id="settings_username">laxyy49</span>
+                                </div>
+                            </div>
+                            <div id="edit_account">
+                                <div class="edit_account_section" id="edit_displayname">
+                                    <span class="edit_header">DISPLAY NAME</span>
+                                    <span class="edit_value">
+                                        <span>Laxyy</span> 
+                                        <button class="edit_button">Edit</button>
+                                    </span>
+                                </div>
+                                <div class="edit_account_section" id="edit_username">
+                                    <span class="edit_header">USERNAME</span>
+                                    <span class="edit_value">
+                                        laxy69
+                                        <button class="edit_button">Edit</button>
+                                    </span>
+                                </div>
+                                <div class="edit_account_section" id="edit_pfp">
+                                    <span class="edit_header">PROFILE PIC</span>
+                                    <input type="file" name="" id="upload_pfp">
+                                </div>
+                                <button id="edit_account_apply">
+                                    APPLY
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span id="close_popup">&times;</span>
             </div>
         </div>
     </div>
 
-    <script src="/app/app.js"></script>
+    <!-- <script type="module" src="/app/group.js"></script> -->
+    <script type="module" src="/app/app.js"></script>
 </body>
 </html>
