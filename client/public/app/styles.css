@@ -15,7 +15,6 @@ body, html {
     background-color: var(--bg-main);
     color: white;
     font-family: 'Roboto';
-    /* overflow: hidden; */
 }
 
 h1, h2, h3 {
@@ -43,14 +42,10 @@ h1, h2, h3 {
 }
 
 #me_info_con{
-    /* background-color: rgb(12, 12, 12); */
     background-color: var(--bg-thrd);
     padding: 10px;
     display: grid;
     grid-template-columns: auto 20%;
-    /* grid-column-start: 10px; */
-    /* grid-row-start: auto; */
-    /* grid-template-columns: auto; */
 }
 
 #me_info{
@@ -59,14 +54,12 @@ h1, h2, h3 {
 }
 
 #me_displayname{
-    /* background-color: green; */
     text-align: left ;
     font-size: 20px;
     color: yellow;
 }
 
 #me_username{
-    /* background-color: red; */
     font-size: 12px;
 }
 
@@ -74,8 +67,6 @@ h1, h2, h3 {
     background-color: black;
     color: white;
     border: none;
-    /* height: calc(100% - 10px);
-    width: calc(50% - 10px); */
     border-radius: 7px;
     margin: 5px;
     font-size: 15px;
@@ -85,8 +76,6 @@ h1, h2, h3 {
     background-color: black;
     color: white;
     border: none;
-    /* height: calc(100% - 10px);
-    width: calc(50% - 10px); */
     border-radius: 7px;
     margin: 5px;
     font-size: 15px;
@@ -101,15 +90,9 @@ h1, h2, h3 {
 }
 
 #main{
-    /* border: 1px solid green; */
     display: grid;
     grid-template-rows: auto 55px;
     box-shadow: none;
-    box-shadow:
-    inset 0 0px 0px rgba(0, 0, 0, 0.0),
-    inset 0 0px 0px rgba(0, 0, 0, 0.0),
-    inset 15px 0 25px rgba(10, 10, 10, 0.6), 
-    inset -15px 0 25px rgba(10, 10, 10, 0.6);
 }
 
 .group_members_list_con{
@@ -125,20 +108,15 @@ h1, h2, h3 {
 #messages{
     position: absolute;
     width: 100%;
-    /* background-color: red; */
 }
 
 .msg{
-    /* background-color: green; */
     padding: 5px;
     margin: 10px;
-    /* height: 90px; */
     border-radius: 13px;
-    /* border: 2px solid black; */
 }
 
 .msg:hover{
-    /* background-color: rgb(34, 34, 34); */
     background-color: var(--bg-hovr);
 }
 
@@ -147,7 +125,6 @@ h1, h2, h3 {
     color: yellow;
     padding: 10px;
     font-weight: 700; /* Use Roboto Bold for headings */
-    /* background-color: red; */
 }
 
 .msg_username{
@@ -168,14 +145,9 @@ h1, h2, h3 {
 .msg_img{
     border-radius: 100%;
     background-color: red;
-    /* margin: 10px; */
-    /* margin-left: 10px;
-    margin-bottom: 5px; */
     width: 45px;
     height: 45px;
     float: left;
-    /* left: 0; */
-    /* top: 0; */
 }
 
 .msg_timestamp{
@@ -189,7 +161,6 @@ h1, h2, h3 {
 
 .input_box{
     position: relative;
-    /* background-color: green; */
     background-color: rgb(34, 34, 34);
     width: 100%;
     height: 100%;
@@ -199,13 +170,11 @@ h1, h2, h3 {
 }
 
 .input_box_box{
-    /* position: fixed; */
     border-radius: 10px;
 }
 
 #msg_input{
     background-color: transparent;
-    /* background-color: rgb(255, 0, 0); */
     color: white;
     outline: none;
     border: none;
@@ -215,27 +184,12 @@ h1, h2, h3 {
     font-size: 20px;
     float: left;
     padding-left: 10px;
-
-    /* border: none;
-    background-color: rgb(34, 34, 34);
-    width: calc(100% - 20px);
-    height: calc(100% - 20px);
-    max-width: 100%;
-    max-height: 100%;
-    resize: none;
-    outline: none;
-    font-size: 20px;
-    margin: 10px;
-    box-sizing: border-box;
-    border-radius: 13px;
-    color: white; */
 }
 
 #msg_input_button{
     background-color: rgb(17, 17, 17);
     border: none;
     float: right;
-    /* border-radius: 10px; */
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
     width: calc(10% - 20px);
@@ -259,7 +213,6 @@ h1, h2, h3 {
 #group_list{
     position: absolute;
     overflow-y: auto;
-    /* background-color: white; */
     width: 100%;
     height: 100%;
 }
@@ -271,14 +224,12 @@ h1, h2, h3 {
 
 #group_members_list{
     position: absolute;
-    /* border: 1px solid red; */
     width: 100%;
     height: 100%;
     overflow-y: auto;
 }
 
 .group_member{
-    /* background-color: pink; */
     padding: 10px;
     margin: 10px;
     border-radius: 13px;
@@ -296,20 +247,16 @@ h1, h2, h3 {
     max-width: 100%;
     max-height: 100%;
     position: relative;
-    /* border: 1px solid white; */
     padding: 10px;
     margin: 10px;
     border-radius: 13px;
-    /* border: 1px solid black; */
 }
 
 .group:hover{
-    /* background-color: rgb(34, 34, 34); */
     background-color: var(--bg-hovr);
 }
 
 .group.active{
-    /* background-color: rgb(53, 52, 52); */
     background-color: var(--bg-acti);
 }
 
@@ -331,7 +278,6 @@ h1, h2, h3 {
     left: 50%;
     transform: translate(-50%, -50%);
     background-color: rgb(41, 41, 41);
-    /* padding: 20px; */
     width: 20%;
     height: 20%;
     border-radius: 13px;
@@ -339,7 +285,6 @@ h1, h2, h3 {
 
     display: flex;
     justify-content: center;
-    /* align-items: center; */
 }
 
 .popup_header{
@@ -361,7 +306,6 @@ h1, h2, h3 {
 #popup_create_group{
     display: none;
     margin: 0 auto;
-    /* background-color: red; */
     height: 100%;
     width: 300px;
 }
@@ -370,15 +314,12 @@ h1, h2, h3 {
     max-width: 100%;
     max-height: 100%;
     position: relative;
-    /* border: 1px solid white; */
     padding: 10px;
     margin: 10px;
     border-radius: 13px;
-    /* border: 1px solid black; */
 }
 
 .popup_group:hover {
-    /* background-color: rgb(46, 46, 46); */
     background-color: var(--bg-hovr);
 }
 
@@ -416,7 +357,6 @@ h1, h2, h3 {
 
 .popup_group_owner_username{
     font-size: 14px;
-    /* color: red; */
 }
 
 #popup_join_group_button{
@@ -483,7 +423,6 @@ h1, h2, h3 {
     padding-right: 10px;
     padding-top: 5px;
     padding-bottom: 5px; 
-    /* border-radius: 13px; */
     border-top-right-radius: 13px;
     border-bottom-left-radius: 5px;
     font-size: 20px;
@@ -518,7 +457,6 @@ h1, h2, h3 {
     width: 100%;
     height: 100%;
     border-radius: 13px;
-    /* background-color: green; */
 }
 
 #popup_settings_sections{
@@ -556,11 +494,8 @@ h1, h2, h3 {
 
 .settings_section_name{
     position: relative;
-    /* top: 0; */
-    /* left: 0; */
     margin: 10px;
     font-size: 18px;
-    /* background-color: green; */
 }
 
 #popup_settings_content{
@@ -576,13 +511,10 @@ h1, h2, h3 {
 
 #settings_account{
     margin: 20px;
-    /* padding: 10px; */
-    /* background-color: pink; */
     height: 100%;
 }
 
 #settings_img{
-    /* position: absolute; */
     border-radius: 100%;
     width: 100px;
     height: 100px;
@@ -597,13 +529,11 @@ h1, h2, h3 {
 
 #settings_user_info{
     position: relative;
-    /* background-color: red; */
     width: 100%;
     height: 120px;
 }
 
 #settings_displayname{
-    /* position: absolute; */
     font-size: 30px;
     color: yellow;
 }
@@ -618,12 +548,10 @@ h1, h2, h3 {
     padding: 10px;
     border-radius: 13px;
     width: calc(100% - 20px);
-    /* bottom: 0; */
 }
 
 .edit_account_section{
     position: relative;
-    /* background-color: pink; */
     margin: 5px;
     width: calc(100% - 30px);
     height: 60px;
@@ -634,12 +562,10 @@ h1, h2, h3 {
 }
 
 .edit_header{
-    /* background-color: red; */
     width: 100%;
     top: 0;
     font-size: 15px;
     font-weight: 700;
-    /* padding-bottom: 10; */
 }
 
 .edit_value{
@@ -668,7 +594,6 @@ h1, h2, h3 {
     border: none;
     border-radius: 5px;
     color: white;
-    /* height: 40px; */
     padding: 10px;
 }
 
