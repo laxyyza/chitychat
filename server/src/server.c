@@ -151,7 +151,7 @@ i32 server_ep_addfd(server_t* server, i32 fd)
 
     struct epoll_event ev = {
         .data.fd = fd,
-        .events = EPOLLIN | EPOLLERR
+        .events = EPOLLIN | EPOLLRDHUP | EPOLLHUP
     };
 
     ret = epoll_ctl(server->epfd, EPOLL_CTL_ADD, fd, &ev);
@@ -275,25 +275,40 @@ static void server_accept_conn(server_t* server)
 static void server_read_fd(server_t* server, const i32 fd)
 {
     ssize_t bytes_recv;
+    u8* buf;
+    size_t buf_size;
+    http_t* http;
     client_t* client = server_get_client_fd(server, fd);
     if (!client)
     {
         // TODO: Fix missing clients
-        warn("fd: %d no client?\n", fd);
+        error("fd: %d no client. FIX YOUR LINKED LIST!\n", fd);
         server_ep_delfd(server, fd);
         return;
     }
 
-    u8* buffer = client->recv_buffer + client->recv_buf_index;
-    size_t buffer_left = CLIENT_RECV_BUFFER - client->recv_buf_index;
-    if (client->recv_buf_index == 0)
-        memset(buffer, 0, buffer_left);
+    http = client->recv.http;
 
-    bytes_recv = recv(client->addr.sock, buffer, buffer_left, 0);
+    if (http)
+    {
+        buf = (u8*)http->body + http->buf.total_recv;
+        buf_size = http->body_len - http->buf.total_recv;
+    }
+    else
+    {
+        buf = client->recv.data;
+        buf_size = CLIENT_RECV_PAGE;
+        memset(buf, 0, buf_size);
+    }
+
+    bytes_recv = recv(client->addr.sock, buf, buf_size, 0);
     if (bytes_recv == -1)
     {
-        error("Client (fd:%d, IP: %s:%s) recv error: %s\n", client->addr.sock, client->addr.ip_str, client->addr.serv);
-        server_del_client(server, client);
+        client->recv.n_errors++;
+        error("Client (fd:%d, IP: %s:%s) recv #%d error: %s\n", 
+            client->addr.sock, client->addr.ip_str, client->recv.n_errors, client->addr.serv);
+        if (client->recv.n_errors >= CLIENT_MAX_ERRORS)
+            server_del_client(server, client);
         return;
     }
     else if (bytes_recv == 0)
@@ -302,13 +317,28 @@ static void server_read_fd(server_t* server, const i32 fd)
         server_del_client(server, client);
         return;
     }
-
-    if (client->state & CLIENT_STATE_WEBSOCKET)
-        server_ws_parse(server, client, buffer, bytes_recv);
+    else if (http)
+    {
+        http->buf.total_recv += bytes_recv;
+        debug("HTTP recv: %zu/%zu\n", http->buf.total_recv, http->body_len);
+        if (bytes_recv >= buf_size)
+        {
+            server_handle_http(server, client, client->recv.http);
+            client->recv.http = NULL;
+        }
+    }
     else
-        server_http_parse(server, client, buffer, bytes_recv);
+    {
+        if (client->state & CLIENT_STATE_WEBSOCKET)
+            server_ws_parse(server, client, buf, buf_size);
+        else
+            server_http_parse(server, client, buf, buf_size);
+    }
 
-    client->recv_buf_index = 0;
+    if (client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)
+    {
+        error("Client fd: %d recv overflow check failed! %X != %X\n", client->addr.sock, client->recv.overflow_check, CLIENT_OVERFLOW_CHECK_MAGIC);
+    }
 }
 
 static void server_ep_event(server_t* server, const struct epoll_event* event)
@@ -319,6 +349,26 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
     if (ev & EPOLLERR)
     {
         error("epoll error on fd: %d\n", fd);
+    }
+
+    if (ev & EPOLLPRI)
+    {
+        error("epoll urgent data on fd: %d\n", fd);
+    }
+
+    if (ev & EPOLLONESHOT)
+    {
+        error("epoll one shot on fd: %d\n", fd);
+    }
+    
+    if (ev & EPOLLRDHUP)
+    {
+        error("Epoll RD HUP on fd: %d\n", fd);
+    }
+    
+    if (ev & EPOLLHUP)
+    {
+        error("Epoll HUP on fd: %d\n", fd);
     }
 
     if (fd == server->sock)

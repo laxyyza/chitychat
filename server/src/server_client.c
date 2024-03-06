@@ -15,6 +15,7 @@ client_t*   server_new_client(server_t* server)
         client->next->prev = client;
     server->client_head->next = client;
     client->prev = server->client_head;
+    client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
 
     debug("New client node: Prev: %p\tNext: %p\n", client->prev, client->next);
 
@@ -68,7 +69,10 @@ void server_del_client(server_t* server, client_t* client)
         next->prev = prev;
 
     if (client == server->client_head)
+    {
         memset(client, 0, sizeof(client_t));
+        client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
+    }
     else
         free(client);
 }

@@ -63,7 +63,7 @@ typedef struct
     char val[HTTP_HEAD_VAL_LEN];
 } http_header_t;
 
-typedef struct
+typedef struct http
 {
     enum http_type type;
     union {
@@ -74,12 +74,18 @@ typedef struct
     size_t n_headers;
     char* body;
     size_t body_len;
+    size_t header_len;
 
     struct {
         enum http_keep_alive keep_alive;
         char* websocket_key;
         bool body_inheap;
     };
+
+    struct {
+        bool missing;
+        size_t total_recv;
+    } buf;
 } http_t;
 
 typedef struct 
@@ -90,6 +96,7 @@ typedef struct
 } http_to_str_t;
 
 void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len);
+void server_handle_http(server_t* server, client_t* client, http_t* http);
 http_t* http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_len);
 ssize_t http_send(client_t* client, http_t* http);
 

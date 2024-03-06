@@ -79,10 +79,14 @@ http_to_str_t http_to_str(const http_t* http)
     }
 
     strcat(to_str.str, HTTP_END);
+    size_t current_len = strnlen(to_str.str, to_str.max);
     if (http->body)
-        strcat(to_str.str, http->body);
+    {
+        memcpy(to_str.str + current_len, http->body, http->body_len);
+    }
 
-    to_str.len = strnlen(to_str.str, to_str.max);
+    // to_str.len = strnlen(to_str.str, to_str.max);
+    to_str.len = current_len + http->body_len;
 
     //printf("HTTP to string (%zu):\n%s\n================End.\n", to_str.len, to_str.str);
 
@@ -137,11 +141,28 @@ static void handle_websocket_key(client_t* client, http_t* http, http_header_t* 
     http->websocket_key = compute_websocket_key(header->val);
 }
 
+static void http_handle_content_len(http_t* http, http_header_t* header)
+{
+    char* endptr;
+    http->body_len = strtoull(header->val, &endptr, 10);
+    
+    if ((errno == ERANGE && (http->body_len == ULONG_MAX)) || (errno != 0 && http->body_len == 0))
+    {
+        error("HTTP Content-Length: '%s' failed to convert to uint64_t: %s\n",
+            header->val, ERRSTR);
+    }
+
+    if (endptr == header->val)
+    {
+        error("HTTP strtoull: No digits were found.\n");
+    }
+}
+
 static void handle_http_header(client_t* client, http_t* http, http_header_t* header)
 {
     if (NAME_CMP("Content-Length"))
     {
-        http->body_len = atoi(header->val);
+        http_handle_content_len(http, header);
     }
     else if (NAME_CMP("Connection"))
     {
@@ -157,14 +178,15 @@ static void handle_http_header(client_t* client, http_t* http, http_header_t* he
     }
 }
 
-static http_t* parse_http(client_t* client, char* buf, size_t buf_len)
-{
+static http_t *parse_http(client_t *client, char *buf, size_t buf_len) {
 
     http_t* http;
     char* saveptr;
     char* token;
     char* header;
     char* header_line;
+    size_t header_len;
+    size_t actual_body_len;
 
     http = calloc(1, sizeof(http_t));
 
@@ -175,7 +197,16 @@ static http_t* parse_http(client_t* client, char* buf, size_t buf_len)
         free(http);
         return NULL;
     }
+
+
     http->body = strsplit(NULL, HTTP_END, &saveptr);
+
+    header_len = strlen(header) + strlen(HTTP_END);
+    if (http->body)
+        actual_body_len = buf_len - header_len;
+    else
+        actual_body_len = 0;
+
     header_line = strsplit(header, HTTP_NL, &saveptr);
 
     token = strtok(header_line, " ");
@@ -250,6 +281,38 @@ static http_t* parse_http(client_t* client, char* buf, size_t buf_len)
 
     for (size_t i = 0; i < http->n_headers; i++)
         handle_http_header(client, http, &http->headers[i]);
+
+    if (http->body || http->body_len)
+    {
+        if (http->body_len > actual_body_len)
+        {
+            http->buf.missing = true;
+            http->buf.total_recv = actual_body_len;
+            char* new_body = calloc(1, http->body_len);
+            memcpy(new_body, http->body, actual_body_len);
+            http->body = new_body;
+            http->body_inheap = true;
+            client->recv.http = http;
+        }
+    }
+
+    // if (http->body)
+    // {
+    //     if (http->body_len > actual_body_len)
+    //     {
+    //         error("http->body != actual_body_len | %zu != %zu (header: %zu)\n", 
+    //             http->body_len, actual_body_len, header_len);
+    //         http->done = false;
+    //         client->recv.http = http;
+    //     }
+    //     else 
+    //         http->done = true;
+    // }
+    // else if (http->body_len)
+    // {
+    //     http->done = false;
+    //     client->recv.http = http;
+    // }
 
     return http;
 }
@@ -362,7 +425,7 @@ static void server_handle_client_upgrade(server_t* server, client_t* client, htt
 static void http_add_body(http_t* restrict http, const char* restrict body, size_t body_len)
 {
     http->body = calloc(1, body_len);
-    strncpy(http->body, body, body_len);
+    memcpy(http->body, body, body_len);
     http->body_inheap = true;
     http->body_len = body_len;
 
@@ -453,6 +516,10 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
         content_type = "application/javascript";
     else if (strstr(path, ".ico"))
         content_type = "image/x-icon";
+    else if (strstr(path, ".png"))
+        content_type = "image/png";
+    else if (strstr(path, ".jpeg"))
+        content_type = "image/jpeg";
     else
         warn("Path: '%s' dont know what content-type should be.\n", path);
 
@@ -486,35 +553,50 @@ static void server_handle_http_get(server_t* server, client_t* client, http_t* h
         server_http_do_get_req(server, client, http);
 }
 
+static void server_handle_http_post(server_t* server, client_t* client, http_t* http)
+{
+    size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
+    char path[PATH_MAX];
+    memset(path, 0, PATH_MAX);
+    i32 fd;
+    size_t content_len;
+    char* content;
+
+    // TODO: Add "default_file_per_dir" config, default should be "index.html"
+    if (http->req.url[url_len - 1] == '/')
+        snprintf(path, PATH_MAX, "%s%s%s", server->conf.root_dir, http->req.url, "index.html"); 
+    else
+        snprintf(path, PATH_MAX, "%s%s", server->conf.root_dir, http->req.url); 
+
+    fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+
+    if (write(fd, http->body, http->body_len) == -1)
+    {
+        error("write: %s, fd: %d, body: %p, len: %zu\n", ERRSTR, fd, http->body, http->body_len);
+        *http->body = 59;
+    }
+
+    close(fd);
+}
+
 static void server_handle_http_req(server_t* server, client_t* client, http_t* http)
 {
 #define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
 
     if (!HTTP_CMP_METHOD("GET"))
         server_handle_http_get(server, client, http);
+    else if (!HTTP_CMP_METHOD("POST"))
+        server_handle_http_post(server, client, http);
     else
         debug("Need to implement '%s' HTTP request.\n", http->req.method);
 }
 
 static void server_handle_http_resp(server_t* server, client_t* client, http_t* http)
 {
-
 }
 
-void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
+void server_handle_http(server_t* server, client_t* client, http_t* http)
 {
-    // debug("Recv string from client:=============\n%s\n====================", buf);
-
-    http_t* http = parse_http(client, (char*)buf, buf_len);
-    if (!http)
-    {
-        error("parse_http() returned NULL, deleting client.\n");
-        server_del_client(server, client);
-        return;
-    }
-
-    // print_parsed_http(http);
-
     if (http->type == HTTP_REQUEST)
         server_handle_http_req(server, client, http);
     else if (http->type == HTTP_RESPOND)
@@ -525,12 +607,32 @@ void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_l
     http_free(http);
 }
 
+void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
+{
+    http_t* http;
+
+    http = parse_http(client, (char*)buf, buf_len);
+    if (!http)
+    {
+        error("parse_http() returned NULL, deleting client.\n");
+        server_del_client(server, client);
+        return;
+    }
+
+    print_parsed_http(http);
+
+    if (!http->buf.missing)
+    {
+        server_handle_http(server, client, http);
+    }
+}
+
 ssize_t http_send(client_t* client, http_t* http)
 {
     ssize_t bytes_sent = 0;
     http_to_str_t to_str = http_to_str(http);
 
-    // debug("HTTP send to fd:%d (%s:%s)\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.str);
+    debug("HTTP send to fd:%d (%s:%s), len: %zu\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.len, to_str.str);
 
     if ((bytes_sent = send(client->addr.sock, to_str.str, to_str.len, 0)) == -1)
     {

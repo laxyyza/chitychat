@@ -22,5 +22,6 @@ typedef int64_t i64;
 #define ERRSTR strerror(errno)
 
 typedef struct server server_t;
+typedef struct http http_t;
 
 #endif //_COMMON_H_

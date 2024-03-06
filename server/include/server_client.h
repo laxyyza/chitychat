@@ -14,7 +14,10 @@
 #define CLIENT_STATE_KEEP_ALIVE      0x0004
 #define CLIENT_STATE_LOGGED_IN       0x0008
 
-#define CLIENT_RECV_BUFFER           4096
+#define CLIENT_RECV_PAGE             4096
+#define CLIENT_OVERFLOW_CHECK_MAGIC  0x694206969420420
+                                //   1 2 3 4 5 6 7 8
+#define CLIENT_MAX_ERRORS 3
 
 typedef struct client
 {
@@ -23,8 +26,12 @@ typedef struct client
 
     dbuser_t dbuser;
 
-    u8 recv_buffer[CLIENT_RECV_BUFFER];
-    size_t recv_buf_index;
+    struct {
+        u8 data[CLIENT_RECV_PAGE];
+        size_t overflow_check;
+        int n_errors;
+        http_t* http;
+    } recv;
 
     struct client* next;
     struct client* prev;
