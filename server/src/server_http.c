@@ -347,11 +347,11 @@ static void http_free(http_t* http)
     free(http);
 }
 
-const char* http_get_header(http_t* http, const char* name)
+const char* http_get_header(const http_t* http, const char* name)
 {
     for (size_t i = 0; i < http->n_headers; i++)
     {
-        http_header_t* header = http->headers + i;
+        const http_header_t* header = http->headers + i;
 
         if (NAME_CMP(name))
             return header->val;
@@ -553,14 +553,68 @@ static void server_handle_http_get(server_t* server, client_t* client, http_t* h
         server_http_do_get_req(server, client, http);
 }
 
-static void server_handle_http_post(server_t* server, client_t* client, http_t* http)
+static bool server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
 {
+    char* endptr;
+    const char* token_str = http_get_header(http, "Upload-Token");
+    if (!token_str)
+    {
+        error("No Upload-Token in POST request!\n");
+        return false;
+    }
+
+    const u64 token = strtoull(token_str, &endptr, 10);
+    if ((errno == ERANGE && (token == ULONG_MAX)) || (errno != 0 && token == 0))
+    {
+        error("HTTP POST Upload-Token: '%s' failed to convert to uint64_t: %s\n",
+            token_str, ERRSTR);
+        return false;
+    }
+
+    if (endptr == token_str)
+    {
+        error("HTTP POST strtoull: No digits were found.\n");
+        return false;
+    }
+
+    upload_token_t* real_token = server_find_upload_token(server, token);
+    if (real_token == NULL)
+    {
+        error("No upload token found: %zu\n", token);
+        return false;
+    }
+
+    if (real_token->token != token)
+    {
+        error("*real_token != token?? %zu != %zu\n", *real_token, token);
+        return false;
+    }
+
+    *user_id = real_token->user_id;
+    memset(real_token, 0, sizeof(upload_token_t));
+
+    return true;
+}
+
+static void server_handle_http_post(server_t* server, client_t* client, const http_t* http)
+{
+    http_t* resp;
+    u32 user_id;
+    if (!server_check_upload_token(server, http, &user_id))
+    {
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Upload-Token failed", NULL, 0);
+        http_send(client, resp);
+        http_free(resp);
+        return;
+    }
+
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
     char path[PATH_MAX];
     memset(path, 0, PATH_MAX);
     i32 fd;
     size_t content_len;
     char* content;
+    bool failed = false;
 
     // TODO: Add "default_file_per_dir" config, default should be "index.html"
     if (http->req.url[url_len - 1] == '/')
@@ -569,14 +623,34 @@ static void server_handle_http_post(server_t* server, client_t* client, http_t* 
         snprintf(path, PATH_MAX, "%s%s", server->conf.root_dir, http->req.url); 
 
     fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    if (fd == -1)
+    {
+        error("open '%s' failed: %s\n", path, ERRSTR);
+        failed = true;
+    }
 
-    if (write(fd, http->body, http->body_len) == -1)
+    if (!failed && write(fd, http->body, http->body_len) == -1)
     {
         error("write: %s, fd: %d, body: %p, len: %zu\n", ERRSTR, fd, http->body, http->body_len);
-        *http->body = 59;
+        failed = true;
     }
 
     close(fd);
+
+    if (!server_db_update_user(server, NULL, NULL, http->req.url, user_id))
+        failed = true;
+
+    if (failed)
+    {
+        resp = http_new_resp(HTTP_CODE_INTERAL_ERROR, "Interal server error", NULL, 0);
+    }
+    else
+    {
+        resp = http_new_resp(HTTP_CODE_OK, "OK", http->body, http->body_len);
+    }
+
+    http_send(client, resp);
+    http_free(resp);
 }
 
 static void server_handle_http_req(server_t* server, client_t* client, http_t* http)
@@ -629,6 +703,12 @@ void server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_l
 
 ssize_t http_send(client_t* client, http_t* http)
 {
+    if (!client || !http)
+    {
+        warn("http_send(%p, %p) something is NULL\n", client, http);
+        return -1;
+    }
+
     ssize_t bytes_sent = 0;
     http_to_str_t to_str = http_to_str(http);
 

@@ -82,6 +82,9 @@ typedef struct
     size_t select_msg_len;
     char* delete_msg;
     size_t delete_msg_len;
+
+    char* update_user;
+    size_t update_user_len;
 } server_db_t;
 
 bool        server_db_open(server_t* server);
@@ -91,6 +94,9 @@ dbuser_t*   server_db_get_user_from_id(server_t* server, u64 user_id);
 dbuser_t*   server_db_get_user_from_name(server_t* server, const char* username);
 dbuser_t*   server_db_get_users_from_group(server_t* server, u64 group_id, u32* n);
 bool        server_db_insert_user(server_t* server, dbuser_t* user);
+
+bool        server_db_update_user(server_t* server, const char* new_username, 
+    const char* new_displayname, const char* new_pfp_name, const u64 user_id);
 
 dbuser_t*   server_db_get_group_members(server_t* server, u64 group_id, u32* n);
 bool        server_db_user_in_group(server_t* server, u64 group_id, u64 user_id);

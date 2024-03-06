@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS Users(
     displayname     VARCHAR(50) NOT NULL,
     bio             TEXT,
     password        VARCHAR(50) NOT NULL,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    pfp_name        TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Groups(
@@ -48,4 +49,13 @@ FOR EACH ROW
 BEGIN
     INSERT INTO GroupMembers(user_id, group_id)
     VALUES (NEW.owner_id, NEW.group_id);
+END;
+
+CREATE TRIGGER IF NOT EXISTS set_default_pfp_name
+AFTER INSERT ON Users
+FOR EACH ROW
+BEGIN
+    UPDATE Users
+    SET pfp_name = '/img/default.png'
+    WHERE user_id = NEW.user_id;
 END;

@@ -29,6 +29,7 @@ export class App
         this.settings_button = document.getElementById("settings_button");
         this.close_popup_button = document.getElementById("close_popup");
         this.group_class = document.getElementsByClassName("group");
+        this.edit_account_apply = document.getElementById("edit_account_apply");
 
         this.groups = {};
         this.current_group;
@@ -63,6 +64,23 @@ export class App
 
         this.settings_button.addEventListener('click', () => {
             this.start_popup_settings();
+        });
+
+        this.edit_account_apply.addEventListener('click', () => {
+            const upload_file = document.getElementById("upload_pfp");
+            this.new_pfp_file = upload_file.files[0];
+            let new_pfp = false;
+            if (this.new_pfp_file)
+                new_pfp = true;
+
+            const edit_account_packet = {
+                type: "edit_account",
+                new_username: null,
+                new_displayname: null,
+                new_pfp: new_pfp
+            };
+
+            this.server.ws_send(edit_account_packet);
         });
 
         this.input_msg.addEventListener('keydown', (event) => {
@@ -342,6 +360,50 @@ export class App
 
                 group.add_member(user);
             }
+            else if (packet.type === "edit_account")
+            {
+                const upload_token = packet.upload_token;
+                const file = this.new_pfp_file;
+
+                console.log(file);
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const data = event.target.result;
+
+                    console.log("data", data);
+
+                    const headers = new Headers();
+                    headers.set("Upload-Token", upload_token);
+
+                    fetch("/img/" + file.name, {
+                        method: 'POST',
+                        headers: {
+                            "Upload-Token": upload_token
+                        },
+                        body: data
+                    })
+                    .then(response => {
+                        if (!response.ok)
+                            throw new Error("Failed");
+
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        console.log("BLOB", blob);
+                        const image_url = URL.createObjectURL(blob);
+                        const img_ele = document.getElementById("settings_img");
+                        img_ele.src = image_url;
+
+                        URL.revokeObjectURL(image_url);
+                    })
+                    .catch(error => {
+                        console.error("Failed to upload", error)
+                    });
+                };
+
+                reader.readAsArrayBuffer(file);
+            }
             else
             {
                 console.warn("Packet type: " + packet.type + " not implemented");
@@ -552,21 +614,21 @@ export class App
 
 export let app = new App();
 
-const upload_file = document.getElementById("upload_pfp");
-upload_file.addEventListener('change', (event) => {
-    let file = event.target.files[0];
-    console.log(">>>>", file);
+// const upload_file = document.getElementById("upload_pfp");
+// upload_file.addEventListener('change', (event) => {
+//     let file = event.target.files[0];
+//     console.log(">>>>", file);
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const data = event.target.result;
+//     const reader = new FileReader();
+//     reader.onload = function(event) {
+//         const data = event.target.result;
 
-        fetch("/img/" + file.name, {
-            method: 'POST',
-            body: data
-        });
-    };
+//         fetch("/img/" + file.name, {
+//             method: 'POST',
+//             body: data
+//         });
+//     };
 
-    // reader.readAsBinaryString(file);
-    reader.readAsArrayBuffer(file);
-})
+//     // reader.readAsBinaryString(file);
+//     reader.readAsArrayBuffer(file);
+// })

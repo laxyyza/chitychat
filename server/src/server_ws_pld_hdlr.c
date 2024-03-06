@@ -343,6 +343,44 @@ static const char* get_group_msgs(server_t* server, client_t* client, json_objec
     return NULL;
 }
 
+static const char* edit_account(server_t* server, client_t* client, json_object* payload, json_object* respond_json)
+{
+    json_object* new_username_json = json_object_object_get(payload, "new_username");
+    json_object* new_displayname_json = json_object_object_get(payload, "new_displayname");
+    json_object* new_pfp_json = json_object_object_get(payload, "new_pfp");
+
+    const char* new_username = json_object_get_string(new_username_json);
+    const char* new_displayname = json_object_get_string(new_displayname_json);
+    const bool new_pfp = json_object_get_boolean(new_pfp_json);
+
+    if (!server_db_update_user(server, new_username, new_displayname, NULL, client->dbuser.user_id))
+    {
+        return "Failed to update user"; 
+    }
+
+    if (new_pfp)
+    {
+        upload_token_t* upload_token = server_find_upload_token(server, 0);
+        // Create new upload token
+
+        if (upload_token == NULL)
+            return "Failed to create upload token";
+
+        getrandom(&upload_token->token, sizeof(u32), 0);
+        info("New token: %zu\n", upload_token->token);
+        upload_token->user_id = client->dbuser.user_id;
+
+        json_object_object_add(respond_json, "type", json_object_new_string("edit_account"));
+        json_object_object_add(respond_json, "upload_token", json_object_new_uint64(upload_token->token));
+
+        ws_json_send(client, respond_json);
+    }
+
+    debug("New username: %s, new display name: %s, new pfp: %d\n", new_username, new_displayname, new_pfp);
+
+    return NULL;
+}
+
 static const char* server_handle_logged_in_client(server_t* server, client_t* client, json_object* payload, json_object* respond_json, const char* type)
 {
     if (!strcmp(type, "client_user_info"))
@@ -361,6 +399,8 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
         return group_msg(server, client, payload, respond_json);
     else if (!strcmp(type, "get_group_msgs"))
         return get_group_msgs(server, client, payload, respond_json);
+    else if (!strcmp(type, "edit_account"))
+        return edit_account(server, client, payload, respond_json);
     else
         warn("Unknown packet type: '%s'\n", type);
 

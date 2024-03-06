@@ -90,6 +90,8 @@ bool server_db_open(server_t* server)
     db->select_msg = server_db_load_sql(server->conf.sql_select_msg, &db->select_msg_len);
     db->delete_msg = server_db_load_sql(server->conf.sql_delete_msg, &db->delete_msg_len);
 
+    db->update_user = server_db_load_sql(server->conf.sql_update_user, &db->delete_msg_len);
+
     db_exec_sql(server, db->schema, NULL);
 
     return true;
@@ -193,6 +195,38 @@ bool server_db_insert_user(server_t* server, dbuser_t* user)
     if (rc != SQLITE_DONE && rc != SQLITE_ROW)
     {
         error("sqlite3_step: %s\n", sqlite3_errmsg(server->db.db));
+        ret = false;
+    }
+
+    sqlite3_finalize(stmt);
+
+    return ret;
+}
+
+bool server_db_update_user(server_t* server, const char* new_username,
+                           const char* new_displayname,
+                           const char* new_pfp_name, const u64 user_id) 
+{
+    sqlite3_stmt* stmt;
+    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.update_user, -1, &stmt, NULL);
+    bool ret = true;
+
+    const i32 username_con = (new_username != NULL);
+    const i32 displayname_con = (new_displayname != NULL);
+    const i32 pfp_name_con = (new_pfp_name != NULL);
+
+    sqlite3_bind_int(stmt, 1, username_con);
+    sqlite3_bind_text(stmt, 2, new_username, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 3, displayname_con);
+    sqlite3_bind_text(stmt, 4, new_displayname, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 5, pfp_name_con);
+    sqlite3_bind_text(stmt, 6, new_pfp_name, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 7, user_id);
+
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    {
+        error("sqlite3_step update user: %s\n", sqlite3_errmsg(server->db.db));
         ret = false;
     }
 

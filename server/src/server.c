@@ -5,6 +5,18 @@
 
 #define MAX_EP_EVENTS 10
 
+upload_token_t* server_find_upload_token(server_t* server, u64 id)
+{
+    for (size_t i = 0; i < MAX_SESSIONS; i++)
+    {
+        debug("token: %zu\n", server->upload_tokens[i].token);
+        if (server->upload_tokens[i].token == id)
+            return &server->upload_tokens[i];
+    }
+
+    return NULL;
+}
+
 bool        server_load_config(server_t* server, const char* config_path)
 {
 #define JSON_GET(x) json_object_object_get(config, x)
@@ -72,6 +84,7 @@ bool        server_load_config(server_t* server, const char* config_path)
     server->conf.sql_insert_msg = "server/sql/insert_msg.sql";
     server->conf.sql_select_msg = "server/sql/select_msg.sql";
     server->conf.sql_delete_msg = "server/sql/delete_msg.sql";
+    server->conf.sql_update_user = "server/sql/update_user.sql";
 
     return true;
 }

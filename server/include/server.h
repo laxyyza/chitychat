@@ -40,6 +40,7 @@ typedef struct
     const char* sql_insert_msg;
     const char* sql_select_msg;
     const char* sql_delete_msg;
+    const char* sql_update_user;
 } server_config_t;
 
 
@@ -48,6 +49,12 @@ typedef struct
     u32 session_id;
     u32 user_id;
 } session_t;
+
+typedef struct 
+{
+    u64 token;
+    u32 user_id;
+} upload_token_t;
 
 typedef struct server
 {
@@ -67,13 +74,15 @@ typedef struct server
     client_t* client_tail;
 
     session_t sessions[MAX_SESSIONS];
+    upload_token_t upload_tokens[MAX_SESSIONS];
 
     bool running;
 } server_t;
 
-server_t*   server_init(const char* config_path);
-void        server_run(server_t* server);
-void        server_cleanup(server_t* server);
+server_t*       server_init(const char* config_path);
+void            server_run(server_t* server);
+void            server_cleanup(server_t* server);
+upload_token_t* server_find_upload_token(server_t* server, u64 id);
 
 int         server_ep_addfd(server_t* server, i32 fd);
 int         server_ep_delfd(server_t* server, i32 fd);
