@@ -122,7 +122,6 @@ export class App
         };
 
         this.server.ws_send(session_packet);
-        // socket.send(JSON.stringify(session_packet));
     }
 
     server_error()
@@ -169,7 +168,6 @@ export class App
             else if (packet.type === "group_members")
             {
                 let group = this.groups[packet.group_id];
-                // let group = get_group(packet.group_id);
                 if (!group)
                 {
                     console.warn("no group", packet.group_id);
@@ -194,7 +192,6 @@ export class App
                     };
 
                     this.server.ws_send(new_packet);
-                    // socket.send(JSON.stringify(new_packet));
                 }
             }
             else if (packet.type === "get_user")
@@ -281,7 +278,6 @@ export class App
                             // const json_string = JSON.stringify(req_packet);
                             this.server.ws_send(req_packet);
 
-                            // socket.send(json_string);
                             requested_users.push(group.owner_id);
                         }
                     }
@@ -341,7 +337,6 @@ export class App
                     };
 
                     this.server.ws_send(get_user_packet);
-                    // socket.send(JSON.stringify(get_user_packet));
                     return;
                 }
 
@@ -367,9 +362,6 @@ export class App
 
                 this.server.ws_send(req_user_info);
                 this.server.ws_send(req_groups);
-                // socket.send(JSON.stringify(req_user_info));
-
-                // socket.send(JSON.stringify(req_groups));
             }
             else
             {
@@ -402,12 +394,11 @@ export class App
             };
 
             this.server.ws_send(packet);
-            // socket.send(JSON.stringify(packet));
 
             // groups.push(new Group(-1, input.value, null));
             input.value = "";
 
-            stop_popup();
+            this.stop_popup();
         });
     }
 
@@ -425,7 +416,6 @@ export class App
         };
 
         this.server.ws_send(packet);
-        // socket.send(JSON.stringify(packet));
         this.popup_join = true;
     }
 
@@ -467,15 +457,12 @@ export class App
                 join_button.classList.add("joining");
                 join_button.setAttribute("joining_group", group.id)
 
-                // join_button.style.backgroundColor = "rgb(50, 200, 50)";
-                // join_button.style.color = "white";
-
                 const packet = {
                     type: "join_group",
                     group_id: group.id
                 };
 
-                socket.send(JSON.stringify(packet));
+                this.server.ws_send(packet);
             });
         }
         group_div.appendChild(join_button);
@@ -548,12 +535,11 @@ export class App
 
         const packet = {
             type: "group_msg",
-            group_id: current_group.id,
+            group_id: this.current_group.id,
             content: msg
         };
 
         this.server.ws_send(packet);
-        // socket.send(JSON.stringify(packet));
 
         // create_msg_box(user, msg);
         

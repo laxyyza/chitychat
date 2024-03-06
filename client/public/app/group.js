@@ -7,7 +7,10 @@ export class Group
     {
         this.name = name;
         this.id = id;
-        this.members_id = members_id;
+        if (members_id)
+            this.members_id = members_id;
+        else 
+            this.members_id = [];
         this.desc = desc;
 
         this.div_chat_messages = document.createElement("div");
@@ -75,23 +78,24 @@ export class Group
         this.members = [];
         this.messages = [];
 
-        console.log(this.members_id, members_id);
-
-        for (let m = 0; m < this.members_id.length; m++)
+        if (this.members_id)
         {
-            const id = this.members_id[m];
-            const user = app.users[id];
-            if (user)
-                this.add_member(user);
-            else
+            for (let m = 0; m < this.members_id.length; m++)
             {
-                const packet = {
-                    type: "get_user",
-                    id: id
-                };
+                const id = this.members_id[m];
+                const user = app.users[id];
+                if (user)
+                    this.add_member(user);
+                else
+                {
+                    const packet = {
+                        type: "get_user",
+                        id: id
+                    };
 
-                app.server.ws_send(packet);
-                // socket.send(JSON.stringify(packet));
+                    app.server.ws_send(packet);
+                    // socket.send(JSON.stringify(packet));
+                }
             }
         }
 
