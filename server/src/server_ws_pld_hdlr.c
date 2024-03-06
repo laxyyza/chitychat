@@ -230,7 +230,7 @@ static const char* join_group(server_t* server, client_t* client, json_object* p
         const dbuser_t* member = gmembers + m;
         const client_t* member_client = server_get_client_user_id(server, member->user_id);
 
-        if (member_client)
+        if (member_client && member_client != client)
         {
             ws_json_send(member_client, other_clients_respond);
         }
