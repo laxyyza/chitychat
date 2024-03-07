@@ -30,6 +30,7 @@ export class App
         this.close_popup_button = document.getElementById("close_popup");
         this.group_class = document.getElementsByClassName("group");
         this.edit_account_apply = document.getElementById("edit_account_apply");
+        this.img_ele = document.getElementById("settings_img");
 
         this.groups = {};
         this.current_group;
@@ -155,13 +156,14 @@ export class App
         {
             if (packet.type === "client_user_info")
             {
-                this.client_user = new User(packet.id, packet.username, packet.displayname, packet.bio);
+                this.client_user = new User(packet.id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
                 this.users[this.client_user.id] = this.client_user;
                 // users.push(client_user);
                 let me_displayname = document.getElementById("me_displayname");
                 me_displayname.innerHTML = this.client_user.displayname;
                 let me_username = document.getElementById("me_username");
                 me_username.innerHTML = this.client_user.username;
+                this.img_ele.src = this.client_user.pfp_url;
             }
             else if (packet.type === "client_groups")
             {
@@ -218,7 +220,7 @@ export class App
                     return;
                 // if (get_user(packet.id))
                 //     return;
-                let new_user = new User(packet.id, packet.username, packet.displayname, packet.bio);
+                let new_user = new User(packet.id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
                 this.users[new_user.id] = new_user;
 
                 for (let group_id in this.groups)
@@ -237,6 +239,8 @@ export class App
                                 const msg = user_msgs[i];
                                 let msg_displayname = msg.querySelector(".msg_displayname");
                                 msg_displayname.innerHTML = new_user.displayname;
+                                let msg_img = msg.querySelector(".msg_img");
+                                msg_img.src = new_user.pfp_url;
                             }
 
                             break;

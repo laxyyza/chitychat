@@ -120,6 +120,10 @@ export class Group
         div_msg.className = "msg";
         div_msg.setAttribute("msg_user_id", user.id);
 
+        let div_img = document.createElement("img");
+        div_img.className = "msg_img";
+        div_img.src = user.pfp_url;
+
         let span_displayname = document.createElement("span");
         span_displayname.className = "msg_displayname";
         span_displayname.innerHTML = user.displayname;
@@ -143,6 +147,7 @@ export class Group
         span_msg_content.innerHTML = content;
         div_content.appendChild(span_msg_content);
 
+        div_msg.appendChild(div_img);
         div_msg.appendChild(span_displayname);
         div_msg.appendChild(span_timestamp);
         div_msg.appendChild(div_content);
