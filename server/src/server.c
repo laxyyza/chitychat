@@ -1,5 +1,7 @@
 #include "server.h"
 #include <signal.h>
+#include "server_crypt.h"
+#include <sys/random.h>
 
 #include <json-c/json.h>
 

@@ -2,6 +2,7 @@
 #define _SERVER_DB_
 
 #include "common.h"
+#include "server_crypt.h"
 
 #include <sqlite3.h>
 
@@ -12,6 +13,7 @@
 #define DB_BIO_MAX 256
 #define DB_DESC_MAX 256
 #define DB_PASSWORD_MAX 50
+#define DB_PFP_NAME_MAX NAME_MAX
 
 typedef struct 
 {
@@ -19,7 +21,10 @@ typedef struct
     char username[DB_USERNAME_MAX];
     char displayname[DB_DISPLAYNAME_MAX];
     char bio[DB_BIO_MAX];
-    char password[DB_PASSWORD_MAX];
+    u8   hash[SERVER_HASH_SIZE];
+    u8   salt[SERVER_SALT_SIZE];
+    char created_at[DB_TIMESTAMP_MAX];
+    char pfp_name[DB_PFP_NAME_MAX];
     bool online;
 } dbuser_t;
 

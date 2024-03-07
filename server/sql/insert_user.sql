@@ -1,2 +1,2 @@
-INSERT INTO Users (username, displayname, bio, password)
-VALUES(LOWER(?), ?, ?, ?);
+INSERT INTO Users (username, displayname, bio, hash, salt)
+VALUES(LOWER(?), ?, ?, ?, ?);

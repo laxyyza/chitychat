@@ -444,10 +444,18 @@ static const char* server_handle_client_login(server_t* server, client_t* client
     if (!user)
         return "Incorrect Username or password";
 
-    info("Found user: %zu|%s|%s|%s|%s\n", user->user_id, user->username, user->displayname, user->bio, user->password);
+    info("Found user: %zu|%s|%s|%s\n", user->user_id, user->username, user->displayname, user->bio);
 
-    if (strncmp(password, user->password, DB_PASSWORD_MAX))
-        return "Incorrect Username or password";
+    u8 hash_login[SERVER_HASH_SIZE];
+    u8* salt = user->salt;
+    server_hash(password, salt, hash_login);
+
+    if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) != 0)
+    {
+        return "Incorrect username or password";
+    }
+    // if (strncmp(password, user->password, DB_PASSWORD_MAX))
+    //     return "Incorrect Username or password";
 
     info("Logged in!!!\n");
 
@@ -466,7 +474,9 @@ static const char* server_handle_client_register(server_t* server, client_t* cli
     memset(&new_user, 0, sizeof(dbuser_t));
     strncpy(new_user.username, username, DB_USERNAME_MAX);
     strncpy(new_user.displayname, displayname, DB_USERNAME_MAX);
-    strncpy(new_user.password, password, DB_PASSWORD_MAX);
+
+    getrandom(new_user.salt, SERVER_SALT_SIZE, 0);
+    server_hash(password, new_user.salt, new_user.hash);
 
     if (!server_db_insert_user(server, &new_user))
         return "Username already taken";

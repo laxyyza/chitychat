@@ -139,15 +139,46 @@ dbuser_t* server_db_get_user(server_t* server, u64 user_id, const char* username
     while ((ret = sqlite3_step(stmt)) == SQLITE_ROW)
     {
         user->user_id = sqlite3_column_int(stmt, 0);
+
         const char* username = (const char*)sqlite3_column_text(stmt, 1);
-        strncpy(user->username, username, DB_USERNAME_MAX);
+        if (username)
+            strncpy(user->username, username, DB_USERNAME_MAX);
+        else
+            warn("user %u username is NULL!\n", user->user_id);
+
         const char* displayname = (const char*)sqlite3_column_text(stmt, 2);
-        strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
+        if (displayname)
+            strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
+        else
+            warn("user %u displayname is NULL\n", user->user_id);
+
         const char* bio = (const char*)sqlite3_column_text(stmt, 3);
         if (bio)
             strncpy(user->bio, bio, DB_BIO_MAX);
-        const char* password = (const char*)sqlite3_column_text(stmt, 4);
-        strncpy(user->password, password, DB_PASSWORD_MAX);
+
+        const u8* hash = sqlite3_column_blob(stmt, 4);
+        if (hash)
+            memcpy(user->hash, hash, SERVER_HASH_SIZE);
+        else
+            warn("user %u hash is NULL\n", user->user_id);
+
+        const u8* salt = sqlite3_column_blob(stmt, 5);
+        if (salt)
+            memcpy(user->salt, salt, SERVER_SALT_SIZE);
+        else
+            warn("user %u salt is NULL!\n", user->user_id);
+
+        const char* created_at = (const char*)sqlite3_column_text(stmt, 6);
+        if (created_at)
+            strncpy(user->created_at, created_at, DB_USERNAME_MAX);
+        else
+            warn("user %u created_at is NULL!\n", user->user_id);
+
+        const char* pfp_name = (const char*)sqlite3_column_text(stmt, 7);
+        if (pfp_name)
+            strncpy(user->pfp_name, pfp_name, DB_PFP_NAME_MAX);
+        else
+            warn("user %u pfp_name is NULL\n", user->user_id);
 
         found = true;
         break;
@@ -189,7 +220,8 @@ bool server_db_insert_user(server_t* server, dbuser_t* user)
     sqlite3_bind_text(stmt, 1, user->username, -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 2, user->displayname, -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 3, user->bio, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 4, user->password, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_blob(stmt, 4, user->hash, SERVER_HASH_SIZE, SQLITE_STATIC);
+    sqlite3_bind_blob(stmt, 5, user->salt, SERVER_SALT_SIZE, SQLITE_STATIC);
 
     rc = sqlite3_step(stmt);
     if (rc != SQLITE_DONE && rc != SQLITE_ROW)

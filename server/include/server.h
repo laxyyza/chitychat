@@ -11,6 +11,7 @@
 #include "server_websocket.h"
 #include "server_db.h"
 #include "server_util.h"
+#include "server_crypt.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 

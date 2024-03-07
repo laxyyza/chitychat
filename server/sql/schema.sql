@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS Users(
     username        VARCHAR(50) NOT NULL UNIQUE,
     displayname     VARCHAR(50) NOT NULL,
     bio             TEXT,
-    password        VARCHAR(50) NOT NULL,
+    hash            BLOB NOT NULL,
+    salt            BLOB NOT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     pfp_name        TEXT
 );
