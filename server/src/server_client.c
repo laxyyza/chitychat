@@ -4,6 +4,7 @@
 client_t*   server_new_client(server_t* server)
 {
     client_t* client = calloc(1, sizeof(client_t));
+    client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
     if (!server->client_head)
     {
         server->client_head = client;
@@ -15,7 +16,6 @@ client_t*   server_new_client(server_t* server)
         client->next->prev = client;
     server->client_head->next = client;
     client->prev = server->client_head;
-    client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
 
     return client;
 }
