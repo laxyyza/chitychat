@@ -23,13 +23,20 @@ ssize_t ws_json_send(const client_t* client, json_object* json)
     return ws_send(client, string, len);
 }
 
+static void server_add_user_in_json(dbuser_t* dbuser, json_object* json)
+{
+    json_object_object_add(json, "id", json_object_new_int(dbuser->user_id));
+    json_object_object_add(json, "username", json_object_new_string(dbuser->username));
+    json_object_object_add(json, "displayname", json_object_new_string(dbuser->displayname));
+    json_object_object_add(json, "bio", json_object_new_string(dbuser->bio));
+    json_object_object_add(json, "created_at", json_object_new_string(dbuser->created_at));
+    json_object_object_add(json, "pfp_name", json_object_new_string(dbuser->pfp_name));
+}
+
 static const char* client_user_info(client_t* client, json_object* respond_json)
 {
     json_object_object_add(respond_json, "type", json_object_new_string("client_user_info"));
-    json_object_object_add(respond_json, "id", json_object_new_int(client->dbuser.user_id));
-    json_object_object_add(respond_json, "username", json_object_new_string(client->dbuser.username));
-    json_object_object_add(respond_json, "displayname", json_object_new_string(client->dbuser.displayname));
-    json_object_object_add(respond_json, "bio", json_object_new_string(client->dbuser.bio));
+    server_add_user_in_json(&client->dbuser, respond_json);
 
     ws_json_send(client, respond_json);
 
@@ -147,10 +154,7 @@ static const char* get_user(server_t* server, client_t* client, json_object* pay
         return "User not found";
 
     json_object_object_add(respond_json, "type", json_object_new_string("get_user"));
-    json_object_object_add(respond_json, "id", json_object_new_int(dbuser->user_id));
-    json_object_object_add(respond_json, "username", json_object_new_string(dbuser->username));
-    json_object_object_add(respond_json, "displayname", json_object_new_string(dbuser->displayname));
-    json_object_object_add(respond_json, "bio", json_object_new_string(dbuser->bio));
+    server_add_user_in_json(dbuser, respond_json);
 
     ws_json_send(client, respond_json);
 
