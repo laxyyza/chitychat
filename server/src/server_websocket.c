@@ -8,6 +8,8 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
     ws_t ws;
     memset(&ws, 0, sizeof(ws_t));
     size_t offset = sizeof(ws_frame_t);
+    u8* next_buf = NULL;
+    size_t next_size = 0;
 
     memcpy(&ws.frame, buf, sizeof(ws_frame_t));
 
@@ -46,6 +48,13 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
     else
         ws.payload = (char*)buf + offset;
 
+    const size_t total_size = ws.payload_len + offset;
+    if (total_size < buf_len)
+    {
+        next_buf = buf + total_size;
+        next_size = buf_len - total_size;
+    }
+
     switch (ws.frame.opcode)
     {
         case WS_CONTINUE_FRAME:
@@ -61,7 +70,7 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
         {
             debug("CLOSE FRAME: %s\n", ws.payload);
             server_del_client(server, client);
-            break;
+            return;
         }
         case WS_PING_FRAME:
             debug("PING FRAME: %s\n", ws.payload);
@@ -72,6 +81,11 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
         default:
             debug("UNKNOWN FRAME (%u): %s\n", ws.frame.opcode, ws.payload);
             break;
+    }
+
+    if (next_buf)
+    {
+        server_ws_parse(server, client, next_buf, next_size);
     }
 }
 

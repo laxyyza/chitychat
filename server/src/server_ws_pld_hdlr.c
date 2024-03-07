@@ -544,9 +544,10 @@ static const char* server_handle_not_logged_in_client(server_t* server, client_t
 
 void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len) 
 {
-
+    char* buf_print = strndup(buf, buf_len);
     debug("Web Socket message from fd:%d, IP: %s:%s:\n\t'%s'\n",
-         client->addr.sock, client->addr.ip_str, client->addr.serv, buf);
+         client->addr.sock, client->addr.ip_str, client->addr.serv, buf_print);
+    free(buf_print);
 
     json_object* respond_json = json_object_new_object();
     json_tokener* tokener = json_tokener_new();
