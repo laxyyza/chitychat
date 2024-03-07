@@ -365,7 +365,6 @@ static const char* edit_account(server_t* server, client_t* client, json_object*
     if (new_pfp)
     {
         upload_token_t* upload_token = server_find_upload_token(server, 0);
-        // Create new upload token
 
         if (upload_token == NULL)
             return "Failed to create upload token";

@@ -292,7 +292,6 @@ dbuser_t* server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr
         const char* bio = (const char*)sqlite3_column_text(stmt, 3);
         if (bio)
             strncpy(user->bio, bio, DB_BIO_MAX);
-        // info("ID: %zu, username: '%s', displayname: '%s'\n", user->user_id, user->username, user->displayname);
     }
     if (rc != SQLITE_OK && rc != SQLITE_ROW && rc != SQLITE_DONE)
     {
@@ -307,34 +306,6 @@ dbuser_t* server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr
     }
     *n_ptr = n;
     return users;
-
-    // sqlite3_stmt* stmt;
-    // size_t n = 0;
-    // i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_groupmember, -1, &stmt, NULL);
-    // dbgroup_member_t* gmembers = malloc(sizeof(dbgroup_member_t));
-
-    // sqlite3_bind_int(stmt, 1, group_id);
-
-    // while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
-    // {
-    //     n++;
-    //     if (n > 1)
-    //         gmembers = realloc(gmembers, sizeof(dbgroup_member_t) * n);
-
-    //     dbgroup_member_t* member = gmembers + (n - 1);
-    //     member->user_id = sqlite3_column_int(stmt, 0);
-    //     member->group_id = sqlite3_column_int(stmt, 1);
-    //     if (member->group_id != group_id)
-    //         warn("member->group_id != group_id\n");
-    // }
-
-    // if (n == 0)
-    // {
-    //     free(gmembers);
-    //     gmembers = NULL;
-    // }
-    // *n_ptr = n;
-    // return gmembers;
 }
 
 bool server_db_user_in_group(server_t* server, u64 group_id, u64 user_id)

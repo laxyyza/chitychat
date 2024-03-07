@@ -57,21 +57,12 @@ bool        server_load_config(server_t* server, const char* config_path)
         server->conf.addr_version = IPv6;
     else
         warn("Config: addr_version: \"%s\"? Default to IPv4\n", addr_version_str);
-    //strncpy(server->conf.addr_version, addr_version_str, CONFIG_ADDR_VRESION_LEN);
 
     database = JSON_GET("database");
     const char* database_str = json_object_get_string(database);
     strncpy(server->conf.database, database_str, CONFIG_PATH_LEN);
 
     json_object_put(config);
-
-    // info("config:\n\troot_dir: %s\n\taddr_ip: %s\n\taddr_port: %u\n\taddr_version: %s\n\tdatabase: %s\n",
-    //     server->conf.root_dir,   
-    //     server->conf.addr_ip,   
-    //     server->conf.addr_port,   
-    //     (server->conf.addr_version == IPv4) ? "IPv4" : "IPv6",   
-    //     server->conf.database
-    // );
 
     server->conf.sql_schema = "server/sql/schema.sql";
     server->conf.sql_insert_user = "server/sql/insert_user.sql";

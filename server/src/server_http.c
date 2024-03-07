@@ -166,7 +166,6 @@ static http_t *parse_http(client_t *client, char *buf, size_t buf_len) {
         return NULL;
     }
 
-
     http->body = strsplit(NULL, HTTP_END, &saveptr);
 
     header_len = strlen(header) + strlen(HTTP_END);
@@ -263,24 +262,6 @@ static http_t *parse_http(client_t *client, char *buf, size_t buf_len) {
             client->recv.http = http;
         }
     }
-
-    // if (http->body)
-    // {
-    //     if (http->body_len > actual_body_len)
-    //     {
-    //         error("http->body != actual_body_len | %zu != %zu (header: %zu)\n", 
-    //             http->body_len, actual_body_len, header_len);
-    //         http->done = false;
-    //         client->recv.http = http;
-    //     }
-    //     else 
-    //         http->done = true;
-    // }
-    // else if (http->body_len)
-    // {
-    //     http->done = false;
-    //     client->recv.http = http;
-    // }
 
     return http;
 }
