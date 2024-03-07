@@ -330,9 +330,9 @@ static void server_read_fd(server_t* server, const i32 fd)
     else
     {
         if (client->state & CLIENT_STATE_WEBSOCKET)
-            server_ws_parse(server, client, buf, buf_size);
+            server_ws_parse(server, client, buf, bytes_recv);
         else
-            server_http_parse(server, client, buf, buf_size);
+            server_http_parse(server, client, buf, bytes_recv);
     }
 
     if (client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)
