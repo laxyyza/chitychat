@@ -430,12 +430,58 @@ static void server_http_resp_404_not_found(client_t* client)
     http_free(http);
 }
 
+static const char* server_get_content_type(const char* path)
+{
+#define CMP_EXT(ext) !strcmp(extention, ext)
+
+    const char* extention = strrchr(path, '.');
+    if (extention)
+    {
+        extention++;
+        if (CMP_EXT("html"))
+            return "text/html";
+        else if (CMP_EXT("css"))
+            return "text/css";
+        else if (CMP_EXT("csv"))
+            return "text/csv";
+        else if (CMP_EXT("js"))
+            return "application/javascript";
+        else if (CMP_EXT("png"))
+            return "image/png";
+        else if (CMP_EXT("gif"))
+            return "image/gif";
+        else if (CMP_EXT("jpg") || CMP_EXT("jpeg"))
+            return "image/jpeg";
+        else if (CMP_EXT("bmp"))
+            return "image/bmp";
+        else if (CMP_EXT("svg"))
+            return "image/svg+xml";
+        else if (CMP_EXT("avif"))
+            return "image/avif";
+        else if (CMP_EXT("mp4"))
+            return "video/mp4";
+        else if (CMP_EXT("mov"))
+            return "video/quicktime";
+        else if (CMP_EXT("ico"))
+            return "image/x-icon";
+        else if (CMP_EXT("xml"))
+            return "application/xml";
+        else if (CMP_EXT("zip"))
+            return "application/zip";
+        else if (CMP_EXT("gz"))
+            return "application/gzip";
+        else if (CMP_EXT("json"))
+            return "application/json";
+    }
+
+    return "application/octet-stream";
+}
+
 static void server_http_do_get_req(server_t* server, client_t* client, http_t* http)
 {
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
     char path[PATH_MAX];
     memset(path, 0, PATH_MAX);
-    const char* content_type = "text/plain";
     i32 fd;
     size_t content_len;
     char* content;
@@ -456,23 +502,8 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
     else if (isdir)
         strcat(path, "/index.html");
 
-
-    if (strstr(path, ".html"))
-        content_type = "text/html";
-    else if (strstr(path, ".css"))
-        content_type = "text/css";
-    else if (strstr(path, ".js"))
-        content_type = "application/javascript";
-    else if (strstr(path, ".ico"))
-        content_type = "image/x-icon";
-    else if (strstr(path, ".png"))
-        content_type = "image/png";
-    else if (strstr(path, ".jpeg"))
-        content_type = "image/jpeg";
-    else if (strstr(path, ".jpg"))
-        content_type = "image/jpeg";
-    else
-        warn("Path: '%s' dont know what content-type should be.\n", path);
+    const char* content_type = server_get_content_type(path);
+    debug("content_type: %s\n", content_type);
 
     fd = open(path, O_RDONLY);
     if (fd == -1)
