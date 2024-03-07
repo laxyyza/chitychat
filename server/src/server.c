@@ -349,7 +349,14 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
 
     if (ev & EPOLLERR)
     {
-        error("epoll error on fd: %d\n", fd);
+        i32 error = 0;
+        socklen_t errlen = sizeof(i32);
+        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &errlen) == 0)
+        {
+            error("Epoll error on fd: %d: %s\n", fd, strerror(error));
+        }
+        else
+            error("epoll error on fd: %d, (no error string).\n", fd);
     }
 
     if (ev & EPOLLPRI)
@@ -361,17 +368,23 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
     {
         error("epoll one shot on fd: %d\n", fd);
     }
-    
-    if (ev & EPOLLRDHUP)
-    {
-        error("Epoll RD HUP on fd: %d\n", fd);
-    }
-    
-    if (ev & EPOLLHUP)
-    {
-        error("Epoll HUP on fd: %d\n", fd);
-    }
 
+    if (ev & EPOLLRDHUP || ev & EPOLLHUP)
+    {
+        client_t* client = server_get_client_fd(server, fd);
+        debug("fd: %d hang up.\n", fd);
+        if (client)
+            server_del_client(server, client);
+        else
+        {
+            warn("fd: %d no client, removing from epoll.\n", fd);
+            server_ep_delfd(server, fd);
+            close(fd);
+        }
+
+        return;
+    }
+    
     if (fd == server->sock)
     {
         // New connection...
