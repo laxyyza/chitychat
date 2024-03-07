@@ -503,7 +503,6 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
         strcat(path, "/index.html");
 
     const char* content_type = server_get_content_type(path);
-    debug("content_type: %s\n", content_type);
 
     fd = open(path, O_RDONLY);
     if (fd == -1)
