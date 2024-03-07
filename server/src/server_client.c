@@ -3,12 +3,12 @@
 
 client_t*   server_new_client(server_t* server)
 {
-    if (server->client_head && server->client_head->addr.sock == 0)
-        return server->client_head;
-
     client_t* client = calloc(1, sizeof(client_t));
     if (!server->client_head)
+    {
+        server->client_head = client;
         return client;
+    }
 
     client->next = server->client_head->next;
     if (client->next)
@@ -16,8 +16,6 @@ client_t*   server_new_client(server_t* server)
     server->client_head->next = client;
     client->prev = server->client_head;
     client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
-
-    debug("New client node: Prev: %p\tNext: %p\n", client->prev, client->next);
 
     return client;
 }
@@ -69,10 +67,6 @@ void server_del_client(server_t* server, client_t* client)
         next->prev = prev;
 
     if (client == server->client_head)
-    {
-        memset(client, 0, sizeof(client_t));
-        client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
-    }
-    else
-        free(client);
+        server->client_head = next;
+    free(client);
 }

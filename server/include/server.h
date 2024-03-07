@@ -71,7 +71,6 @@ typedef struct server
     socklen_t addr_len;
 
     client_t* client_head;
-    client_t* client_tail;
 
     session_t sessions[MAX_SESSIONS];
     upload_token_t upload_tokens[MAX_SESSIONS];

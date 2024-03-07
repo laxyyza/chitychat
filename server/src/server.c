@@ -203,16 +203,6 @@ static bool server_init_epoll(server_t* server)
     return true;
 }
 
-static bool server_init_client_list(server_t* server)
-{
-    server->client_head = server_new_client(server);
-    if (server->client_head == NULL)
-        return false;
-    server->client_tail = server->client_head;
-
-    return true;
-}
-
 server_t*   server_init(const char* config_path)
 {
     server_t* server = calloc(1, sizeof(server_t));
@@ -224,9 +214,6 @@ server_t*   server_init(const char* config_path)
         goto error;
 
     if (!server_init_epoll(server))
-        goto error;
-
-    if (!server_init_client_list(server))
         goto error;
 
     if (!server_db_open(server))
