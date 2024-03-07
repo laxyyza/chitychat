@@ -366,11 +366,6 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
         recv_flags = MSG_OOB;
     }
 
-    if (ev & EPOLLONESHOT)
-    {
-        error("epoll one shot on fd: %d\n", fd);
-    }
-
     if (ev & EPOLLRDHUP || ev & EPOLLHUP)
     {
         client_t* client = server_get_client_fd(server, fd);
