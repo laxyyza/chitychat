@@ -91,8 +91,31 @@ enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* 
     return RECV_OK;
 }
 
+void* combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr)
+{
+    size_t size = 0;
+    void* buffer;
+    size_t index = 0;
+
+    for (size_t i = 0; i < n; i++)
+        size += iov[i].iov_len;
+
+    buffer = calloc(1, size);
+    for (size_t i = 0; i < n; i++)
+    {
+        const size_t iov_len = iov[i].iov_len;
+        memcpy(buffer + index, iov[i].iov_base, iov_len);
+        index += iov_len;
+    }
+
+    *size_ptr = size;
+
+    return buffer;
+}
+
 ssize_t ws_send_adv(const client_t *client, u8 opcode, const char *buf, size_t len,
-                    const u8 *maskkey) {
+                    const u8 *maskkey) 
+{
     ssize_t bytes_sent = 0;
     struct iovec iov[4];
     size_t i = 0;
@@ -149,12 +172,22 @@ ssize_t ws_send_adv(const client_t *client, u8 opcode, const char *buf, size_t l
     }
 
     i++;
-    if ((bytes_sent = writev(client->addr.sock, iov, i)) == -1)
+    size_t buffer_size;
+    void* buffer = combine_buffers(iov, i, &buffer_size);
+
+    if ((bytes_sent = server_send(client, buffer, buffer_size)) == -1)
     {
         error("WS Send to (fd:%d, IP: %s:%s): %s\n",
-            client->addr.sock, client->addr.ip_str, client->addr.serv
-        );
+            client->addr.sock, client->addr.ip_str, client->addr.serv);
     }
+
+    free(buffer);
+    // if ((bytes_sent = writev(client->addr.sock, iov, i)) == -1)
+    // {
+    //     error("WS Send to (fd:%d, IP: %s:%s): %s\n",
+    //         client->addr.sock, client->addr.ip_str, client->addr.serv
+    //     );
+    // }
 
     return bytes_sent;
 }

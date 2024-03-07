@@ -82,6 +82,8 @@ typedef struct server
     session_t sessions[MAX_SESSIONS];
     upload_token_t upload_tokens[MAX_SESSIONS];
 
+    SSL_CTX* ssl_ctx;
+
     bool running;
 } server_t;
 
@@ -92,5 +94,8 @@ upload_token_t* server_find_upload_token(server_t* server, u64 id);
 
 int         server_ep_addfd(server_t* server, i32 fd);
 int         server_ep_delfd(server_t* server, i32 fd);
+
+ssize_t     server_send(const client_t* client, const void* buf, size_t len);
+ssize_t     server_recv(const client_t* client, void* buf, size_t len);
 
 #endif // _SERVER_H_

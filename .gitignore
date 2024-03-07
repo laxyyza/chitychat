@@ -57,3 +57,6 @@ compile_commands.json
 .cache/
 .*
 client/public/img
+*.key
+*.csr
+*.crt

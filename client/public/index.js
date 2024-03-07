@@ -5,7 +5,7 @@ console.log("Session ID:", session_id);
 
 if (session_id)
 {
-    var socket = new WebSocket("ws://" + window.location.host);
+    var socket = new WebSocket("wss://" + window.location.host);
 
     socket.addEventListener("open", (event) => {
         var packet = {

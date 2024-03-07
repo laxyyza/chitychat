@@ -57,6 +57,11 @@ void server_del_client(server_t* server, client_t* client)
         client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
 
     server_ep_delfd(server, client->addr.sock);
+    if (client->ssl)
+    {
+        SSL_shutdown(client->ssl);
+        SSL_free(client->ssl);
+    }
     close(client->addr.sock);
 
     client_t* prev = client->prev;
@@ -69,4 +74,24 @@ void server_del_client(server_t* server, client_t* client)
     if (client == server->client_head)
         server->client_head = next;
     free(client);
+}
+
+bool server_client_ssl_handsake(server_t* server, client_t* client)
+{
+    client->ssl = SSL_new(server->ssl_ctx);
+    if (!client->ssl)
+        debug("client ssl is NULL!\n");
+    SSL_set_fd(client->ssl, client->addr.sock);
+    i32 ret = SSL_accept(client->ssl);
+    if (ret <= 0) 
+    {
+        ERR_print_errors_fp(stderr);
+        client->secure = false;
+        return false;
+    }
+    else
+    {
+        client->secure = true;
+        return true;
+    }
 }

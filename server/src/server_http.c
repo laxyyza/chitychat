@@ -716,7 +716,8 @@ ssize_t http_send(client_t* client, http_t* http)
 
     // debug("HTTP send to fd:%d (%s:%s), len: %zu\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.len, to_str.str);
 
-    if ((bytes_sent = send(client->addr.sock, to_str.str, to_str.len, 0)) == -1)
+    // if ((bytes_sent = send(client->addr.sock, to_str.str, to_str.len, 0)) == -1)
+    if ((bytes_sent = server_send(client, to_str.str, to_str.len)) == -1)
     {
         error("HTTP send to (fd: %d, IP: %s:%s): %s\n",
             client->addr.sock, client->addr.ip_str, client->addr.serv

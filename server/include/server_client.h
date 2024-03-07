@@ -4,6 +4,8 @@
 #include "server_net.h"
 #include "common.h"
 #include "server_db.h"
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #define USERNAME_MAX 50
 #define DISPLAYNAME_MAX 50
@@ -35,9 +37,13 @@ typedef struct client
 
     struct client* next;
     struct client* prev;
+
+    SSL* ssl;
+    bool secure;
 } client_t;
 
 client_t*   server_new_client(server_t* server);
+bool        server_client_ssl_handsake(server_t* server, client_t* client);
 client_t*   server_get_client_fd(server_t* server, i32 fd);
 client_t*   server_get_client_user_id(server_t* server, u64 id);
 void        server_del_client(server_t* server, client_t* client);

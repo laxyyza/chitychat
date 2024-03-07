@@ -203,6 +203,29 @@ static bool server_init_epoll(server_t* server)
     return true;
 }
 
+static bool server_init_ssl(server_t* server)
+{
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+
+    server->ssl_ctx = SSL_CTX_new(TLS_server_method());
+    if (!server->ssl_ctx)
+    {
+        error("SSL_CTX_new() returned NULL!\n");
+        return false;
+    }
+
+    SSL_CTX_set_options(server->ssl_ctx, SSL_OP_SINGLE_DH_USE);
+    SSL_CTX_set_ecdh_auto(server->ssl_ctx, 1);
+    if (SSL_CTX_use_certificate_file(server->ssl_ctx, "server/server.crt", SSL_FILETYPE_PEM) <= 0)
+        error("SSL cert failed: %s\n", ERRSTR);
+    if (SSL_CTX_use_PrivateKey_file(server->ssl_ctx, "server/server.key", SSL_FILETYPE_PEM) <= 0)   
+        error("SSL private key failed: %s\n", ERRSTR);
+
+    return true;
+}
+
 server_t*   server_init(const char* config_path)
 {
     server_t* server = calloc(1, sizeof(server_t));
@@ -217,6 +240,9 @@ server_t*   server_init(const char* config_path)
         goto error;
 
     if (!server_db_open(server))
+        goto error;
+
+    if (!server_init_ssl(server))
         goto error;
 
     server->running = true;
@@ -265,6 +291,8 @@ static void server_accept_conn(server_t* server)
         return;
     }
 
+    server_client_ssl_handsake(server, client);
+
     server_get_client_info(client);
     server_ep_addfd(server, client->addr.sock);
 
@@ -302,7 +330,10 @@ static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
         memset(buf, 0, buf_size);
     }
 
-    bytes_recv = recv(client->addr.sock, buf, buf_size, flags);
+    debug("Reading from fd: %d\n", fd);
+
+    bytes_recv = server_recv(client, buf, buf_size);
+    // bytes_recv = recv(client->addr.sock, buf, buf_size, flags);
     if (bytes_recv == -1)
     {
         client->recv.n_errors++;
@@ -463,10 +494,36 @@ void server_cleanup(server_t* server)
     server_del_all_clients(server);
     server_db_close(server);
 
+    SSL_CTX_free(server->ssl_ctx);
+
     if (server->epfd)
         close(server->epfd);
     if (server->sock)
         close(server->sock);
 
     free(server);
+}
+
+ssize_t server_send(const client_t* client, const void* buf, size_t len)
+{
+    ssize_t bytes_sent;
+
+    if (client->secure)
+        bytes_sent = SSL_write(client->ssl, buf, len);
+    else
+        bytes_sent = send(client->addr.sock, buf, len, 0);
+
+    return bytes_sent;
+}
+
+ssize_t server_recv(const client_t* client, void* buf, size_t len)
+{
+    ssize_t bytes_recv;
+
+    if (client->secure)
+        bytes_recv = SSL_read(client->ssl, buf, len);
+    else
+        bytes_recv = recv(client->addr.sock, buf, len, 0);
+
+    return bytes_recv;
 }
