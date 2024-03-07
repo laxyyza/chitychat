@@ -278,6 +278,7 @@ static void server_read_fd(server_t* server, const i32 fd)
     u8* buf;
     size_t buf_size;
     http_t* http;
+    enum client_recv_status recv_status = RECV_OK;
     client_t* client = server_get_client_fd(server, fd);
     if (!client)
     {
@@ -330,12 +331,12 @@ static void server_read_fd(server_t* server, const i32 fd)
     else
     {
         if (client->state & CLIENT_STATE_WEBSOCKET)
-            server_ws_parse(server, client, buf, bytes_recv);
+            recv_status = server_ws_parse(server, client, buf, bytes_recv);
         else
-            server_http_parse(server, client, buf, bytes_recv);
+            recv_status = server_http_parse(server, client, buf, bytes_recv);
     }
 
-    if (client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)
+    if (recv_status == RECV_OK && client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)
     {
         error("Client fd: %d recv overflow check failed! %X != %X\n", client->addr.sock, client->recv.overflow_check, CLIENT_OVERFLOW_CHECK_MAGIC);
     }

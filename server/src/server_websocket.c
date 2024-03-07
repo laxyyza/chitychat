@@ -3,7 +3,7 @@
 #include "server_ws_pld_hdlr.h"
 #include <sys/uio.h>
 
-void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
+enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
 {
     ws_t ws;
     memset(&ws, 0, sizeof(ws_t));
@@ -70,7 +70,7 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
         {
             debug("CLOSE FRAME: %s\n", ws.payload);
             server_del_client(server, client);
-            return;
+            return RECV_DISCONNECT;
         }
         case WS_PING_FRAME:
             debug("PING FRAME: %s\n", ws.payload);
@@ -87,6 +87,8 @@ void server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len
     {
         server_ws_parse(server, client, next_buf, next_size);
     }
+
+    return RECV_OK;
 }
 
 ssize_t ws_send_adv(const client_t *client, u8 opcode, const char *buf, size_t len,

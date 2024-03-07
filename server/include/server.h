@@ -19,6 +19,13 @@
 
 #define MAX_SESSIONS 10
 
+enum client_recv_status
+{
+    RECV_OK,
+    RECV_DISCONNECT,
+    RECV_ERROR
+};
+
 typedef struct 
 {
     char root_dir[CONFIG_PATH_LEN];
