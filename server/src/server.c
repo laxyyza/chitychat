@@ -272,7 +272,7 @@ static void server_accept_conn(server_t* server)
         client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
 }
 
-static void server_read_fd(server_t* server, const i32 fd)
+static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
 {
     ssize_t bytes_recv;
     u8* buf;
@@ -302,7 +302,7 @@ static void server_read_fd(server_t* server, const i32 fd)
         memset(buf, 0, buf_size);
     }
 
-    bytes_recv = recv(client->addr.sock, buf, buf_size, 0);
+    bytes_recv = recv(client->addr.sock, buf, buf_size, flags);
     if (bytes_recv == -1)
     {
         client->recv.n_errors++;
@@ -346,6 +346,7 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
 {
     const i32 fd = event->data.fd;
     const u32 ev = event->events;
+    i32 recv_flags = 0;
 
     if (ev & EPOLLERR)
     {
@@ -362,6 +363,7 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
     if (ev & EPOLLPRI)
     {
         error("epoll urgent data on fd: %d\n", fd);
+        recv_flags = MSG_OOB;
     }
 
     if (ev & EPOLLONESHOT)
@@ -393,7 +395,7 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
     else if (ev & EPOLLIN)
     {
         // fd ready for read
-        server_read_fd(server, fd);
+        server_read_fd(server, fd, recv_flags);
     }
     else
     {
