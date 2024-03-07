@@ -488,6 +488,8 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
         content_type = "image/png";
     else if (strstr(path, ".jpeg"))
         content_type = "image/jpeg";
+    else if (strstr(path, ".jpg"))
+        content_type = "image/jpeg";
     else
         warn("Path: '%s' dont know what content-type should be.\n", path);
 
