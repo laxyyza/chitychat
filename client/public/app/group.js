@@ -106,7 +106,17 @@ export class Group
     {
         let div_member = document.createElement("div");
         div_member.className = "group_member";
-        div_member.innerHTML = member.displayname;
+
+        let span_name = document.createElement("span");
+        span_name.className = "member_name";
+        span_name.innerText = member.displayname;
+
+        let member_img = document.createElement("img");
+        member_img.className = "member_img";
+        member_img.src = member.pfp_url;
+
+        div_member.appendChild(member_img);
+        div_member.appendChild(span_name);
 
         this.div_group_members.appendChild(div_member);
         this.members.push(member);
