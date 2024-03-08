@@ -18,7 +18,7 @@ ssize_t ws_json_send(const client_t* client, json_object* json)
     size_t len;
     const char* string = json_object_to_json_string_length(json, 0, &len);
 
-    debug("Sending:\n\t%s\n", string);
+    // debug("Sending %zu bytes:\n\t%s\n", len, string);
 
     return ws_send(client, string, len);
 }
@@ -365,6 +365,7 @@ static const char* edit_account(server_t* server, client_t* client, json_object*
     if (new_pfp)
     {
         upload_token_t* upload_token = server_find_upload_token(server, 0);
+        // Create new upload token
 
         if (upload_token == NULL)
             return "Failed to create upload token";
