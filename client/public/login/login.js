@@ -48,6 +48,7 @@ function init()
         };
 
         socket.send(JSON.stringify(login_details));
+        error_msg.innerHTML = "";
     });
 
     document.getElementById("register_form").addEventListener("submit", (event) => {
@@ -65,6 +66,7 @@ function init()
         };
 
         socket.send(JSON.stringify(login_details));
+        error_msg.innerHTML = "";
     });
 }
 
