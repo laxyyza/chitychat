@@ -365,7 +365,7 @@ static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
             recv_status = server_http_parse(server, client, buf, bytes_recv);
     }
 
-    if (!client->recv.busy && recv_status != RECV_DISCONNECT)
+    if (recv_status != RECV_DISCONNECT && !client->recv.busy)
     {
         free(client->recv.data);
         client->recv.data = NULL;

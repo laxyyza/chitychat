@@ -354,6 +354,8 @@ static void server_upgrade_client_to_websocket(server_t* server, client_t* clien
         client->state |= CLIENT_STATE_WEBSOCKET;
         client->dbuser = calloc(1, sizeof(dbuser_t));
     }
+    http_free(http);
+    free(req_http->websocket_key);
 }
 
 static void server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
@@ -527,6 +529,7 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
 
     debug("Got file: '%s'\n", path);
     server_http_resp_ok(client, content, content_len, content_type);
+    free(content);
 }
 
 static void server_handle_http_get(server_t* server, client_t* client, http_t* http)

@@ -121,6 +121,8 @@ void server_db_close(server_t* server)
     free(db->insert_msg);
     free(db->select_msg);
     free(db->delete_msg);
+
+    free(server->db.update_user);
     
     sqlite3_close(server->db.db);
 }
