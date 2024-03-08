@@ -1,63 +1,71 @@
+let error_msg = document.getElementById("error_msg");
 
-socket = new WebSocket("wss://" + window.location.host);
+function init()
+{
+    let socket = new WebSocket("wss://" + window.location.host);
 
-socket.addEventListener('open', (event) => {
+    socket.addEventListener('open', (event) => {
+        error_msg.innerHTML = "";
+    });
 
-});
+    socket.addEventListener('message', (event) => {
+        var respond = JSON.parse(event.data);
 
-socket.addEventListener('message', (event) => {
-    var respond = JSON.parse(event.data);
+        console.log(event.data);
 
-    console.log(event.data);
+        if (respond.type === "session")
+        {
+            console.log("Sucsess: ", respond.id)
+            localStorage.removeItem("session_id");
+            localStorage.setItem("session_id", respond.id);
+            window.location.href = "/app";
+        }
+        else if (respond.type === "error")
+        {
+            error_msg.innerHTML = respond.error_msg;
+        }
+    });
 
-    if (respond.type === "session")
-    {
-        console.log("Sucsess: ", respond.id)
-        localStorage.removeItem("session_id");
-        localStorage.setItem("session_id", respond.id);
-        window.location.href = "/app";
-    }
-    else
-    {
-    }
-});
+    socket.addEventListener('error', (event) => {
+        error_msg.innerHTML = "Connection error: " + event.data;
+    });
 
-socket.addEventListener('error', (event) => {
-    
-});
+    socket.addEventListener('close', (event) => {
+        error_msg.innerHTML = "Lost connection";
+        init();
+    });
 
-socket.addEventListener('close', (event) => {
-    
-});
+    document.getElementById("login_form").addEventListener("submit", (event) => {
+        event.preventDefault();
 
-document.getElementById("login_form").addEventListener("submit", (event) => {
-    event.preventDefault();
+        var username = document.getElementById("login_username").value;
+        var password = document.getElementById("login_password").value;
 
-    var username = document.getElementById("login_username").value;
-    var password = document.getElementById("login_password").value;
+        var login_details = {
+            type: "login",
+            username: username,
+            password: password
+        };
 
-    var login_details = {
-        type: "login",
-        username: username,
-        password: password
-    };
+        socket.send(JSON.stringify(login_details));
+    });
 
-    socket.send(JSON.stringify(login_details));
-});
+    document.getElementById("register_form").addEventListener("submit", (event) => {
+        event.preventDefault();
 
-document.getElementById("register_form").addEventListener("submit", (event) => {
-    event.preventDefault();
+        var username = document.getElementById("register_username").value;
+        var displayname = document.getElementById("register_displayname").value;
+        var password = document.getElementById("register_password").value;
 
-    var username = document.getElementById("register_username").value;
-    var displayname = document.getElementById("register_displayname").value;
-    var password = document.getElementById("register_password").value;
+        var login_details = {
+            type: "register",
+            username: username,
+            displayname: displayname,
+            password: password
+        };
 
-    var login_details = {
-        type: "register",
-        username: username,
-        displayname: displayname,
-        password: password
-    };
+        socket.send(JSON.stringify(login_details));
+    });
+}
 
-    socket.send(JSON.stringify(login_details));
-});
+init();
