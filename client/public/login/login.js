@@ -1,5 +1,7 @@
 let error_msg = document.getElementById("error_msg");
 
+error_msg.innerHTML = "Not connected to server, yet";
+
 function init()
 {
     let socket = new WebSocket("wss://" + window.location.host);
