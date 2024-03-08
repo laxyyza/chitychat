@@ -36,7 +36,7 @@ static void server_add_user_in_json(dbuser_t* dbuser, json_object* json)
 static const char* client_user_info(client_t* client, json_object* respond_json)
 {
     json_object_object_add(respond_json, "type", json_object_new_string("client_user_info"));
-    server_add_user_in_json(&client->dbuser, respond_json);
+    server_add_user_in_json(client->dbuser, respond_json);
 
     ws_json_send(client, respond_json);
 
@@ -50,7 +50,7 @@ static const char* group_create(server_t* server, client_t* client, json_object*
 
     dbgroup_t new_group;
     memset(&new_group, 0, sizeof(dbgroup_t));
-    new_group.owner_id = client->dbuser.user_id;
+    new_group.owner_id = client->dbuser->user_id;
     strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
 
     if (!server_db_insert_group(server, &new_group))
@@ -59,7 +59,7 @@ static const char* group_create(server_t* server, client_t* client, json_object*
     }
 
     // Not needed anymore.
-    // server_db_insert_group_member(server, new_group.group_id, client->dbuser.user_id);
+    // server_db_insert_group_member(server, new_group.group_id, client->dbuser->user_id);
 
     info("Creating new group, id: %u, name: '%s', owner_id: %u\n", new_group.group_id, name, new_group.owner_id);
 
@@ -101,7 +101,7 @@ static const char *client_groups(server_t *server, client_t *client,
     dbgroup_t* groups;
     u32 n_groups;
 
-    groups = server_db_get_user_groups(server, client->dbuser.user_id, &n_groups);
+    groups = server_db_get_user_groups(server, client->dbuser->user_id, &n_groups);
 
     if (!groups)
     {
@@ -202,7 +202,7 @@ static const char* join_group(server_t* server, client_t* client, json_object* p
     if (!group)
         return "Group not found";
 
-    if (!server_db_insert_group_member(server, group->group_id, client->dbuser.user_id))
+    if (!server_db_insert_group_member(server, group->group_id, client->dbuser->user_id))
         return "Failed to join";
 
     json_object_object_add(respond_json, "type", json_object_new_string("client_groups"));
@@ -225,7 +225,7 @@ static const char* join_group(server_t* server, client_t* client, json_object* p
     json_object_object_add(other_clients_respond, "type", 
         json_object_new_string("join_group"));
     json_object_object_add(other_clients_respond, "user_id", 
-        json_object_new_int(client->dbuser.user_id));
+        json_object_new_int(client->dbuser->user_id));
     json_object_object_add(other_clients_respond, "group_id", 
         json_object_new_int(group_id));
 
@@ -262,7 +262,7 @@ static const char* group_msg(server_t* server, client_t* client, json_object* pa
     json_object* content_json = json_object_object_get(payload, "content");
     const u64 group_id = json_object_get_int(group_id_json);
     const char* content = json_object_get_string(content_json);
-    const u64 user_id = client->dbuser.user_id;
+    const u64 user_id = client->dbuser->user_id;
 
     dbmsg_t new_msg = {
         .user_id = user_id,
@@ -357,7 +357,7 @@ static const char* edit_account(server_t* server, client_t* client, json_object*
     const char* new_displayname = json_object_get_string(new_displayname_json);
     const bool new_pfp = json_object_get_boolean(new_pfp_json);
 
-    if (!server_db_update_user(server, new_username, new_displayname, NULL, client->dbuser.user_id))
+    if (!server_db_update_user(server, new_username, new_displayname, NULL, client->dbuser->user_id))
     {
         return "Failed to update user"; 
     }
@@ -372,7 +372,7 @@ static const char* edit_account(server_t* server, client_t* client, json_object*
 
         getrandom(&upload_token->token, sizeof(u32), 0);
         info("New token: %zu\n", upload_token->token);
-        upload_token->user_id = client->dbuser.user_id;
+        upload_token->user_id = client->dbuser->user_id;
 
         json_object_object_add(respond_json, "type", json_object_new_string("edit_account"));
         json_object_object_add(respond_json, "upload_token", json_object_new_uint64(upload_token->token));
@@ -427,7 +427,7 @@ static const char* server_handle_client_session(server_t* server, client_t* clie
     {
         return "Server cuold not find user in database";
     }
-    memcpy(&client->dbuser, dbuser, sizeof(dbuser_t));
+    memcpy(client->dbuser, dbuser, sizeof(dbuser_t));
     free(dbuser);
 
     json_object_object_add(respond_json, "type", json_object_new_string("session"));

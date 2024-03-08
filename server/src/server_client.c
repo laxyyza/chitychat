@@ -40,7 +40,7 @@ client_t*   server_get_client_user_id(server_t* server, u64 id)
 
     while (node)
     {
-        if (node->state & CLIENT_STATE_LOGGED_IN && node->dbuser.user_id == id)
+        if (node->state & CLIENT_STATE_LOGGED_IN && node->dbuser->user_id == id)
             return node;
         node = node->next;
     }
@@ -62,6 +62,10 @@ void server_del_client(server_t* server, client_t* client)
         SSL_shutdown(client->ssl);
         SSL_free(client->ssl);
     }
+    if (client->recv.data)
+        free(client->recv.data);
+    if (client->dbuser)
+        free(client->dbuser);
     close(client->addr.sock);
 
     client_t* prev = client->prev;

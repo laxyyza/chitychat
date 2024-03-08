@@ -21,25 +21,28 @@
                                 //   1 2 3 4 5 6 7 8
 #define CLIENT_MAX_ERRORS 3
 
+typedef struct 
+{
+    u8* data;
+    size_t overflow_check;
+    size_t data_size;
+    bool busy;
+    int n_errors;
+    http_t* http;
+} recv_buf_t;
+
 typedef struct client
 {
     net_addr_t addr;
     u16 state;
 
-    dbuser_t dbuser;
-
-    struct {
-        u8 data[CLIENT_RECV_PAGE];
-        size_t overflow_check;
-        int n_errors;
-        http_t* http;
-    } recv;
+    SSL* ssl;
+    dbuser_t* dbuser;
+    recv_buf_t recv;
+    bool secure;
 
     struct client* next;
     struct client* prev;
-
-    SSL* ssl;
-    bool secure;
 } client_t;
 
 client_t*   server_new_client(server_t* server);

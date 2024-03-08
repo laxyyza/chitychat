@@ -318,8 +318,13 @@ static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
     }
     else
     {
+        if (!client->recv.data)
+        {
+            client->recv.data = calloc(1, CLIENT_RECV_PAGE);
+            client->recv.data_size = CLIENT_RECV_PAGE;
+        }
         buf = client->recv.data;
-        buf_size = CLIENT_RECV_PAGE;
+        buf_size = client->recv.data_size;
         memset(buf, 0, buf_size);
     }
 
@@ -358,6 +363,13 @@ static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
             recv_status = server_ws_parse(server, client, buf, bytes_recv);
         else
             recv_status = server_http_parse(server, client, buf, bytes_recv);
+    }
+
+    if (!client->recv.busy && recv_status != RECV_DISCONNECT)
+    {
+        free(client->recv.data);
+        client->recv.data = NULL;
+        client->recv.data_size = 0;
     }
 
     if (recv_status == RECV_OK && client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)

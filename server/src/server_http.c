@@ -350,7 +350,10 @@ static void server_upgrade_client_to_websocket(server_t* server, client_t* clien
     http_add_header(http, HTTP_HEAD_WS_ACCEPT, req_http->websocket_key);
 
     if (http_send(client, http) != -1)
+    {
         client->state |= CLIENT_STATE_WEBSOCKET;
+        client->dbuser = calloc(1, sizeof(dbuser_t));
+    }
 }
 
 static void server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
