@@ -446,7 +446,7 @@ static const char* server_handle_client_login(server_t* server, client_t* client
 {
     dbuser_t* user = server_db_get_user_from_name(server, username);
     if (!user)
-        return "Incorrect Username or password";
+        goto error;
 
     info("Found user: %zu|%s|%s|%s\n", user->user_id, user->username, user->displayname, user->bio);
 
@@ -455,9 +455,7 @@ static const char* server_handle_client_login(server_t* server, client_t* client
     server_hash(password, salt, hash_login);
 
     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) != 0)
-    {
-        return "Incorrect username or password";
-    }
+        goto error;
     // if (strncmp(password, user->password, DB_PASSWORD_MAX))
     //     return "Incorrect Username or password";
 
@@ -466,6 +464,8 @@ static const char* server_handle_client_login(server_t* server, client_t* client
     free(user);
 
     return NULL;
+error:
+    return "Incorrect Username or Password";
 }
 
 static const char* server_handle_client_register(server_t* server, client_t* client, const char* username, json_object* displayname_json, const char* displayname, const char* password)
