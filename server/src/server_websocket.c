@@ -123,8 +123,7 @@ void* combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr)
     return buffer;
 }
 
-ssize_t ws_send_adv(const client_t *client, u8 opcode, const char *buf, size_t len,
-                    const u8 *maskkey) 
+ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey) 
 {
     ssize_t bytes_sent = 0;
     struct iovec iov[4];

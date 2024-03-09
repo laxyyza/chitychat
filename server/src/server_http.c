@@ -146,8 +146,8 @@ static void handle_http_header(client_t* client, http_t* http, http_header_t* he
     }
 }
 
-static http_t *parse_http(client_t *client, char *buf, size_t buf_len) {
-
+static http_t* parse_http(client_t* client, char* buf, size_t buf_len) 
+{
     http_t* http;
     char* saveptr;
     char* token;
