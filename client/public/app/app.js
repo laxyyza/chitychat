@@ -31,6 +31,8 @@ export class App
         this.group_class = document.getElementsByClassName("group");
         this.edit_account_apply = document.getElementById("edit_account_apply");
         this.img_ele = document.getElementById("settings_img");
+        this.settings_username = document.getElementById("settings_username");
+        this.settings_displayname = document.getElementById("settings_displayname");
 
         this.groups = {};
         this.current_group;
@@ -164,6 +166,8 @@ export class App
                 let me_username = document.getElementById("me_username");
                 me_username.innerHTML = this.client_user.username;
                 this.img_ele.src = this.client_user.pfp_url;
+                this.settings_displayname.innerHTML = this.client_user.displayname;
+                this.settings_username.innerHTML = this.client_user.username;
             }
             else if (packet.type === "client_groups")
             {
