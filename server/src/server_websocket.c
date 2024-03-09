@@ -3,6 +3,13 @@
 #include "server_ws_pld_hdlr.h"
 #include <sys/uio.h>
 
+ssize_t server_ws_pong(client_t* client)
+{
+    ssize_t bytes_sent = ws_send_adv(client, WS_PONG_FRAME, NULL, 0, NULL);
+
+    return bytes_sent;
+}
+
 enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
 {
     ws_t ws;
@@ -73,8 +80,11 @@ enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* 
             return RECV_DISCONNECT;
         }
         case WS_PING_FRAME:
+        {
             debug("PING FRAME: %s\n", ws.payload);
+            server_ws_pong(client);
             break;
+        }
         case WS_PONG_FRAME:
             debug("PONG FRAME: %s\n", ws.payload);
             break;
