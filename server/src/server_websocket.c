@@ -5,12 +5,14 @@
 
 ssize_t server_ws_pong(client_t* client)
 {
-    ssize_t bytes_sent = ws_send_adv(client, WS_PONG_FRAME, NULL, 0, NULL);
+    ssize_t bytes_sent = ws_send_adv(client, 
+            WS_PONG_FRAME, NULL, 0, NULL);
 
     return bytes_sent;
 }
 
-enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
+enum client_recv_status server_ws_parse(server_t* server, 
+            client_t* client, u8* buf, size_t buf_len)
 {
     ws_t ws;
     memset(&ws, 0, sizeof(ws_t));
@@ -50,7 +52,8 @@ enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* 
         memcpy(ws.ext.maskkey, buf + offset, WS_MASKKEY_LEN);
         offset += WS_MASKKEY_LEN;
         ws.payload = (char*)&buf[offset];
-        mask((u8*)ws.payload, ws.payload_len, ws.ext.maskkey, WS_MASKKEY_LEN);
+        mask((u8*)ws.payload, ws.payload_len, ws.ext.maskkey, 
+            WS_MASKKEY_LEN);
     }
     else
         ws.payload = (char*)buf + offset;
@@ -68,7 +71,8 @@ enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* 
             debug("CONTINUE FRAME: %s\n", ws.payload);
             break;
         case WS_TEXT_FRAME:
-            server_ws_handle_text_frame(server, client, ws.payload, ws.payload_len);
+            server_ws_handle_text_frame(server, client, ws.payload, 
+                                        ws.payload_len);
             break;
         case WS_BINARY_FRAME:
             debug("BINARY FRAME: %s\n", ws.payload);
@@ -123,7 +127,8 @@ void* combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr)
     return buffer;
 }
 
-ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey) 
+ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len, 
+                    const u8* maskkey) 
 {
     ssize_t bytes_sent = 0;
     struct iovec iov[4];
