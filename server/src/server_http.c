@@ -136,10 +136,6 @@ static void handle_http_header(client_t* client, http_t* http, http_header_t* he
     {
         set_client_connection(client, header);
     }
-    else if (NAME_CMP("Upgrade"))
-    {
-        handle_http_upgrade(client, http, header);
-    }
     else if (NAME_CMP("Sec-WebSocket-Key"))
     {
         handle_websocket_key(client, http, header);
@@ -249,6 +245,12 @@ static http_t* parse_http(client_t* client, char* buf, size_t buf_len)
     for (size_t i = 0; i < http->n_headers; i++)
         handle_http_header(client, http, &http->headers[i]);
 
+    if (client->state & CLIENT_STATE_UPGRADE_PENDING)
+    {
+        handle_http_upgrade(client, http, 
+            http_get_header(http, HTTP_HEAD_CONN_UPGRADE));
+    }
+
     if (http->body || http->body_len)
     {
         if (http->body_len > actual_body_len)
@@ -296,14 +298,14 @@ static void http_free(http_t* http)
     free(http);
 }
 
-const char* http_get_header(const http_t* http, const char* name)
+http_header_t* http_get_header(const http_t* http, const char* name)
 {
     for (size_t i = 0; i < http->n_headers; i++)
     {
-        const http_header_t* header = http->headers + i;
+        http_header_t* header = (http_header_t*)http->headers + i;
 
         if (NAME_CMP(name))
-            return header->val;
+            return header;
     }
 
     return NULL;
@@ -360,7 +362,7 @@ static void server_upgrade_client_to_websocket(server_t* server, client_t* clien
 
 static void server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
 {
-    const char* upgrade = http_get_header(http, HTTP_HEAD_CONN_UPGRADE);
+    const http_header_t* upgrade = http_get_header(http, HTTP_HEAD_CONN_UPGRADE);
     if (upgrade == NULL)
     {
         warn("Client fd:%d (Upgrade pending): No upgrade header in HTTP.\n", client->addr.sock);
@@ -368,7 +370,7 @@ static void server_handle_client_upgrade(server_t* server, client_t* client, htt
         return;
     }
 
-    if (!strncmp(upgrade, "websocket", HTTP_HEAD_VAL_LEN))
+    if (!strncmp(upgrade->val, "websocket", HTTP_HEAD_VAL_LEN))
         server_upgrade_client_to_websocket(server, client, http);
     else
         warn("Connection upgrade '%s' not implemented.\n", upgrade);
@@ -534,16 +536,14 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
 
 static void server_handle_http_get(server_t* server, client_t* client, http_t* http)
 {
-    if (client->state & CLIENT_STATE_UPGRADE_PENDING)
-        server_handle_client_upgrade(server, client, http);
-    else
         server_http_do_get_req(server, client, http);
 }
 
 static bool server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
 {
     char* endptr;
-    const char* token_str = http_get_header(http, "Upload-Token");
+    const http_header_t* upload_token_header = http_get_header(http, "Upload-Token");
+    const char* token_str = upload_token_header->val;
     if (!token_str)
     {
         error("No Upload-Token in POST request!\n");
@@ -659,12 +659,17 @@ static void server_handle_http_resp(server_t* server, client_t* client, http_t* 
 
 void server_handle_http(server_t* server, client_t* client, http_t* http)
 {
-    if (http->type == HTTP_REQUEST)
-        server_handle_http_req(server, client, http);
-    else if (http->type == HTTP_RESPOND)
-        server_handle_http_resp(server, client, http);
+    if (client->state & CLIENT_STATE_UPGRADE_PENDING)
+        server_handle_client_upgrade(server, client, http);
     else
-        warn("Unknown http type: %d. Request or Respond? Ignored.\n", http->type);
+    {
+        if (http->type == HTTP_REQUEST)
+            server_handle_http_req(server, client, http);
+        else if (http->type == HTTP_RESPOND)
+            server_handle_http_resp(server, client, http);
+        else
+            warn("Unknown http type: %d. Request or Respond? Ignored.\n", http->type);
+    }
 
     http_free(http);
 }
@@ -704,7 +709,6 @@ ssize_t http_send(client_t* client, http_t* http)
 
     // debug("HTTP send to fd:%d (%s:%s), len: %zu\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.len, to_str.str);
 
-    // if ((bytes_sent = send(client->addr.sock, to_str.str, to_str.len, 0)) == -1)
     if ((bytes_sent = server_send(client, to_str.str, to_str.len)) == -1)
     {
         error("HTTP send to (fd: %d, IP: %s:%s): %s\n",

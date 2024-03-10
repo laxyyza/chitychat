@@ -19,6 +19,7 @@ enum client_recv_status server_ws_parse(server_t* server,
     size_t offset = sizeof(ws_frame_t);
     u8* next_buf = NULL;
     size_t next_size = 0;
+    enum client_recv_status ret = RECV_OK;
 
     memcpy(&ws.frame, buf, sizeof(ws_frame_t));
 
@@ -71,7 +72,7 @@ enum client_recv_status server_ws_parse(server_t* server,
             debug("CONTINUE FRAME: %s\n", ws.payload);
             break;
         case WS_TEXT_FRAME:
-            server_ws_handle_text_frame(server, client, ws.payload, 
+            ret = server_ws_handle_text_frame(server, client, ws.payload, 
                                         ws.payload_len);
             break;
         case WS_BINARY_FRAME:
@@ -97,12 +98,12 @@ enum client_recv_status server_ws_parse(server_t* server,
             break;
     }
 
-    if (next_buf)
+    if (next_buf && ret == RECV_OK)
     {
         server_ws_parse(server, client, next_buf, next_size);
     }
 
-    return RECV_OK;
+    return ret;
 }
 
 void* combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr)

@@ -83,8 +83,9 @@ static const char* group_create(server_t* server, client_t* client, json_object*
     return NULL;
 }
 
-static const char *client_groups(server_t *server, client_t *client,
-                                 json_object *respond_json) {
+static const char* client_groups(server_t* server, client_t* client, 
+                                json_object* respond_json) 
+{
     dbgroup_t* groups;
     u32 n_groups;
 
@@ -394,19 +395,10 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
     return NULL;
 }
 
-static const char* server_handle_client_session(server_t* server, client_t* client, json_object* payload, json_object* respond_json)
+static const char* server_set_client_logged_in(server_t* server, client_t* client, 
+                                    session_t* session, json_object* respond_json)
 {
-    json_object* session_id_json;
-    session_t* session;
     dbuser_t* dbuser;
-    u32 session_id;
-
-    session_id_json = json_object_object_get(payload, "id");
-    session_id = json_object_get_uint64(session_id_json);
-
-    session = server_get_client_session(server, session_id);
-    if (!session)
-        return "Invalid session ID or session expired";
 
     dbuser = server_db_get_user_from_id(server, session->user_id);
     if (!dbuser)
@@ -417,8 +409,10 @@ static const char* server_handle_client_session(server_t* server, client_t* clie
     memcpy(client->dbuser, dbuser, sizeof(dbuser_t));
     free(dbuser);
 
-    json_object_object_add(respond_json, "type", json_object_new_string("session"));
-    json_object_object_add(respond_json, "id", json_object_new_uint64(session->session_id));
+    json_object_object_add(respond_json, "type", 
+                        json_object_new_string("session"));
+    json_object_object_add(respond_json, "id", 
+                        json_object_new_uint64(session->session_id));
 
     if (ws_json_send(client, respond_json) != -1)
     {
@@ -427,6 +421,22 @@ static const char* server_handle_client_session(server_t* server, client_t* clie
     }
 
     return NULL;
+}
+
+static const char* server_handle_client_session(server_t* server, client_t* client, json_object* payload, json_object* respond_json)
+{
+    json_object* session_id_json;
+    session_t* session;
+    u32 session_id;
+
+    session_id_json = json_object_object_get(payload, "id");
+    session_id = json_object_get_uint64(session_id_json);
+
+    session = server_get_client_session(server, session_id);
+    if (!session)
+        return "Invalid session ID or session expired";
+
+    return server_set_client_logged_in(server, client, session, respond_json);
 }
 
 static const char* server_handle_client_login(server_t* server, client_t* client, const char* username, const char* password)
@@ -475,31 +485,19 @@ static const char* server_handle_client_register(server_t* server, client_t* cli
     return NULL;
 }
 
-static void server_create_client_session(server_t* server, client_t* client, const char* username, json_object* respond_json)
+static const char* server_create_client_session(server_t* server, client_t* client, const char* username, json_object* respond_json)
 {
     session_t* session;
+
     dbuser_t* user = server_db_get_user_from_name(server, username);
     if (!user)
-    {
-        warn("create_client_session: db_get_user_from_name returned NULL!\n");
-        return;
-    }
+        return "Invalid username";
 
     session = server_new_client_session(server, client);
     session->user_id = user->user_id;
-
-    json_object_object_add(respond_json, "type", json_object_new_string("session"));
-    json_object_object_add(respond_json, "id", json_object_new_uint64(session->session_id));
-
-    size_t len;
-    const char* respond = json_object_to_json_string_length(respond_json, 0, &len);
-
-    info("New session created: %u\n", session->session_id);
-
-    ws_send(client, respond, len);
-    client->state |= CLIENT_STATE_LOGGED_IN;
-
     free(user);
+
+    return server_set_client_logged_in(server, client, session, respond_json);
 }
 
 static const char* server_handle_not_logged_in_client(server_t* server, client_t* client, json_object* payload, json_object* respond_json, const char* type)
@@ -534,7 +532,7 @@ static const char* server_handle_not_logged_in_client(server_t* server, client_t
     return errmsg;
 }
 
-void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len) 
+enum client_recv_status server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len) 
 {
     char* buf_print = strndup(buf, buf_len);
     debug("Web Socket message from fd:%d, IP: %s:%s:\n\t'%s'\n",
@@ -545,6 +543,14 @@ void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, 
     json_tokener* tokener = json_tokener_new();
     json_object* payload = json_tokener_parse_ex(tokener, buf, buf_len);
     json_tokener_free(tokener);
+
+    if (!payload)
+    {
+        warn("WS JSON parse failed, message:\n%s\n");
+        server_del_client(server, client);
+        return RECV_DISCONNECT;
+    }
+
     json_object* type_json = json_object_object_get(payload, "type");
     const char* type = json_object_get_string(type_json);
     const char* error_msg = NULL;
@@ -565,4 +571,6 @@ void server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, 
 
     json_object_put(payload);
     json_object_put(respond_json);
+
+    return RECV_OK;
 }
