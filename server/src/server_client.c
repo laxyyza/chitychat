@@ -3,7 +3,9 @@
 
 client_t*   server_new_client(server_t* server)
 {
-    client_t* client = calloc(1, sizeof(client_t));
+    client_t* client;
+    
+    client = calloc(1, sizeof(client_t));
     client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
     if (!server->client_head)
     {
@@ -50,6 +52,9 @@ client_t*   server_get_client_user_id(server_t* server, u64 id)
 
 void server_del_client(server_t* server, client_t* client)
 {
+    client_t* next;
+    client_t* prev;
+
     if (!server || !client)
         return;
 
@@ -62,14 +67,20 @@ void server_del_client(server_t* server, client_t* client)
         SSL_shutdown(client->ssl);
         SSL_free(client->ssl);
     }
+
+    if (client->session)
+    {
+        // TODO: Set client session timer
+    }
+
     if (client->recv.data)
         free(client->recv.data);
     if (client->dbuser)
         free(client->dbuser);
     close(client->addr.sock);
 
-    client_t* prev = client->prev;
-    client_t* next = client->next;
+    prev = client->prev;
+    next = client->next;
     if (prev)
         prev->next = next;
     if (next)

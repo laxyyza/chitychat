@@ -2,22 +2,11 @@
 #include <signal.h>
 #include "server_crypt.h"
 #include <sys/random.h>
+#include <sys/timerfd.h>
 
 #include <json-c/json.h>
 
 #define MAX_EP_EVENTS 10
-
-upload_token_t* server_find_upload_token(server_t* server, u64 id)
-{
-    for (size_t i = 0; i < MAX_SESSIONS; i++)
-    {
-        debug("token: %zu\n", server->upload_tokens[i].token);
-        if (server->upload_tokens[i].token == id)
-            return &server->upload_tokens[i];
-    }
-
-    return NULL;
-}
 
 bool        server_load_config(server_t* server, const char* config_path)
 {
@@ -491,12 +480,45 @@ static void server_del_all_clients(server_t* server)
     }
 }
 
+static void server_del_all_sessions(server_t* server)
+{
+    session_t* node;
+    session_t* next;
+
+    node = server->session_head;
+
+    while (node)
+    {
+        next = node->next;
+        server_del_client_session(server, node);
+        node = next;
+    }
+}
+
+static void server_del_all_upload_tokens(server_t* server)
+{
+    upload_token_t* node;
+    upload_token_t* next;
+
+    node = server->upload_token_head;
+
+    while (node)
+    {
+        next = node->next;
+        debug("Deleting upload token: %u for user %u\n", node->token, node->user_id);
+        server_del_upload_token(server, node);
+        node = next;
+    }
+}
+
 void server_cleanup(server_t* server)
 {
     if (!server)
         return;
 
     server_del_all_clients(server);
+    server_del_all_sessions(server);
+    server_del_all_upload_tokens(server);
     server_db_close(server);
 
     SSL_CTX_free(server->ssl_ctx);
@@ -531,4 +553,245 @@ ssize_t server_recv(const client_t* client, void* buf, size_t len)
         bytes_recv = recv(client->addr.sock, buf, len, 0);
 
     return bytes_recv;
+}
+ 
+server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
+            se_read_callback_t read_callback, se_close_callback_t close_callback)
+{
+    server_event_t* se;
+    server_event_t* head_next;
+
+    if (!server || !data || !read_callback || !close_callback)
+    {
+        warn("server_new_event(%p, %d, %p, %p, %p): Something is NULL!\n",
+                server, fd, data, read_callback, close_callback);
+        return NULL;
+    }
+    
+    se = calloc(1, sizeof(server_event_t));
+    if (server_ep_addfd(server, fd) == -1)
+    {
+        free(se);
+        error("ep_addfd %d failed\n", fd);
+        return NULL;
+    }
+    se->fd = fd;
+    se->data = data;
+    se->read = read_callback;
+    se->close = close_callback;
+
+    if (server->se_head == NULL)
+    {
+        server->se_head = se;
+        return se;
+    }
+
+    head_next = server->se_head->next;
+    if (head_next)
+        head_next->prev = se;
+    server->se_head->next = se;
+    se->next = head_next;
+    se->prev = server->se_head;
+
+    return se;
+}
+
+void server_del_event(server_t* server, server_event_t* se)
+{
+    server_event_t* next;
+    server_event_t* prev;
+
+    if (!server || !se)
+    {
+        warn("server_del_event(%p, %p): Something is NULL!\n",
+                server, se);
+        return;
+    }
+
+    server_ep_delfd(server, se->fd);
+    if (se->close)
+        se->close(server, se->data);
+    else
+        if (close(se->fd) == -1)
+            error("close(%d): %s\n", se->fd, ERRSTR);
+
+    prev = se->prev;
+    next = se->next;
+    if (prev)
+        prev->next = next;
+    if (next)
+        next->prev = prev;
+    if (se == server->se_head)
+        server->se_head = next;
+
+    free(se);
+}
+
+server_event_t* server_get_event(server_t* server, i32 fd)
+{
+    server_event_t* node;
+
+    node = server->se_head;
+
+    while (node)
+    {
+        if (node->fd == fd)
+            return node;
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+session_t* server_new_client_session(server_t* server, client_t* client)
+{
+    session_t* new_sesion;
+    session_t* head_next;
+
+    if (!server || !client || !client->dbuser)
+    {
+        warn("new_client_session(%p, %p) dbuser: %p: Something is NULL!\n", server, client, client->dbuser);
+        return NULL;
+    }
+
+    new_sesion = calloc(1, sizeof(session_t));
+    getrandom(&new_sesion->session_id, sizeof(u32), 0);
+    new_sesion->user_id = client->dbuser->user_id;
+
+    client->session = new_sesion;
+
+    if (server->session_head == NULL)
+    {
+        server->session_head = new_sesion;
+        return new_sesion;
+    }
+
+    head_next = server->session_head->next;
+    server->session_head->next = new_sesion;
+    new_sesion->next = head_next;
+    if (head_next)
+        head_next->prev = new_sesion;
+    new_sesion->prev = server->session_head;
+
+    return new_sesion;
+}
+
+session_t* server_get_client_session(server_t* server, u32 session_id)
+{
+    session_t* node;
+
+    node = server->session_head;
+
+    while (node)
+    {
+        if (node->session_id == session_id)
+            return node;
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+void server_del_client_session(server_t* server, session_t* session)
+{
+    session_t* next;
+    session_t* prev;
+
+    if (!server || !session)
+    {
+        warn("del_client_session(%p, %p): Something is NULL!\n", server, session);
+        return;
+    }
+
+    debug("Deleting session: %u for user %u\n", session->session_id, session->user_id);
+
+    if (session->timerfd)
+    {
+        server_ep_delfd(server, session->timerfd);
+        if (close(session->timerfd) == -1)
+            error("close(%d) session timerfd: %s\n", session->timerfd, ERRSTR);
+    }
+
+    next = session->next;
+    prev = session->prev;
+
+    if (next)
+        next->prev = prev;
+    if (prev)
+        prev->next = next;
+    if (session == server->session_head)
+        server->session_head = next;
+
+    free(session);
+}
+
+upload_token_t* server_new_upload_token(server_t* server, u32 user_id)
+{
+    upload_token_t* ut;
+    upload_token_t* head_next;
+
+    ut = calloc(1, sizeof(upload_token_t));
+    ut->user_id = user_id;
+    getrandom(&ut->token, sizeof(u32), 0);
+
+    if (server->upload_token_head == NULL)
+    {
+        server->upload_token_head = ut;
+        return ut;
+    }
+
+    head_next = server->upload_token_head->next;
+    server->upload_token_head->next = ut;
+    ut->next = head_next;
+    ut->prev = server->upload_token_head;
+    if (head_next)
+        head_next->prev = ut;
+
+    return ut;
+}
+
+upload_token_t* server_get_upload_token(server_t* server, u32 token)
+{
+    upload_token_t* node;
+
+    node = server->upload_token_head;
+
+    while (node) 
+    {
+        if (node->token == token)
+            return node;
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+void server_del_upload_token(server_t* server, upload_token_t* upload_token)
+{
+    upload_token_t* next;
+    upload_token_t* prev;
+
+    if (!server || !upload_token)
+    {
+        warn("del_upload_token(%p, %p): Something is NULL!\n", server, upload_token);
+        return;
+    }
+
+    if (upload_token->timerfd)
+    {
+        server_ep_delfd(server, upload_token->timerfd);
+        if (close(upload_token->timerfd) == -1)
+            error("close(%d) ut timerfd: %s\n", upload_token->timerfd, ERRSTR);
+    }
+
+    next = upload_token->next;
+    prev = upload_token->prev;
+    if (next)
+        next->prev = prev;
+    if (prev)
+        prev->next = next;
+    if (upload_token == server->upload_token_head)
+        server->upload_token_head = next;
+
+    free(upload_token);
 }

@@ -1,17 +1,4 @@
 #include "server_ws_pld_hdlr.h"
-#include <sys/random.h>
-
-static session_t* server_find_session(server_t* server, u32 id)
-{
-    if (id == 0)
-        return NULL;
-
-    for (size_t i = 0; i < MAX_SESSIONS; i++)
-        if (server->sessions[i].session_id == id)
-            return &server->sessions[i];
-
-    return NULL;
-}
 
 ssize_t ws_json_send(const client_t* client, json_object* json)
 {
@@ -364,15 +351,11 @@ static const char* edit_account(server_t* server, client_t* client, json_object*
 
     if (new_pfp)
     {
-        upload_token_t* upload_token = server_find_upload_token(server, 0);
+        upload_token_t* upload_token = server_new_upload_token(server, client->dbuser->user_id);
         // Create new upload token
 
         if (upload_token == NULL)
             return "Failed to create upload token";
-
-        getrandom(&upload_token->token, sizeof(u32), 0);
-        info("New token: %zu\n", upload_token->token);
-        upload_token->user_id = client->dbuser->user_id;
 
         json_object_object_add(respond_json, "type", json_object_new_string("edit_account"));
         json_object_object_add(respond_json, "upload_token", json_object_new_uint64(upload_token->token));
@@ -413,19 +396,23 @@ static const char* server_handle_logged_in_client(server_t* server, client_t* cl
 
 static const char* server_handle_client_session(server_t* server, client_t* client, json_object* payload, json_object* respond_json)
 {
-    json_object* session_id_json = json_object_object_get(payload, "id");
-    const u32 session_id = json_object_get_uint64(session_id_json);
+    json_object* session_id_json;
+    session_t* session;
+    dbuser_t* dbuser;
+    u32 session_id;
 
-    const session_t* session = server_find_session(server, session_id);
+    session_id_json = json_object_object_get(payload, "id");
+    session_id = json_object_get_uint64(session_id_json);
+
+    session = server_get_client_session(server, session_id);
     if (!session)
-    {
         return "Invalid session ID or session expired";
-    }
 
-    dbuser_t* dbuser = server_db_get_user_from_id(server, session->user_id);
+    dbuser = server_db_get_user_from_id(server, session->user_id);
     if (!dbuser)
     {
-        return "Server cuold not find user in database";
+        server_del_client_session(server, session);
+        return "Server could not find user in database";
     }
     memcpy(client->dbuser, dbuser, sizeof(dbuser_t));
     free(dbuser);
@@ -433,11 +420,11 @@ static const char* server_handle_client_session(server_t* server, client_t* clie
     json_object_object_add(respond_json, "type", json_object_new_string("session"));
     json_object_object_add(respond_json, "id", json_object_new_uint64(session->session_id));
 
-    size_t len;
-    const char* respond = json_object_to_json_string_length(respond_json, 0, &len);
-
-    if (ws_send(client, respond, len) != -1)
+    if (ws_json_send(client, respond_json) != -1)
+    {
         client->state |= CLIENT_STATE_LOGGED_IN;
+        client->session = session;
+    }
 
     return NULL;
 }
@@ -498,16 +485,7 @@ static void server_create_client_session(server_t* server, client_t* client, con
         return;
     }
 
-    for (size_t i = 0; i < MAX_SESSIONS; i++)
-    {
-        if (server->sessions[i].session_id == 0)
-        {
-            session = &server->sessions[i];
-            break;
-        }
-    }
-
-    getrandom(&session->session_id, sizeof(u32), 0);
+    session = server_new_client_session(server, client);
     session->user_id = user->user_id;
 
     json_object_object_add(respond_json, "type", json_object_new_string("session"));

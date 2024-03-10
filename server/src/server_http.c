@@ -564,7 +564,7 @@ static bool server_check_upload_token(server_t* server, const http_t* http, u32*
         return false;
     }
 
-    upload_token_t* real_token = server_find_upload_token(server, token);
+    upload_token_t* real_token = server_get_upload_token(server, token);
     if (real_token == NULL)
     {
         error("No upload token found: %zu\n", token);
@@ -578,7 +578,8 @@ static bool server_check_upload_token(server_t* server, const http_t* http, u32*
     }
 
     *user_id = real_token->user_id;
-    memset(real_token, 0, sizeof(upload_token_t));
+    // memset(real_token, 0, sizeof(upload_token_t));
+    server_del_upload_token(server, real_token);
 
     return true;
 }

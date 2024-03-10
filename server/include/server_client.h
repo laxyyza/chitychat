@@ -38,6 +38,7 @@ typedef struct client
 
     SSL* ssl;
     dbuser_t* dbuser;
+    session_t* session;
     recv_buf_t recv;
     bool secure;
 

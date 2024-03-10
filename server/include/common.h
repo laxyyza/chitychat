@@ -23,5 +23,6 @@ typedef int64_t i64;
 
 typedef struct server server_t;
 typedef struct http http_t;
+typedef struct session session_t;
 
 #endif //_COMMON_H_

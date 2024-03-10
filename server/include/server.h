@@ -52,18 +52,51 @@ typedef struct
 } server_config_t;
 
 
-typedef struct
+typedef struct session
 {
     u32 session_id;
     u32 user_id;
+    i32 timerfd;
+
+    struct session* next;
+    struct session* prev;
 } session_t;
 
-typedef struct 
+typedef struct upload_token
 {
-    u64 token;
+    u32 token;
     u32 user_id;
+    i32 timerfd;
+
+    struct upload_token* next;
+    struct upload_token* prev;
 } upload_token_t;
 
+enum se_status 
+{
+    SE_OK,
+    SE_END,
+    SE_ERROR,
+};
+
+// #define SE_READ_CALLBACK(name) enum se_status (*name)(server_t* server, const u32 ep_events, void* data)
+// #define SE_CLOSE_CALLBACK(name) enum se_status (*name)(server_t* server, void* data)
+typedef enum se_status (*se_close_callback_t)(server_t* server, void* data);
+typedef enum se_status (*se_read_callback_t)(server_t* server, const u32 ep_events, void* data);
+
+typedef struct server_event
+{
+    i32 fd;
+    void* data;
+    // SE_READ_CALLBACK(read);
+    // SE_CLOSE_CALLBACK(close);
+    se_read_callback_t read;
+    se_close_callback_t close;
+
+    struct server_event* next;
+    struct server_event* prev;
+} server_event_t;
+ 
 typedef struct server
 {
     int sock;
@@ -79,9 +112,9 @@ typedef struct server
     socklen_t addr_len;
 
     client_t* client_head;
-
-    session_t sessions[MAX_SESSIONS];
-    upload_token_t upload_tokens[MAX_SESSIONS];
+    session_t* session_head;
+    upload_token_t* upload_token_head;
+    server_event_t* se_head;
 
     SSL_CTX* ssl_ctx;
 
@@ -91,7 +124,20 @@ typedef struct server
 server_t*       server_init(const char* config_path);
 void            server_run(server_t* server);
 void            server_cleanup(server_t* server);
-upload_token_t* server_find_upload_token(server_t* server, u64 id);
+
+server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
+                                se_read_callback_t read_callback, 
+                                se_close_callback_t close_callback);
+server_event_t* server_get_event(server_t* server, i32 fd);
+void            server_del_event(server_t* server, server_event_t* se);
+
+session_t*      server_new_client_session(server_t* server, client_t* client);
+session_t*      server_get_client_session(server_t* server, u32 session_id);
+void            server_del_client_session(server_t* server, session_t* session);
+
+upload_token_t* server_new_upload_token(server_t* server, u32 user_id);
+upload_token_t* server_get_upload_token(server_t* server, u32 token);
+void server_del_upload_token(server_t* server, upload_token_t* upload_token);
 
 int         server_ep_addfd(server_t* server, i32 fd);
 int         server_ep_delfd(server_t* server, i32 fd);

@@ -8,6 +8,7 @@
 
 #define HTTP_END "\r\n\r\n"
 #define HTTP_NL "\r\n"
+// #define HTTP_VERSION "HTTP/3"
 #define HTTP_VERSION "HTTP/1.1"
 
 #define HTTP_METHOD_LEN 16
