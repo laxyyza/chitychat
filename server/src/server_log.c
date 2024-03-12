@@ -17,7 +17,7 @@
 #define FG_BLACK "\033[30m"
 
 #define C_DEFAULT FG_DEFAULT BG_DEFAULT
-#define C_FATAL BG_RED FG_BLACK
+#define C_FATAL (BG_RED FG_BLACK)
 
 static const char* wa_log_str[SERVER_LOG_LEVEL_LEN] = {
     "SERVER [" FG_RED "FATAL" FG_DEFAULT "]",
