@@ -25,7 +25,7 @@ static const char* wa_log_str[SERVER_LOG_LEVEL_LEN] = {
     "SERVER [" FG_ORANGE "WARN" FG_DEFAULT "]",
     "SERVER [" FG_GREEN "INFO" FG_DEFAULT "]",
     "SERVER [DEBUG]",
-    "SERVER [VERBOSE]",
+    "SERVER [VBOSE]",
 };
 
 static const char* wa_log_color[SERVER_LOG_LEVEL_LEN] = {
@@ -33,7 +33,7 @@ static const char* wa_log_color[SERVER_LOG_LEVEL_LEN] = {
     FG_RED,             /* WA_ERROR */
     FG_DEFAULT,         /* WA_WARN */
     FG_DEFAULT,         /* WA_INFO */
-    FG_DEFAULT          /* WA_DEBUG */
+    FG_DEFAULT,         /* WA_DEBUG */
     FG_DEFAULT          /* WA_VERBOSE */
 };
 
