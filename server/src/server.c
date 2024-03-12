@@ -19,6 +19,8 @@ bool        server_load_config(server_t* server, const char* config_path)
     json_object* addr_version;
     json_object* database;
     json_object* sql_filepaths;
+    json_object* log_level_json;
+    enum server_log_level log_level = SERVER_DEBUG;
 
     config = json_object_from_file(config_path);
     if (!config)
@@ -50,6 +52,35 @@ bool        server_load_config(server_t* server, const char* config_path)
     database = JSON_GET("database");
     const char* database_str = json_object_get_string(database);
     strncpy(server->conf.database, database_str, CONFIG_PATH_LEN);
+
+    log_level_json = JSON_GET("log_level");
+    if (log_level_json)
+    {
+        const char* loglevel_str = json_object_get_string(log_level_json);
+
+        if (!strcmp(loglevel_str, "fatal"))
+            log_level = SERVER_FATAL;
+        else if (!strcmp(loglevel_str, "error"))
+            log_level = SERVER_ERROR;
+        else if (!strcmp(loglevel_str, "warn") || !strcmp(loglevel_str, "warning"))
+            log_level = SERVER_WARN;
+        else if (!strcmp(loglevel_str, "info"))
+            log_level = SERVER_INFO;
+        else if (!strcmp(loglevel_str, "debug"))
+            log_level = SERVER_DEBUG;
+        else if (!strcmp(loglevel_str, "verbose"))
+            log_level = SERVER_VERBOSE;
+        else
+        {
+            fatal("JSON %s invalid \"log_level\": %s\n", config_path, loglevel_str);
+            json_object_put(config);
+            return false;
+        }
+    }
+
+    debug("Setting log level: %d\n", log_level);
+
+    server_set_loglevel(log_level);
 
     json_object_put(config);
 

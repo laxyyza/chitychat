@@ -25,6 +25,7 @@ static const char* wa_log_str[SERVER_LOG_LEVEL_LEN] = {
     "SERVER [" FG_ORANGE "WARN" FG_DEFAULT "]",
     "SERVER [" FG_GREEN "INFO" FG_DEFAULT "]",
     "SERVER [DEBUG]",
+    "SERVER [VERBOSE]",
 };
 
 static const char* wa_log_color[SERVER_LOG_LEVEL_LEN] = {
@@ -33,6 +34,7 @@ static const char* wa_log_color[SERVER_LOG_LEVEL_LEN] = {
     FG_DEFAULT,         /* WA_WARN */
     FG_DEFAULT,         /* WA_INFO */
     FG_DEFAULT          /* WA_DEBUG */
+    FG_DEFAULT          /* WA_VERBOSE */
 };
 
 static enum server_log_level log_level = SERVER_DEBUG;
@@ -49,7 +51,7 @@ void server_log(enum server_log_level level, const char* filename, int line, con
 
     char output[SERVER_LOG_MAX];
     memset(output, 0, SERVER_LOG_MAX);
-    //char* output = calloc(1, SERVER_LOG_MAX);
+    //char* output = calloc(1, SERVELOG_MAX);
     FILE* file = (level <= SERVER_WARN) ? stderr : stdout;
 
     va_list args;
