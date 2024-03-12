@@ -459,7 +459,7 @@ bool server_db_insert_group(server_t* server, dbgroup_t* group)
     return ret;
 }
 
-static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u32* n_ptr)
+static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u32 limit, u32 offset, u32* n_ptr)
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_msg, -1, &stmt, NULL);
@@ -468,6 +468,8 @@ static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u
 
     sqlite3_bind_int(stmt, 1, group_id);
     sqlite3_bind_int(stmt, 2, msg_id);
+    sqlite3_bind_int(stmt, 3, limit);
+    sqlite3_bind_int(stmt, 4, offset);
 
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
     {
@@ -503,12 +505,12 @@ static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u
 
 dbmsg_t* server_db_get_msg(server_t* server, u64 msg_id)
 {
-    return server_db_get_msgs(server, msg_id, -1, NULL);
+    return server_db_get_msgs(server, msg_id, -1, 1, 0, NULL);
 }
 
-dbmsg_t* server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 max, u32* n)
+dbmsg_t* server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit, u32 offset, u32* n)
 {
-    return server_db_get_msgs(server, -1, group_id, n);
+    return server_db_get_msgs(server, -1, group_id, limit, offset, n);
 }
 
 bool server_db_insert_msg(server_t* server, dbmsg_t* msg)

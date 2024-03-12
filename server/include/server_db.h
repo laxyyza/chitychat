@@ -113,7 +113,7 @@ dbgroup_t*  server_db_get_user_groups(server_t* server, u64 user_id, u32* n);
 bool        server_db_insert_group(server_t* server, dbgroup_t* group);
 
 dbmsg_t*    server_db_get_msg(server_t* server, u64 msg_id);
-dbmsg_t*    server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 max, u32* n);
+dbmsg_t*    server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit, u32 offset, u32* n);
 bool        server_db_insert_msg(server_t* server, dbmsg_t* msg);
 
 #endif // _SERVER_DB_

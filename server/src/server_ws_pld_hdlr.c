@@ -300,13 +300,15 @@ static const char* group_msg(server_t* server, client_t* client, json_object* pa
 static const char* get_group_msgs(server_t* server, client_t* client, json_object* payload, json_object* respond_json)
 {
     json_object* group_id_json = json_object_object_get(payload, "group_id");
-    json_object* max_json = json_object_object_get(payload, "max");
+    json_object* limit_json = json_object_object_get(payload, "limit");
+    json_object* offset_json = json_object_object_get(payload, "offset");
 
     const u64 group_id = json_object_get_int(group_id_json);
-    const u32 max = (max_json) ? json_object_get_int(max_json) : -1;
+    const u32 limit = (limit_json) ? json_object_get_int(limit_json) : -1;
+    const u32 offset = (offset_json) ? json_object_get_int(offset_json) : 0;
 
     u32 n_msgs;
-    dbmsg_t* msgs = server_db_get_msgs_from_group(server, group_id, max, &n_msgs);
+    dbmsg_t* msgs = server_db_get_msgs_from_group(server, group_id, limit, offset, &n_msgs);
 
     if (!msgs)
         return "Failed to get messages";
@@ -546,7 +548,7 @@ enum client_recv_status server_ws_handle_text_frame(server_t* server, client_t* 
 
     if (!payload)
     {
-        warn("WS JSON parse failed, message:\n%s\n");
+        warn("WS JSON parse failed, message:\n%s\n", buf);
         server_del_client(server, client);
         return RECV_DISCONNECT;
     }

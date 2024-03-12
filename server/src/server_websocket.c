@@ -195,14 +195,7 @@ ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t l
         error("WS Send to (fd:%d, IP: %s:%s): %s\n",
             client->addr.sock, client->addr.ip_str, client->addr.serv);
     }
-
     free(buffer);
-    // if ((bytes_sent = writev(client->addr.sock, iov, i)) == -1)
-    // {
-    //     error("WS Send to (fd:%d, IP: %s:%s): %s\n",
-    //         client->addr.sock, client->addr.ip_str, client->addr.serv
-    //     );
-    // }
 
     return bytes_sent;
 }

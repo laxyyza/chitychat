@@ -60,3 +60,6 @@ BEGIN
     SET pfp_name = '/img/default.png'
     WHERE user_id = NEW.user_id;
 END;
+
+CREATE INDEX IF NOT EXISTS idx_get_group_msgs
+ON Messages(group_id, msg_id, timestamp DESC, msg_id DESC);
