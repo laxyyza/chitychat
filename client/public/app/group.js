@@ -23,6 +23,21 @@ export class Group
         this.div_list.className = "group";
         this.div_list.id = "group_" + this.id;
         this.div_list.innerHTML = this.name;
+        this.msg_offset = 0;
+        this.get_scroll_messages = () => {
+            if (app.messages_container.scrollTop === 0)
+            {
+                const packet = {
+                    type: "get_group_msgs",
+                    group_id: this.id,
+                    limit: 15,
+                    offset: this.msg_offset
+                };
+                this.msg_offset += packet.limit;
+
+                app.server.ws_send(packet);
+            }
+        };
         this.div_list.addEventListener("click", () => {
             if (app.selected_group)
             {
@@ -61,19 +76,28 @@ export class Group
 
             //     socket.send(JSON.stringify(packet));
             // }
+            if (app.current_group && app.current_group.get_scroll_messages)
+                app.messages_container.removeEventListener('scroll', app.current_group.get_scroll_messages);
             app.current_group = this;
 
             if (this.messages.length === 0)
             {
                 const packet = {
                     type: "get_group_msgs",
-                    group_id: this.id
+                    group_id: this.id,
+                    limit: 15,
+                    offset: this.msg_offset
                 };
+                this.msg_offset += packet.limit;
 
                 app.server.ws_send(packet);
                 // socket.send(JSON.stringify(packet));
             }
+
+
+            app.messages_container.addEventListener('scroll', this.get_scroll_messages)
         });
+
 
         this.members = [];
         this.messages = [];
@@ -122,7 +146,7 @@ export class Group
         this.members.push(member);
     }
 
-    add_msg(user, msg)
+    add_msg(user, msg, insert=true)
     {
         const content = msg.content;
 
@@ -166,9 +190,16 @@ export class Group
         // let messages = document.getElementById("messages");
         let messages = this.div_chat_messages;
 
-        messages.appendChild(div_msg);
-
-        app.messages_container.scrollTo(0, app.messages_container.scrollHeight);
+        if (insert)
+        {
+            messages.insertBefore(div_msg, messages.firstChild);
+            app.messages_container.scrollTop += div_msg.offsetTop;
+        }
+        else 
+        {
+            messages.appendChild(div_msg);
+            app.messages_container.scrollTo(0, app.messages_container.scrollHeight);
+        }
 
         app.set_input_height(0);
 

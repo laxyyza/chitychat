@@ -324,12 +324,13 @@ export class App
                     };
                 }
 
-                group.add_msg(user, packet);
+                group.add_msg(user, packet, false);
             }
             else if (packet.type === "get_group_msgs")
             {
                 let group = this.groups[packet.group_id];
 
+                // for (let i = packet.messages.length - 1; i >= 0; i--)
                 for (let i = 0; i < packet.messages.length; i++)
                 {
                     const msg = packet.messages[i];
@@ -347,6 +348,7 @@ export class App
                         };
                         this.server.ws_send(get_user_packet);
                     }
+
                     group.add_msg(user, msg);
                 }
             }
