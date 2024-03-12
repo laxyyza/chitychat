@@ -1,6 +1,5 @@
 #include "server.h"
 #include <signal.h>
-#include "server_crypt.h"
 #include <sys/random.h>
 #include <sys/timerfd.h>
 
@@ -318,6 +317,7 @@ static void server_read_fd(server_t* server, const i32 fd)
     ssize_t bytes_recv;
     u8* buf;
     size_t buf_size;
+    size_t offset = 0;
     http_t* http;
     enum client_recv_status recv_status = RECV_OK;
     client_t* client = server_get_client_fd(server, fd);
@@ -341,14 +341,16 @@ static void server_read_fd(server_t* server, const i32 fd)
         if (!client->recv.data)
         {
             client->recv.data = calloc(1, CLIENT_RECV_PAGE);
-            client->recv.data_size = CLIENT_RECV_PAGE;
+            client->recv.data_size = CLIENT_RECV_PAGE - 1;
         }
+        else
+            offset = client->recv.offset;
         buf = client->recv.data;
         buf_size = client->recv.data_size;
-        memset(buf, 0, buf_size);
+        // memset(buf, 0, buf_size);
     }
 
-    bytes_recv = server_recv(client, buf, buf_size);
+    bytes_recv = server_recv(client, buf + offset, buf_size - offset);
     if (bytes_recv == -1)
     {
         client->recv.n_errors++;
@@ -377,7 +379,7 @@ static void server_read_fd(server_t* server, const i32 fd)
     else
     {
         if (client->state & CLIENT_STATE_WEBSOCKET)
-            recv_status = server_ws_parse(server, client, buf, bytes_recv);
+            recv_status = server_ws_parse(server, client, buf, bytes_recv + offset);
         else
             recv_status = server_http_parse(server, client, buf, bytes_recv);
     }
@@ -387,6 +389,7 @@ static void server_read_fd(server_t* server, const i32 fd)
         free(client->recv.data);
         client->recv.data = NULL;
         client->recv.data_size = 0;
+        client->recv.offset = 0;
     }
 
     if (recv_status == RECV_OK && client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)
@@ -559,7 +562,7 @@ ssize_t server_send(const client_t* client, const void* buf, size_t len)
     if (client->secure)
         bytes_sent = SSL_write(client->ssl, buf, len);
     else
-        bytes_sent = send(client->addr.sock, buf, len, 0);
+        bytes_sent = send(client->addr.sock, buf, len, MSG_NOSIGNAL);
 
     return bytes_sent;
 }

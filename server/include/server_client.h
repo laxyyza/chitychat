@@ -26,6 +26,7 @@ typedef struct
     u8* data;
     size_t overflow_check;
     size_t data_size;
+    size_t offset;
     bool busy;
     int n_errors;
     http_t* http;

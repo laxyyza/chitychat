@@ -11,6 +11,18 @@ ssize_t server_ws_pong(client_t* client)
     return bytes_sent;
 }
 
+static void server_ws_parse_check_offset(const ws_t* ws, size_t* offset)
+{
+
+    if (ws->frame.payload_len == 126)
+        *offset += 2;
+    else if (ws->frame.payload_len == 127)
+        *offset += 8;
+
+    if (ws->frame.mask)
+        *offset += WS_MASKKEY_LEN;
+}
+
 enum client_recv_status server_ws_parse(server_t* server, 
             client_t* client, u8* buf, size_t buf_len)
 {
@@ -31,33 +43,24 @@ enum client_recv_status server_ws_parse(server_t* server,
     verbose("OPCODE: %02X\n", ws.frame.opcode);
     verbose("PAYLOAD LEN: %u\n", ws.frame.payload_len);
 
+    server_ws_parse_check_offset(&ws, &offset);
+
     if (ws.frame.payload_len == 126)
     {
         ws.ext.u16 = WS_PAYLOAD_LEN16(buf);
         ws.payload_len = (u16)ws.ext.u16;
-        offset += 2;
+        // offset += 2;
         verbose("Payload len 16-bit: %zu\n", ws.payload_len);
     }
     else if (ws.frame.payload_len == 127)
     {
         ws.ext.u64 = WS_PAYLOAD_LEN64(buf);
         ws.payload_len = ws.ext.u64;
-        offset += 8;
+        // offset += 8;
         verbose("Payload len 64-bit\n");
     }
     else
         ws.payload_len   = ws.frame.payload_len;
-
-    if (ws.frame.mask)
-    {
-        memcpy(ws.ext.maskkey, buf + offset, WS_MASKKEY_LEN);
-        offset += WS_MASKKEY_LEN;
-        ws.payload = (char*)&buf[offset];
-        mask((u8*)ws.payload, ws.payload_len, ws.ext.maskkey, 
-            WS_MASKKEY_LEN);
-    }
-    else
-        ws.payload = (char*)buf + offset;
 
     const size_t total_size = ws.payload_len + offset;
     if (total_size < buf_len)
@@ -65,6 +68,31 @@ enum client_recv_status server_ws_parse(server_t* server,
         next_buf = buf + total_size;
         next_size = buf_len - total_size;
     }
+    else if (total_size > buf_len)
+    {
+        u8* new_buf = malloc(total_size);
+        size_t new_offset = buf_len;
+        memcpy(new_buf, buf, buf_len);
+        client->recv.busy = true;
+
+        free(client->recv.data);
+        client->recv.data = new_buf;
+        client->recv.data_size = total_size;
+        client->recv.offset = new_offset;
+
+        return RECV_OK;
+    }
+
+    if (ws.frame.mask)
+    {
+        memcpy(ws.ext.maskkey, buf + (offset - WS_MASKKEY_LEN), WS_MASKKEY_LEN);
+        // offset += WS_MASKKEY_LEN;
+        ws.payload = (char*)&buf[offset];
+        mask((u8*)ws.payload, ws.payload_len, ws.ext.maskkey, 
+            WS_MASKKEY_LEN);
+    }
+    else
+        ws.payload = (char*)buf + offset;
 
     switch (ws.frame.opcode)
     {
@@ -100,8 +128,11 @@ enum client_recv_status server_ws_parse(server_t* server,
 
     if (next_buf && ret == RECV_OK)
     {
-        server_ws_parse(server, client, next_buf, next_size);
+        verbose("next_buf: %p, size: %zu\n", next_buf, next_size);
+        ret = server_ws_parse(server, client, next_buf, next_size);
     }
+    else
+        client->recv.busy = false;
 
     return ret;
 }
@@ -193,7 +224,7 @@ ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t l
     if ((bytes_sent = server_send(client, buffer, buffer_size)) == -1)
     {
         error("WS Send to (fd:%d, IP: %s:%s): %s\n",
-            client->addr.sock, client->addr.ip_str, client->addr.serv);
+            client->addr.sock, client->addr.ip_str, client->addr.serv, ERRSTR);
     }
     free(buffer);
 
