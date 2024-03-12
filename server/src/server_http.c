@@ -270,21 +270,24 @@ static http_t* parse_http(client_t* client, char* buf, size_t buf_len)
 
 void print_parsed_http(const http_t* http)
 {
-    debug("Parsed HTTP: %s\n", (http->type == HTTP_REQUEST) ? "Request" : "Respond");
+    if (server_get_loglevel() != SERVER_VERBOSE)
+        return;
+    
+    verbose("Parsed HTTP: %s\n", (http->type == HTTP_REQUEST) ? "Request" : "Respond");
     if (http->type == HTTP_REQUEST)
-        debug("\tMethod: '%s'\n\t\t\tURL: '%s'\n\t\t\tVersion: '%s'\n", http->req.method, http->req.url, http->req.version);
+        verbose("\tMethod: '%s'\n\t\t\tURL: '%s'\n\t\t\tVersion: '%s'\n", http->req.method, http->req.url, http->req.version);
     else
-        debug("\tVersion: '%s'\n\t\t\tCode: %u\n\t\t\tStatus: '%s'\n", http->resp.version, http->resp.code, http->resp.msg);
+        verbose("\tVersion: '%s'\n\t\t\tCode: %u\n\t\t\tStatus: '%s'\n", http->resp.version, http->resp.code, http->resp.msg);
 
     for (size_t i = 0; i < http->n_headers; i++)
     {
         const http_header_t* header = &http->headers[i];
 
-        debug("H:\t'%s' = '%s'\n", header->name, header->val);
+        verbose("H:\t'%s' = '%s'\n", header->name, header->val);
     }
 
     if (http->body)
-        debug("BODY (strlen: %zu, http: %zu):\t'%s'\n", strlen(http->body), http->body_len, (http->body) ? http->body : "NULL");
+        verbose("BODY (strlen: %zu, http: %zu):\t'%s'\n", strlen(http->body), http->body_len, (http->body) ? http->body : "NULL");
 }
 
 static void http_free(http_t* http)
@@ -529,7 +532,7 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
     }
     close(fd);
 
-    debug("Got file: '%s'\n", path);
+    verbose("Got file: '%s'\n", path);
     server_http_resp_ok(client, content, content_len, content_type);
     free(content);
 }
@@ -650,7 +653,7 @@ static void server_handle_http_req(server_t* server, client_t* client, http_t* h
     else if (!HTTP_CMP_METHOD("POST"))
         server_handle_http_post(server, client, http);
     else
-        debug("Need to implement '%s' HTTP request.\n", http->req.method);
+        warn("Need to implement '%s' HTTP request.\n", http->req.method);
 }
 
 static void server_handle_http_resp(server_t* server, client_t* client, http_t* http)
@@ -686,7 +689,7 @@ enum client_recv_status server_http_parse(server_t* server, client_t* client, u8
         return RECV_DISCONNECT;
     }
 
-    // print_parsed_http(http);
+    print_parsed_http(http);
 
     if (!http->buf.missing)
     {
@@ -707,7 +710,7 @@ ssize_t http_send(client_t* client, http_t* http)
     ssize_t bytes_sent = 0;
     http_to_str_t to_str = http_to_str(http);
 
-    // debug("HTTP send to fd:%d (%s:%s), len: %zu\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.len, to_str.str);
+    verbose("HTTP send to fd:%d (%s:%s), len: %zu\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.len, to_str.str);
 
     if ((bytes_sent = server_send(client, to_str.str, to_str.len)) == -1)
     {

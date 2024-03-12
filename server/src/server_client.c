@@ -58,8 +58,14 @@ void server_del_client(server_t* server, client_t* client)
     if (!server || !client)
         return;
 
-    info("Client (fd:%d, ip: %s:%s, host: %s) disconnected.\n", 
-        client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
+    debug("Client (fd:%d, ip: %s:%s, host: %s) disconnected.\n", 
+            client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
+    if (client->dbuser)
+    {
+        if (client->dbuser->user_id)
+            debug("\tUser:%u %s '%s' logged out.\n", 
+                client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
+    }
 
     server_ep_delfd(server, client->addr.sock);
     if (client->ssl)

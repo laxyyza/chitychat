@@ -44,6 +44,11 @@ void server_set_loglevel(enum server_log_level level)
     log_level = level;
 }
 
+enum server_log_level server_get_loglevel(void)
+{
+    return log_level;
+}
+
 void server_log(enum server_log_level level, const char* filename, int line, const char* format, ...)
 {
     if (log_level < level)

@@ -23,27 +23,27 @@ enum client_recv_status server_ws_parse(server_t* server,
 
     memcpy(&ws.frame, buf, sizeof(ws_frame_t));
 
-    // debug("FIN: %u\n", ws.frame.fin);
-    // debug("RSV1: %u\n", ws.frame.rsv1);
-    // debug("RSV2: %u\n", ws.frame.rsv2);
-    // debug("RSV3: %u\n", ws.frame.rsv3);
-    // debug("MASK: %u\n", ws.frame.mask);
-    // debug("OPCODE: %02X\n", ws.frame.opcode);
-    // debug("PAYLOAD LEN: %u\n", ws.frame.payload_len);
+    verbose("FIN: %u\n", ws.frame.fin);
+    verbose("RSV1: %u\n", ws.frame.rsv1);
+    verbose("RSV2: %u\n", ws.frame.rsv2);
+    verbose("RSV3: %u\n", ws.frame.rsv3);
+    verbose("MASK: %u\n", ws.frame.mask);
+    verbose("OPCODE: %02X\n", ws.frame.opcode);
+    verbose("PAYLOAD LEN: %u\n", ws.frame.payload_len);
 
     if (ws.frame.payload_len == 126)
     {
         ws.ext.u16 = WS_PAYLOAD_LEN16(buf);
         ws.payload_len = (u16)ws.ext.u16;
         offset += 2;
-        debug("Payload len 16-bit: %zu\n", ws.payload_len);
+        verbose("Payload len 16-bit: %zu\n", ws.payload_len);
     }
     else if (ws.frame.payload_len == 127)
     {
         ws.ext.u64 = WS_PAYLOAD_LEN64(buf);
         ws.payload_len = ws.ext.u64;
         offset += 8;
-        debug("Payload len 64-bit\n");
+        verbose("Payload len 64-bit\n");
     }
     else
         ws.payload_len   = ws.frame.payload_len;
@@ -69,32 +69,32 @@ enum client_recv_status server_ws_parse(server_t* server,
     switch (ws.frame.opcode)
     {
         case WS_CONTINUE_FRAME:
-            debug("CONTINUE FRAME: %s\n", ws.payload);
+            verbose("CONTINUE FRAME: %s\n", ws.payload);
             break;
         case WS_TEXT_FRAME:
             ret = server_ws_handle_text_frame(server, client, ws.payload, 
                                         ws.payload_len);
             break;
         case WS_BINARY_FRAME:
-            debug("BINARY FRAME: %s\n", ws.payload);
+            verbose("BINARY FRAME: %s\n", ws.payload);
             break;
         case WS_CLOSE_FRAME:
         {
-            debug("CLOSE FRAME: %s\n", ws.payload);
+            verbose("CLOSE FRAME: %s\n", ws.payload);
             server_del_client(server, client);
             return RECV_DISCONNECT;
         }
         case WS_PING_FRAME:
         {
-            debug("PING FRAME: %s\n", ws.payload);
+            verbose("PING FRAME: %s\n", ws.payload);
             server_ws_pong(client);
             break;
         }
         case WS_PONG_FRAME:
-            debug("PONG FRAME: %s\n", ws.payload);
+            verbose("PONG FRAME: %s\n", ws.payload);
             break;
         default:
-            debug("UNKNOWN FRAME (%u): %s\n", ws.frame.opcode, ws.payload);
+            verbose("UNKNOWN FRAME (%u): %s\n", ws.frame.opcode, ws.payload);
             break;
     }
 
@@ -152,7 +152,7 @@ ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t l
         i++;
         if (len >= UINT16_MAX)
         {
-            debug("WS SEND 64-bit\n");
+            verbose("WS SEND 64-bit\n");
             ws.frame.payload_len = 127;
             swpcpy((u8*)&ws.ext.u64, (u8*)&len, sizeof(u64));
             iov[i].iov_base = &ws.ext.u64;
@@ -160,7 +160,7 @@ ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t l
         }
         else
         {
-            debug("WS SEND 16-bit\n");
+            verbose("WS SEND 16-bit\n");
             ws.frame.payload_len = 126;
             swpcpy((u8*)&ws.ext.u16, (const u8*)&len, sizeof(u16));
             iov[i].iov_base = &ws.ext.u16;

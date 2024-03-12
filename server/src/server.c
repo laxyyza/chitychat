@@ -78,9 +78,9 @@ bool        server_load_config(server_t* server, const char* config_path)
         }
     }
 
-    debug("Setting log level: %d\n", log_level);
-
     server_set_loglevel(log_level);
+
+    verbose("Setting log level: %d\n", log_level);
 
     json_object_put(config);
 
@@ -309,11 +309,11 @@ static void server_accept_conn(server_t* server)
     server_get_client_info(client);
     server_ep_addfd(server, client->addr.sock);
 
-    info("Client (fd:%d, IP: %s:%s, host: %s) connected.\n", 
+    debug("Client (fd:%d, IP: %s:%s, host: %s) connected.\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
 }
 
-static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
+static void server_read_fd(server_t* server, const i32 fd)
 {
     ssize_t bytes_recv;
     u8* buf;
@@ -348,10 +348,7 @@ static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
         memset(buf, 0, buf_size);
     }
 
-    debug("Reading from fd: %d\n", fd);
-
     bytes_recv = server_recv(client, buf, buf_size);
-    // bytes_recv = recv(client->addr.sock, buf, buf_size, flags);
     if (bytes_recv == -1)
     {
         client->recv.n_errors++;
@@ -363,14 +360,14 @@ static void server_read_fd(server_t* server, const i32 fd, const i32 flags)
     }
     else if (bytes_recv == 0)
     {
-        debug("Client recv 0 bytes, disconnecting...\n");
+        verbose("Client recv 0 bytes, disconnecting...\n");
         server_del_client(server, client);
         return;
     }
     else if (http)
     {
         http->buf.total_recv += bytes_recv;
-        debug("HTTP recv: %zu/%zu\n", http->buf.total_recv, http->body_len);
+        verbose("HTTP recv: %zu/%zu\n", http->buf.total_recv, http->body_len);
         if (bytes_recv >= buf_size)
         {
             server_handle_http(server, client, client->recv.http);
@@ -402,7 +399,6 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
 {
     const i32 fd = event->data.fd;
     const u32 ev = event->events;
-    i32 recv_flags = 0;
 
     if (ev & EPOLLERR)
     {
@@ -416,16 +412,10 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
             error("epoll error on fd: %d, (no error string).\n", fd);
     }
 
-    if (ev & EPOLLPRI)
-    {
-        error("epoll urgent data on fd: %d\n", fd);
-        recv_flags = MSG_OOB;
-    }
-
     if (ev & EPOLLRDHUP || ev & EPOLLHUP)
     {
         client_t* client = server_get_client_fd(server, fd);
-        debug("fd: %d hang up.\n", fd);
+        verbose("fd: %d hang up.\n", fd);
         if (client)
             server_del_client(server, client);
         else
@@ -446,7 +436,7 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
     else if (ev & EPOLLIN)
     {
         // fd ready for read
-        server_read_fd(server, fd, recv_flags);
+        server_read_fd(server, fd);
     }
     else
     {
@@ -536,7 +526,7 @@ static void server_del_all_upload_tokens(server_t* server)
     while (node)
     {
         next = node->next;
-        debug("Deleting upload token: %u for user %u\n", node->token, node->user_id);
+        verbose("Deleting upload token: %u for user %u\n", node->token, node->user_id);
         server_del_upload_token(server, node);
         node = next;
     }
@@ -734,7 +724,7 @@ void server_del_client_session(server_t* server, session_t* session)
         return;
     }
 
-    debug("Deleting session: %u for user %u\n", session->session_id, session->user_id);
+    verbose("Deleting session: %u for user %u\n", session->session_id, session->user_id);
 
     if (session->timerfd)
     {

@@ -14,6 +14,7 @@ enum server_log_level
 };
 
 void server_set_loglevel(enum server_log_level);
+enum server_log_level server_get_loglevel(void);
 void server_log(enum server_log_level level, const char* filename, int line, const char* format, ...);
 
 #define fatal(format, ...)  server_log(SERVER_FATAL,    __FILE_NAME__,  __LINE__,   format,     ##__VA_ARGS__)

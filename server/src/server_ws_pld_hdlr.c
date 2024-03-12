@@ -5,7 +5,7 @@ ssize_t ws_json_send(const client_t* client, json_object* json)
     size_t len;
     const char* string = json_object_to_json_string_length(json, 0, &len);
 
-    // debug("Sending %zu bytes:\n\t%s\n", len, string);
+    verbose("Sending %zu bytes:\n\t%s\n", len, string);
 
     return ws_send(client, string, len);
 }
@@ -44,9 +44,6 @@ static const char* group_create(server_t* server, client_t* client, json_object*
     {
         return "Failed to create group";
     }
-
-    // Not needed anymore.
-    // server_db_insert_group_member(server, new_group.group_id, client->dbuser->user_id);
 
     info("Creating new group, id: %u, name: '%s', owner_id: %u\n", new_group.group_id, name, new_group.owner_id);
 
@@ -310,9 +307,6 @@ static const char* get_group_msgs(server_t* server, client_t* client, json_objec
     u32 n_msgs;
     dbmsg_t* msgs = server_db_get_msgs_from_group(server, group_id, limit, offset, &n_msgs);
 
-    if (!msgs)
-        return "Failed to get messages";
-
     json_object_object_add(respond_json, "type", json_object_new_string("get_group_msgs"));
     json_object_object_add(respond_json, "group_id", json_object_new_int(group_id));
     json_object_object_add(respond_json, "messages", json_object_new_array_ext(n_msgs));
@@ -447,18 +441,14 @@ static const char* server_handle_client_login(server_t* server, client_t* client
     if (!user)
         goto error;
 
-    info("Found user: %zu|%s|%s|%s\n", user->user_id, user->username, user->displayname, user->bio);
-
     u8 hash_login[SERVER_HASH_SIZE];
     u8* salt = user->salt;
     server_hash(password, salt, hash_login);
 
     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) != 0)
         goto error;
-    // if (strncmp(password, user->password, DB_PASSWORD_MAX))
-    //     return "Incorrect Username or password";
 
-    info("Logged in!!!\n");
+    debug("User:%u, %s '%s' logged in.\n", user->user_id, user->username, user->displayname);
 
     free(user);
 
@@ -471,7 +461,6 @@ static const char* server_handle_client_register(server_t* server, client_t* cli
 {
     if (!displayname_json || !displayname)
         return "Require display name.";
-    // Insert new user  
 
     dbuser_t new_user;
     memset(&new_user, 0, sizeof(dbuser_t));
@@ -537,7 +526,7 @@ static const char* server_handle_not_logged_in_client(server_t* server, client_t
 enum client_recv_status server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len) 
 {
     char* buf_print = strndup(buf, buf_len);
-    debug("Web Socket message from fd:%d, IP: %s:%s:\n\t'%s'\n",
+    verbose("Web Socket message from fd:%d, IP: %s:%s:\n\t'%s'\n",
          client->addr.sock, client->addr.ip_str, client->addr.serv, buf_print);
     free(buf_print);
 
@@ -564,7 +553,7 @@ enum client_recv_status server_ws_handle_text_frame(server_t* server, client_t* 
 
     if (error_msg)
     {
-        error("error:msg: %s\n", error_msg);
+        verbose("Sending error: %s\n", error_msg);
         json_object_object_add(respond_json, "type", json_object_new_string("error"));
         json_object_object_add(respond_json, "error_msg", json_object_new_string(error_msg));
 
