@@ -60,3 +60,4 @@ client/public/img
 *.key
 *.csr
 *.crt
+server/config.json
