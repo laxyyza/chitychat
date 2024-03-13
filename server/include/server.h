@@ -12,6 +12,7 @@
 #include "server_db.h"
 #include "server_util.h"
 #include "server_crypt.h"
+#include "server_tm.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
@@ -103,6 +104,7 @@ typedef struct server
     int epfd;
     server_config_t conf;
     server_db_t db;
+    server_tm_t tm;
 
     struct sockaddr* addr;
     union {
@@ -124,6 +126,7 @@ typedef struct server
 server_t*       server_init(const char* config_path);
 void            server_run(server_t* server);
 void            server_cleanup(server_t* server);
+void            server_read_fd(server_t* server, const i32 fd);
 
 server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
                                 se_read_callback_t read_callback, 
@@ -139,7 +142,7 @@ upload_token_t* server_new_upload_token(server_t* server, u32 user_id);
 upload_token_t* server_get_upload_token(server_t* server, u32 token);
 void server_del_upload_token(server_t* server, upload_token_t* upload_token);
 
-int         server_ep_addfd(server_t* server, i32 fd);
+int         server_ep_addfd(server_t* server, i32 fd, bool once);
 int         server_ep_delfd(server_t* server, i32 fd);
 
 ssize_t     server_send(const client_t* client, const void* buf, size_t len);

@@ -45,12 +45,13 @@ class Server:
             await self.bot.handle_packet(packet)
 
     def http_get(self, url: str, print_text: bool=False):
-        resp = requests.get(self.http_url + url, verify=False)
-        if resp.status_code == 200:
-            if print_text:
-                print(resp.text)
-        else:
-            print(f"Error {resp.status_code}")
+        pass
+        # resp = requests.get(self.http_url + url, verify=False)
+        # if resp.status_code == 200:
+        #     if print_text:
+        #         print(resp.text)
+        # else:
+        #     print(f"Error {resp.status_code}")
     
     async def send(self, **kwargs) -> None:
         packet = kwargs
@@ -230,9 +231,8 @@ class Bot:
     async def mainloop(self) -> None:
         print("main loop")
         n: int = 0
-        await asyncio.sleep(2)
         while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.5)
 
             try:
                 await self.server.send(

@@ -255,13 +255,34 @@ static const char* group_msg(server_t* server, client_t* client, json_object* pa
     };
     strncpy(new_msg.content, content, DB_MESSAGE_MAX);
 
+
+    struct timeval start, end;
+    double elapsed;
+
+    gettimeofday(&start, NULL);
+
     if (!server_db_insert_msg(server, &new_msg))
     {
         return "Failed to send message";
     }
 
+    gettimeofday(&end, NULL);
+
+    elapsed = (end.tv_sec - start.tv_sec) * 1000.0; // seconds to milliseconds
+    elapsed += (end.tv_usec - start.tv_usec) / 1000.0; // microseconds to milliseconds
+
+    info("Inserting msg took: %fms\n", elapsed);
+
+    gettimeofday(&start, NULL);
     dbmsg_t* dbmsg = server_db_get_msg(server, new_msg.msg_id);
     // Update all other online group members
+
+    gettimeofday(&end, NULL);
+
+    elapsed = (end.tv_sec - start.tv_sec) * 1000.0; // seconds to milliseconds
+    elapsed += (end.tv_usec - start.tv_usec) / 1000.0; // microseconds to milliseconds
+
+    info("Getting msg took: %fms\n", elapsed);
 
     u32 n_memebrs;
     dbuser_t* gmemebrs = server_db_get_group_members(server, group_id, &n_memebrs);

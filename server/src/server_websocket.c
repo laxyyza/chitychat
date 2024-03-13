@@ -6,7 +6,7 @@
 ssize_t server_ws_pong(client_t* client)
 {
     ssize_t bytes_sent = ws_send_adv(client, 
-            WS_PONG_FRAME, NULL, 0, NULL);
+            WS_PING_FRAME, NULL, 0, NULL);
 
     return bytes_sent;
 }

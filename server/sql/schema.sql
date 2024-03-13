@@ -61,5 +61,9 @@ BEGIN
     WHERE user_id = NEW.user_id;
 END;
 
-CREATE INDEX IF NOT EXISTS idx_get_group_msgs
-ON Messages(group_id, msg_id, timestamp DESC, msg_id DESC);
+CREATE INDEX IF NOT EXISTS idx_message_group_id ON Messages(timestamp, msg_id);
+CREATE INDEX IF NOT EXISTS idx_message_timestamp_desc ON Messages(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_message_filter_order ON Messages(group_id, timestamp DESC, msg_id DESC);
+CREATE INDEX IF NOT EXISTS idx_groups_group_idx ON Groups(group_id);
+CREATE INDEX IF NOT EXISTS idx_users_username ON Users(username);
+CREATE INDEX IF NOT EXISTS idx_users_user_id ON Users(user_id);

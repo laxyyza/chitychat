@@ -95,6 +95,9 @@ typedef struct
 bool        server_db_open(server_t* server);
 void        server_db_close(server_t* server);
 
+void        server_db_transact(server_t* server);
+void        server_db_commit(server_t* server);
+
 dbuser_t*   server_db_get_user_from_id(server_t* server, u64 user_id);
 dbuser_t*   server_db_get_user_from_name(server_t* server, const char* username);
 dbuser_t*   server_db_get_users_from_group(server_t* server, u64 group_id, u32* n);

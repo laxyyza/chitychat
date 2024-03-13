@@ -170,13 +170,19 @@ static bool server_init_socket(server_t* server)
     return true;
 }
 
-i32 server_ep_addfd(server_t* server, i32 fd)
+i32 server_ep_addfd(server_t* server, i32 fd, bool once)
 {
     i32 ret;
+    u32 events;
+
+    if (once)
+        events = EPOLLIN | EPOLLRDHUP | EPOLLONESHOT;
+    else
+        events = EPOLLIN | EPOLLRDHUP;
 
     struct epoll_event ev = {
         .data.fd = fd,
-        .events = EPOLLIN | EPOLLRDHUP | EPOLLHUP
+        .events = events
     };
 
     ret = epoll_ctl(server->epfd, EPOLL_CTL_ADD, fd, &ev);
@@ -209,7 +215,7 @@ static bool server_init_epoll(server_t* server)
         return false;
     }
     
-    if (server_ep_addfd(server, server->sock) == -1)
+    if (server_ep_addfd(server, server->sock, false) == -1)
         return false;
 
     return true;
@@ -257,7 +263,12 @@ server_t*   server_init(const char* config_path)
     if (!server_init_ssl(server))
         goto error;
 
+    const size_t thread_pool = 1;
+
     server->running = true;
+    if (!server_tm_init_thread_pool(server, thread_pool))
+        goto error;
+
 
     return server;
 error:;
@@ -306,13 +317,13 @@ static void server_accept_conn(server_t* server)
     server_client_ssl_handsake(server, client);
 
     server_get_client_info(client);
-    server_ep_addfd(server, client->addr.sock);
+    server_ep_addfd(server, client->addr.sock, true);
 
     debug("Client (fd:%d, IP: %s:%s, host: %s) connected.\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
 }
 
-static void server_read_fd(server_t* server, const i32 fd)
+void server_read_fd(server_t* server, const i32 fd)
 {
     ssize_t bytes_recv;
     u8* buf;
@@ -390,6 +401,8 @@ static void server_read_fd(server_t* server, const i32 fd)
         client->recv.data = NULL;
         client->recv.data_size = 0;
         client->recv.offset = 0;
+
+        // server_ep_addfd(server, fd, true);
     }
 
     if (recv_status == RECV_OK && client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)
@@ -439,7 +452,8 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
     else if (ev & EPOLLIN)
     {
         // fd ready for read
-        server_read_fd(server, fd);
+        // server_read_fd(server, fd);
+        server_tm_enqueue_fd(server, fd);
     }
     else
     {
@@ -540,10 +554,11 @@ void server_cleanup(server_t* server)
     if (!server)
         return;
 
+    server_db_close(server);
+    server_tm_del_thread_pool(server);
     server_del_all_clients(server);
     server_del_all_sessions(server);
     server_del_all_upload_tokens(server);
-    server_db_close(server);
 
     SSL_CTX_free(server->ssl_ctx);
 
@@ -593,7 +608,7 @@ server_event_t* server_new_event(server_t* server, i32 fd, void* data,
     }
     
     se = calloc(1, sizeof(server_event_t));
-    if (server_ep_addfd(server, fd) == -1)
+    if (server_ep_addfd(server, fd, false) == -1)
     {
         free(se);
         error("ep_addfd %d failed\n", fd);

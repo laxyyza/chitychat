@@ -94,7 +94,27 @@ bool server_db_open(server_t* server)
 
     db_exec_sql(server, db->schema, NULL);
 
+    server_db_transact(server);
+
     return true;
+}
+
+void        server_db_transact(server_t* server)
+{
+    i32 rc = sqlite3_exec(server->db.db, "BEGIN TRANSACTION;", NULL, 0, NULL);
+    if (rc != SQLITE_OK)
+    {
+        error("Begin transaction: %s\n", sqlite3_errmsg(server->db.db));
+    }
+}
+
+void        server_db_commit(server_t* server)
+{
+    i32 rc = sqlite3_exec(server->db.db, "COMMIT;", NULL, 0, NULL);
+    if (rc != SQLITE_OK)
+    {
+        error("Commit transaction: %s\n", sqlite3_errmsg(server->db.db));
+    }
 }
 
 void server_db_close(server_t* server)
@@ -103,6 +123,8 @@ void server_db_close(server_t* server)
         return;
 
     server_db_t* db = &server->db;
+
+    server_db_commit(server);
 
     free(db->schema);
 
@@ -437,8 +459,10 @@ dbgroup_t* server_db_get_user_groups(server_t* server, u64 user_id, u32* n_ptr)
 
 bool server_db_insert_group(server_t* server, dbgroup_t* group)
 {
+    i32 rc;
+
     sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_group, -1, &stmt, NULL);
+    rc = sqlite3_prepare_v2(server->db.db, server->db.insert_group, -1, &stmt, NULL);
     bool ret = true;
 
     sqlite3_bind_text(stmt, 1, group->displayname, -1, SQLITE_TRANSIENT);
@@ -461,8 +485,10 @@ bool server_db_insert_group(server_t* server, dbgroup_t* group)
 
 static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u32 limit, u32 offset, u32* n_ptr)
 {
+    i32 rc;
+
     sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_msg, -1, &stmt, NULL);
+    rc = sqlite3_prepare_v2(server->db.db, server->db.select_msg, -1, &stmt, NULL);
     dbmsg_t* msgs = malloc(sizeof(dbmsg_t));
     u32 n = 0;
 
@@ -491,6 +517,11 @@ static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u
         if (!n_ptr)
             break;
     }
+    if (rc != SQLITE_OK && rc != SQLITE_ROW && rc != SQLITE_DONE)
+    {
+        error("Failed while getting messages: %s\n", sqlite3_errmsg(server->db.db));
+    }
+
     sqlite3_finalize(stmt);
 
     if (n == 0)
@@ -515,8 +546,10 @@ dbmsg_t* server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit
 
 bool server_db_insert_msg(server_t* server, dbmsg_t* msg)
 {
+    i32 rc;
+
     sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_msg, -1, &stmt, NULL);
+    rc = sqlite3_prepare_v2(server->db.db, server->db.insert_msg, -1, &stmt, NULL);
     bool ret = true;
 
     sqlite3_bind_int(stmt, 1, msg->user_id);

@@ -15,6 +15,7 @@ target_sources(chitychat PRIVATE
     server/src/server_db.c
     server/src/server_util.c
     server/src/server_crypt.c
+    server/src/server_tm.c
 )
 
 target_include_directories(chitychat PRIVATE
@@ -26,4 +27,5 @@ target_link_libraries(chitychat PRIVATE
     crypto
     json-c
     sqlite3
+    pthread
 )

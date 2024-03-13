@@ -57,7 +57,8 @@ void server_del_client(server_t* server, client_t* client)
 
     if (!server || !client)
         return;
-
+    
+    // pthread_mutex_lock(&server->tm.mutex);
     debug("Client (fd:%d, ip: %s:%s, host: %s) disconnected.\n", 
             client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
     if (client->dbuser)
@@ -95,6 +96,7 @@ void server_del_client(server_t* server, client_t* client)
     if (client == server->client_head)
         server->client_head = next;
     free(client);
+    // pthread_mutex_unlock(&server->tm.mutex);
 }
 
 bool server_client_ssl_handsake(server_t* server, client_t* client)
