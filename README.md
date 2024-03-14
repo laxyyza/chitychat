@@ -1,50 +1,36 @@
 # Chity Chat
-> A simple Chat App
+> Chity Chat is a simple Chat App with the purpose of learning. It includes a website code and a custom web server written in C.
 
-### What is in here?
-* Website code, and custom web server written in C.
+### Chat App features
+* **Multiple Groups:** Users can join any group; everything is public.
+* **Real-time Communication:** Messages are sent and received instantly.
+* **User Profile Pictures:** Users can upload and change their profile pictures.
 
-### Why do this?
-* Learning purposes.
+### Planned features
+- [ ] **Private Groups:** Invitation-only groups.
+- [ ] **Group Member Roles:** Admins, mods, etc.
+- [ ] **User Account Management:** Change username, display name, bio, and password.
+- [ ] **Account Deletion:** Ability to delete accounts, messages, and groups.
+- [ ] **Direct Messaging (DM):** Private messaging between users.
+- [ ] **Enhanced Messaging:** Send photos, videos, files, reply to messages, and edit messages.
+- [ ] **Mobile Compatibility:** Improve usability on mobile devices.
+- [ ] **URL Parameters Support:** Support HTTP URL parameters.
 
-### Chat App features:
-> NOTE: It's simple
-* Multiple groups, everything is public; anyone can join any group.
-* Real-time communcation with server, sending/recieving messages instantaly.
-* User profile picutres and can change it.
+### Web server features
+* **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
+* **Web Sockets Implementation:** Real-time communication support.
+* **SSL/TLS via OpenSSL:** Secure connections.
+* **Password Security:** Salting and hashing using SHA512.
+* **I/O Multiplexing:** Utilizes epoll for efficient I/O.
+* **Database Management:** Uses SQLite3 for SQL database.
+* **Session Management:** Users receive session IDs for persistent login.
 
-### Features planned:
-- [ ] Private groups, can only join from invites via links/codes.
-- [ ] Group member roles (e.g. admin, mods, etc in a group).
-    - [ ] Kick/ban users from group 
-- [ ] Change username, display name, bio, and passwords.
-- [ ] Delete account, messages and groups.
-- [ ] Leave groups.
-- [ ] Direct messaging (DM).
-- [ ] See more information about other users.
-- [ ] Messages:
-    - [ ] Sending photos, videos and files.
-    - [ ] Reply to a message.
-    - [ ] Edit your message.
-- [ ] Mobile friendly (It's currently only for desktop use).
-- [ ] (Web Server) Support HTTP URL parameters.
-
-### Web server features:
-* Basic HTTP/1.1 parsing, only supports GET and POST requests.
-* Web Sockets implementation (can parse the web socket frame, unmask it and sending it).
-* SSL/TLS (https, wss) via OpenSSL.
-* Password salting and hashing using SHA512. 
-* epoll for I/O multiplexing.
-* Using SQLite3 for SQL database engine.
-* Doubly linked-list for clients.
-* Basic session management (i.e. After client login, client will recieve session ID and can be used later so you dont have to retype username passwords).
-
-### What I learnent by doing this:
-> I am already fimialiar doing network programming in C for Linux/Posix. 
-* How to make a web server, implementing:
-    * HTTP (basic, only supports GET and POST requests)
+### Learning experience
+Through building Chity Chat, I learned:
+* Web Server Implementation:
+    * HTTP
     * Web Sockets
     * SSL/TLS
-* SQL (SQLite3) (my first project using a SQL database)
-* How to make a web site (JavaScript, HTML and CSS)
-* Securly save passwords in database, using SHA512.
+* SQL Database Usage with SQLite3.
+* Frontend Development with JavaScript, HTML, and CSS.
+* Password Security with SHA512 hashing.
