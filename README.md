@@ -26,7 +26,7 @@
 * **Session Management:** Users receive session IDs for persistent login.
 
 ### Learning experience
-Through building Chity Chat, I learned:
+> Through building Chity Chat, I learned:
 * Web Server Implementation:
     * HTTP
     * Web Sockets
