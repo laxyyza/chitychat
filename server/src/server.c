@@ -2,16 +2,37 @@
 #include <signal.h>
 #include <sys/random.h>
 #include <sys/timerfd.h>
+#include <fcntl.h>
 
 #include <json-c/json.h>
 
 #define MAX_EP_EVENTS 10
 
+static json_object* server_default_config(const char* config_path)
+{
+    json_object* config = json_object_new_object();
+    json_object_object_add(config, "root_dir", 
+            json_object_new_string("client/public"));
+    json_object_object_add(config, "addr_ip", 
+            json_object_new_string("any"));
+    json_object_object_add(config, "addr_port", 
+            json_object_new_int(8080));
+    json_object_object_add(config, "addr_version", 
+            json_object_new_string("ipv6"));
+    json_object_object_add(config, "log_level", 
+            json_object_new_string("debug"));
+    json_object_object_add(config, "database", 
+            json_object_new_string("server/chitychat.db"));
+
+    return config;
+}
+
 bool        server_load_config(server_t* server, const char* config_path)
 {
 #define JSON_GET(x) json_object_object_get(config, x)
 
-    json_object* config;
+    i32 fd;
+    json_object* config = NULL;
     json_object* root_dir;
     json_object* addr_ip;
     json_object* addr_port;
@@ -21,10 +42,53 @@ bool        server_load_config(server_t* server, const char* config_path)
     json_object* log_level_json;
     enum server_log_level log_level = SERVER_DEBUG;
 
-    config = json_object_from_file(config_path);
+    fd = open(config_path, O_RDONLY);
+    if (fd == -1)
+    {
+        if (errno == ENOENT)
+        {
+            config = server_default_config(config_path);
+            if (!config)
+            {
+                fatal("Failed to create default config\n");
+                return false;
+            }
+
+            fd = open(config_path, O_RDWR | O_CREAT, 
+                        S_IRUSR | S_IWUSR);
+            if (fd == -1)
+            {
+                fatal("Creating file %s failed %d (%s\n)",
+                        config_path, errno, ERRSTR);
+                return false;
+            }
+
+            i32 ret = json_object_to_fd(fd, config, 
+                JSON_C_TO_STRING_PRETTY | 
+                JSON_C_TO_STRING_PRETTY_TAB | 
+                JSON_C_TO_STRING_SPACED);
+
+            close(fd);
+            if (ret == -1)
+            {
+                fatal("json_object_to_fd: %s\n",
+                    json_util_get_last_err());
+                return false;
+            }
+        }
+        else
+        {
+            fatal("open %s failed error %d (%s)\n",
+                config_path, errno, ERRSTR);
+            return false;
+        }
+    }
+    if (!config)
+        config = json_object_from_file(config_path);
     if (!config)
     {
-        fatal(json_util_get_last_err());
+        fatal("json_object_from_file: %s\n",
+            json_util_get_last_err());
         return false;
     }
 
