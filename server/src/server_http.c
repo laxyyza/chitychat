@@ -487,14 +487,38 @@ static const char* server_get_content_type(const char* path)
     return "application/octet-stream";
 }
 
+static int 
+server_http_url_checks(http_t* http)
+{
+    const char* url = http->req.url;
+
+    if (!http || !url)
+        return -1;
+
+    if (strstr(url, "../"))
+    {
+        warn("GET URL '%s' very sus.\n", url);
+        return -1;
+    }
+
+    return 0;
+}
+
 static void server_http_do_get_req(server_t* server, client_t* client, http_t* http)
 {
+    i32 ret;
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
     char path[PATH_MAX];
     memset(path, 0, PATH_MAX);
     i32 fd;
     size_t content_len;
     char* content;
+
+    if (server_http_url_checks(http) == -1)
+    {
+        server_http_resp_error(client, HTTP_CODE_NOT_FOUND, "Not found");
+        return;
+    }
 
     // TODO: Add "default_file_per_dir" config, default should be "index.html"
     if (http->req.url[url_len - 1] == '/')
