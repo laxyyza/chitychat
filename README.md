@@ -15,6 +15,7 @@
 - [ ] **Enhanced Messaging:** Send photos, videos, files, reply to messages, and edit messages.
 - [ ] **Mobile Compatibility:** Improve usability on mobile devices.
 - [ ] **URL Parameters Support:** Support HTTP URL parameters.
+- [ ] **Real-Time User Status Management:** Online, Offline, Away, busy, typing, etc.
 
 ### Web server features
 * **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
