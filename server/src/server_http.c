@@ -6,7 +6,8 @@
 
 #define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
 
-http_to_str_t http_to_str(const http_t* http)
+http_to_str_t 
+http_to_str(const http_t* http)
 {
     http_to_str_t to_str;
     size_t size;
@@ -61,7 +62,8 @@ http_to_str_t http_to_str(const http_t* http)
     return to_str;
 }
 
-static void set_client_connection(client_t* client, http_header_t* header)
+static void 
+set_client_connection(client_t* client, http_header_t* header)
 {
     char* connection;
     char* saveptr;
@@ -85,7 +87,8 @@ static void set_client_connection(client_t* client, http_header_t* header)
     }
 }
 
-static void handle_http_upgrade(client_t* client, http_t* http, http_header_t* header)
+static void 
+handle_http_upgrade(client_t* client, http_t* http, http_header_t* header)
 {
     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
     {
@@ -104,12 +107,14 @@ static void handle_http_upgrade(client_t* client, http_t* http, http_header_t* h
     }
 }
 
-static void handle_websocket_key(client_t* client, http_t* http, http_header_t* header)
+static void 
+handle_websocket_key(client_t* client, http_t* http, http_header_t* header)
 {
     http->websocket_key = server_compute_websocket_key(header->val);
 }
 
-static void http_handle_content_len(http_t* http, http_header_t* header)
+static void 
+http_handle_content_len(http_t* http, http_header_t* header)
 {
     char* endptr;
     http->body_len = strtoull(header->val, &endptr, 10);
@@ -126,7 +131,8 @@ static void http_handle_content_len(http_t* http, http_header_t* header)
     }
 }
 
-static void handle_http_header(client_t* client, http_t* http, http_header_t* header)
+static void 
+handle_http_header(client_t* client, http_t* http, http_header_t* header)
 {
     if (NAME_CMP("Content-Length"))
     {
@@ -142,7 +148,8 @@ static void handle_http_header(client_t* client, http_t* http, http_header_t* he
     }
 }
 
-static http_t* parse_http(client_t* client, char* buf, size_t buf_len) 
+static http_t* 
+parse_http(client_t* client, char* buf, size_t buf_len) 
 {
     http_t* http;
     char* saveptr;
@@ -268,7 +275,8 @@ static http_t* parse_http(client_t* client, char* buf, size_t buf_len)
     return http;
 }
 
-void print_parsed_http(const http_t* http)
+void 
+print_parsed_http(const http_t* http)
 {
     if (server_get_loglevel() != SERVER_VERBOSE)
         return;
@@ -290,7 +298,8 @@ void print_parsed_http(const http_t* http)
         verbose("BODY (strlen: %zu, http: %zu):\t'%s'\n", strlen(http->body), http->body_len, (http->body) ? http->body : "NULL");
 }
 
-static void http_free(http_t* http)
+static void 
+http_free(http_t* http)
 {
     if (!http)
         return;
@@ -301,7 +310,8 @@ static void http_free(http_t* http)
     free(http);
 }
 
-http_header_t* http_get_header(const http_t* http, const char* name)
+http_header_t* 
+http_get_header(const http_t* http, const char* name)
 {
     for (size_t i = 0; i < http->n_headers; i++)
     {
@@ -314,7 +324,8 @@ http_header_t* http_get_header(const http_t* http, const char* name)
     return NULL;
 }
 
-static void http_add_header(http_t* http, const char* name, const char* val)
+static void 
+http_add_header(http_t* http, const char* name, const char* val)
 {
     if (!http || !name || !val)
         return;
@@ -347,7 +358,8 @@ static void http_add_header(http_t* http, const char* name, const char* val)
     strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN);
 }
 
-static void server_upgrade_client_to_websocket(server_t* server, client_t* client, http_t* req_http)
+static void 
+server_upgrade_client_to_websocket(server_t* server, client_t* client, http_t* req_http)
 {
     http_t* http = http_new_resp(HTTP_CODE_SW_PROTO, "Switching Protocols", NULL, 0);
     http_add_header(http, "Connection", HTTP_HEAD_CONN_UPGRADE);
@@ -363,7 +375,8 @@ static void server_upgrade_client_to_websocket(server_t* server, client_t* clien
     free(req_http->websocket_key);
 }
 
-static void server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
+static void 
+server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
 {
     const http_header_t* upgrade = http_get_header(http, HTTP_HEAD_CONN_UPGRADE);
     if (upgrade == NULL)
@@ -381,7 +394,8 @@ static void server_handle_client_upgrade(server_t* server, client_t* client, htt
     client->state ^= CLIENT_STATE_UPGRADE_PENDING;
 }
 
-static void http_add_body(http_t* restrict http, const char* restrict body, size_t body_len)
+static void 
+http_add_body(http_t* restrict http, const char* restrict body, size_t body_len)
 {
     http->body = calloc(1, body_len);
     memcpy(http->body, body, body_len);
@@ -394,7 +408,8 @@ static void http_add_body(http_t* restrict http, const char* restrict body, size
     http_add_header(http, HTTP_HEAD_CONTENT_LEN, val);
 }
 
-http_t* http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_len)
+http_t* 
+http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_len)
 {
     http_t* http = calloc(1, sizeof(http_t));
 
@@ -409,7 +424,8 @@ http_t* http_new_resp(u16 code, const char* status_msg, const char* body, size_t
     return http;
 }
 
-static void server_http_resp_ok(client_t* client, char* content, size_t content_len, const char* content_type)
+static void 
+server_http_resp_ok(client_t* client, char* content, size_t content_len, const char* content_type)
 {
     http_t* http = http_new_resp(HTTP_CODE_OK, "OK", content, content_len);
     http_add_header(http, HTTP_HEAD_CONTENT_TYPE, content_type);
@@ -419,7 +435,8 @@ static void server_http_resp_ok(client_t* client, char* content, size_t content_
     http_free(http);
 }
 
-static void server_http_resp_error(client_t* client, u16 error_code, const char* status_msg)
+static void 
+server_http_resp_error(client_t* client, u16 error_code, const char* status_msg)
 {
     http_t* http = http_new_resp(error_code, status_msg, NULL, 0);
 
@@ -428,7 +445,8 @@ static void server_http_resp_error(client_t* client, u16 error_code, const char*
     http_free(http);
 }
 
-static void server_http_resp_404_not_found(client_t* client)
+static void 
+server_http_resp_404_not_found(client_t* client)
 {
     const char* not_found_html = "<h1>Not Found</h1>";
     size_t len = strlen(not_found_html);
@@ -440,7 +458,8 @@ static void server_http_resp_404_not_found(client_t* client)
     http_free(http);
 }
 
-static const char* server_get_content_type(const char* path)
+static const char* 
+server_get_content_type(const char* path)
 {
 #define CMP_EXT(ext) !strcmp(extention, ext)
 
@@ -504,8 +523,9 @@ server_http_url_checks(http_t* http)
     return 0;
 }
 
-static void server_http_do_get_req(server_t* server, client_t* client, http_t* http)
-{
+static void 
+server_handle_http_get(server_t* server, client_t* client, http_t* http)
+{    
     i32 ret;
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
     char path[PATH_MAX];
@@ -561,12 +581,8 @@ static void server_http_do_get_req(server_t* server, client_t* client, http_t* h
     free(content);
 }
 
-static void server_handle_http_get(server_t* server, client_t* client, http_t* http)
-{
-        server_http_do_get_req(server, client, http);
-}
-
-static bool server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
+static bool 
+server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
 {
     char* endptr;
     const http_header_t* upload_token_header = http_get_header(http, "Upload-Token");
@@ -611,7 +627,8 @@ static bool server_check_upload_token(server_t* server, const http_t* http, u32*
     return true;
 }
 
-static void server_handle_http_post(server_t* server, client_t* client, const http_t* http)
+static void 
+server_handle_http_post(server_t* server, client_t* client, const http_t* http)
 {
     http_t* resp;
     u32 user_id;
@@ -679,7 +696,8 @@ static void server_handle_http_post(server_t* server, client_t* client, const ht
     http_free(resp);
 }
 
-static void server_handle_http_req(server_t* server, client_t* client, http_t* http)
+static void 
+server_handle_http_req(server_t* server, client_t* client, http_t* http)
 {
 #define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
 
@@ -691,11 +709,13 @@ static void server_handle_http_req(server_t* server, client_t* client, http_t* h
         warn("Need to implement '%s' HTTP request.\n", http->req.method);
 }
 
-static void server_handle_http_resp(server_t* server, client_t* client, http_t* http)
+static void 
+server_handle_http_resp(server_t* server, client_t* client, http_t* http)
 {
 }
 
-void server_handle_http(server_t* server, client_t* client, http_t* http)
+void 
+server_handle_http(server_t* server, client_t* client, http_t* http)
 {
     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
         server_handle_client_upgrade(server, client, http);
@@ -712,7 +732,8 @@ void server_handle_http(server_t* server, client_t* client, http_t* http)
     http_free(http);
 }
 
-enum client_recv_status server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
+enum client_recv_status 
+server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
 {
     http_t* http;
 
@@ -734,7 +755,8 @@ enum client_recv_status server_http_parse(server_t* server, client_t* client, u8
     return RECV_OK;
 }
 
-ssize_t http_send(client_t* client, http_t* http)
+ssize_t 
+http_send(client_t* client, http_t* http)
 {
     if (!client || !http)
     {
