@@ -3,6 +3,8 @@
 #include <sys/random.h>
 #include <sys/timerfd.h>
 #include <fcntl.h>
+#include <libgen.h>
+#include <getopt.h>
 
 #include <json-c/json.h>
 
@@ -30,8 +32,103 @@ server_default_config(const char* config_path)
     return config;
 }
 
-bool        
-server_load_config(server_t* server, const char* config_path)
+static void 
+server_chdir(const char* exe_path)
+{
+    char realpath_str[PATH_MAX];
+    char* dir;
+    realpath(exe_path, realpath_str);
+    dir = dirname(dirname(realpath_str)); // Get the parent of the exe directory 
+
+    if (chdir(dir) == -1)
+        error("Failed to change directory to '%s': %s\n", dir, ERRSTR);
+}
+
+static void
+print_help(const char* exe_path)
+{
+    printf(
+"Usage\n"\
+        "\t%s [options]\n"\
+        "Chity Chat server\n"\
+        "\nArguments will override config.json\n\n"\
+        "  -h, --help\t\t\tShow this message\n"\
+        "  -v, --verbose\t\t\tSet log level to verbose\n"\
+        "  -p, --port=PORT\t\tPort number to bind\n"\
+        "  -s, --secure_only\t\tOnly use SSL/TLS, if client handshake fails server will close them\n"\
+        "  -d, --database=DATABASE\tDatabase path\n"\
+        "  -6, --ipv6\t\t\tUse IPv6\n"\
+        "  -4, --ipv4\t\t\tUse IPv4\n",
+        exe_path
+    );
+}
+
+static bool 
+server_argv(server_t* server, int argc, char* const* argv)
+{
+    i32 opt;
+    char* endptr;
+
+    struct option long_opts[] = {
+        {"port", required_argument, NULL, 'p'},
+        {"secure_only", 0, NULL, 's'},
+        {"verbose", 0, NULL, 'v'},
+        {"database", required_argument, NULL, 'd'},
+        {"ipv6", 0, NULL, '6'},
+        {"ipv4", 0, NULL, '4'},
+        {"help", 0, NULL, 'h'},
+        {NULL, 0, NULL, 0}
+    };
+
+    while ((opt = getopt_long(argc, argv, "p:d:sv46", long_opts, NULL)) != -1)
+    {
+        switch (opt)
+        {
+            case 'p':
+            {
+                u32 port = strtoul(optarg, &endptr, 10);
+                if (port == 0)
+                {
+                    error("Invalid port: '%s'\n", optarg);
+                    return false;
+                }
+                else if (port > UINT16_MAX)
+                {
+                    error("Port '%u' too large (> %u)\n", port, UINT16_MAX);
+                    return false;
+                }
+                server->conf.addr_port = port;
+                break;
+            }
+            case 's':
+                server->conf.secure_only = true;
+                break;
+            case 'v':
+                server_set_loglevel(SERVER_VERBOSE);
+                break;
+            case 'd':
+                strncpy(server->conf.database, optarg, NAME_MAX);
+                break;
+            case '4':
+                server->conf.addr_version = IPv4;
+                break;
+            case '6':
+                server->conf.addr_version = IPv6;
+                break;
+            case 'h':
+                print_help(argv[0]);
+                return false;
+            case '?':
+                error("Unknown or missing argument\n");
+                return false;
+        }
+    }
+
+    return true;
+}
+
+static bool        
+server_load_config(server_t* server, int argc, char* const* argv)
 {
 #define JSON_GET(x) json_object_object_get(config, x)
 
@@ -45,7 +142,15 @@ server_load_config(server_t* server, const char* config_path)
     json_object* sql_filepaths;
     json_object* log_level_json;
     json_object* secure_only_json;
+    const char* root_dir_str;
+    const char* addr_ip_str;
+    const char* addr_version_str;
+    const char* database_str;
+    const char* loglevel_str;
     enum server_log_level log_level = SERVER_DEBUG;
+    const char* config_path = SERVER_CONFIG_PATH;
+
+    server_chdir(argv[0]);
 
     fd = open(config_path, O_RDONLY);
     if (fd == -1)
@@ -98,18 +203,18 @@ server_load_config(server_t* server, const char* config_path)
     }
 
     root_dir = JSON_GET("root_dir");
-    const char* root_dir_str = json_object_get_string(root_dir);
+    root_dir_str = json_object_get_string(root_dir);
     strncpy(server->conf.root_dir, root_dir_str, CONFIG_PATH_LEN);
 
     addr_ip = JSON_GET("addr_ip");
-    const char* addr_ip_str = json_object_get_string(addr_ip);
+    addr_ip_str = json_object_get_string(addr_ip);
     strncpy(server->conf.addr_ip, addr_ip_str, INET6_ADDRSTRLEN);
 
     addr_port = JSON_GET("addr_port");
     server->conf.addr_port = json_object_get_int(addr_port);
 
     addr_version = JSON_GET("addr_version");
-    const char* addr_version_str = json_object_get_string(addr_version);
+    addr_version_str = json_object_get_string(addr_version);
     if (!strcmp(addr_version_str, "ipv4"))
         server->conf.addr_version = IPv4;
     else if (!strcmp(addr_version_str, "ipv6"))
@@ -118,13 +223,13 @@ server_load_config(server_t* server, const char* config_path)
         warn("Config: addr_version: \"%s\"? Default to IPv4\n", addr_version_str);
 
     database = JSON_GET("database");
-    const char* database_str = json_object_get_string(database);
+    database_str = json_object_get_string(database);
     strncpy(server->conf.database, database_str, CONFIG_PATH_LEN);
 
     log_level_json = JSON_GET("log_level");
     if (log_level_json)
     {
-        const char* loglevel_str = json_object_get_string(log_level_json);
+        loglevel_str = json_object_get_string(log_level_json);
 
         if (!strcmp(loglevel_str, "fatal"))
             log_level = SERVER_FATAL;
@@ -156,10 +261,12 @@ server_load_config(server_t* server, const char* config_path)
     }
 
     server_set_loglevel(log_level);
+    json_object_put(config);
+
+    if (!server_argv(server, argc, argv))
+        return false;
 
     verbose("Setting log level: %d\n", log_level);
-
-    json_object_put(config);
 
     server->conf.sql_schema = "server/sql/schema.sql";
     server->conf.sql_insert_user = "server/sql/insert_user.sql";
@@ -328,11 +435,11 @@ server_init_ssl(server_t* server)
 }
 
 server_t*   
-server_init(const char* config_path)
+server_init(int argc, char* const* argv)
 {
     server_t* server = calloc(1, sizeof(server_t));
 
-    if (!server_load_config(server, config_path))
+    if (!server_load_config(server, argc, argv))
         goto error;
 
     if (!server_init_socket(server))

@@ -1,9 +1,9 @@
 #include "server.h"
 
 int 
-main(int argc, const char** argv)
+main(int argc, char* const* argv)
 {
-    server_t* server = server_init(SERVER_CONFIG_PATH);
+    server_t* server = server_init(argc, argv);
     if (!server)
         return -1;
 

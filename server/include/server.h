@@ -122,7 +122,7 @@ typedef struct server
     bool running;
 } server_t;
 
-server_t*       server_init(const char* config_path);
+server_t*       server_init(int argc, char* const* argv);
 void            server_run(server_t* server);
 void            server_cleanup(server_t* server);
 
