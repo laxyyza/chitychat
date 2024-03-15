@@ -80,7 +80,7 @@ server_argv(server_t* server, int argc, char* const* argv)
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "p:d:sv46", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "p:d:sv46h", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
