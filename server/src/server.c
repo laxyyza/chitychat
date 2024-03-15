@@ -76,11 +76,12 @@ server_argv(server_t* server, int argc, char* const* argv)
         {"database", required_argument, NULL, 'd'},
         {"ipv6", 0, NULL, '6'},
         {"ipv4", 0, NULL, '4'},
+        {"fork", 0, NULL, 'f'},
         {"help", 0, NULL, 'h'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "p:d:sv46h", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "p:d:sv46hf", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
@@ -118,6 +119,9 @@ server_argv(server_t* server, int argc, char* const* argv)
             case 'h':
                 print_help(argv[0]);
                 return false;
+            case 'f':
+                server->conf.fork = true;
+                break;
             case '?':
                 error("Unknown or missing argument\n");
                 return false;
@@ -774,6 +778,8 @@ server_cleanup(server_t* server)
         close(server->epfd);
     if (server->sock)
         close(server->sock);
+
+    info("Server stopped.\n");
 
     free(server);
 }

@@ -35,6 +35,7 @@ typedef struct
     enum ip_version addr_version;
     char database[CONFIG_PATH_LEN];
     bool secure_only;
+    bool fork;
 
     const char* sql_schema;
     const char* sql_insert_user;
