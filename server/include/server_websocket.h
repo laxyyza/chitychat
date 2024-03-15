@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "server_client.h"
+#include <json-c/json.h>
 
                                     //      Opcode
                                     //      |ONLY|
@@ -13,9 +14,9 @@
 #define WS_PING_FRAME       0x09    // 0b000|1001|
 #define WS_PONG_FRAME       0x0A    // 0b000|1010|
 
-#define WS_FIN_BIT 0x80
-#define WS_MASK_BIT 0x80
-#define WS_OPCODE_BITS 0x0F
+#define WS_FIN_BIT          0x80
+#define WS_MASK_BIT         0x80
+#define WS_OPCODE_BITS      0x0F
 #define WS_PAYLOAD_LEN_BITS 0x7F
 
 #define WS_FIN(frame)           frame[0] & WS_FIN_BIT >> 7      // 0b10000000 >> 7 0b00000001
@@ -98,5 +99,6 @@ typedef struct
 enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len);
 ssize_t ws_send(const client_t* client, const char* buf, size_t len);
 ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey);
+ssize_t ws_json_send(const client_t* client, json_object* json);
 
 #endif // _SERVER_WEBSOCKET_H_

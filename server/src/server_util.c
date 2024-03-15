@@ -4,8 +4,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
-char* strsplit(char* restrict str, const char* restrict delm, char** restrict saveprr)
+char* 
+strsplit(char* restrict str, const char* restrict delm, char** restrict saveprr)
 {
     char* start;
     char* ret;
@@ -37,7 +39,8 @@ char* strsplit(char* restrict str, const char* restrict delm, char** restrict sa
     return ret;
 }
 
-static void print_hex_char(const char* str, size_t max, size_t start, size_t per_line)
+static void 
+print_hex_char(const char* str, size_t max, size_t start, size_t per_line)
 {
     size_t line_i = 0;
     for (size_t c = start; c < max; c++)
@@ -58,7 +61,8 @@ static void print_hex_char(const char* str, size_t max, size_t start, size_t per
     }
 }
 
-void print_hex(const char* str, size_t len)
+void 
+print_hex(const char* str, size_t len)
 {
     size_t per_line = 20;
     size_t line_i = 0;
@@ -89,7 +93,8 @@ void print_hex(const char* str, size_t len)
     printf("\n");
 }
 
-size_t fdsize(i32 fd)
+size_t 
+fdsize(i32 fd)
 {
     struct stat stat;
     if (fstat(fd, &stat) == -1)
@@ -97,19 +102,22 @@ size_t fdsize(i32 fd)
     return stat.st_size;
 }
 
-void swpcpy(u8* restrict dest, const u8* restrict src, size_t n) 
+void 
+swpcpy(u8* restrict dest, const u8* restrict src, size_t n) 
 {
     for (size_t i = 0; i < n; i++) 
         dest[i] = src[n - 1 - i];
 }
 
-void mask(u8* buf, size_t buf_len, const u8* maskkey, size_t maskkey_len)
+void 
+mask(u8* buf, size_t buf_len, const u8* maskkey, size_t maskkey_len)
 {
     for (size_t i = 0; i < buf_len; i++)
         buf[i] ^= maskkey[i % 4];
 }
 
-i32 file_isdir(const char* filepath)
+i32 
+file_isdir(const char* filepath)
 {
     if (!filepath)
         return -1;
@@ -122,4 +130,27 @@ i32 file_isdir(const char* filepath)
     }
 
     return S_ISDIR(file_stat.st_mode);
+}
+
+void* 
+combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr)
+{
+    size_t size = 0;
+    void* buffer;
+    size_t index = 0;
+
+    for (size_t i = 0; i < n; i++)
+        size += iov[i].iov_len;
+
+    buffer = calloc(1, size);
+    for (size_t i = 0; i < n; i++)
+    {
+        const size_t iov_len = iov[i].iov_len;
+        memcpy(buffer + index, iov[i].iov_base, iov_len);
+        index += iov_len;
+    }
+
+    *size_ptr = size;
+
+    return buffer;
 }

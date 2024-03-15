@@ -3,7 +3,8 @@
 #include "common.h"
 #include <fcntl.h>
 
-static char* server_db_load_sql(const char* path, size_t* size)
+static char* 
+server_db_load_sql(const char* path, size_t* size)
 {
     i32 fd;
     size_t len = 0;
@@ -40,7 +41,8 @@ static char* server_db_load_sql(const char* path, size_t* size)
     return buffer;
 }
 
-static i32 db_exec_sql(server_t* server, const char* sql, void* callback)
+static i32 
+db_exec_sql(server_t* server, const char* sql, void* callback)
 {
     i32 ret;
 
@@ -62,7 +64,8 @@ static i32 db_exec_sql(server_t* server, const char* sql, void* callback)
     return ret;
 }
 
-bool server_db_open(server_t* server)
+bool 
+server_db_open(server_t* server)
 {
     i32 ret = sqlite3_open(server->conf.database, &server->db.db);
     if (ret)
@@ -97,7 +100,8 @@ bool server_db_open(server_t* server)
     return true;
 }
 
-void server_db_close(server_t* server)
+void 
+server_db_close(server_t* server)
 {
     if (!server)
         return;
@@ -127,7 +131,8 @@ void server_db_close(server_t* server)
     sqlite3_close(server->db.db);
 }
 
-dbuser_t* server_db_get_user(server_t* server, u64 user_id, const char* username_to) 
+dbuser_t* 
+server_db_get_user(server_t* server, u64 user_id, const char* username_to) 
 {
     dbuser_t* user = calloc(1, sizeof(dbuser_t));
 
@@ -198,22 +203,26 @@ dbuser_t* server_db_get_user(server_t* server, u64 user_id, const char* username
     return user;
 }
 
-dbuser_t* server_db_get_user_from_id(server_t* server, u64 user_id)
+dbuser_t* 
+server_db_get_user_from_id(server_t* server, u64 user_id)
 {
     return server_db_get_user(server, user_id, "");
 }
 
-dbuser_t* server_db_get_user_from_name(server_t* server, const char* username)
+dbuser_t* 
+server_db_get_user_from_name(server_t* server, const char* username)
 {
     return server_db_get_user(server, -1, username);
 }
 
-dbuser_t* server_db_get_users_from_group(server_t* server, u64 group_id, u32* n)
+dbuser_t* 
+server_db_get_users_from_group(server_t* server, u64 group_id, u32* n)
 {
     return NULL;
 }
 
-bool server_db_insert_user(server_t* server, dbuser_t* user)
+bool 
+server_db_insert_user(server_t* server, dbuser_t* user)
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_user, -1, &stmt, NULL);
@@ -237,7 +246,8 @@ bool server_db_insert_user(server_t* server, dbuser_t* user)
     return ret;
 }
 
-bool server_db_update_user(server_t* server, const char* new_username,
+bool 
+server_db_update_user(server_t* server, const char* new_username,
                            const char* new_displayname,
                            const char* new_pfp_name, const u64 user_id) 
 {
@@ -269,7 +279,8 @@ bool server_db_update_user(server_t* server, const char* new_username,
     return ret;
 }
 
-dbuser_t* server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr)
+dbuser_t* 
+server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr)
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_groupmember, -1, &stmt, NULL);
@@ -310,12 +321,14 @@ dbuser_t* server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr
     return users;
 }
 
-bool server_db_user_in_group(server_t* server, u64 group_id, u64 user_id)
+bool 
+server_db_user_in_group(server_t* server, u64 group_id, u64 user_id)
 {
     return false;
 }
 
-bool server_db_insert_group_member(server_t* server, u64 group_id, u64 user_id)
+bool 
+server_db_insert_group_member(server_t* server, u64 group_id, u64 user_id)
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_groupmember, -1, &stmt, NULL);
@@ -336,7 +349,8 @@ bool server_db_insert_group_member(server_t* server, u64 group_id, u64 user_id)
     return ret;
 }
 
-static dbgroup_t* server_db_get_groups(server_t* server, u64 user_id, u64 group_id, u32* n_ptr)
+static dbgroup_t* 
+server_db_get_groups(server_t* server, u64 user_id, u64 group_id, u32* n_ptr)
 {
     u32 n = 0;
     u32 i = 0;
@@ -384,12 +398,14 @@ static dbgroup_t* server_db_get_groups(server_t* server, u64 user_id, u64 group_
     return groups;
 }
 
-dbgroup_t* server_db_get_group(server_t* server, u64 group_id)
+dbgroup_t* 
+server_db_get_group(server_t* server, u64 group_id)
 {
     return server_db_get_groups(server, -1, group_id, NULL);
 }
 
-dbgroup_t*  server_db_get_all_groups(server_t* server, u32* n_ptr)
+dbgroup_t*  
+server_db_get_all_groups(server_t* server, u32* n_ptr)
 {
     sqlite3_stmt* stmt;
     const char* sql = "SELECT * FROM Groups;";
@@ -430,12 +446,14 @@ dbgroup_t*  server_db_get_all_groups(server_t* server, u32* n_ptr)
     return groups;
 }
 
-dbgroup_t* server_db_get_user_groups(server_t* server, u64 user_id, u32* n_ptr)
+dbgroup_t* 
+server_db_get_user_groups(server_t* server, u64 user_id, u32* n_ptr)
 {
     return server_db_get_groups(server, user_id, -1, n_ptr);
 }
 
-bool server_db_insert_group(server_t* server, dbgroup_t* group)
+bool 
+server_db_insert_group(server_t* server, dbgroup_t* group)
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_group, -1, &stmt, NULL);
@@ -459,7 +477,8 @@ bool server_db_insert_group(server_t* server, dbgroup_t* group)
     return ret;
 }
 
-static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u32 limit, u32 offset, u32* n_ptr)
+static dbmsg_t* 
+server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u32 limit, u32 offset, u32* n_ptr)
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_msg, -1, &stmt, NULL);
@@ -503,17 +522,20 @@ static dbmsg_t* server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u
     return msgs;
 }
 
-dbmsg_t* server_db_get_msg(server_t* server, u64 msg_id)
+dbmsg_t* 
+server_db_get_msg(server_t* server, u64 msg_id)
 {
     return server_db_get_msgs(server, msg_id, -1, 1, 0, NULL);
 }
 
-dbmsg_t* server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit, u32 offset, u32* n)
+dbmsg_t* 
+server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit, u32 offset, u32* n)
 {
     return server_db_get_msgs(server, -1, group_id, limit, offset, n);
 }
 
-bool server_db_insert_msg(server_t* server, dbmsg_t* msg)
+bool 
+server_db_insert_msg(server_t* server, dbmsg_t* msg)
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_msg, -1, &stmt, NULL);

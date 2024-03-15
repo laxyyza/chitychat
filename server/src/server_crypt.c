@@ -1,7 +1,8 @@
 #include "server_crypt.h"
 #include "server_http.h"
 
-void server_hash(const char* secret, u8* salt, u8* hash)
+void 
+server_hash(const char* secret, u8* salt, u8* hash)
 {
     EVP_MD_CTX* mdctx; 
     const EVP_MD* md = EVP_sha512();
@@ -16,7 +17,8 @@ void server_hash(const char* secret, u8* salt, u8* hash)
     EVP_MD_CTX_free(mdctx);
 }
 
-char* server_compute_websocket_key(const char* websocket_key)
+char* 
+server_compute_websocket_key(const char* websocket_key)
 {
     char* concatenated;
     BIO* bio; 

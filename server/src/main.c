@@ -1,6 +1,7 @@
 #include "server.h"
 
-int main(int argc, const char** argv)
+int 
+main(int argc, const char** argv)
 {
     server_t* server = server_init(SERVER_CONFIG_PATH);
     if (!server)
