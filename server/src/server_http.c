@@ -599,6 +599,15 @@ static void server_handle_http_post(server_t* server, client_t* client, const ht
         return;
     }
 
+    const char* content_type = server_get_content_type(http->req.url);
+    if (!strstr(content_type, "image/"))
+    {
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Not an image", NULL, 0);
+        http_send(client, resp);
+        http_free(resp);
+        return;
+    }
+
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
     char path[PATH_MAX];
     memset(path, 0, PATH_MAX);

@@ -454,7 +454,8 @@ static void server_sig_handler(i32 signum)
 {
     debug("signal: %d\n", signum);
 
-    __server_sig->running = false;
+    if (signum == SIGINT || signum == SIGTERM)
+        __server_sig->running = false;
 }
 
 static void server_init_signal_handlers(server_t* server)
@@ -466,6 +467,10 @@ static void server_init_signal_handlers(server_t* server)
     __server_sig = server;
 
     if (sigaction(SIGINT, &sa, NULL) == -1)
+        error("sigaction: %s\n", ERRSTR);
+    if (sigaction(SIGPIPE, &sa, NULL) == -1)
+        error("sigaction: %s\n", ERRSTR);
+    if (sigaction(SIGTERM, &sa, NULL) == -1)
         error("sigaction: %s\n", ERRSTR);
 }
 

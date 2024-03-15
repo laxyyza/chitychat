@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27.0)
+cmake_minimum_required(VERSION 3.25.0)
 project("Chity Chat" LANGUAGES C)
 
 set(CMAKE_C_FLAGS "-Werror -Wno-deprecated-declarations")
