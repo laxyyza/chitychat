@@ -1,8 +1,0 @@
-{
-    "root_dir": "client/public",
-    "addr_ip": "any",
-    "addr_port": 8080,
-    "addr_version": "ipv6",
-    "log_level": "debug",
-    "database": "server/chitychat.db"
-}
