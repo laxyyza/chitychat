@@ -8,7 +8,8 @@
 
 #define MAX_EP_EVENTS 10
 
-static json_object* server_default_config(const char* config_path)
+static json_object* 
+server_default_config(const char* config_path)
 {
     json_object* config = json_object_new_object();
     json_object_object_add(config, "root_dir", 
@@ -23,11 +24,14 @@ static json_object* server_default_config(const char* config_path)
             json_object_new_string("debug"));
     json_object_object_add(config, "database", 
             json_object_new_string("server/chitychat.db"));
+    json_object_object_add(config, "secure_only", 
+                json_object_new_boolean(true));
 
     return config;
 }
 
-bool        server_load_config(server_t* server, const char* config_path)
+bool        
+server_load_config(server_t* server, const char* config_path)
 {
 #define JSON_GET(x) json_object_object_get(config, x)
 
@@ -40,6 +44,7 @@ bool        server_load_config(server_t* server, const char* config_path)
     json_object* database;
     json_object* sql_filepaths;
     json_object* log_level_json;
+    json_object* secure_only_json;
     enum server_log_level log_level = SERVER_DEBUG;
 
     fd = open(config_path, O_RDONLY);
@@ -141,6 +146,15 @@ bool        server_load_config(server_t* server, const char* config_path)
         }
     }
 
+    secure_only_json = JSON_GET("secure_only");
+    if (secure_only_json)
+        server->conf.secure_only = json_object_get_boolean(secure_only_json);
+    else
+    {
+        warn("No \"secure_only\" in %s, defaulting to true.\n", config_path);
+        server->conf.secure_only = true;
+    }
+
     server_set_loglevel(log_level);
 
     verbose("Setting log level: %d\n", log_level);
@@ -165,7 +179,8 @@ bool        server_load_config(server_t* server, const char* config_path)
     return true;
 }
 
-static bool server_init_socket(server_t* server)
+static bool 
+server_init_socket(server_t* server)
 {
     int domain;
 
@@ -234,7 +249,8 @@ static bool server_init_socket(server_t* server)
     return true;
 }
 
-i32 server_ep_addfd(server_t* server, i32 fd)
+i32 
+server_ep_addfd(server_t* server, i32 fd)
 {
     i32 ret;
 
@@ -250,7 +266,8 @@ i32 server_ep_addfd(server_t* server, i32 fd)
     return ret;
 }
 
-i32 server_ep_delfd(server_t* server, i32 fd)
+i32 
+server_ep_delfd(server_t* server, i32 fd)
 {
     i32 ret;
 
@@ -258,13 +275,14 @@ i32 server_ep_delfd(server_t* server, i32 fd)
         return -1;
 
     ret = epoll_ctl(server->epfd, EPOLL_CTL_DEL, fd, NULL);
-    if (ret == -1)
+    if (ret == -1 && errno != ENOENT)
         error("epoll_ctl DEL fd:%d: %s\n", fd, ERRSTR);
 
     return ret;
 }
 
-static bool server_init_epoll(server_t* server)
+static bool 
+server_init_epoll(server_t* server)
 {
     server->epfd = epoll_create1(EPOLL_CLOEXEC);
     if (server->epfd == -1)
@@ -279,7 +297,8 @@ static bool server_init_epoll(server_t* server)
     return true;
 }
 
-static bool server_init_ssl(server_t* server)
+static bool 
+server_init_ssl(server_t* server)
 {
     SSL_library_init();
     SSL_load_error_strings();
@@ -295,14 +314,21 @@ static bool server_init_ssl(server_t* server)
     SSL_CTX_set_options(server->ssl_ctx, SSL_OP_SINGLE_DH_USE);
     SSL_CTX_set_ecdh_auto(server->ssl_ctx, 1);
     if (SSL_CTX_use_certificate_file(server->ssl_ctx, "server/server.crt", SSL_FILETYPE_PEM) <= 0)
+    {
         error("SSL cert failed: %s\n", ERRSTR);
+        return false;
+    }
     if (SSL_CTX_use_PrivateKey_file(server->ssl_ctx, "server/server.key", SSL_FILETYPE_PEM) <= 0)   
+    {
         error("SSL private key failed: %s\n", ERRSTR);
+        return false;
+    }
 
     return true;
 }
 
-server_t*   server_init(const char* config_path)
+server_t*   
+server_init(const char* config_path)
 {
     server_t* server = calloc(1, sizeof(server_t));
 
@@ -318,7 +344,7 @@ server_t*   server_init(const char* config_path)
     if (!server_db_open(server))
         goto error;
 
-    if (!server_init_ssl(server))
+    if (!server_init_ssl(server) && server->conf.secure_only)
         goto error;
 
     server->running = true;
@@ -329,7 +355,8 @@ error:;
     return NULL;
 }
 
-static void server_get_client_info(client_t* client)
+static void 
+server_get_client_info(client_t* client)
 {
     i32 ret;
     i32 domain;
@@ -353,8 +380,10 @@ static void server_get_client_info(client_t* client)
 
 }
 
-static void server_accept_conn(server_t* server)
+static void 
+server_accept_conn(server_t* server)
 {
+    i32 ret;
     client_t* client = server_new_client(server);
 
     client->addr.len = server->addr_len;
@@ -367,16 +396,26 @@ static void server_accept_conn(server_t* server)
         return;
     }
 
-    server_client_ssl_handsake(server, client);
+    ret = server_client_ssl_handsake(server, client);
 
     server_get_client_info(client);
+
+    if (ret == -1 || (ret == 0 && server->conf.secure_only))
+    {
+        verbose("Client (fd:%d, IP: %s:%s) SSL handsake failed.\n",
+            client->addr.sock, client->addr.ip_str, client->addr.serv);
+        server_del_client(server, client);
+        return;
+    }
+
     server_ep_addfd(server, client->addr.sock);
 
-    debug("Client (fd:%d, IP: %s:%s, host: %s) connected.\n", 
-        client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
+    debug("Client (fd:%d, IP: %s:%s) connected.\n", 
+        client->addr.sock, client->addr.ip_str, client->addr.serv);
 }
 
-static void server_read_fd(server_t* server, const i32 fd)
+static void 
+server_read_fd(server_t* server, const i32 fd)
 {
     ssize_t bytes_recv;
     u8* buf;
@@ -462,7 +501,8 @@ static void server_read_fd(server_t* server, const i32 fd)
     }
 }
 
-static void server_ep_event(server_t* server, const struct epoll_event* event)
+static void 
+server_ep_event(server_t* server, const struct epoll_event* event)
 {
     const i32 fd = event->data.fd;
     const u32 ev = event->events;
@@ -514,7 +554,8 @@ static void server_ep_event(server_t* server, const struct epoll_event* event)
 // Should ONLU be used in server_sig_handler()
 server_t* __server_sig = NULL;
 
-static void server_sig_handler(i32 signum)
+static void 
+server_sig_handler(i32 signum)
 {
     debug("signal: %d\n", signum);
 
@@ -522,7 +563,8 @@ static void server_sig_handler(i32 signum)
         __server_sig->running = false;
 }
 
-static void server_init_signal_handlers(server_t* server)
+static void 
+server_init_signal_handlers(server_t* server)
 {
     struct sigaction sa;
     sa.sa_handler = server_sig_handler;
@@ -538,7 +580,8 @@ static void server_init_signal_handlers(server_t* server)
         error("sigaction: %s\n", ERRSTR);
 }
 
-void server_run(server_t* server)
+void 
+server_run(server_t* server)
 {
     i32 nfds;
     struct epoll_event events[MAX_EP_EVENTS];
@@ -560,7 +603,8 @@ void server_run(server_t* server)
     }
 }
 
-static void server_del_all_clients(server_t* server)
+static void 
+server_del_all_clients(server_t* server)
 {
     client_t* node = server->client_head;
     client_t* next = NULL;
@@ -573,7 +617,8 @@ static void server_del_all_clients(server_t* server)
     }
 }
 
-static void server_del_all_sessions(server_t* server)
+static void 
+server_del_all_sessions(server_t* server)
 {
     session_t* node;
     session_t* next;
@@ -588,7 +633,8 @@ static void server_del_all_sessions(server_t* server)
     }
 }
 
-static void server_del_all_upload_tokens(server_t* server)
+static void 
+server_del_all_upload_tokens(server_t* server)
 {
     upload_token_t* node;
     upload_token_t* next;
@@ -604,7 +650,8 @@ static void server_del_all_upload_tokens(server_t* server)
     }
 }
 
-void server_cleanup(server_t* server)
+void 
+server_cleanup(server_t* server)
 {
     if (!server)
         return;
@@ -624,7 +671,8 @@ void server_cleanup(server_t* server)
     free(server);
 }
 
-ssize_t server_send(const client_t* client, const void* buf, size_t len)
+ssize_t 
+server_send(const client_t* client, const void* buf, size_t len)
 {
     ssize_t bytes_sent;
 
@@ -636,7 +684,8 @@ ssize_t server_send(const client_t* client, const void* buf, size_t len)
     return bytes_sent;
 }
 
-ssize_t server_recv(const client_t* client, void* buf, size_t len)
+ssize_t 
+server_recv(const client_t* client, void* buf, size_t len)
 {
     ssize_t bytes_recv;
 
@@ -648,7 +697,8 @@ ssize_t server_recv(const client_t* client, void* buf, size_t len)
     return bytes_recv;
 }
  
-server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
+server_event_t* 
+server_new_event(server_t* server, i32 fd, void* data, 
             se_read_callback_t read_callback, se_close_callback_t close_callback)
 {
     server_event_t* se;
@@ -689,7 +739,8 @@ server_event_t* server_new_event(server_t* server, i32 fd, void* data,
     return se;
 }
 
-void server_del_event(server_t* server, server_event_t* se)
+void 
+server_del_event(server_t* server, server_event_t* se)
 {
     server_event_t* next;
     server_event_t* prev;
@@ -720,7 +771,8 @@ void server_del_event(server_t* server, server_event_t* se)
     free(se);
 }
 
-server_event_t* server_get_event(server_t* server, i32 fd)
+server_event_t* 
+server_get_event(server_t* server, i32 fd)
 {
     server_event_t* node;
 
@@ -736,7 +788,8 @@ server_event_t* server_get_event(server_t* server, i32 fd)
     return NULL;
 }
 
-session_t* server_new_client_session(server_t* server, client_t* client)
+session_t* 
+server_new_client_session(server_t* server, client_t* client)
 {
     session_t* new_sesion;
     session_t* head_next;
@@ -769,7 +822,8 @@ session_t* server_new_client_session(server_t* server, client_t* client)
     return new_sesion;
 }
 
-session_t* server_get_client_session(server_t* server, u32 session_id)
+session_t* 
+server_get_client_session(server_t* server, u32 session_id)
 {
     session_t* node;
 
@@ -785,7 +839,8 @@ session_t* server_get_client_session(server_t* server, u32 session_id)
     return NULL;
 }
 
-void server_del_client_session(server_t* server, session_t* session)
+void 
+server_del_client_session(server_t* server, session_t* session)
 {
     session_t* next;
     session_t* prev;
@@ -818,7 +873,8 @@ void server_del_client_session(server_t* server, session_t* session)
     free(session);
 }
 
-upload_token_t* server_new_upload_token(server_t* server, u32 user_id)
+upload_token_t* 
+server_new_upload_token(server_t* server, u32 user_id)
 {
     upload_token_t* ut;
     upload_token_t* head_next;
@@ -843,7 +899,8 @@ upload_token_t* server_new_upload_token(server_t* server, u32 user_id)
     return ut;
 }
 
-upload_token_t* server_get_upload_token(server_t* server, u32 token)
+upload_token_t* 
+server_get_upload_token(server_t* server, u32 token)
 {
     upload_token_t* node;
 
@@ -859,7 +916,8 @@ upload_token_t* server_get_upload_token(server_t* server, u32 token)
     return NULL;
 }
 
-void server_del_upload_token(server_t* server, upload_token_t* upload_token)
+void 
+server_del_upload_token(server_t* server, upload_token_t* upload_token)
 {
     upload_token_t* next;
     upload_token_t* prev;

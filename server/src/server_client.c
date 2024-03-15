@@ -1,7 +1,8 @@
 #include "server_client.h"
 #include "server.h"
 
-client_t*   server_new_client(server_t* server)
+client_t*   
+server_new_client(server_t* server)
 {
     client_t* client;
     
@@ -22,7 +23,8 @@ client_t*   server_new_client(server_t* server)
     return client;
 }
 
-client_t*   server_get_client_fd(server_t* server, i32 fd)
+client_t*   
+server_get_client_fd(server_t* server, i32 fd)
 {
     client_t* node = server->client_head;
 
@@ -36,7 +38,8 @@ client_t*   server_get_client_fd(server_t* server, i32 fd)
     return NULL;
 }
 
-client_t*   server_get_client_user_id(server_t* server, u64 id)
+client_t*   
+server_get_client_user_id(server_t* server, u64 id)
 {
     client_t* node = server->client_head;
 
@@ -50,24 +53,29 @@ client_t*   server_get_client_user_id(server_t* server, u64 id)
     return NULL;
 }
 
-void server_del_client(server_t* server, client_t* client)
+void 
+server_del_client(server_t* server, client_t* client)
 {
+    i32 ret;
     client_t* next;
     client_t* prev;
 
     if (!server || !client)
         return;
 
-    debug("Client (fd:%d, ip: %s:%s, host: %s) disconnected.\n", 
-            client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
-    if (client->dbuser)
+    ret = server_ep_delfd(server, client->addr.sock);
+    if (ret != -1 || server_get_loglevel() == SERVER_VERBOSE)
     {
-        if (client->dbuser->user_id)
-            debug("\tUser:%u %s '%s' logged out.\n", 
-                client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
+        debug("Client (fd:%d, ip: %s:%s, host: %s) disconnected.\n", 
+                client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
+        if (client->dbuser)
+        {
+            if (client->dbuser->user_id)
+                debug("\tUser:%u %s '%s' logged out.\n", 
+                    client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
+        }
     }
 
-    server_ep_delfd(server, client->addr.sock);
     if (client->ssl)
     {
         SSL_shutdown(client->ssl);
@@ -97,22 +105,33 @@ void server_del_client(server_t* server, client_t* client)
     free(client);
 }
 
-bool server_client_ssl_handsake(server_t* server, client_t* client)
+int 
+server_client_ssl_handsake(server_t* server, client_t* client)
 {
+    i32 ret;
+    client->secure = false;
     client->ssl = SSL_new(server->ssl_ctx);
     if (!client->ssl)
+    {
         debug("client ssl is NULL!\n");
+        return 0;
+    }
     SSL_set_fd(client->ssl, client->addr.sock);
-    i32 ret = SSL_accept(client->ssl);
+    ret = SSL_accept(client->ssl);
     if (ret <= 0) 
     {
-        ERR_print_errors_fp(stderr);
-        client->secure = false;
-        return false;
+        ret = SSL_get_error(client->ssl, ret);
+        if (ERR_GET_LIB(ret) == ERR_LIB_SSL && ERR_GET_REASON(ret) == SSL_R_SSL_HANDSHAKE_FAILURE)
+        {
+            char buffer[1024];
+            ERR_error_string_n(ret, buffer, 1024);
+            debug("SSL/TLS error: %s\n", buffer);
+            return -1;
+        }
+        else
+            return 0;
     }
-    else
-    {
-        client->secure = true;
-        return true;
-    }
+
+    client->secure = true;
+    return 1;
 }

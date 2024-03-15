@@ -48,7 +48,7 @@ typedef struct client
 } client_t;
 
 client_t*   server_new_client(server_t* server);
-bool        server_client_ssl_handsake(server_t* server, client_t* client);
+int         server_client_ssl_handsake(server_t* server, client_t* client);
 client_t*   server_get_client_fd(server_t* server, i32 fd);
 client_t*   server_get_client_user_id(server_t* server, u64 id);
 void        server_del_client(server_t* server, client_t* client);

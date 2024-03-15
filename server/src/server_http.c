@@ -602,6 +602,8 @@ static void server_handle_http_post(server_t* server, client_t* client, const ht
     const char* content_type = server_get_content_type(http->req.url);
     if (!strstr(content_type, "image/"))
     {
+        debug("Content type: '%s' is not image/. From (fd:%d, IP: %s:%s)\n",
+            http->req.url, client->addr.sock, client->addr.host, client->addr.serv);
         resp = http_new_resp(HTTP_CODE_BAD_REQ, "Not an image", NULL, 0);
         http_send(client, resp);
         http_free(resp);

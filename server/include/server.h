@@ -34,6 +34,7 @@ typedef struct
     uint16_t addr_port;
     enum ip_version addr_version;
     char database[CONFIG_PATH_LEN];
+    bool secure_only;
 
     const char* sql_schema;
     const char* sql_insert_user;
