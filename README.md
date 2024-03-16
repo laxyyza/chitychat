@@ -15,13 +15,14 @@
 - [ ] **Enhanced Messaging:** Send photos, videos, files, reply to messages, and edit messages.
 - [ ] **Mobile Compatibility:** Improve usability on mobile devices.
 - [ ] **URL Parameters Support:** Support HTTP URL parameters.
+- [ ] **Real-Time User Status Management:** Online, Offline, Away, busy, typing, etc.
 
 ### Web server features
 * **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
 * **Web Sockets Implementation:** Real-time communication support.
 * **SSL/TLS via OpenSSL:** Secure connections.
 * **Password Security:** Salting and hashing using SHA512.
-* **I/O Multiplexing:** Utilizes epoll for efficient I/O.
+* **I/O Multiplexing:** Utilizes [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) for efficient I/O.
 * **Database Management:** Uses SQLite3 for SQL database.
 * **Session Management:** Users receive session IDs for persistent login.
 
