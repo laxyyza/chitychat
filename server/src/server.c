@@ -198,7 +198,8 @@ server_load_config(server_t* server, int argc, char* const* argv)
         }
     }
     if (!config)
-        config = json_object_from_file(config_path);
+        config = json_object_from_fd(fd);
+    close(fd);
     if (!config)
     {
         fatal("json_object_from_file: %s\n",
