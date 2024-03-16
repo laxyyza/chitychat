@@ -136,7 +136,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
 {
 #define JSON_GET(x) json_object_object_get(config, x)
 
-    i32 fd;
+    i32 fd = -1;
     json_object* config = NULL;
     json_object* root_dir;
     json_object* addr_ip;
@@ -183,6 +183,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
                 JSON_C_TO_STRING_SPACED);
 
             close(fd);
+            fd = -1;
             if (ret == -1)
             {
                 fatal("json_object_to_fd: %s\n",
@@ -199,7 +200,8 @@ server_load_config(server_t* server, int argc, char* const* argv)
     }
     if (!config)
         config = json_object_from_fd(fd);
-    close(fd);
+    if (fd != -1)
+        close(fd);
     if (!config)
     {
         fatal("json_object_from_file: %s\n",
