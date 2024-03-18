@@ -1,7 +1,5 @@
-#include "server_file.h"
-#include <magic.h>
+#include "server_user_file.h"
 #include "server.h"
-#include <fcntl.h>
 
 static const char*
 server_mime_type_dir(server_t* server, const char* mime_type)

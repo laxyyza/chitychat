@@ -10,7 +10,7 @@
 #include "server_db.h"
 #include "server_util.h"
 #include "server_crypt.h"
-#include "server_file.h"
+#include "server_user_file.h"
 #include "server_init.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
