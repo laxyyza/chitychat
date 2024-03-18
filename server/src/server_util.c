@@ -113,7 +113,7 @@ void
 mask(u8* buf, size_t buf_len, const u8* maskkey, size_t maskkey_len)
 {
     for (size_t i = 0; i < buf_len; i++)
-        buf[i] ^= maskkey[i % 4];
+        buf[i] ^= maskkey[i % maskkey_len];
 }
 
 i32 

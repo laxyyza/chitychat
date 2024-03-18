@@ -51,7 +51,7 @@ server_mime_type(server_t* server, const void* data, size_t size)
 }
 
 static ssize_t
-server_read_file(server_t* server, void* data, size_t size, 
+server_read_file(void* data, size_t size, 
         const char* dir, const char* name)
 {
     ssize_t bytes_read = -1;
@@ -82,7 +82,7 @@ cleanup:
 }
 
 static bool
-server_write_file(server_t* server, const void* data, size_t size, 
+server_write_file(const void* data, size_t size, 
         const char* dir, const char* name)
 {
     i32 fd = -1;
@@ -117,9 +117,10 @@ cleanup:
 }
 
 bool 
-server_save_file(server_t* server, const void* data, size_t size, const char* name)
+server_save_file(UNUSED server_t* server, UNUSED const void* data, UNUSED size_t size, UNUSED const char* name)
 {
-    dbuser_file_t file;
+    // dbuser_file_t file;
+    debug("Implement server_save_file()\n");
 
     return false;
 }
@@ -155,7 +156,7 @@ server_save_file_img(server_t* server, const void* data, size_t size, const char
                     file.hash);
         if (ref_count == 1)
         {
-            ret = server_write_file(server, data, size, 
+            ret = server_write_file(data, size, 
                     server->conf.img_dir, file.hash);
         }
         else if (ref_count == 0)
@@ -179,17 +180,16 @@ server_get_file(server_t* server, dbuser_file_t* file)
 {
     void* data;
     const char* dir;
-    size_t actual_size;
-    i32 fd;
+    ssize_t actual_size;
 
     dir = server_mime_type_dir(server, file->mime_type);
 
     data = calloc(1, file->size);
 
-    actual_size = server_read_file(server, data, file->size, dir, file->hash);
+    actual_size = server_read_file(data, file->size, dir, file->hash);
     if (actual_size == -1)
         goto error;
-    else if (actual_size != file->size)
+    else if ((size_t)actual_size != file->size)
     {
         warn("acti_size != file->size: %zu != %zu\n",
                 actual_size, file->size);

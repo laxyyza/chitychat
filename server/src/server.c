@@ -11,7 +11,7 @@
 #define MAX_EP_EVENTS 10
 
 static json_object* 
-server_default_config(const char* config_path)
+server_default_config(void)
 {
     json_object* config = json_object_new_object();
     json_object_object_add(config, "root_dir", 
@@ -152,7 +152,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     json_object* addr_port;
     json_object* addr_version;
     json_object* database;
-    json_object* sql_filepaths;
     json_object* log_level_json;
     json_object* secure_only_json;
     const char* root_dir_str;
@@ -173,7 +172,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     {
         if (errno == ENOENT)
         {
-            config = server_default_config(config_path);
+            config = server_default_config();
             if (!config)
             {
                 fatal("Failed to create default config\n");
@@ -616,7 +615,7 @@ server_read_fd(server_t* server, const i32 fd)
     {
         http->buf.total_recv += bytes_recv;
         verbose("HTTP recv: %zu/%zu\n", http->buf.total_recv, http->body_len);
-        if (bytes_recv >= buf_size)
+        if ((size_t)bytes_recv >= buf_size)
         {
             server_handle_http(server, client, client->recv.http);
             client->recv.http = NULL;

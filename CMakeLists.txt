@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.25.0)
 project("Chity Chat" LANGUAGES C)
 
-set(CMAKE_C_FLAGS "-Werror -Wno-deprecated-declarations")
+set(CMAKE_C_FLAGS "-Werror -Wall -Wextra -Wshadow -Wstrict-prototypes -Wstrict-overflow=5 -Wunreachable-code -Winit-self -Wuninitialized -Wno-deprecated-declarations")
+set(CMAKE_C_STANDARD 23)
 
 add_executable(chitychat)
 target_sources(chitychat PRIVATE

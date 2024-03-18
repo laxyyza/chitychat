@@ -10,19 +10,20 @@
 #include <errno.h>
 #include <string.h>
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
-typedef int64_t i64;
+typedef uint8_t     u8;
+typedef uint16_t    u16;
+typedef uint32_t    u32;
+typedef uint64_t    u64;
+typedef int8_t      i8;
+typedef int16_t     i16;
+typedef int32_t     i32;
+typedef int64_t     i64;
+
+typedef struct server   server_t;
+typedef struct http     http_t;
+typedef struct session  session_t;
 
 #define ERRSTR strerror(errno)
-
-typedef struct server server_t;
-typedef struct http http_t;
-typedef struct session session_t;
+#define UNUSED __attribute__((unused))
 
 #endif //_COMMON_H_

@@ -227,8 +227,9 @@ server_db_get_user_from_name(server_t* server, const char* username)
 }
 
 dbuser_t* 
-server_db_get_users_from_group(server_t* server, u64 group_id, u32* n)
+server_db_get_users_from_group(UNUSED server_t* server, UNUSED u64 group_id, UNUSED u32* n)
 {
+    debug("Implement server_db_get_users_from_group()!\n");
     return NULL;
 }
 
@@ -333,8 +334,9 @@ server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr)
 }
 
 bool 
-server_db_user_in_group(server_t* server, u64 group_id, u64 user_id)
+server_db_user_in_group(UNUSED server_t* server, UNUSED u64 group_id, UNUSED u64 user_id)
 {
+    debug("Implement or remove server_db_user_in_group()\n");
     return false;
 }
 
@@ -364,7 +366,6 @@ static dbgroup_t*
 server_db_get_groups(server_t* server, u64 user_id, u64 group_id, u32* n_ptr)
 {
     u32 n = 0;
-    u32 i = 0;
     dbgroup_t* groups = malloc(sizeof(dbgroup_t));
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_group, -1, &stmt, NULL);
@@ -676,7 +677,6 @@ server_db_delete_userfile(server_t* server, const char* hash)
     bool error = false;
     bool ret = false;
     sqlite3_stmt* stmt;
-    i32 ref_count;
     const char* sql = "UPDATE UserFiles SET ref_count = ref_count - 1 WHERE hash = ?;";
     rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
     

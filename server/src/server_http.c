@@ -88,7 +88,7 @@ set_client_connection(client_t* client, http_header_t* header)
 }
 
 static void 
-handle_http_upgrade(client_t* client, http_t* http, http_header_t* header)
+handle_http_upgrade(client_t* client, http_header_t* header)
 {
     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
     {
@@ -108,7 +108,7 @@ handle_http_upgrade(client_t* client, http_t* http, http_header_t* header)
 }
 
 static void 
-handle_websocket_key(client_t* client, http_t* http, http_header_t* header)
+handle_websocket_key(http_t* http, http_header_t* header)
 {
     http->websocket_key = server_compute_websocket_key(header->val);
 }
@@ -144,7 +144,7 @@ handle_http_header(client_t* client, http_t* http, http_header_t* header)
     }
     else if (NAME_CMP("Sec-WebSocket-Key"))
     {
-        handle_websocket_key(client, http, header);
+        handle_websocket_key(http, header);
     }
 }
 
@@ -221,7 +221,7 @@ parse_http(client_t* client, char* buf, size_t buf_len)
 
     while (header_line)
     {
-        http_header_t* header = &http->headers[http->n_headers];
+        http_header_t* http_header = &http->headers[http->n_headers];
         char* name;
         char* val;
 
@@ -237,8 +237,8 @@ parse_http(client_t* client, char* buf, size_t buf_len)
             token++;
         val = token;
 
-        strncpy(header->name, name, HTTP_HEAD_NAME_LEN);
-        strncpy(header->val, val, HTTP_HEAD_VAL_LEN);
+        strncpy(http_header->name, name, HTTP_HEAD_NAME_LEN);
+        strncpy(http_header->val, val, HTTP_HEAD_VAL_LEN);
 
         header_line = strsplit(NULL, HTTP_NL, &saveptr);
         http->n_headers++;
@@ -254,8 +254,12 @@ parse_http(client_t* client, char* buf, size_t buf_len)
 
     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
     {
-        handle_http_upgrade(client, http, 
-            http_get_header(http, HTTP_HEAD_CONN_UPGRADE));
+        handle_http_upgrade(client, 
+            http_get_header(
+                http, 
+                HTTP_HEAD_CONN_UPGRADE
+            )
+        );
     }
 
     if (http->body || http->body_len)
@@ -359,7 +363,7 @@ http_add_header(http_t* http, const char* name, const char* val)
 }
 
 static void 
-server_upgrade_client_to_websocket(server_t* server, client_t* client, http_t* req_http)
+server_upgrade_client_to_websocket(client_t* client, http_t* req_http)
 {
     http_t* http = http_new_resp(HTTP_CODE_SW_PROTO, "Switching Protocols", NULL, 0);
     http_add_header(http, "Connection", HTTP_HEAD_CONN_UPGRADE);
@@ -376,7 +380,7 @@ server_upgrade_client_to_websocket(server_t* server, client_t* client, http_t* r
 }
 
 static void 
-server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
+server_handle_client_upgrade(client_t* client, http_t* http)
 {
     const http_header_t* upgrade = http_get_header(http, HTTP_HEAD_CONN_UPGRADE);
     if (upgrade == NULL)
@@ -387,7 +391,7 @@ server_handle_client_upgrade(server_t* server, client_t* client, http_t* http)
     }
 
     if (!strncmp(upgrade->val, "websocket", HTTP_HEAD_VAL_LEN))
-        server_upgrade_client_to_websocket(server, client, http);
+        server_upgrade_client_to_websocket(client, http);
     else
         warn("Connection upgrade '%s' not implemented.\n", upgrade);
 
@@ -526,13 +530,12 @@ server_http_url_checks(http_t* http)
 static void 
 server_handle_http_get(server_t* server, client_t* client, http_t* http)
 {    
-    i32 ret;
-    size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
     char path[PATH_MAX];
     memset(path, 0, PATH_MAX);
     i32 fd;
     size_t content_len;
     char* content;
+    size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
 
     if (server_http_url_checks(http) == -1)
     {
@@ -715,15 +718,16 @@ server_handle_http_req(server_t* server, client_t* client, http_t* http)
 }
 
 static void 
-server_handle_http_resp(server_t* server, client_t* client, http_t* http)
+server_handle_http_resp(UNUSED server_t* server, UNUSED client_t* client, UNUSED http_t* http)
 {
+    debug("Implement handling response http\n");
 }
 
 void 
 server_handle_http(server_t* server, client_t* client, http_t* http)
 {
     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
-        server_handle_client_upgrade(server, client, http);
+        server_handle_client_upgrade(client, http);
     else
     {
         if (http->type == HTTP_REQUEST)

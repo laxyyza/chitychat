@@ -533,8 +533,8 @@ server_handle_client_session(server_t* server, client_t* client,
 }
 
 static const char* 
-server_handle_client_login(server_t* server, client_t* client, 
-                const char* username, const char* password)
+server_handle_client_login(server_t* server, const char* username, 
+                                const char* password)
 {
     dbuser_t* user = server_db_get_user_from_name(server, username);
     if (!user)
@@ -558,9 +558,9 @@ error:
 }
 
 static const char* 
-server_handle_client_register(server_t* server, client_t* client, 
-            const char* username, json_object* displayname_json, 
-            const char* displayname, const char* password)
+server_handle_client_register(server_t* server, 
+        const char* username, json_object* displayname_json, 
+        const char* displayname, const char* password)
 {
     if (!displayname_json || !displayname)
         return "Require display name.";
@@ -622,9 +622,9 @@ server_handle_not_logged_in_client(server_t* server, client_t* client,
     const char* errmsg = NULL;
 
     if (!strcmp(type, "login"))
-        errmsg = server_handle_client_login(server, client, username, password);
+        errmsg = server_handle_client_login(server, username, password);
     else if (!strcmp(type, "register"))
-        errmsg = server_handle_client_register(server, client, username, 
+        errmsg = server_handle_client_register(server, username, 
                 displayname_json, displayname, password);
     else
         return "Not logged in.";
