@@ -61,3 +61,6 @@ client/public/img
 *.csr
 *.crt
 server/config.json
+client/public/upload/imgs
+client/public/upload/vids
+client/public/upload/files
