@@ -148,41 +148,51 @@ server_db_get_user(server_t* server, u64 user_id, const char* username_to)
     {
         user->user_id = sqlite3_column_int(stmt, 0);
 
+        // User name
         const char* username = (const char*)sqlite3_column_text(stmt, 1);
         if (username)
             strncpy(user->username, username, DB_USERNAME_MAX);
         else
             warn("user %u username is NULL!\n", user->user_id);
 
+        // Display name
         const char* displayname = (const char*)sqlite3_column_text(stmt, 2);
         if (displayname)
             strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
         else
             warn("user %u displayname is NULL\n", user->user_id);
 
+        // BIO
         const char* bio = (const char*)sqlite3_column_text(stmt, 3);
         if (bio)
             strncpy(user->bio, bio, DB_BIO_MAX);
 
+        // Hash
         const u8* hash = sqlite3_column_blob(stmt, 4);
         if (hash)
             memcpy(user->hash, hash, SERVER_HASH_SIZE);
         else
             warn("user %u hash is NULL\n", user->user_id);
 
+        // Salt
         const u8* salt = sqlite3_column_blob(stmt, 5);
         if (salt)
             memcpy(user->salt, salt, SERVER_SALT_SIZE);
         else
             warn("user %u salt is NULL!\n", user->user_id);
 
-        const char* created_at = (const char*)sqlite3_column_text(stmt, 6);
+        // Flags
+        user->flags = sqlite3_column_int(stmt, 6);
+
+        // Created at
+        const char* created_at = (const char*)sqlite3_column_text(stmt, 7);
         if (created_at)
             strncpy(user->created_at, created_at, DB_USERNAME_MAX);
         else
             warn("user %u created_at is NULL!\n", user->user_id);
 
-        const char* pfp_hash = (const char*)sqlite3_column_text(stmt, 7);
+        // pfp hash
+        const char* pfp_hash = (const char*)sqlite3_column_text(stmt, 8);
         if (pfp_hash)
             strncpy(user->pfp_hash, pfp_hash, DB_PFP_NAME_MAX);
         else
@@ -664,7 +674,7 @@ server_db_delete_userfile(server_t* server, const char* hash)
 {
     i32 rc;
     bool error = false;
-    bool ret = true;
+    bool ret = false;
     sqlite3_stmt* stmt;
     i32 ref_count;
     const char* sql = "UPDATE UserFiles SET ref_count = ref_count - 1 WHERE hash = ?;";
@@ -683,7 +693,7 @@ server_db_delete_userfile(server_t* server, const char* hash)
     if (error)
         return false;
 
-    if (server_db_select_userfile_ref_count(server, hash))
+    if (server_db_select_userfile_ref_count(server, hash) <= 0)
         ret = true;
 
     return ret;
