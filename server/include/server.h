@@ -66,8 +66,7 @@ enum se_status
     SE_ERROR,
 };
 
-// #define SE_READ_CALLBACK(name) enum se_status (*name)(server_t* server, const u32 ep_events, void* data)
-// #define SE_CLOSE_CALLBACK(name) enum se_status (*name)(server_t* server, void* data)
+// TODO: Use server_event_t
 typedef enum se_status (*se_close_callback_t)(server_t* server, void* data);
 typedef enum se_status (*se_read_callback_t)(server_t* server, const u32 ep_events, void* data);
 
@@ -75,8 +74,6 @@ typedef struct server_event
 {
     i32 fd;
     void* data;
-    // SE_READ_CALLBACK(read);
-    // SE_CLOSE_CALLBACK(close);
     se_read_callback_t read;
     se_close_callback_t close;
 
