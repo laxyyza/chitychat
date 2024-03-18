@@ -664,7 +664,6 @@ server_handle_http_post(server_t* server, client_t* client, const http_t* http)
         goto respond;
     }
     const char* filename = http->req.url + post_img_cmd_len;
-    info("filenaem %s\n", filename);
 
     dbuser_file_t file;
 
