@@ -542,7 +542,7 @@ server_handle_client_login(server_t* server, client_t* client,
 
     u8 hash_login[SERVER_HASH_SIZE];
     u8* salt = user->salt;
-    server_hash(password, salt, hash_login);
+    server_sha512(password, salt, hash_login);
 
     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) != 0)
         goto error;
@@ -571,7 +571,7 @@ server_handle_client_register(server_t* server, client_t* client,
     strncpy(new_user.displayname, displayname, DB_USERNAME_MAX);
 
     getrandom(new_user.salt, SERVER_SALT_SIZE, 0);
-    server_hash(password, new_user.salt, new_user.hash);
+    server_sha512(password, new_user.salt, new_user.hash);
 
     if (!server_db_insert_user(server, &new_user))
         return "Username already taken";

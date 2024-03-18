@@ -2,7 +2,7 @@
 #include "server_http.h"
 
 void 
-server_hash(const char* secret, u8* salt, u8* hash)
+server_sha512(const char* secret, u8* salt, u8* hash)
 {
     EVP_MD_CTX* mdctx; 
     const EVP_MD* md = EVP_sha512();
@@ -15,6 +15,26 @@ server_hash(const char* secret, u8* salt, u8* hash)
     EVP_DigestUpdate(mdctx, secret, strlen(secret));
     EVP_DigestFinal_ex(mdctx, hash, NULL);
     EVP_MD_CTX_free(mdctx);
+}
+
+char*
+server_sha256_str(const void* data, size_t size)
+{
+    u8 hash[SHA256_DIGEST_LENGTH];
+    SHA256_CTX sha256;
+    char* output;
+
+    output = malloc(SERVER_HASH256_STR_SIZE);
+    
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256, data, size);
+    SHA256_Final(hash, &sha256);
+
+    for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++)
+        sprintf(output + (i * 2), "%02x", hash[i]);
+    output[SERVER_HASH256_STR_SIZE - 1] = 0x00;
+
+    return output;
 }
 
 char* 
