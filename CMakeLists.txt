@@ -18,6 +18,7 @@ target_sources(chitychat PRIVATE
     server/src/server_crypt.c
     server/src/server_file.c
     server/src/server_user_login.c
+    server/src/server_user_req.c
 )
 
 target_include_directories(chitychat PRIVATE
