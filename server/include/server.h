@@ -13,6 +13,7 @@
 #include "server_user_file.h"
 #include "server_init.h"
 #include "server_client_sesson.h"
+#include "server_upload_token.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
@@ -57,16 +58,6 @@ typedef struct
     const char* sql_update_user;
     const char* sql_insert_userfiles;
 } server_config_t;
-
-typedef struct upload_token
-{
-    u32 token;
-    u32 user_id;
-    i32 timerfd;
-
-    struct upload_token* next;
-    struct upload_token* prev;
-} upload_token_t;
 
 enum se_status 
 {
@@ -126,10 +117,6 @@ server_event_t* server_new_event(server_t* server, i32 fd, void* data,
                                 se_close_callback_t close_callback);
 server_event_t* server_get_event(server_t* server, i32 fd);
 void            server_del_event(server_t* server, server_event_t* se);
-
-upload_token_t* server_new_upload_token(server_t* server, u32 user_id);
-upload_token_t* server_get_upload_token(server_t* server, u32 token);
-void server_del_upload_token(server_t* server, upload_token_t* upload_token);
 
 int         server_ep_addfd(server_t* server, i32 fd);
 int         server_ep_delfd(server_t* server, i32 fd);
