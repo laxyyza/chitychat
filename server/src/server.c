@@ -484,6 +484,9 @@ server_init(int argc, char* const* argv)
     if (!server_db_open(server))
         goto error;
 
+    if (!server_init_magic(server))
+        goto error;
+
     if (!server_init_ssl(server) && server->conf.secure_only)
         goto error;
 
@@ -800,6 +803,7 @@ server_cleanup(server_t* server)
     server_del_all_sessions(server);
     server_del_all_upload_tokens(server);
     server_db_close(server);
+    server_close_magic(server);
 
     SSL_CTX_free(server->ssl_ctx);
 

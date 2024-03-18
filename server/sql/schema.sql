@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS Groups(
     owner_id        INTEGER,
     name            VARCHAR(50) NOT NULL,
     DESC            TEXT,
-    flags           INTEGER NOT NULL,
+    flags           INTEGER DEFAULT 0,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES Users(user_id)
 );
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS Messages(
     timestamp       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     attachments     TEXT DEFAULT NULL,
     flags           INTEGER DEFAULT 0,
-    parent_msg_id   INTEGER DEFAULT -1,
+    parent_msg_id   INTEGER DEFAULT NULL,
     FOREIGN KEY (parent_msg_id) REFERENCES Messages(msg_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (group_id) REFERENCES Groups(group_id),
@@ -78,7 +78,7 @@ AFTER UPDATE OF ref_count ON UserFiles
 WHEN NEW.ref_count <= 0
 BEGIN 
     DELETE FROM UserFiles
-    WHERE NEW.ref_count <= 0;
+    WHERE ref_count <= 0;
 END;
 
 -- CREATE TRIGGER IF NOT EXISTS set_default_pfp_name

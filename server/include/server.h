@@ -12,6 +12,7 @@
 #include "server_db.h"
 #include "server_util.h"
 #include "server_crypt.h"
+#include "server_file.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
@@ -109,6 +110,7 @@ typedef struct server
     int epfd;
     server_config_t conf;
     server_db_t db;
+    magic_t magic_cookie;
 
     struct sockaddr* addr;
     union {

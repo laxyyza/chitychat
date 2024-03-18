@@ -13,7 +13,7 @@
 #define DB_BIO_MAX 256
 #define DB_DESC_MAX 256
 #define DB_PASSWORD_MAX 50
-#define DB_PFP_HASH_MAX 64 + 1 // 64 bytes: 32-bytes (SHA256) + 32-bytes to string. + 1 for \0
+#define DB_PFP_HASH_MAX SERVER_HASH256_STR_SIZE
 #define DB_PFP_NAME_MAX NAME_MAX
 #define DB_MIME_TYPE_LEN 32 
 

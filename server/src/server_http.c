@@ -576,7 +576,14 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     }
     close(fd);
 
-    verbose("Got file: '%s'\n", path);
+    if (strcmp(content_type, "application/octet-stream") == 0)
+    {
+        const char* temp = server_mime_type(server, content, content_len);
+        if (temp)
+            content_type = temp;
+    }
+
+    verbose("Got file (%s): '%s'\n", content_type, path);
     server_http_resp_ok(client, content, content_len, content_type);
     free(content);
 }
@@ -632,6 +639,11 @@ server_handle_http_post(server_t* server, client_t* client, const http_t* http)
 {
     http_t* resp;
     u32 user_id;
+    dbuser_t* user;
+    bool failed = false;
+    const char* post_img_cmd = "/img/";
+    size_t post_img_cmd_len = strlen(post_img_cmd);
+
     if (!server_check_upload_token(server, http, &user_id))
     {
         resp = http_new_resp(HTTP_CODE_BAD_REQ, "Upload-Token failed", NULL, 0);
@@ -640,49 +652,90 @@ server_handle_http_post(server_t* server, client_t* client, const http_t* http)
         return;
     }
 
-    const char* content_type = server_get_content_type(http->req.url);
-    if (!strstr(content_type, "image/"))
+    if (strncmp(http->req.url, post_img_cmd, post_img_cmd_len) != 0)
     {
-        debug("Content type: '%s' is not image/. From (fd:%d, IP: %s:%s)\n",
-            http->req.url, client->addr.sock, client->addr.host, client->addr.serv);
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Not an image", NULL, 0);
+        error("cmd: %s, url: %s\n", post_img_cmd, http->req.url);
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Not image", NULL, 0);
         http_send(client, resp);
         http_free(resp);
         return;
     }
 
-    size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
-    char path[PATH_MAX];
-    memset(path, 0, PATH_MAX);
-    i32 fd;
-    size_t content_len;
-    char* content;
-    bool failed = false;
+    user = server_db_get_user_from_id(server, user_id);
+    if (!user)
+    {
+        warn("User %u not found.\n", user_id);
+        failed = true;
+        goto end;
+    }
+    const char* filename = http->req.url + post_img_cmd_len;
+    info("filenaem %s\n", filename);
 
-    // TODO: Add "default_file_per_dir" config, default should be "index.html"
-    if (http->req.url[url_len - 1] == '/')
-        snprintf(path, PATH_MAX, "%s%s%s", server->conf.root_dir, http->req.url, "index.html"); 
+    dbuser_file_t file;
+
+    if (server_save_file_img(server, http->body, http->body_len, filename, &file))
+    {
+        if (!server_db_update_user(server, NULL, NULL, file.hash, user_id))
+            failed = true;
+        else
+        {
+            dbuser_file_t* dbfile = server_db_select_userfile(server, user->pfp_hash);
+            if (dbfile)
+            {
+                server_delete_file(server, dbfile);
+                free(dbfile);
+            }
+            else
+                warn("User:%d %s (%s) no pfp?\n", user->user_id, user->username, user->displayname);
+            // server_delete_file(server, )
+        }
+    }
     else
-        snprintf(path, PATH_MAX, "%s%s", server->conf.root_dir, http->req.url); 
-
-    fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-    if (fd == -1)
-    {
-        error("open '%s' failed: %s\n", path, ERRSTR);
-        failed = true;
-    }
-
-    if (!failed && write(fd, http->body, http->body_len) == -1)
-    {
-        error("write: %s, fd: %d, body: %p, len: %zu\n", ERRSTR, fd, http->body, http->body_len);
-        failed = true;
-    }
-
-    close(fd);
-
-    if (!server_db_update_user(server, NULL, NULL, http->req.url, user_id))
         failed = true;
 
+    free(user);
+
+    // const char* content_type = server_get_content_type(http->req.url);
+    // if (!strstr(content_type, "image/"))
+    // {
+    //     debug("Content type: '%s' is not image/. From (fd:%d, IP: %s:%s)\n",
+    //         http->req.url, client->addr.sock, client->addr.host, client->addr.serv);
+    //     resp = http_new_resp(HTTP_CODE_BAD_REQ, "Not an image", NULL, 0);
+    //     http_send(client, resp);
+    //     http_free(resp);
+    //     return;
+    // }
+
+    // size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
+    // char path[PATH_MAX];
+    // memset(path, 0, PATH_MAX);
+    // i32 fd;
+    // size_t content_len;
+    // char* content;
+    // bool failed = false;
+
+    // // TODO: Add "default_file_per_dir" config, default should be "index.html"
+    // if (http->req.url[url_len - 1] == '/')
+    //     snprintf(path, PATH_MAX, "%s%s%s", server->conf.root_dir, http->req.url, "index.html"); 
+    // else
+    //     snprintf(path, PATH_MAX, "%s%s", server->conf.root_dir, http->req.url); 
+
+    // fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    // if (fd == -1)
+    // {
+    //     error("open '%s' failed: %s\n", path, ERRSTR);
+    //     failed = true;
+    // }
+
+    // if (!failed && write(fd, http->body, http->body_len) == -1)
+    // {
+    //     error("write: %s, fd: %d, body: %p, len: %zu\n", ERRSTR, fd, http->body, http->body_len);
+    //     failed = true;
+    // }
+
+    // close(fd);
+
+end:
     if (failed)
     {
         resp = http_new_resp(HTTP_CODE_INTERAL_ERROR, "Interal server error", NULL, 0);
