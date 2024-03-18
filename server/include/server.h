@@ -1,18 +1,17 @@
 #ifndef _SERVER_H_
 #define _SERVER_H_
 
-#include <stdint.h>
+#include "common.h"
 #include "server_client.h"
 #include "server_log.h"
-#include <linux/limits.h>
 #include "server_net.h"
-#include "common.h"
 #include "server_http.h"
 #include "server_websocket.h"
 #include "server_db.h"
 #include "server_util.h"
 #include "server_crypt.h"
 #include "server_file.h"
+#include "server_init.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
@@ -129,7 +128,6 @@ typedef struct server
     bool running;
 } server_t;
 
-server_t*       server_init(int argc, char* const* argv);
 void            server_run(server_t* server);
 void            server_cleanup(server_t* server);
 
