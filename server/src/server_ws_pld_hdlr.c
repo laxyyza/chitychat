@@ -547,7 +547,7 @@ server_handle_client_login(server_t* server, const char* username,
     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) != 0)
         goto error;
 
-    debug("User:%u, %s '%s' logged in.\n", 
+    debug("\tUser:%u, %s '%s' logged in.\n", 
             user->user_id, user->username, user->displayname);
 
     free(user);

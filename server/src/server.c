@@ -552,7 +552,7 @@ server_accept_conn(server_t* server)
 
     server_ep_addfd(server, client->addr.sock);
 
-    debug("Client (fd:%d, IP: %s:%s) connected.\n", 
+    info("Client (fd:%d, IP: %s:%s) connected.\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv);
 }
 

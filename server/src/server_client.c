@@ -66,7 +66,7 @@ server_del_client(server_t* server, client_t* client)
     ret = server_ep_delfd(server, client->addr.sock);
     if (ret != -1 || server_get_loglevel() == SERVER_VERBOSE)
     {
-        debug("Client (fd:%d, ip: %s:%s, host: %s) disconnected.\n", 
+        info("Client (fd:%d, IP: %s:%s, host: %s) disconnected.\n", 
                 client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
         if (client->dbuser)
         {
