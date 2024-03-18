@@ -3,6 +3,7 @@
 
 #include "server.h"
 #include "json-c/json.h"
+#include "server_user_login.h"
 
 enum client_recv_status server_ws_handle_text_frame(server_t* server, client_t* client, char* buf, size_t buf_len);
 
