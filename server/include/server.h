@@ -12,6 +12,7 @@
 #include "server_crypt.h"
 #include "server_user_file.h"
 #include "server_init.h"
+#include "server_client_sesson.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
@@ -56,17 +57,6 @@ typedef struct
     const char* sql_update_user;
     const char* sql_insert_userfiles;
 } server_config_t;
-
-
-typedef struct session
-{
-    u32 session_id;
-    u32 user_id;
-    i32 timerfd;
-
-    struct session* next;
-    struct session* prev;
-} session_t;
 
 typedef struct upload_token
 {
@@ -136,10 +126,6 @@ server_event_t* server_new_event(server_t* server, i32 fd, void* data,
                                 se_close_callback_t close_callback);
 server_event_t* server_get_event(server_t* server, i32 fd);
 void            server_del_event(server_t* server, server_event_t* se);
-
-session_t*      server_new_client_session(server_t* server, client_t* client);
-session_t*      server_get_client_session(server_t* server, u32 session_id);
-void            server_del_client_session(server_t* server, session_t* session);
 
 upload_token_t* server_new_upload_token(server_t* server, u32 user_id);
 upload_token_t* server_get_upload_token(server_t* server, u32 token);

@@ -22,6 +22,7 @@ target_sources(chitychat PRIVATE
     server/src/server_user_group.c
     server/src/server_user_account.c
     server/src/server_init.c
+    server/src/server_client_session.c
 )
 
 target_include_directories(chitychat PRIVATE
