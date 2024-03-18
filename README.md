@@ -24,6 +24,7 @@
 - [ ] **URL Parameters Support:** Support HTTP URL parameters.
 - [ ] **Real-Time User Status Management:** Online, Offline, Away, busy, typing, etc.
 - [x] **Upload File Management:** Avoid duplication user files.
+   - [ ] Default profile pic
 - [ ] **Real-Time User Profile Updates:** Receive instant updates for user profile changes like usernames, display names, bio, and profile pictures.
 
 ### Web server features
