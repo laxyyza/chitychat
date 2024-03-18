@@ -14,7 +14,7 @@ server_add_user_in_json(dbuser_t* dbuser, json_object* json)
     json_object_object_add(json, "created_at", 
             json_object_new_string(dbuser->created_at));
     json_object_object_add(json, "pfp_name", 
-            json_object_new_string(dbuser->pfp_name));
+            json_object_new_string(dbuser->pfp_hash));
 }
 
 static const char* 

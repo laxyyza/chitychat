@@ -289,6 +289,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     server->conf.sql_select_msg = "server/sql/select_msg.sql";
     server->conf.sql_delete_msg = "server/sql/delete_msg.sql";
     server->conf.sql_update_user = "server/sql/update_user.sql";
+    server->conf.sql_insert_userfiles = "server/sql/insert_userfiles.sql";
 
     return true;
 }

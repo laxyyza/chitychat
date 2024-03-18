@@ -51,6 +51,7 @@ typedef struct
     const char* sql_select_msg;
     const char* sql_delete_msg;
     const char* sql_update_user;
+    const char* sql_insert_userfiles;
 } server_config_t;
 
 

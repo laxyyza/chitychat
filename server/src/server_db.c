@@ -94,6 +94,7 @@ server_db_open(server_t* server)
     db->delete_msg = server_db_load_sql(server->conf.sql_delete_msg, &db->delete_msg_len);
 
     db->update_user = server_db_load_sql(server->conf.sql_update_user, &db->delete_msg_len);
+    db->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &db->insert_userfiles_len);
 
     db_exec_sql(server, db->schema, NULL);
 
@@ -181,11 +182,11 @@ server_db_get_user(server_t* server, u64 user_id, const char* username_to)
         else
             warn("user %u created_at is NULL!\n", user->user_id);
 
-        const char* pfp_name = (const char*)sqlite3_column_text(stmt, 7);
-        if (pfp_name)
-            strncpy(user->pfp_name, pfp_name, DB_PFP_NAME_MAX);
+        const char* pfp_hash = (const char*)sqlite3_column_text(stmt, 7);
+        if (pfp_hash)
+            strncpy(user->pfp_hash, pfp_hash, DB_PFP_NAME_MAX);
         else
-            warn("user %u pfp_name is NULL\n", user->user_id);
+            warn("user %u pfp_hash is NULL\n", user->user_id);
 
         found = true;
         break;
@@ -249,7 +250,7 @@ server_db_insert_user(server_t* server, dbuser_t* user)
 bool 
 server_db_update_user(server_t* server, const char* new_username,
                            const char* new_displayname,
-                           const char* new_pfp_name, const u64 user_id) 
+                           const char* new_hash_name, const u64 user_id) 
 {
     sqlite3_stmt* stmt;
     i32 rc = sqlite3_prepare_v2(server->db.db, server->db.update_user, -1, &stmt, NULL);
@@ -257,14 +258,14 @@ server_db_update_user(server_t* server, const char* new_username,
 
     const i32 username_con = (new_username != NULL);
     const i32 displayname_con = (new_displayname != NULL);
-    const i32 pfp_name_con = (new_pfp_name != NULL);
+    const i32 pfp_hash_con = (new_hash_name != NULL);
 
     sqlite3_bind_int(stmt, 1, username_con);
     sqlite3_bind_text(stmt, 2, new_username, -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 3, displayname_con);
     sqlite3_bind_text(stmt, 4, new_displayname, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 5, pfp_name_con);
-    sqlite3_bind_text(stmt, 6, new_pfp_name, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 5, pfp_hash_con);
+    sqlite3_bind_text(stmt, 6, new_hash_name, -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 7, user_id);
 
     rc = sqlite3_step(stmt);
@@ -555,6 +556,135 @@ server_db_insert_msg(server_t* server, dbmsg_t* msg)
     msg->msg_id = rowid;
 
     sqlite3_finalize(stmt);
+
+    return ret;
+}
+
+dbuser_file_t* 
+server_db_select_userfile(server_t* server, const char* hash)
+{
+    i32 rc;
+    const char* sql;
+    sqlite3_stmt* stmt;
+    dbuser_file_t* file = NULL;
+
+    sql = "SELECT * FROM UserFiles WHERE hash = ?;";
+    rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
+    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    if (rc == SQLITE_ROW)
+    {
+        file = calloc(1, sizeof(dbuser_file_t));
+        const char* dbhash;
+        const char* dbname;
+        const char* dbmime_type;
+
+        dbhash = (const char*)sqlite3_column_text(stmt, 0);
+        if (dbhash)
+            strncpy(file->hash, dbhash, DB_PFP_HASH_MAX);
+        else
+            warn("SELECT UserFiles: dbhash is NULL!\n");
+
+        dbname = (const char*)sqlite3_column_text(stmt, 1);
+        if (dbname)
+            strncpy(file->name, dbname, DB_PFP_NAME_MAX);
+        else
+            warn("SELECT UserFiles: dbname is NULL!\n");
+
+        file->size = sqlite3_column_int64(stmt, 2);
+        
+        dbmime_type = (const char*)sqlite3_column_text(stmt, 3);
+        if (dbmime_type)
+            strncpy(file->mime_type, dbmime_type, DB_MIME_TYPE_LEN);
+        else
+            warn("SELECT UserFiles: dbmime_type is NULL!\n");
+
+        file->flags = sqlite3_column_int(stmt, 4);
+        file->ref_count = sqlite3_column_int(stmt, 5);
+    }
+    else if (rc != SQLITE_OK)
+        error("Failed to select userfile: %s\n", sqlite3_errmsg(server->db.db));
+
+    sqlite3_finalize(stmt);
+    
+    return file;
+}
+
+i32
+server_db_select_userfile_ref_count(server_t* server, const char* hash)
+{
+    i32 rc;
+    i32 ref_count = 0;
+    const char* sql;
+    sqlite3_stmt* stmt;
+
+    sql = "SELECT ref_count FROM UserFiles WHERE hash = ?;";
+    rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
+    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    if (rc == SQLITE_ROW) // if rc is SQLITE_ROW it means it still exists.
+        ref_count = sqlite3_column_int(stmt, 0);
+    else if (rc != SQLITE_DONE && rc != SQLITE_OK)
+        error("Failed to select userfile ref_count: %s\n", sqlite3_errmsg(server->db.db));
+
+    sqlite3_finalize(stmt);
+
+    return ref_count;
+}
+
+bool        
+server_db_insert_userfile(server_t* server, dbuser_file_t* file)
+{
+    i32 rc;
+    bool ret = true;
+    sqlite3_stmt* stmt;
+    rc = sqlite3_prepare_v2(server->db.db, server->db.insert_userfiles, -1, &stmt, NULL);
+
+    sqlite3_bind_text(stmt, 1, file->hash, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, file->name, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int64(stmt, 3, file->size);
+    sqlite3_bind_text(stmt, 4, file->mime_type, -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE && rc != SQLITE_ROW && rc != SQLITE_OK)
+    {
+        error("Failed to insert userfile: %s\n", sqlite3_errmsg(server->db.db));
+        ret = false;
+    }
+
+    sqlite3_finalize(stmt);
+
+    return ret;
+}
+
+bool        
+server_db_delete_userfile(server_t* server, const char* hash)
+{
+    i32 rc;
+    bool error = false;
+    bool ret = true;
+    sqlite3_stmt* stmt;
+    i32 ref_count;
+    const char* sql = "UPDATE UserFiles SET ref_count = ref_count - 1 WHERE hash = ?;";
+    rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
+    
+    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_TRANSIENT);
+
+    rc = sqlite3_step(stmt);
+    if (rc != SQLITE_DONE && rc != SQLITE_ROW && rc != SQLITE_OK)
+    {
+        error("Failed to decrement userfile: %s\n", sqlite3_errmsg(server->db.db));
+        error = true;
+    }
+
+    sqlite3_finalize(stmt);
+    if (error)
+        return false;
+
+    if (server_db_select_userfile_ref_count(server, hash))
+        ret = true;
 
     return ret;
 }
