@@ -19,7 +19,7 @@ target_sources(chitychat PRIVATE
     server/src/server_file.c
     server/src/server_user_login.c
     server/src/server_user_req.c
-    server/src/server_group.c
+    server/src/server_user_group.c
     server/src/server_user_account.c
 )
 

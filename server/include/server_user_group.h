@@ -1,5 +1,5 @@
-#ifndef _SERVER_GROUP_H_
-#define _SERVER_GROUP_H_
+#ifndef _SERVER_USER_GROUP_H_
+#define _SERVER_USER_GROUP_H_
 
 #include "common.h"
 #include "server_websocket.h"
@@ -17,4 +17,4 @@ const char* server_group_msg(server_t* server, client_t* client,
 const char* get_group_msgs(server_t* server, client_t* client, 
         json_object* payload, json_object* respond_json);
 
-#endif // _SERVER_GROUP_H_
+#endif // _SERVER_USER_GROUP_H_
