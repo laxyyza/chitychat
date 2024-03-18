@@ -30,6 +30,9 @@ enum client_recv_status
 typedef struct 
 {
     char root_dir[CONFIG_PATH_LEN];
+    char img_dir[CONFIG_PATH_LEN];
+    char vid_dir[CONFIG_PATH_LEN];
+    char file_dir[CONFIG_PATH_LEN];
     char addr_ip[INET6_ADDRSTRLEN];
     uint16_t addr_port;
     enum ip_version addr_version;

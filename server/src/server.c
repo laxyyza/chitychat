@@ -16,6 +16,12 @@ server_default_config(const char* config_path)
     json_object* config = json_object_new_object();
     json_object_object_add(config, "root_dir", 
             json_object_new_string("client/public"));
+    json_object_object_add(config, "img_dir", 
+            json_object_new_string("client/public/upload/imgs"));
+    json_object_object_add(config, "vid_dir", 
+            json_object_new_string("client/public/upload/vids"));
+    json_object_object_add(config, "file_dir", 
+            json_object_new_string("client/public/upload/files"));
     json_object_object_add(config, "addr_ip", 
             json_object_new_string("any"));
     json_object_object_add(config, "addr_port", 
@@ -139,6 +145,9 @@ server_load_config(server_t* server, int argc, char* const* argv)
     i32 fd = -1;
     json_object* config = NULL;
     json_object* root_dir;
+    json_object* img_dir;
+    json_object* vid_dir;
+    json_object* file_dir;
     json_object* addr_ip;
     json_object* addr_port;
     json_object* addr_version;
@@ -147,6 +156,9 @@ server_load_config(server_t* server, int argc, char* const* argv)
     json_object* log_level_json;
     json_object* secure_only_json;
     const char* root_dir_str;
+    const char* img_dir_str;
+    const char* vid_dir_str;
+    const char* file_dir_str;
     const char* addr_ip_str;
     const char* addr_version_str;
     const char* database_str;
@@ -180,7 +192,8 @@ server_load_config(server_t* server, int argc, char* const* argv)
             i32 ret = json_object_to_fd(fd, config, 
                 JSON_C_TO_STRING_PRETTY | 
                 JSON_C_TO_STRING_PRETTY_TAB | 
-                JSON_C_TO_STRING_SPACED);
+                JSON_C_TO_STRING_SPACED | 
+                JSON_C_TO_STRING_NOSLASHESCAPE);
 
             close(fd);
             fd = -1;
@@ -212,6 +225,18 @@ server_load_config(server_t* server, int argc, char* const* argv)
     root_dir = JSON_GET("root_dir");
     root_dir_str = json_object_get_string(root_dir);
     strncpy(server->conf.root_dir, root_dir_str, CONFIG_PATH_LEN);
+
+    img_dir = JSON_GET("img_dir");
+    img_dir_str = json_object_get_string(img_dir);
+    strncpy(server->conf.img_dir, img_dir_str, CONFIG_PATH_LEN);
+
+    vid_dir = JSON_GET("vid_dir");
+    vid_dir_str = json_object_get_string(vid_dir);
+    strncpy(server->conf.vid_dir, vid_dir_str, CONFIG_PATH_LEN);
+
+    file_dir = JSON_GET("file_dir");
+    file_dir_str = json_object_get_string(file_dir);
+    strncpy(server->conf.file_dir, file_dir_str, CONFIG_PATH_LEN);
 
     addr_ip = JSON_GET("addr_ip");
     addr_ip_str = json_object_get_string(addr_ip);
