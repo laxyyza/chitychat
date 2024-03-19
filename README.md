@@ -20,6 +20,10 @@
 - [ ] **Deletion:** Ability to delete accounts, messages, and groups.
 - [ ] **Direct Messaging (DM):** Private messaging between users.
 - [ ] **Enhanced Messaging:** Send photos, videos, files, reply to messages, and edit messages.
+   - [ ] Front-end implementation
+      - [ ] Add images and paste image from clipboard.
+      - [ ] Reply button on messages 
+   - [ ] Back-end implementation 
 - [ ] **Mobile Compatibility:** Improve usability on mobile devices.
 - [ ] **URL Parameters Support:** Support HTTP URL parameters.
 - [ ] **Real-Time User Status Management:** Online, Offline, Away, busy, typing, etc.
