@@ -29,14 +29,11 @@ export class Server
             this.pending_packets = [];
 
             this.app.server_open(event);
-            // if (this.open_event)
-            //     this.open_event(event);
         });
 
         this.socket.addEventListener('message', (event) => {
             const packet = JSON.parse(event.data);
             this.app.server_msg(packet);
-            // this.msg_event(payload);
         });
 
         this.socket.addEventListener('error', (event) => {

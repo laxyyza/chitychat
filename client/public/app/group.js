@@ -65,17 +65,6 @@ export class Group
 
             app.messages_container.scrollTo(0, app.messages_container.scrollHeight);
 
-            // console.log(this.members);
-        
-            // if (this.members.length <= 1)
-            // {
-            //     const packet = {
-            //         type: "group_members",
-            //         group_id: this.id,
-            //     };
-
-            //     socket.send(JSON.stringify(packet));
-            // }
             if (app.current_group && app.current_group.get_scroll_messages)
                 app.messages_container.removeEventListener('scroll', app.current_group.get_scroll_messages);
             app.current_group = this;
@@ -91,7 +80,6 @@ export class Group
                 this.msg_offset += packet.limit;
 
                 app.server.ws_send(packet);
-                // socket.send(JSON.stringify(packet));
             }
 
 
@@ -118,7 +106,6 @@ export class Group
                     };
 
                     app.server.ws_send(packet);
-                    // socket.send(JSON.stringify(packet));
                 }
             }
         }
