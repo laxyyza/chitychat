@@ -32,6 +32,7 @@ export class App
         this.img_ele = document.getElementById("settings_img");
         this.settings_username = document.getElementById("settings_username");
         this.settings_displayname = document.getElementById("settings_displayname");
+        this.add_attachment_button = document.getElementById("msg_upload_button");
 
         this.groups = {};
         this.current_group;
@@ -47,6 +48,20 @@ export class App
         this.popup_join = false;
 
         this.logged_in = false;
+
+        this.add_attachment_button.addEventListener("click", () => {
+            const file_input = document.getElementById("msg_upload_button_input");
+
+            const change_event = (event) => {
+                const files = event.target.files;
+                const file = files[0];
+                console.log(file);
+                this.add_attachment(file);
+                file_input.removeEventListener("change", change_event);
+            };
+            file_input.addEventListener("change", change_event);
+            file_input.click();
+        });
 
         this.close_popup_button.addEventListener("click", () => {
             this.stop_popup();
@@ -160,6 +175,40 @@ export class App
     server_close(event)
     {
         this.logged_in = false;
+    }
+
+    add_attachment(file)
+    {
+        let attach_con = document.createElement("div");
+        attach_con.className = "input_attachment_con";
+        attach_con.setAttribute("title", file.name);
+
+        let close_button = document.createElement("button");
+        close_button.className = "attachment_close";
+        close_button.innerHTML = "<i class=\"fa fa-trash-o\"></i>";
+        
+        let img = document.createElement("img");
+        img.className = "input_attachments_img";
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+
+        let filename_span = document.createElement("span");
+        filename_span.className = "attachment_name";
+        filename_span.innerText = file.name;
+
+        attach_con.appendChild(img);
+        attach_con.appendChild(close_button);
+        attach_con.appendChild(filename_span);
+
+        let attachments = document.getElementById("input_attachments");
+        attachments.appendChild(attach_con);
+
+        close_button.addEventListener("click", () => {
+            attachments.removeChild(attach_con);
+        });
     }
 
     start_popup_create_group(width, height)

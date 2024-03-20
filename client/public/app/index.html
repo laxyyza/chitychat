@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/app/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 </head>
 <body>
@@ -37,13 +38,23 @@
         </div>
         <div id="main">
             <div id="messages_con">
-                <div id="messages">
+                <!-- <div id="messages">
                     <div class="msg">
                     </div>
-                </div>
+                </div> -->
             </div>
             <div class="input_con">
+                <div id="input_attachments">
+                    <!-- <div class="input_attachment_con">
+                        <img class="input_attachments_img" src="https://upload.wikimedia.org/wikipedia/commons/b/b6/Image_created_with_a_mobile_phone.png" alt="" srcset="">
+                        <button class="attachment_close">
+                            <i class="fa fa-trash-o"></i>
+                        </button>
+                        <span class="attachment_name">filename.png</span>
+                    </div> -->
+                </div>
                 <div class="input_box">
+                    <input type="file" id="msg_upload_button_input" style="display: none;">
                     <button id="msg_upload_button">+</button>
                     <textarea id="msg_input" rows="1" placeholder="Enter your message"></textarea>
                     <button id="msg_input_button">Send</button>
@@ -117,7 +128,6 @@
         </div>
     </div>
 
-    <!-- <script type="module" src="/app/group.js"></script> -->
     <script type="module" src="/app/app.js"></script>
 </body>
 </html>
