@@ -3,6 +3,7 @@
 #include "server_log.h"
 #include <fcntl.h>
 #include "server.h"
+#include "server_user_group.h"
 
 #define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
 
@@ -591,7 +592,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     free(content);
 }
 
-static bool 
+static upload_token_t*
 server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
 {
     char* endptr;
@@ -600,7 +601,7 @@ server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
     if (!token_str)
     {
         error("No Upload-Token in POST request!\n");
-        return false;
+        return NULL;
     }
 
     const u64 token = strtoull(token_str, &endptr, 10);
@@ -608,50 +609,44 @@ server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
     {
         error("HTTP POST Upload-Token: '%s' failed to convert to uint64_t: %s\n",
             token_str, ERRSTR);
-        return false;
+        return NULL;
     }
 
     if (endptr == token_str)
     {
         error("HTTP POST strtoull: No digits were found.\n");
-        return false;
+        return NULL;
     }
 
     upload_token_t* real_token = server_get_upload_token(server, token);
     if (real_token == NULL)
     {
         error("No upload token found: %zu\n", token);
-        return false;
+        return NULL;
     }
 
     if (real_token->token != token)
     {
         error("*real_token != token?? %zu != %zu\n", *real_token, token);
-        return false;
+        return NULL;
     }
 
-    *user_id = real_token->user_id;
+    if (real_token->type == UT_USER_PFP && user_id)
+        *user_id = real_token->user_id;
     // memset(real_token, 0, sizeof(upload_token_t));
-    server_del_upload_token(server, real_token);
+    // server_del_upload_token(server, real_token);
 
-    return true;
+    return real_token;
 }
 
 static void 
-server_handle_http_post(server_t* server, client_t* client, const http_t* http)
+server_handle_user_pfp_update(server_t* server, client_t* client, const http_t* http, u32 user_id)
 {
     http_t* resp = NULL;
-    u32 user_id;
     dbuser_t* user;
     bool failed = false;
     const char* post_img_cmd = "/img/";
     size_t post_img_cmd_len = strlen(post_img_cmd);
-
-    if (!server_check_upload_token(server, http, &user_id))
-    {
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Upload-Token failed", NULL, 0);
-        goto respond;
-    }
 
     if (strncmp(http->req.url, post_img_cmd, post_img_cmd_len) != 0)
     {
@@ -702,6 +697,118 @@ respond:
 
     http_send(client, resp);
     http_free(resp);
+}
+
+static void 
+server_handle_msg_attach(server_t* server, client_t* client, const http_t* http, 
+            upload_token_t* ut)
+{
+    http_t* resp = NULL;
+    dbmsg_t* msg = &ut->msg_state.msg;
+    size_t attach_index = 0;
+    char* endptr;
+    http_header_t* attach_index_header = http_get_header(http, "Attach-Index");
+    json_object* attach_json;
+    json_object* name_json;
+    const char* name;
+
+    if (attach_index_header == NULL)
+    {
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, "No Attach-Index header", NULL, 0);
+        goto respond;
+    }
+
+    attach_index = strtoul(attach_index_header->val, &endptr, 10);
+    if (attach_index == ULONG_MAX)
+    {
+        warn("Invalid Attach-Index: %s = %s\n", 
+                attach_index_header->name, attach_index_header->val);
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Invalid Attach-Index", NULL, 0);
+        goto respond;
+    }
+
+    if (attach_index > ut->msg_state.total)
+    {
+        warn("Attach-Index > msg_state.total. %zu/%zu\n", 
+                attach_index, ut->msg_state.total);
+    }
+
+    attach_json = json_object_array_get_idx(msg->attachments_json, attach_index);
+    if (attach_json)
+    {
+        name_json = json_object_object_get(attach_json, "name");
+        name = json_object_get_string(name_json);
+        dbuser_file_t file;
+
+        info("Saving file '%s'...\n", name);
+        
+        if (server_save_file_img(server, http->body, http->body_len, name, &file))
+        {
+            json_object_object_add(attach_json, "hash",
+                    json_object_new_string(file.hash));
+
+            ut->msg_state.current++;
+            if (ut->msg_state.current >= ut->msg_state.total)
+            {
+                msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
+                info("Message attachment:\n\t%s\n", msg->attachments);
+
+                if (server_db_insert_msg(server, msg))
+                {
+                    server_get_send_group_msg(server, msg->msg_id, msg->group_id);
+                }
+            }
+        }
+    }
+    else
+    {
+        warn("Failed to get json array index: %zu\n", attach_index);
+    }
+
+respond:
+    if (resp)
+    {
+        http_send(client, resp);
+        http_free(resp);
+    }
+}
+
+static void 
+server_handle_http_post(server_t* server, client_t* client, const http_t* http)
+{
+    http_t* resp = NULL;
+    u32 user_id;
+    upload_token_t* ut = NULL;
+
+    ut = server_check_upload_token(server, http, &user_id);
+
+    if (ut == NULL)
+    {
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Upload-Token failed", NULL, 0);
+        goto respond;
+    }
+
+    if (ut->type == UT_USER_PFP)
+    {
+        free(ut);
+        server_handle_user_pfp_update(server, client, http, user_id);
+    }
+    else if (ut->type == UT_MSG_ATTACHMENT)
+    {
+        server_handle_msg_attach(server, client, http, ut);
+    }
+    else
+    {
+        warn("Upload Token unknown type: %d\n", ut->type);
+        free(ut);
+    }
+
+respond:
+    if (resp)
+    {
+        http_send(client, resp);
+        http_free(resp);
+    }
 }
 
 static void 

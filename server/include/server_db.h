@@ -55,7 +55,9 @@ typedef struct
     u64 group_id;
     char content[DB_MESSAGE_MAX];
     char timestamp[DB_TIMESTAMP_MAX];
-    const char* attachments;
+    char* attachments;
+    bool  attachments_inheap;
+    json_object* attachments_json;
     i32 flags;
     i32 parent_msg_id;
 } dbmsg_t;
@@ -140,5 +142,7 @@ dbuser_file_t*     server_db_select_userfile(server_t* server, const char* hash)
 i32                 server_db_select_userfile_ref_count(server_t* server, const char* hash);
 bool                server_db_insert_userfile(server_t* server, dbuser_file_t* file);
 bool                server_db_delete_userfile(server_t* server, const char* hash);
+
+void dbmsg_free(dbmsg_t* msg);
 
 #endif // _SERVER_DB_

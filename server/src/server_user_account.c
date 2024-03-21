@@ -53,7 +53,7 @@ server_client_user_info(client_t* client, json_object* respond_json)
 }
 
 const char* server_user_edit_account(server_t* server, client_t* client, 
-        json_object* payload, json_object* respond_json)
+        json_object* payload, UNUSED json_object* respond_json)
 {
     json_object* new_username_json = json_object_object_get(payload, 
             "new_username");
@@ -81,12 +81,7 @@ const char* server_user_edit_account(server_t* server, client_t* client,
         if (upload_token == NULL)
             return "Failed to create upload token";
 
-        json_object_object_add(respond_json, "type", 
-                json_object_new_string("edit_account"));
-        json_object_object_add(respond_json, "upload_token", 
-                json_object_new_uint64(upload_token->token));
-
-        ws_json_send(client, respond_json);
+        server_send_upload_token(client, "edit_account", upload_token);
     }
 
     debug("New username: %s, new display name: %s, new pfp: %d\n", 

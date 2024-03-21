@@ -21,6 +21,7 @@
 #define CONFIG_ADDR_VRESION_LEN 10
 
 #define MAX_SESSIONS 10
+#define MAX_TMP_MSGS 10
 
 enum client_recv_status
 {
@@ -100,6 +101,7 @@ typedef struct server
     session_t* session_head;
     upload_token_t* upload_token_head;
     server_event_t* se_head;
+    tmp_msg_t tmp_msg[MAX_TMP_MSGS];
 
     SSL_CTX* ssl_ctx;
 

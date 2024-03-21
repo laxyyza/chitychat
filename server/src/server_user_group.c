@@ -1,6 +1,29 @@
 #include "server_user_group.h"
 #include "server.h"
 
+static void
+server_msg_to_json(const dbmsg_t* dbmsg, json_object* json)
+{
+    json_object* attachments_json;
+
+    attachments_json = json_tokener_parse(dbmsg->attachments);
+
+    json_object_object_add(json, "type", 
+            json_object_new_string("group_msg"));
+    json_object_object_add(json, "msg_id", 
+            json_object_new_int(dbmsg->msg_id));
+    json_object_object_add(json, "group_id", 
+            json_object_new_int(dbmsg->group_id));
+    json_object_object_add(json, "user_id", 
+            json_object_new_int(dbmsg->user_id));
+    json_object_object_add(json, "content", 
+            json_object_new_string(dbmsg->content));
+    json_object_object_add(json, "attachments",
+                attachments_json);
+    json_object_object_add(json, "timestamp", 
+            json_object_new_string(dbmsg->timestamp));
+}
+
 const char* 
 server_group_create(server_t* server, client_t* client, json_object* payload, 
         json_object* respond_json)
@@ -240,34 +263,20 @@ server_join_group(server_t* server, client_t* client,
     return NULL;
 }
 
-const char* 
-server_group_msg(server_t* server, client_t* client, 
-        json_object* payload, json_object* respond_json)
+const char*
+server_get_send_group_msg(server_t* server, 
+                const u32 msg_id, const u32 group_id)
 {
-    json_object* group_id_json = json_object_object_get(payload, 
-            "group_id");
-    json_object* content_json = json_object_object_get(payload, 
-            "content");
-    const u64 group_id = json_object_get_int(group_id_json);
-    const char* content = json_object_get_string(content_json);
-    const u64 user_id = client->dbuser->user_id;
-
-    dbmsg_t new_msg = {
-        .user_id = user_id,
-        .group_id = group_id,
-    };
-    strncpy(new_msg.content, content, DB_MESSAGE_MAX);
-
-    if (!server_db_insert_msg(server, &new_msg))
-    {
-        return "Failed to send message";
-    }
-
-    dbmsg_t* dbmsg = server_db_get_msg(server, new_msg.msg_id);
+    json_object* respond_json;
+    u32 n_memebrs;
+    dbmsg_t* dbmsg;
+    dbuser_t* gmemebrs;
     // Update all other online group members
 
-    u32 n_memebrs;
-    dbuser_t* gmemebrs = server_db_get_group_members(server, group_id, 
+    respond_json = json_object_new_object();
+
+    dbmsg = server_db_get_msg(server, msg_id);
+    gmemebrs = server_db_get_group_members(server, group_id, 
                                                     &n_memebrs);
     if (!gmemebrs)
     {
@@ -275,18 +284,24 @@ server_group_msg(server_t* server, client_t* client,
         return "Failed to get group members";
     }
 
-    json_object_object_add(respond_json, "type", 
-            json_object_new_string("group_msg"));
-    json_object_object_add(respond_json, "msg_id", 
-            json_object_new_int(dbmsg->msg_id));
-    json_object_object_add(respond_json, "group_id", 
-            json_object_new_int(dbmsg->group_id));
-    json_object_object_add(respond_json, "user_id", 
-            json_object_new_int(dbmsg->user_id));
-    json_object_object_add(respond_json, "content", 
-            json_object_new_string(dbmsg->content));
-    json_object_object_add(respond_json, "timestamp", 
-            json_object_new_string(dbmsg->timestamp));
+    server_msg_to_json(dbmsg, respond_json);
+
+    // attachments_json = json_tokener_parse(dbmsg->attachments);
+
+    // json_object_object_add(respond_json, "type", 
+    //         json_object_new_string("group_msg"));
+    // json_object_object_add(respond_json, "msg_id", 
+    //         json_object_new_int(dbmsg->msg_id));
+    // json_object_object_add(respond_json, "group_id", 
+    //         json_object_new_int(dbmsg->group_id));
+    // json_object_object_add(respond_json, "user_id", 
+    //         json_object_new_int(dbmsg->user_id));
+    // json_object_object_add(respond_json, "content", 
+    //         json_object_new_string(dbmsg->content));
+    // json_object_object_add(respond_json, "attachments",
+    //             attachments_json);
+    // json_object_object_add(respond_json, "timestamp", 
+    //         json_object_new_string(dbmsg->timestamp));
 
     for (size_t i = 0; i < n_memebrs; i++)
     {
@@ -302,7 +317,57 @@ server_group_msg(server_t* server, client_t* client,
     free(dbmsg);
     free(gmemebrs);
 
+    json_object_put(respond_json);
+
     return NULL;
+}
+
+const char* 
+server_group_msg(server_t* server, client_t* client, 
+        json_object* payload, UNUSED json_object* respond_json)
+{
+    json_object* group_id_json = json_object_object_get(payload, 
+            "group_id");
+    json_object* content_json = json_object_object_get(payload, 
+            "content");
+    json_object* attachments_json = json_object_object_get(payload, 
+            "attachments");
+    const u64 group_id = json_object_get_int(group_id_json);
+    const char* content = json_object_get_string(content_json);
+    const u64 user_id = client->dbuser->user_id;
+    const size_t len = json_object_array_length(attachments_json);
+    // const char* attachments;
+    
+    // attachments = json_object_to_json_string(attachments_json);
+
+    dbmsg_t new_msg = {
+        .user_id = user_id,
+        .group_id = group_id,
+    };
+    strncpy(new_msg.content, content, DB_MESSAGE_MAX);
+    // new_msg.attachments = strdup(attachments);
+
+    info("Group Message attach len: %zu\n", len);
+
+    if (len == 0)
+    {
+        if (!server_db_insert_msg(server, &new_msg))
+        {
+            return "Failed to send message";
+        }
+
+        return server_get_send_group_msg(server, new_msg.msg_id, group_id);
+    }
+    else
+    {
+        upload_token_t* ut = server_new_upload_token_attach(server, &new_msg);
+        ut->msg_state.msg.attachments_json = json_object_get(attachments_json);
+        ut->msg_state.total = len;
+
+        server_send_upload_token(client, "send_attachments", ut);
+
+        return NULL;
+    }
 }
 
 const char* 
@@ -344,16 +409,19 @@ get_group_msgs(server_t* server, client_t* client, json_object* payload,
         const dbmsg_t* msg = msgs + i;
 
         json_object* msg_in_array = json_object_new_object();
-        json_object_object_add(msg_in_array, "msg_id", 
-                json_object_new_int(msg->msg_id));
-        json_object_object_add(msg_in_array, "user_id", 
-                json_object_new_int(msg->user_id));
-        json_object_object_add(msg_in_array, "group_id", 
-                json_object_new_int(msg->group_id));
-        json_object_object_add(msg_in_array, "content", 
-                json_object_new_string(msg->content));
-        json_object_object_add(msg_in_array, "timestamp", 
-                json_object_new_string(msg->timestamp));
+
+        server_msg_to_json(msg, msg_in_array);
+        // json_object_object_add(msg_in_array, "msg_id", 
+        //         json_object_new_int(msg->msg_id));
+        // json_object_object_add(msg_in_array, "user_id", 
+        //         json_object_new_int(msg->user_id));
+        // json_object_object_add(msg_in_array, "group_id", 
+        //         json_object_new_int(msg->group_id));
+        // json_object_object_add(msg_in_array, "content", 
+        //         json_object_new_string(msg->content));
+        // json_object_object_add(msg_in_array, "timestamp", 
+        //         json_object_new_string(msg->timestamp));
+
         json_object_array_add(msgs_json, msg_in_array);
     }
 

@@ -518,6 +518,14 @@ server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u32 limit, u32 of
         strncpy(msg->content, content, DB_MESSAGE_MAX);
         const char* timestamp = (const char*)sqlite3_column_text(stmt, 4);
         strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
+        const char* attachments = (const char*)sqlite3_column_text(stmt, 5);
+        if (attachments)
+        {
+            msg->attachments = strdup(attachments);
+            msg->attachments_inheap = true;
+        }
+        else
+            msg->attachments = "[]";
 
         if (!n_ptr)
             break;
@@ -556,6 +564,11 @@ server_db_insert_msg(server_t* server, dbmsg_t* msg)
     sqlite3_bind_int(stmt, 1, msg->user_id);
     sqlite3_bind_int(stmt, 2, msg->group_id);
     sqlite3_bind_text(stmt, 3, msg->content, -1, SQLITE_TRANSIENT);
+
+    if (msg->attachments)
+        sqlite3_bind_text(stmt, 4, msg->attachments, -1, SQLITE_TRANSIENT);
+    else
+        sqlite3_bind_text(stmt, 4, "[]", -1, SQLITE_TRANSIENT);
 
     rc = sqlite3_step(stmt);
     if (rc != SQLITE_DONE && rc != SQLITE_ROW)
@@ -697,4 +710,15 @@ server_db_delete_userfile(server_t* server, const char* hash)
         ret = true;
 
     return ret;
+}
+
+void dbmsg_free(dbmsg_t* msg)
+{
+    if (!msg)
+        return;
+
+    if (msg->attachments_inheap && msg->attachments)
+        free(msg->attachments);
+
+    free(msg);
 }

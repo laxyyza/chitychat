@@ -5,16 +5,18 @@
 #include "server_websocket.h"
 
 const char* server_group_create(server_t* server, client_t* client, 
-        json_object* payload, json_object* respond_json);
+            json_object* payload, json_object* respond_json);
 const char* server_client_groups(server_t* server, client_t* client, 
-        json_object* respond_json);
+            json_object* respond_json);
 const char* server_get_all_groups(server_t* server, client_t* client, 
-        json_object* respond_json);
+            json_object* respond_json);
 const char* server_join_group(server_t* server, client_t* client, 
-        json_object* payload, json_object* respond_json);
+            json_object* payload, json_object* respond_json);
+const char* server_get_send_group_msg(server_t* server, 
+            const u32 msg_id, const u32 group_id);
 const char* server_group_msg(server_t* server, client_t* client, 
-        json_object* payload, json_object* respond_json);
+            json_object* payload, json_object* respond_json);
 const char* get_group_msgs(server_t* server, client_t* client, 
-        json_object* payload, json_object* respond_json);
+            json_object* payload, json_object* respond_json);
 
 #endif // _SERVER_USER_GROUP_H_

@@ -9,6 +9,7 @@ server_new_upload_token(server_t* server, u32 user_id)
 
     ut = calloc(1, sizeof(upload_token_t));
     ut->user_id = user_id;
+    ut->type = UT_USER_PFP;
     getrandom(&ut->token, sizeof(u32), 0);
 
     if (server->upload_token_head == NULL)
@@ -23,6 +24,18 @@ server_new_upload_token(server_t* server, u32 user_id)
     ut->prev = server->upload_token_head;
     if (head_next)
         head_next->prev = ut;
+
+    return ut;
+}
+
+upload_token_t* 
+server_new_upload_token_attach(server_t* server, dbmsg_t* msg)
+{
+    upload_token_t* ut;
+
+    ut = server_new_upload_token(server, 0);
+    ut->type = UT_MSG_ATTACHMENT;
+    memcpy(&ut->msg_state.msg, msg, sizeof(dbmsg_t));
 
     return ut;
 }
@@ -44,6 +57,26 @@ server_get_upload_token(server_t* server, u32 token)
     return NULL;
 }
 
+ssize_t         
+server_send_upload_token(client_t* client, const char* packet_type, upload_token_t* ut)
+{
+    json_object* respond_json;
+    ssize_t bytes_sent;
+
+    respond_json = json_object_new_object();
+
+    json_object_object_add(respond_json, "type", 
+            json_object_new_string(packet_type));
+    json_object_object_add(respond_json, "upload_token", 
+            json_object_new_uint64(ut->token));
+
+    bytes_sent = ws_json_send(client, respond_json);
+
+    json_object_put(respond_json);
+
+    return bytes_sent;
+}
+
 void 
 server_del_upload_token(server_t* server, upload_token_t* upload_token)
 {
@@ -61,6 +94,12 @@ server_del_upload_token(server_t* server, upload_token_t* upload_token)
         server_ep_delfd(server, upload_token->timerfd);
         if (close(upload_token->timerfd) == -1)
             error("close(%d) ut timerfd: %s\n", upload_token->timerfd, ERRSTR);
+    }
+
+    if (upload_token->type == UT_MSG_ATTACHMENT)
+    {
+        if (upload_token->msg_state.msg.attachments)
+            free(upload_token->msg_state.msg.attachments);
     }
 
     next = upload_token->next;
