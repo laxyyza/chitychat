@@ -141,6 +141,14 @@ h1, h2, h3 {
     margin-left: 10px;
 }
 
+.msg_attach_img{
+    max-width: 450px;
+    max-height: 450px;
+    object-fit: contain;
+    border-radius: 5px;
+    margin: 5px;
+}
+
 .msg_img{
     border-radius: 100%;
     width: 45px;

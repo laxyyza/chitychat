@@ -2,6 +2,34 @@ import {Server} from './server.js';
 import {handle_packet_state, init_packet_commads} from './handle_packet.js'
 // import {socket} from './ws.js';
 
+class Attach 
+{
+    constructor(file, img=null)
+    {
+        this.file = file;
+        this.name = file.name;
+        this.type = file.type;
+        this.size = file.size;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.src = e.target.result;
+            if (img)
+                img.src = this.src;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    tojson()
+    {
+        let f = {
+            type: this.type,
+            name: this.name
+        };
+        return JSON.stringify(f);
+    }
+}
+
 export class App
 {
     constructor()
@@ -33,6 +61,7 @@ export class App
         this.settings_username = document.getElementById("settings_username");
         this.settings_displayname = document.getElementById("settings_displayname");
         this.add_attachment_button = document.getElementById("msg_upload_button");
+        this.current_attachments = [];
 
         this.groups = {};
         this.current_group;
@@ -179,6 +208,12 @@ export class App
 
     add_attachment(file)
     {
+        if (!file.type.startsWith("image/"))
+        {
+            console.log(file.name + " - is not image.");
+            return;
+        }
+
         let attach_con = document.createElement("div");
         attach_con.className = "input_attachment_con";
         attach_con.setAttribute("title", file.name);
@@ -189,11 +224,16 @@ export class App
         
         let img = document.createElement("img");
         img.className = "input_attachments_img";
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        const attach_file = new Attach(file, img);
+        console.log(attach_file.tojson());
+        this.current_attachments.push(attach_file);
+        const index = this.current_attachments.length - 1;
+        // const reader = new FileReader();
+        // reader.onload = (e) => {
+        //     img.src = e.target.result;
+        // };
+        // reader.readAsDataURL(file);
+        // console.log("type: " + file.type);
 
         let filename_span = document.createElement("span");
         filename_span.className = "attachment_name";
@@ -208,6 +248,7 @@ export class App
 
         close_button.addEventListener("click", () => {
             attachments.removeChild(attach_con);
+            this.current_attachments.splice(index, 1);
         });
     }
 
@@ -366,14 +407,24 @@ export class App
     send_message()
     {
         const msg = this.input_msg.value;
-        if (msg == "")
+        if (msg == "" && this.current_attachments.length === 0)
             return;
 
-        const packet = {
+        let packet = {
             type: "group_msg",
             group_id: this.current_group.id,
-            content: msg
+            content: msg,
+            attachments: []
         };
+
+        for (let i = 0; i < this.current_attachments.length; i++)
+        {
+            const att = this.current_attachments[i];
+            packet.attachments.push({
+                type: att.type,
+                name: att.name
+            });
+        }
 
         this.server.ws_send(packet);
 

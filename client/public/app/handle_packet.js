@@ -247,8 +247,8 @@ function edit_account(packet)
 
         console.log("data", data);
 
-        const headers = new Headers();
-        headers.set("Upload-Token", upload_token);
+        // const headers = new Headers();
+        // headers.set("Upload-Token", upload_token);
 
         fetch("/img/" + file.name, {
             method: 'POST',
@@ -277,6 +277,46 @@ function edit_account(packet)
     };
 
     reader.readAsArrayBuffer(file);
+}
+
+function send_attachments(packet)
+{
+    const token = packet.upload_token;
+    const attachs = app.current_attachments;
+
+    for (let i = 0; i < attachs.length; i++)
+    {
+        const file = attachs[i].file;
+        const reader = new FileReader();
+
+        reader.onload = (ev) => {
+            const data = ev.target.result;
+
+            fetch("/upload/imgs", {
+                method: 'POST',
+                headers: {
+                    "Upload-Token": token,
+                    "Attach-Index": i
+                },
+                body: data
+            }).then(response => {
+                console.log(response);
+            })
+            .catch(error => {
+                console.error("POST error:", error);
+            });
+
+            app.current_attachments.splice(i, 1);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    
+    let attachments = document.getElementById("input_attachments");
+    while (attachments.firstChild)
+    {
+        attachments.removeChild(attachments.firstChild);
+    }
+    app.current_attachments.splice(0, app.current_attachments.length);
 }
 
 function handle_packet(packet)
@@ -318,4 +358,5 @@ export function init_packet_commads()
     packet_commands.get_group_msgs = get_group_msgs;
     packet_commands.join_group = join_group;
     packet_commands.edit_account = edit_account;
+    packet_commands.send_attachments = send_attachments;
 }

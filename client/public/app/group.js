@@ -136,6 +136,7 @@ export class Group
     add_msg(user, msg, insert=true)
     {
         const content = msg.content;
+        const attachments = msg.attachments;
 
         let div_msg = document.createElement("div");
         div_msg.className = "msg";
@@ -173,6 +174,19 @@ export class Group
         div_msg.appendChild(span_timestamp);
         div_msg.appendChild(div_content);
 
+        for (let i = 0; i < attachments.length; i++)
+        {
+            const attch = attachments[i];
+            if (attch.type.startsWith("image/"))
+            {
+                let img = document.createElement("img");
+                img.src = location.protocol + "//" + location.host + "/upload/imgs/" + attch.hash;
+                img.className = "msg_attach_img";
+                img.title = attch.name;
+
+                div_msg.appendChild(img);
+            }
+        }
 
         // let messages = document.getElementById("messages");
         let messages = this.div_chat_messages;
