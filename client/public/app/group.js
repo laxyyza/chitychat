@@ -203,6 +203,9 @@ export class Group
                     div.style.backgroundColor = "inherit";
                     div.removeChild(spinner);
                 };
+                img.addEventListener("click", () => {
+                    app.start_popup_image(img.src);
+                });
 
                 div.appendChild(img);
                 attach_con.appendChild(div);

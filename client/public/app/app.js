@@ -61,6 +61,7 @@ export class App
         this.settings_username = document.getElementById("settings_username");
         this.settings_displayname = document.getElementById("settings_displayname");
         this.add_attachment_button = document.getElementById("msg_upload_button");
+        this.popup_image = document.getElementById("popup_image");
         this.current_attachments = [];
 
         this.groups = {};
@@ -174,6 +175,22 @@ export class App
         this.popup_container.style.display = "block";
         this.popup.style.width = "70%";
         this.popup.style.height = "70%";
+    }
+
+    start_popup_image(img_src)
+    {
+        if (!img_src)
+            return;
+
+        let img = document.createElement("img");
+        img.src = img_src;
+        img.id = "popup_image_img";
+
+        this.popup_container.style.display = "block";
+        this.popup.style.width = "80%";
+        this.popup.style.height = "80%";
+        this.popup_image.style.display = "block";
+        this.popup_image.appendChild(img);
     }
 
     server_open(event)
@@ -375,6 +392,8 @@ export class App
         this.popup_create_group.style.display = "none";
         this.popup_join_group.style.display = "none";
         this.popup_settings.style.display = "none";
+        this.popup_image.style.display = "none";
+        this.popup_image.innerHTML = "";
         this.popup_join = false;
     }
 
