@@ -888,7 +888,7 @@ http_send(client_t* client, http_t* http)
     if ((bytes_sent = server_send(client, to_str.str, to_str.len)) == -1)
     {
         error("HTTP send to (fd: %d, IP: %s:%s): %s\n",
-            client->addr.sock, client->addr.ip_str, client->addr.serv
+            client->addr.sock, client->addr.ip_str, client->addr.serv, ERRSTR
         );
     }
 
