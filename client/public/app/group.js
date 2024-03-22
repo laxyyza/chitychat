@@ -169,6 +169,9 @@ export class Group
         span_msg_content.innerHTML = content;
         div_content.appendChild(span_msg_content);
 
+        let attach_con = document.createElement("div");
+        attach_con.className = "msg_attach_con";
+
         div_msg.appendChild(div_img);
         div_msg.appendChild(span_displayname);
         div_msg.appendChild(span_timestamp);
@@ -179,14 +182,35 @@ export class Group
             const attch = attachments[i];
             if (attch.type.startsWith("image/"))
             {
+                let div = document.createElement("div");
+                div.className = "msg_attach_img_con";
                 let img = document.createElement("img");
                 img.src = location.protocol + "//" + location.host + "/upload/imgs/" + attch.hash;
                 img.className = "msg_attach_img";
                 img.title = attch.name;
+                img.style.width = "450px";
+                img.style.height = "450px";
 
-                div_msg.appendChild(img);
+                console.log("div max_width height: " + div.style.maxWidth);
+
+                let spinner = document.createElement("div");
+                spinner.className = "spinner";
+                div.appendChild(spinner);
+
+                img.onload = (ev) => {
+                    img.style.width = "";
+                    img.style.height = "";
+                    div.style.backgroundColor = "inherit";
+                    div.removeChild(spinner);
+                };
+
+                div.appendChild(img);
+                attach_con.appendChild(div);
+                // div_msg.appendChild(img);
             }
         }
+
+        div_msg.appendChild(attach_con);
 
         // let messages = document.getElementById("messages");
         let messages = this.div_chat_messages;
