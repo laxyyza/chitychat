@@ -6,7 +6,7 @@
 * **Real-time Communication:** Messages are sent and received instantly.
 * **User Profile Pictures:** Users can upload and change their profile pictures.
 
-### Planned features
+### Planned Features
 - [ ] **Private Groups:** Invitation-only groups.
    - [ ] Mark group as private, only group members can get it.
    - [ ] Create invites/codes to join.
@@ -30,7 +30,7 @@
    - [ ] Default profile pic
 - [ ] **Real-Time User Profile Updates:** Receive instant updates for user profile changes like usernames, display names, bio, and profile pictures.
 
-### Web server features
+### Web Server Features
 * **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
 * **Web Sockets Implementation:** Real-time communication support.
 * **SSL/TLS via OpenSSL:** Secure connections.
@@ -38,6 +38,13 @@
 * **I/O Multiplexing:** Utilizes [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) for efficient I/O.
 * **Database Management:** Uses SQLite3 for SQL database.
 * **Session Management:** Users receive session IDs for persistent login.
+
+### Web Server limitations
+* **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
+* **Single-Threaded:** Becomes inefficient under heavy user load.
+* **Monolithic Architecture:** Combines web server and chat server functionalities within a single process, requiring recompilation for any server code modifications.
+* **Database Dependency:** Relies on SQLite3, which may present scalability challenges as data volume increases over time.
+* **Implemented in C:** Development and implementation may take longer, with potential risks of memory leaks and vulnerabilities.
 
 ### Learning experience
 > Through building Chity Chat, I learned:
