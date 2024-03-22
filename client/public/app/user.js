@@ -7,6 +7,10 @@ export class User
         this.displayname = displayname;
         this.bio = bio;
         this.created_at = created_at;
+
+        if (!pfp_name)
+            pfp_name = "default.jpg";
+
         this.pfp_name = pfp_name;
         this.pfp_url = location.protocol + "//" + location.host + "/upload/imgs/" + pfp_name;
     }
