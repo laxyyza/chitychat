@@ -89,6 +89,8 @@ server_write_file(const void* data, size_t size,
 
     snprintf(path, PATH_MAX, "%s/%s", dir, name);
 
+    debug("Writing file to: %s\n", path);
+
     fd = open(path, O_WRONLY | O_CREAT, 
             S_IRUSR | S_IWUSR);
     if (fd == -1)

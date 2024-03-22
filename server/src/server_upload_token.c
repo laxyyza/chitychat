@@ -82,6 +82,7 @@ server_del_upload_token(server_t* server, upload_token_t* upload_token)
 {
     upload_token_t* next;
     upload_token_t* prev;
+    dbmsg_t* msg;
 
     if (!server || !upload_token)
     {
@@ -98,8 +99,11 @@ server_del_upload_token(server_t* server, upload_token_t* upload_token)
 
     if (upload_token->type == UT_MSG_ATTACHMENT)
     {
-        if (upload_token->msg_state.msg.attachments)
+        msg = &upload_token->msg_state.msg;
+        if (msg->attachments && msg->attachments_inheap)
             free(upload_token->msg_state.msg.attachments);
+        if (msg->attachments_json)
+            json_object_put(msg->attachments_json);
     }
 
     next = upload_token->next;

@@ -286,23 +286,6 @@ server_get_send_group_msg(server_t* server,
 
     server_msg_to_json(dbmsg, respond_json);
 
-    // attachments_json = json_tokener_parse(dbmsg->attachments);
-
-    // json_object_object_add(respond_json, "type", 
-    //         json_object_new_string("group_msg"));
-    // json_object_object_add(respond_json, "msg_id", 
-    //         json_object_new_int(dbmsg->msg_id));
-    // json_object_object_add(respond_json, "group_id", 
-    //         json_object_new_int(dbmsg->group_id));
-    // json_object_object_add(respond_json, "user_id", 
-    //         json_object_new_int(dbmsg->user_id));
-    // json_object_object_add(respond_json, "content", 
-    //         json_object_new_string(dbmsg->content));
-    // json_object_object_add(respond_json, "attachments",
-    //             attachments_json);
-    // json_object_object_add(respond_json, "timestamp", 
-    //         json_object_new_string(dbmsg->timestamp));
-
     for (size_t i = 0; i < n_memebrs; i++)
     {
         const dbuser_t* member = gmemebrs + i;
@@ -314,7 +297,7 @@ server_get_send_group_msg(server_t* server,
             ws_json_send(member_client, respond_json);
     }
 
-    free(dbmsg);
+    dbmsg_free(dbmsg);
     free(gmemebrs);
 
     json_object_put(respond_json);
@@ -406,23 +389,19 @@ get_group_msgs(server_t* server, client_t* client, json_object* payload,
 
     for (u32 i = 0; i < n_msgs; i++)
     {
-        const dbmsg_t* msg = msgs + i;
+        dbmsg_t* msg = msgs + i;
 
         json_object* msg_in_array = json_object_new_object();
 
         server_msg_to_json(msg, msg_in_array);
-        // json_object_object_add(msg_in_array, "msg_id", 
-        //         json_object_new_int(msg->msg_id));
-        // json_object_object_add(msg_in_array, "user_id", 
-        //         json_object_new_int(msg->user_id));
-        // json_object_object_add(msg_in_array, "group_id", 
-        //         json_object_new_int(msg->group_id));
-        // json_object_object_add(msg_in_array, "content", 
-        //         json_object_new_string(msg->content));
-        // json_object_object_add(msg_in_array, "timestamp", 
-        //         json_object_new_string(msg->timestamp));
 
         json_object_array_add(msgs_json, msg_in_array);
+
+        if (msg->attachments_inheap && msg->attachments)
+        {
+            free(msg->attachments);
+            msg->attachments_inheap = false;
+        }
     }
 
     ws_json_send(client, respond_json);

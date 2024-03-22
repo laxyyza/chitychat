@@ -127,7 +127,8 @@ server_db_close(server_t* server)
     free(db->select_msg);
     free(db->delete_msg);
 
-    free(server->db.update_user);
+    free(db->update_user);
+    free(db->insert_userfiles);
     
     sqlite3_close(server->db.db);
 }
@@ -716,6 +717,8 @@ void dbmsg_free(dbmsg_t* msg)
 {
     if (!msg)
         return;
+
+    info("dbmsg_free() inheap: %d, attach: %p\n", msg->attachments_inheap, msg->attachments);
 
     if (msg->attachments_inheap && msg->attachments)
         free(msg->attachments);

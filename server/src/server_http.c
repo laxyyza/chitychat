@@ -751,12 +751,12 @@ server_handle_msg_attach(server_t* server, client_t* client, const http_t* http,
             if (ut->msg_state.current >= ut->msg_state.total)
             {
                 msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
-                info("Message attachment:\n\t%s\n", msg->attachments);
 
                 if (server_db_insert_msg(server, msg))
                 {
                     server_get_send_group_msg(server, msg->msg_id, msg->group_id);
                 }
+                server_del_upload_token(server, ut);
             }
         }
     }

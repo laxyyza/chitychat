@@ -70,6 +70,8 @@ server_handle_client_login(server_t* server, const char* username,
 
     return NULL;
 error:
+    if (user)
+        free(user);
     return "Incorrect Username or Password";
 }
 

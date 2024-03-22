@@ -81,14 +81,5 @@ BEGIN
     WHERE ref_count <= 0;
 END;
 
--- CREATE TRIGGER IF NOT EXISTS set_default_pfp_name
--- AFTER INSERT ON Users
--- FOR EACH ROW
--- BEGIN
---     UPDATE Users
---     SET pfp_path = '/img/default.png'
---     WHERE user_id = NEW.user_id;
--- END;
-
 CREATE INDEX IF NOT EXISTS idx_get_group_msgs
 ON Messages(group_id, msg_id, timestamp DESC, msg_id DESC);
