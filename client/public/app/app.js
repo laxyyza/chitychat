@@ -79,8 +79,9 @@ export class App
 
         this.logged_in = false;
 
-        this.popup_container.addEventListener("click", () => {
-            this.stop_popup();
+        this.popup_container.addEventListener("click", (e) => {
+            if (e.target == this.popup_container)
+                this.stop_popup();
         });
 
         this.add_attachment_button.addEventListener("click", () => {
