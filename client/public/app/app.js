@@ -166,6 +166,23 @@ export class App
             }
         });
 
+        document.addEventListener("paste", (ev) => {
+            let data = ev.clipboardData;
+
+            if (data)
+            {
+                for (let i = 0; i < data.items.length; i++)
+                {
+                    let item = data.items[i];
+
+                    if (item.type.startsWith("image/"))
+                    {
+                        this.add_attachment(item.getAsFile());
+                    }
+                }
+            }
+        });
+
         init_packet_commads();
         this.server = new Server(this);
     }
