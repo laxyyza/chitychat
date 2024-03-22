@@ -718,8 +718,6 @@ void dbmsg_free(dbmsg_t* msg)
     if (!msg)
         return;
 
-    info("dbmsg_free() inheap: %d, attach: %p\n", msg->attachments_inheap, msg->attachments);
-
     if (msg->attachments_inheap && msg->attachments)
         free(msg->attachments);
 
