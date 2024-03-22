@@ -740,8 +740,6 @@ server_handle_msg_attach(server_t* server, client_t* client, const http_t* http,
         name = json_object_get_string(name_json);
         dbuser_file_t file;
 
-        info("Saving file '%s'...\n", name);
-        
         if (server_save_file_img(server, http->body, http->body_len, name, &file))
         {
             json_object_object_add(attach_json, "hash",
