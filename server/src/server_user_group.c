@@ -263,27 +263,22 @@ server_join_group(server_t* server, client_t* client,
 
 const char*
 server_get_send_group_msg(server_t* server, 
-                const u32 msg_id, const u32 group_id)
+                const dbmsg_t* dbmsg, const u32 group_id)
 {
     json_object* respond_json;
     u32 n_memebrs;
-    dbmsg_t* dbmsg;
     dbuser_t* gmemebrs;
-    // Update all other online group members
 
     respond_json = json_object_new_object();
 
-    dbmsg = server_db_get_msg(server, msg_id);
     gmemebrs = server_db_get_group_members(server, group_id, 
                                                     &n_memebrs);
     if (!gmemebrs)
-    {
-        free(dbmsg);
         return "Failed to get group members";
-    }
 
     server_msg_to_json(dbmsg, respond_json);
 
+    // Update all other online group members
     for (size_t i = 0; i < n_memebrs; i++)
     {
         const dbuser_t* member = gmemebrs + i;
@@ -295,7 +290,6 @@ server_get_send_group_msg(server_t* server,
             ws_json_send(member_client, respond_json);
     }
 
-    dbmsg_free(dbmsg);
     free(gmemebrs);
 
     json_object_put(respond_json);
@@ -329,7 +323,7 @@ server_group_msg(server_t* server, client_t* client,
         if (!server_db_insert_msg(server, &new_msg))
             return "Failed to send message";
 
-        return server_get_send_group_msg(server, new_msg.msg_id, group_id);
+        return server_get_send_group_msg(server, &new_msg, group_id);
     }
     else
     {
