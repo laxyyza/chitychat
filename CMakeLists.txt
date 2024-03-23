@@ -4,6 +4,9 @@ project("Chity Chat" LANGUAGES C)
 set(CMAKE_C_FLAGS "-Werror -Wall -Wextra -Wshadow -Wstrict-prototypes -Wstrict-overflow=5 -Wunreachable-code -Winit-self -Wuninitialized -Wno-deprecated-declarations")
 set(CMAKE_C_STANDARD 23)
 
+find_package(PostgreSQL REQUIRED)
+find_package(OpenSSL REQUIRED)
+
 add_executable(chitychat)
 target_sources(chitychat PRIVATE
     server/src/main.c
@@ -30,14 +33,10 @@ target_include_directories(chitychat PRIVATE
     server/include
 )
 
-find_package(PostgreSQL REQUIRED)
-
-target_include_directories(chitychat PRIVATE ${PostgreSQL_INCLUDE_DIRS})
-
 target_link_libraries(chitychat PRIVATE 
-    ssl
-    crypto
     json-c
     magic
-    ${PostgreSQL_LIBRARIES}
+    PostgreSQL::PostgreSQL
+    OpenSSL::SSL
+    OpenSSL::Crypto
 )
