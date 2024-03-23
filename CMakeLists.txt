@@ -30,10 +30,14 @@ target_include_directories(chitychat PRIVATE
     server/include
 )
 
+find_package(PostgreSQL REQUIRED)
+
+target_include_directories(chitychat PRIVATE ${PostgreSQL_INCLUDE_DIRS})
+
 target_link_libraries(chitychat PRIVATE 
     ssl
     crypto
     json-c
-    pq
     magic
+    ${PostgreSQL_LIBRARIES}
 )
