@@ -34,6 +34,6 @@ target_link_libraries(chitychat PRIVATE
     ssl
     crypto
     json-c
-    sqlite3
+    pq
     magic
 )

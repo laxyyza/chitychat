@@ -1,23 +1,20 @@
-PRAGMA foreign_keys = ON;
-
--- flags column in tables will be future bit-field options/settings
+SET CONSTRAINTS ALL DEFERRED;
 
 CREATE TABLE IF NOT EXISTS UserFiles(
-    hash        TEXT PRIMARY KEY UNIQUE,
-    name        VARCHAR(128) NOT NULL,
-    size        INTEGER NOT NULL,
-    mime_type   TEXT NOT NULL,
-    flags       INTEGER DEFAULT 0,
-    ref_count   INTEGER DEFAULT 1
+    hash            TEXT PRIMARY KEY UNIQUE,
+    size            BIGINT NOT NULL,
+    mime_type       TEXT NOT NULL,
+    flags           INTEGER DEFAULT 0,
+    ref_count       INTEGER DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS Users(
-    user_id         INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+    user_id         SERIAL PRIMARY KEY,
     username        VARCHAR(50) NOT NULL UNIQUE,
     displayname     VARCHAR(50) NOT NULL,
     bio             TEXT,
-    hash            BLOB NOT NULL,
-    salt            BLOB NOT NULL,
+    hash            BYTEA NOT NULL,
+    salt            BYTEA NOT NULL,
     flags           INTEGER DEFAULT 0,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     pfp             TEXT,
@@ -25,10 +22,10 @@ CREATE TABLE IF NOT EXISTS Users(
 );
 
 CREATE TABLE IF NOT EXISTS Groups(
-    group_id        INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+    group_id        SERIAL PRIMARY KEY,
     owner_id        INTEGER,
     name            VARCHAR(50) NOT NULL,
-    DESC            TEXT,
+    "desc"          TEXT,
     flags           INTEGER DEFAULT 0,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES Users(user_id)
@@ -45,41 +42,45 @@ CREATE TABLE IF NOT EXISTS GroupMembers(
 );
 
 CREATE TABLE IF NOT EXISTS Messages(
-    msg_id          INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-    user_id         INTEGER, 
+    msg_id          SERIAL PRIMARY KEY,
+    user_id         INTEGER,
     group_id        INTEGER,
     content         TEXT,
     timestamp       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    attachments     TEXT DEFAULT NULL,
+    attachments     JSON DEFAULT NULL,
     flags           INTEGER DEFAULT 0,
     parent_msg_id   INTEGER DEFAULT NULL,
-    FOREIGN KEY (parent_msg_id) REFERENCES Messages(msg_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (group_id) REFERENCES Groups(group_id),
-    CONSTRAINT group_member
-        FOREIGN KEY (user_id, group_id)
-        REFERENCES GroupMembers(user_id, group_id),
+    FOREIGN KEY (user_id, group_id) REFERENCES GroupMembers(user_id, group_id),
+    FOREIGN KEY (parent_msg_id) REFERENCES Messages(msg_id),
     CHECK (parent_msg_id != msg_id)
 );
 
-
--- Everytime when a group is created, 
--- owner will automatically be a group member.
-CREATE TRIGGER IF NOT EXISTS insert_owner_group_member
-AFTER INSERT ON Groups 
-FOR EACH ROW
-BEGIN
+CREATE OR REPLACE FUNCTION insert_owner_group_member()
+RETURNS TRIGGER AS $$
+BEGIN 
     INSERT INTO GroupMembers(user_id, group_id)
     VALUES (NEW.owner_id, NEW.group_id);
+    RETURN NULL;
 END;
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER IF NOT EXISTS delete_userfiles_if_ref_is_zero
-AFTER UPDATE OF ref_count ON UserFiles
-WHEN NEW.ref_count <= 0
-BEGIN 
+CREATE OR REPLACE TRIGGER insert_owner_group_member
+AFTER INSERT ON Groups 
+FOR EACH ROW
+EXECUTE FUNCTION insert_owner_group_member();
+
+CREATE OR REPLACE FUNCTION delete_userfiles_if_ref_is_zero()
+RETURNS TRIGGER AS $$
+BEGIN
     DELETE FROM UserFiles
     WHERE ref_count <= 0;
+    RETURN NULL;
 END;
+$$ LANGUAGE plpgsql;
 
-CREATE INDEX IF NOT EXISTS idx_get_group_msgs
-ON Messages(group_id, msg_id, timestamp DESC, msg_id DESC);
+CREATE OR REPLACE TRIGGER delete_userfiles_if_ref_is_zero
+AFTER UPDATE OF ref_count ON UserFiles
+FOR EACH ROW
+EXECUTE FUNCTION delete_userfiles_if_ref_is_zero();

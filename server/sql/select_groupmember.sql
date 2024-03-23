@@ -2,4 +2,4 @@
 SELECT DISTINCT u.*
 FROM Users u 
 JOIN GroupMembers gm ON u.user_id = gm.user_id
-WHERE gm.group_id = ?;
+WHERE gm.group_id = $1::int;

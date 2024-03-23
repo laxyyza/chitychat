@@ -36,4 +36,6 @@ typedef struct session  session_t;
 #define ERRSTR strerror(errno)
 #define UNUSED __attribute__((unused))
 
+#define SYSTEM_USERNAME_LEN 64
+
 #endif //_COMMON_H_

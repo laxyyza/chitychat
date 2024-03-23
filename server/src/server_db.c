@@ -1,7 +1,6 @@
 #include "server_db.h"
 #include "server.h"
 #include "common.h"
-#include <fcntl.h>
 
 static char* 
 server_db_load_sql(const char* path, size_t* size)
@@ -42,9 +41,10 @@ server_db_load_sql(const char* path, size_t* size)
 }
 
 static i32 
-db_exec_sql(server_t* server, const char* sql, void* callback)
+db_exec_sql(server_t* server, const char* sql)
 {
-    i32 ret;
+    i32 ret = 0;
+    PGresult* res;
 
     if (!sql)
     {
@@ -52,14 +52,16 @@ db_exec_sql(server_t* server, const char* sql, void* callback)
         return -1;
     }
 
-    char* errmsg;
-    ret = sqlite3_exec(server->db.db, sql, callback, server, &errmsg);
-    if (ret != SQLITE_OK)
+    res = PQexec(server->db.conn, sql);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         debug("Executing SQL:\n%s\n==================== Done\n", sql);
-        error("sqlite3_exec() failed: %s\n", errmsg);
-        sqlite3_free(errmsg);
+        error("PQexec() failed: %s\n",
+                PQresultErrorMessage(res));
+        ret = -1;
     }
+
+    PQclear(res);
 
     return ret;
 }
@@ -67,13 +69,22 @@ db_exec_sql(server_t* server, const char* sql, void* callback)
 bool 
 server_db_open(server_t* server)
 {
-    i32 ret = sqlite3_open(server->conf.database, &server->db.db);
-    if (ret)
+    const char* dbname = "chitychat";
+    char user[SYSTEM_USERNAME_LEN];
+    char conninfo[DB_CONNINTO_LEN];
+
+    getlogin_r(user, SYSTEM_USERNAME_LEN);
+    
+    snprintf(conninfo, DB_CONNINTO_LEN, "dbname=%s user=%s", dbname, user);
+    
+    server_db_t* db = &server->db;
+    db->conn = PQconnectdb(conninfo);
+    if (PQstatus(db->conn) != CONNECTION_OK)
     {
-        fatal("Opening database (%s) failed: %s\n", server->conf.database, sqlite3_errmsg(server->db.db));
+        error("Failed connect to database: %s\n", 
+                PQerrorMessage(db->conn));
         return false;
     }
-    server_db_t* db = &server->db;
 
     db->schema = server_db_load_sql(server->conf.sql_schema, &db->schema_len);
 
@@ -96,7 +107,8 @@ server_db_open(server_t* server)
     db->update_user = server_db_load_sql(server->conf.sql_update_user, &db->delete_msg_len);
     db->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &db->insert_userfiles_len);
 
-    db_exec_sql(server, db->schema, NULL);
+    if (db_exec_sql(server, db->schema) == -1)
+        return false;
 
     return true;
 }
@@ -130,93 +142,191 @@ server_db_close(server_t* server)
     free(db->update_user);
     free(db->insert_userfiles);
     
-    sqlite3_close(server->db.db);
+    PQfinish(db->conn);
+}
+
+static void
+db_row_to_userfile(dbuser_file_t* file, PGresult* res, i32 row)
+{
+    char* endptr;
+    const char* dbhash;
+    const char* dbmime_type;
+    const char* size_str;
+    const char* flags_str;
+    const char* ref_count_str;
+
+    dbhash = PQgetvalue(res, row, 0);
+    strncpy(file->hash, dbhash, DB_PFP_HASH_MAX);
+
+    size_str = PQgetvalue(res, row, 1);
+    file->size = strtoull(size_str, &endptr, 10);
+    
+    dbmime_type = PQgetvalue(res, row, 2);
+    strncpy(file->mime_type, dbmime_type, DB_MIME_TYPE_LEN);
+
+    flags_str = PQgetvalue(res, row, 3);
+    file->flags = atoi(flags_str);
+
+    ref_count_str = PQgetvalue(res, row, 4);
+    file->ref_count = atoi(ref_count_str);
+}
+
+static void
+db_row_to_msg(dbmsg_t* msg, PGresult* res, i32 row)
+{
+    char* endptr;
+
+    const char* msg_id_str = PQgetvalue(res, row, 0);
+    msg->msg_id = strtoul(msg_id_str, &endptr, 10);
+    
+    const char* user_id_str = PQgetvalue(res, row, 1);
+    msg->user_id = strtoul(user_id_str, &endptr, 10);
+
+    const char* group_id_str = PQgetvalue(res, row, 2);
+    msg->group_id = strtoul(group_id_str, &endptr, 10);
+
+    const char* content = PQgetvalue(res, row, 3);
+    strncpy(msg->content, content, DB_MESSAGE_MAX);
+
+    const char* timestamp = PQgetvalue(res, row, 4);
+    strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
+    
+    const char* attachments = PQgetvalue(res, row, 5);
+    if (attachments)
+    {
+        msg->attachments = strdup(attachments);
+        msg->attachments_inheap = true;
+    }
+    else
+        msg->attachments = "[]";
+
+    const char* parent_msg_id_str = PQgetvalue(res, row, 6);
+    if (parent_msg_id_str)
+        msg->parent_msg_id = strtoul(parent_msg_id_str, &endptr, 10);
+}
+
+static void 
+db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
+{
+    char* endptr;
+
+    const char* group_id_str = PQgetvalue(res, row, 0);
+    group->group_id = strtoul(group_id_str, &endptr, 10);
+
+    const char* owner_id_str = PQgetvalue(res, row, 1);
+    group->owner_id = strtoul(owner_id_str, &endptr, 10);
+
+    const char* name = PQgetvalue(res, row, 2);
+    strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
+
+    const char* desc = PQgetvalue(res, row, 3);
+    if (desc)
+        strncpy(group->desc, desc, DB_DESC_MAX);
+}
+
+static void 
+db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
+{
+    char* endptr;
+
+    const char* id_str = PQgetvalue(res, row, 0);
+    if (id_str)
+        user->user_id = strtoul(id_str, &endptr, 10);
+    else
+        warn("id_str is NULL!\n");
+    
+    const char* username = PQgetvalue(res, row, 1);
+    if (username)
+        strncpy(user->username, username, DB_USERNAME_MAX);
+    else
+        warn("username is NULL!\n");
+
+    const char* displayname = PQgetvalue(res, row, 2);
+    if (displayname)
+        strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
+    else
+        warn("displayname is NULL!\n");
+
+    const char* bio = PQgetvalue(res, row, 3);
+    if (bio)
+        strncpy(user->bio, bio, DB_BIO_MAX);
+
+    const void* hash_str = PQgetvalue(res, row, 4);
+    size_t hash_size = PQgetlength(res, row, 4);
+
+    hexstr_to_u8(hash_str, hash_size, user->hash);
+
+    const void* salt_str = PQgetvalue(res, row, 5);
+    size_t salt_size = PQgetlength(res, row, 5);
+
+    hexstr_to_u8(salt_str, salt_size, user->salt);
+
+    const char* flags_str = PQgetvalue(res, row, 6);
+    if (flags_str)
+        user->flags = atoi(flags_str);
+    else
+        warn("flags is NULL!\n");
+
+    const char* created_at = PQgetvalue(res, row, 7);
+    if (created_at)
+        strncpy(user->created_at, created_at, DB_TIMESTAMP_MAX);
+    else
+        warn("created_at is NULL!\n");
+
+    const char* pfp_hash = PQgetvalue(res, row, 8);
+    if (pfp_hash)
+        strncpy(user->pfp_hash, pfp_hash, DB_PFP_HASH_MAX);
 }
 
 dbuser_t* 
-server_db_get_user(server_t* server, u64 user_id, const char* username_to) 
+server_db_get_user(server_t* server, u32 user_id, const char* username_to) 
 {
-    dbuser_t* user = calloc(1, sizeof(dbuser_t));
+    server_db_t* db = &server->db;
+    PGresult* res;
+    dbuser_t* user = NULL;
+    ExecStatusType status_type;
+    int rows;
 
-    sqlite3_stmt* stmt;
-    i32 ret = sqlite3_prepare_v2(server->db.db, server->db.select_user, -1, &stmt, NULL);
+    const char* vals[2];
+    char user_id_str[50];
+    snprintf(user_id_str, 50, "%d", user_id);
+    vals[0] = user_id_str;
+    vals[1] = username_to;
 
-    sqlite3_bind_int(stmt, 1, user_id);
-    sqlite3_bind_text(stmt, 2, username_to, -1, SQLITE_TRANSIENT);
-    bool found = false;
+    int lens[2] = {
+        strlen(user_id_str),
+        (username_to) ? strlen(username_to) : 0
+    };
 
-    while ((ret = sqlite3_step(stmt)) == SQLITE_ROW)
+    int formats[2] = {0, 0};
+
+    res = PQexecParams(db->conn, db->select_user, 2, NULL, vals, lens, formats, 0);
+    status_type = PQresultStatus(res);
+    if (status_type != PGRES_TUPLES_OK)
     {
-        user->user_id = sqlite3_column_int(stmt, 0);
-
-        // User name
-        const char* username = (const char*)sqlite3_column_text(stmt, 1);
-        if (username)
-            strncpy(user->username, username, DB_USERNAME_MAX);
-        else
-            warn("user %u username is NULL!\n", user->user_id);
-
-        // Display name
-        const char* displayname = (const char*)sqlite3_column_text(stmt, 2);
-        if (displayname)
-            strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
-        else
-            warn("user %u displayname is NULL\n", user->user_id);
-
-        // BIO
-        const char* bio = (const char*)sqlite3_column_text(stmt, 3);
-        if (bio)
-            strncpy(user->bio, bio, DB_BIO_MAX);
-
-        // Hash
-        const u8* hash = sqlite3_column_blob(stmt, 4);
-        if (hash)
-            memcpy(user->hash, hash, SERVER_HASH_SIZE);
-        else
-            warn("user %u hash is NULL\n", user->user_id);
-
-        // Salt
-        const u8* salt = sqlite3_column_blob(stmt, 5);
-        if (salt)
-            memcpy(user->salt, salt, SERVER_SALT_SIZE);
-        else
-            warn("user %u salt is NULL!\n", user->user_id);
-
-        // Flags
-        user->flags = sqlite3_column_int(stmt, 6);
-
-        // Created at
-        const char* created_at = (const char*)sqlite3_column_text(stmt, 7);
-        if (created_at)
-            strncpy(user->created_at, created_at, DB_USERNAME_MAX);
-        else
-            warn("user %u created_at is NULL!\n", user->user_id);
-
-        // pfp hash
-        const char* pfp_hash = (const char*)sqlite3_column_text(stmt, 8);
-        if (pfp_hash)
-            strncpy(user->pfp_hash, pfp_hash, DB_PFP_NAME_MAX);
-        else
-            warn("user %u pfp_hash is NULL\n", user->user_id);
-
-        found = true;
-        break;
-        // info("ID: %zu, username: '%s', displayname: '%s'\n", user->user_id, user->username, user->displayname);
+        error("PQexecParams() failed (%d) on select_user: %s\n",
+                    status_type, PQresultErrorMessage(res));
+        goto cleanup;
     }
 
-    sqlite3_finalize(stmt);
-
-    if (!found)
+    rows = PQntuples(res);
+    if (rows == 0)
     {
-        free(user);
-        user = NULL;
+        error("No user found %zu or '%s'\n", user_id, username_to);
+        goto cleanup;
     }
 
+    user = calloc(1, sizeof(dbuser_t));
+
+    db_row_to_user(user, res, 0);
+
+cleanup:
+    PQclear(res);
     return user;
 }
 
 dbuser_t* 
-server_db_get_user_from_id(server_t* server, u64 user_id)
+server_db_get_user_from_id(server_t* server, u32 user_id)
 {
     return server_db_get_user(server, user_id, "");
 }
@@ -228,7 +338,7 @@ server_db_get_user_from_name(server_t* server, const char* username)
 }
 
 dbuser_t* 
-server_db_get_users_from_group(UNUSED server_t* server, UNUSED u64 group_id, UNUSED u32* n)
+server_db_get_users_from_group(UNUSED server_t* server, UNUSED u32 group_id, UNUSED u32* n)
 {
     debug("Implement server_db_get_users_from_group()!\n");
     return NULL;
@@ -237,24 +347,39 @@ server_db_get_users_from_group(UNUSED server_t* server, UNUSED u64 group_id, UNU
 bool 
 server_db_insert_user(server_t* server, dbuser_t* user)
 {
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_user, -1, &stmt, NULL);
     bool ret = true;
+    PGresult* res;
+    const char* vals[5] = {
+        user->username,
+        user->displayname,
+        user->bio,
+        (const char*)user->hash,
+        (const char*)user->salt
+    };
+    int formats[5] = {
+        0,
+        0,
+        0,
+        1,
+        1
+    };
+    int lens[5] = {
+        strnlen(user->username, DB_USERNAME_MAX),
+        strnlen(user->displayname, DB_DISPLAYNAME_MAX),
+        strnlen(user->bio, DB_BIO_MAX),
+        SERVER_HASH_SIZE,
+        SERVER_SALT_SIZE
+    };
 
-    sqlite3_bind_text(stmt, 1, user->username, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, user->displayname, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 3, user->bio, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_blob(stmt, 4, user->hash, SERVER_HASH_SIZE, SQLITE_STATIC);
-    sqlite3_bind_blob(stmt, 5, user->salt, SERVER_SALT_SIZE, SQLITE_STATIC);
-
-    rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    res = PQexecParams(server->db.conn, server->db.insert_user, 5, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
-        error("sqlite3_step: %s\n", sqlite3_errmsg(server->db.db));
+        error("PQexecParams() failed insert_user: %s\n", 
+                    PQresultErrorMessage(res));
         ret = false;
     }
 
-    sqlite3_finalize(stmt);
+    PQclear(res);
 
     return ret;
 }
@@ -262,157 +387,194 @@ server_db_insert_user(server_t* server, dbuser_t* user)
 bool 
 server_db_update_user(server_t* server, const char* new_username,
                            const char* new_displayname,
-                           const char* new_hash_name, const u64 user_id) 
+                           const char* new_hash_name, const u32 user_id) 
 {
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.update_user, -1, &stmt, NULL);
+    PGresult* res;
     bool ret = true;
+    char user_id_str[50];
+    snprintf(user_id_str, 50, "%u", user_id);
 
-    const i32 username_con = (new_username != NULL);
-    const i32 displayname_con = (new_displayname != NULL);
-    const i32 pfp_hash_con = (new_hash_name != NULL);
+    const char* vals[7] = {
+        (new_username) ? "true" : "false",
+        new_username,
+        (new_displayname) ? "true" : "false",
+        new_displayname,
+        (new_hash_name) ? "true" : "false",
+        new_hash_name,
+        user_id_str
+    };
+    const int formats[7] = {0};
+    const int lens[7] = {
+        strlen(vals[0]),
+        (new_username) ?    strnlen(new_username, DB_USERNAME_MAX) : 0,
+        strlen(vals[2]),
+        (new_displayname) ? strnlen(new_displayname, DB_DISPLAYNAME_MAX) : 0,
+        strlen(vals[4]),
+        (new_hash_name) ?   strnlen(new_hash_name, DB_PFP_HASH_MAX) : 0,
+        strlen(user_id_str)
+    };
 
-    sqlite3_bind_int(stmt, 1, username_con);
-    sqlite3_bind_text(stmt, 2, new_username, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 3, displayname_con);
-    sqlite3_bind_text(stmt, 4, new_displayname, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 5, pfp_hash_con);
-    sqlite3_bind_text(stmt, 6, new_hash_name, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 7, user_id);
-
-    rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    res = PQexecParams(server->db.conn, server->db.update_user, 7, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
-        error("sqlite3_step update user: %s\n", sqlite3_errmsg(server->db.db));
+        error("PQexecParams() failed for update_user: %s\n", 
+                    PQresultErrorMessage(res));
         ret = false;
     }
 
-    sqlite3_finalize(stmt);
+    PQclear(res);
 
     return ret;
 }
 
 dbuser_t* 
-server_db_get_group_members(server_t* server, u64 group_id, u32* n_ptr)
+server_db_get_group_members(server_t* server, u32 group_id, u32* n_ptr)
 {
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_groupmember, -1, &stmt, NULL);
-    dbuser_t* users = malloc(sizeof(dbuser_t));
-    u32 n = 0;
+    PGresult* res;
+    dbuser_t* users = NULL;
+    i32 rows;
 
-    sqlite3_bind_int(stmt, 1, group_id);
+    char group_id_str[50];
+    snprintf(group_id_str, 50, "%u", group_id);
 
-    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
+    const char* vals[1] = {
+        group_id_str
+    };
+    const int lens[1] = {
+        strlen(group_id_str)
+    };
+    const int formats[1] = {
+        0
+    };
+
+    res = PQexecParams(server->db.conn, server->db.select_groupmember, 1, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
-        n++;
-        if (n > 1)
-            users = realloc(users, sizeof(dbuser_t) * n);
-        dbuser_t* user = users + (n - 1);
-        memset(user, 0, sizeof(dbuser_t));
-
-        user->user_id = sqlite3_column_int(stmt, 0);
-        const char* username = (const char*)sqlite3_column_text(stmt, 1);
-        strncpy(user->username, username, DB_USERNAME_MAX);
-        const char* displayname = (const char*)sqlite3_column_text(stmt, 2);
-        strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
-        const char* bio = (const char*)sqlite3_column_text(stmt, 3);
-        if (bio)
-            strncpy(user->bio, bio, DB_BIO_MAX);
-    }
-    if (rc != SQLITE_OK && rc != SQLITE_ROW && rc != SQLITE_DONE)
-    {
-        error("Failed while getting group members: %s\n", sqlite3_errmsg(server->db.db));
+        error("PQexecParams() failed for select_groupmembers: %s\n",
+                    PQresultErrorMessage(res));
+        goto cleanup;
     }
 
-    sqlite3_finalize(stmt);
-    if (n == 0)
+    rows = PQntuples(res);
+    if (rows == 0)
+        goto cleanup;
+
+    users = calloc(rows, sizeof(dbuser_t));
+    
+    for (i32 i = 0; i < rows; i++)
     {
-        free(users);
-        users = NULL;
+        dbuser_t* user = users + i;
+
+        db_row_to_user(user, res, i);
     }
-    *n_ptr = n;
+
+    if (n_ptr)
+        *n_ptr = rows;
+
+cleanup:
+    PQclear(res);
     return users;
 }
 
 bool 
-server_db_user_in_group(UNUSED server_t* server, UNUSED u64 group_id, UNUSED u64 user_id)
+server_db_user_in_group(UNUSED server_t* server, UNUSED u32 group_id, UNUSED u32 user_id)
 {
     debug("Implement or remove server_db_user_in_group()\n");
     return false;
 }
 
 bool 
-server_db_insert_group_member(server_t* server, u64 group_id, u64 user_id)
+server_db_insert_group_member(server_t* server, u32 group_id, u32 user_id)
 {
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_groupmember, -1, &stmt, NULL);
+    PGresult* res;
     bool ret = true;
 
-    sqlite3_bind_int(stmt, 1, user_id);
-    sqlite3_bind_int(stmt, 2, group_id);
+    char user_id_str[50];
+    char group_id_str[50];
 
-    rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    snprintf(user_id_str, 50, "%u", user_id);
+    snprintf(group_id_str, 50, "%u", group_id);
+
+    const char* vals[2] = {
+        user_id_str,
+        group_id_str
+    };
+    const int formats[2] = {
+        0,
+        0
+    };
+    const int lens[2] = {
+        strlen(user_id_str),
+        strlen(group_id_str)
+    };
+
+    res = PQexecParams(server->db.conn, server->db.insert_groupmember, 2, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
-        error("Failed to insert group member: %s\n", sqlite3_errmsg(server->db.db));
+        error("PQexecParams() failed for insert_groupmember: %s\n",
+                    PQresultErrorMessage(res));
         ret = false;
     }
 
-    sqlite3_finalize(stmt);
+    PQclear(res);
 
     return ret;
 }
 
 static dbgroup_t* 
-server_db_get_groups(server_t* server, u64 user_id, u64 group_id, u32* n_ptr)
+server_db_get_groups(server_t* server, u32 user_id, u32 group_id, u32* n_ptr)
 {
-    u32 n = 0;
-    dbgroup_t* groups = malloc(sizeof(dbgroup_t));
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_group, -1, &stmt, NULL);
+    PGresult* res;
+    i32 rows;
+    dbgroup_t* groups = NULL;
 
-    sqlite3_bind_int(stmt, 1, group_id);
-    sqlite3_bind_int(stmt, 2, user_id);
+    char user_id_str[50];
+    char group_id_str[50];
 
-    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
+    snprintf(user_id_str, 50, "%d", user_id);
+    snprintf(group_id_str, 50, "%d", group_id);
+
+    const char* vals[2] = {
+        group_id_str,
+        user_id_str
+    };
+    const int formats[2] = {0, 0};
+    const int lens[2] = {
+        strlen(group_id_str),
+        strlen(user_id_str)
+    };
+
+    res = PQexecParams(server->db.conn, server->db.select_group, 2, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
-        n++;
-        if (n > 1)
-            groups = realloc(groups, sizeof(dbgroup_t) * n);
-
-        dbgroup_t* group = groups + (n - 1);
-        memset(group, 0, sizeof(dbgroup_t));
-
-        group->group_id = sqlite3_column_int(stmt, 0);
-        group->owner_id = sqlite3_column_int(stmt, 1);
-        const char* name = (const char*)sqlite3_column_text(stmt, 2);
-        strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
-        const char* desc = (const char*)sqlite3_column_text(stmt, 3);
-        strncpy(group->desc, desc, DB_DESC_MAX);
-
-        if (!n_ptr)
-            break;
-    }
-    if (rc != SQLITE_OK && rc != SQLITE_ROW && rc != SQLITE_DONE)
-    {
-        error("Failed while getting groups: %s\n", sqlite3_errmsg(server->db.db));
+        error("PGexecParams() failed for select_group: %s\n", 
+                    PQresultErrorMessage(res));
+        goto cleanup;
     }
 
-    sqlite3_finalize(stmt);
+    rows = PQntuples(res);
+    if (rows == 0)
+        goto cleanup;
 
-    if (n == 0)
+    groups = calloc(rows, sizeof(dbgroup_t));
+
+    for (i32 i = 0; i < rows; i++)
     {
-        free(groups);
-        groups = NULL;
+        dbgroup_t* group = groups + i;
+
+        db_row_to_group(group, res, i);
     }
+
     if (n_ptr)
-        *n_ptr = n;
+        *n_ptr = rows;
 
+cleanup:
+    PQclear(res);
     return groups;
 }
 
 dbgroup_t* 
-server_db_get_group(server_t* server, u64 group_id)
+server_db_get_group(server_t* server, u32 group_id)
 {
     return server_db_get_groups(server, -1, group_id, NULL);
 }
@@ -420,47 +582,39 @@ server_db_get_group(server_t* server, u64 group_id)
 dbgroup_t*  
 server_db_get_all_groups(server_t* server, u32* n_ptr)
 {
-    sqlite3_stmt* stmt;
     const char* sql = "SELECT * FROM Groups;";
-    i32 rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
-    u32 n = 0;
-    dbgroup_t* groups = malloc(sizeof(dbgroup_t));
+    PGresult* res;
+    i32 rows;
+    dbgroup_t* groups = NULL;
 
-    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
+    res = PQexecParams(server->db.conn, sql, 0, NULL, NULL, NULL, NULL, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
-        n++;
-        if (n > 1)
-            groups = realloc(groups, sizeof(dbgroup_t) * n);
-
-        dbgroup_t* group = groups + (n - 1);
-        memset(group, 0, sizeof(dbgroup_t));
-
-        group->group_id = sqlite3_column_int(stmt, 0);
-        group->owner_id = sqlite3_column_int(stmt, 1);
-        const char* name = (const char*)sqlite3_column_text(stmt, 2);
-        strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
-        const char* desc = (const char*)sqlite3_column_text(stmt, 3);
-        strncpy(group->desc, desc, DB_DESC_MAX);
-    }
-    if (rc != SQLITE_OK && rc != SQLITE_ROW && rc != SQLITE_DONE)
-    {
-        error("Failed while getting groups: %s\n", sqlite3_errmsg(server->db.db));
+        error("PGexecParams() failed for get all groups: %s\n", 
+                    PQresultErrorMessage(res));
+        goto cleanup; 
     }
 
-    sqlite3_finalize(stmt);
+    rows = PQntuples(res);
+    groups = calloc(rows, sizeof(dbgroup_t));
 
-    if (n == 0)
+    for (i32 i = 0; i < rows; i++)
     {
-        free(groups);
-        groups = NULL;
+        dbgroup_t* group = groups + i;
+        
+        db_row_to_group(group, res, i);
     }
-    *n_ptr = n;
 
+    if (n_ptr)
+        *n_ptr = rows;
+
+cleanup:
+    PQclear(res);
     return groups;
 }
 
 dbgroup_t* 
-server_db_get_user_groups(server_t* server, u64 user_id, u32* n_ptr)
+server_db_get_user_groups(server_t* server, u32 user_id, u32* n_ptr)
 {
     return server_db_get_groups(server, user_id, -1, n_ptr);
 }
@@ -468,89 +622,110 @@ server_db_get_user_groups(server_t* server, u64 user_id, u32* n_ptr)
 bool 
 server_db_insert_group(server_t* server, dbgroup_t* group)
 {
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_group, -1, &stmt, NULL);
+    PGresult* res;
     bool ret = true;
+    ExecStatusType status_type;
 
-    sqlite3_bind_text(stmt, 1, group->displayname, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, group->desc, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 3, group->owner_id);
+    char owner_id_str[50];
+    snprintf(owner_id_str, 50, "%u", group->owner_id);
 
-    rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    const char* vals[3] = {
+        group->displayname,
+        group->desc,
+        owner_id_str
+    };
+    const i32 formats[3] = {
+        0,
+        (group->desc) ? 0 : -1,
+        0
+    };
+    const i32 lens[3] = {
+        strlen(vals[0]),
+        strlen(vals[1]),
+        strlen(vals[2]),
+    };
+
+    res = PQexecParams(server->db.conn, server->db.insert_group, 3, NULL, vals, lens, formats, 0);
+    status_type = PQresultStatus(res);
+    if (status_type == PGRES_TUPLES_OK)
     {
-        error("Failed to insert group: %s\n", sqlite3_errmsg(server->db.db));
+        const char* group_id_str = PQgetvalue(res, 0, 0);
+        char* endptr;
+        group->group_id = strtoul(group_id_str, &endptr, 10);
+    }
+    else if (status_type != PGRES_COMMAND_OK)
+    {
+        error("PQexecParamas() failed for insert_group: %s\n",
+                PQresultErrorMessage(res));
         ret = false;
     }
-    sqlite3_int64 rowid = sqlite3_last_insert_rowid(server->db.db);
-    group->group_id = rowid;
+    else
+        warn("NO PGRES_TUPLES_OK!\n");
 
-    sqlite3_finalize(stmt);
-
+    PQclear(res);
     return ret;
 }
 
 static dbmsg_t* 
-server_db_get_msgs(server_t* server, u64 msg_id, u64 group_id, u32 limit, u32 offset, u32* n_ptr)
+server_db_get_msgs(server_t* server, u32 msg_id, u32 group_id, u32 limit, u32 offset, u32* n_ptr)
 {
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.select_msg, -1, &stmt, NULL);
-    dbmsg_t* msgs = malloc(sizeof(dbmsg_t));
-    u32 n = 0;
+    PGresult* res;
+    i32 rows;
+    dbmsg_t* msgs = NULL;
 
-    sqlite3_bind_int(stmt, 1, group_id);
-    sqlite3_bind_int(stmt, 2, msg_id);
-    sqlite3_bind_int(stmt, 3, limit);
-    sqlite3_bind_int(stmt, 4, offset);
+    char group_id_str[50];
+    char msg_id_str[50];
+    char limit_str[50];
+    char offset_str[50];
+    i32 lens[4];
 
-    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
+    lens[0] = snprintf(group_id_str, 50, "%d", group_id);
+    lens[1] = snprintf(msg_id_str, 50, "%d", msg_id);
+    lens[2] = snprintf(limit_str, 50, "%u", limit);
+    lens[3] = snprintf(offset_str, 50, "%u", offset);
+
+    const char* vals[4] = {
+        group_id_str,
+        msg_id_str,
+        limit_str,
+        offset_str
+    };
+    const i32 formats[4] = {0};
+
+    res = PQexecParams(server->db.conn, server->db.select_msg, 4, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
-        n++;
-        if (n > 1)
-            msgs = realloc(msgs, sizeof(dbmsg_t) * n);
-
-        dbmsg_t* msg = msgs + (n - 1);
-        memset(msg, 0, sizeof(dbmsg_t));
-
-        msg->msg_id = sqlite3_column_int(stmt, 0);
-        msg->user_id = sqlite3_column_int(stmt, 1);
-        msg->group_id = sqlite3_column_int(stmt, 2);
-        const char* content = (const char*)sqlite3_column_text(stmt, 3);
-        strncpy(msg->content, content, DB_MESSAGE_MAX);
-        const char* timestamp = (const char*)sqlite3_column_text(stmt, 4);
-        strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
-        const char* attachments = (const char*)sqlite3_column_text(stmt, 5);
-        if (attachments)
-        {
-            msg->attachments = strdup(attachments);
-            msg->attachments_inheap = true;
-        }
-        else
-            msg->attachments = "[]";
-
-        if (!n_ptr)
-            break;
+        error("PGexecParams() failed for select_msg: %s\n",
+                PQresultErrorMessage(res));
+        goto cleanup;
     }
-    sqlite3_finalize(stmt);
 
-    if (n == 0)
+    rows = PQntuples(res);
+    msgs = calloc(rows, sizeof(dbmsg_t));
+
+    for (i32 i = 0; i < rows; i++)
     {
-        free(msgs);
-        msgs = NULL;
+        dbmsg_t* msg = msgs + i;
+
+        db_row_to_msg(msg, res, i);
     }
+
     if (n_ptr)
-        *n_ptr = n;
+        *n_ptr = rows;
+
+cleanup:
+    PQclear(res);
     return msgs;
 }
 
 dbmsg_t* 
-server_db_get_msg(server_t* server, u64 msg_id)
+server_db_get_msg(server_t* server, u32 msg_id)
 {
     return server_db_get_msgs(server, msg_id, -1, 1, 0, NULL);
 }
 
 dbmsg_t* 
-server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit, u32 offset, u32* n)
+server_db_get_msgs_from_group(server_t* server, u32 group_id, u32 limit, u32 offset, u32* n)
 {
     return server_db_get_msgs(server, -1, group_id, limit, offset, n);
 }
@@ -558,158 +733,189 @@ server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit, u32 off
 bool 
 server_db_insert_msg(server_t* server, dbmsg_t* msg)
 {
-    sqlite3_stmt* stmt;
-    i32 rc = sqlite3_prepare_v2(server->db.db, server->db.insert_msg, -1, &stmt, NULL);
+    PGresult* res;
     bool ret = true;
+    i32 lens[4];
+    ExecStatusType status_type;
 
-    sqlite3_bind_int(stmt, 1, msg->user_id);
-    sqlite3_bind_int(stmt, 2, msg->group_id);
-    sqlite3_bind_text(stmt, 3, msg->content, -1, SQLITE_TRANSIENT);
+    char user_id_str[50];
+    char group_id_str[50];
 
-    if (msg->attachments)
-        sqlite3_bind_text(stmt, 4, msg->attachments, -1, SQLITE_TRANSIENT);
-    else
-        sqlite3_bind_text(stmt, 4, "[]", -1, SQLITE_TRANSIENT);
+    if (!msg->attachments)
+        msg->attachments = "[]";
 
-    rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE && rc != SQLITE_ROW)
+    lens[0] = snprintf(user_id_str, 50, "%d", msg->user_id);
+    lens[1] = snprintf(group_id_str, 50, "%d", msg->group_id);
+    lens[2] = strnlen(msg->content, DB_MESSAGE_MAX);
+    lens[3] = strlen(msg->attachments);
+
+    const char* vals[4] = {
+        user_id_str,
+        group_id_str,
+        msg->content,
+        msg->attachments
+    };
+    const i32 formats[4] = {0};
+
+    res = PQexecParams(server->db.conn, server->db.insert_msg, 4, NULL, vals, lens, formats, 0);
+    status_type = PQresultStatus(res);
+    if (status_type == PGRES_TUPLES_OK)
     {
-        error("Failed to insert msg: %s\n", sqlite3_errmsg(server->db.db));
+        const char* msg_id_str = PQgetvalue(res, 0, 0);
+        char* endptr;
+        msg->msg_id = strtoul(msg_id_str, &endptr, 10);
+    }
+    else if (status_type != PGRES_COMMAND_OK)
+    {
+        error("PQexecParams() failed for insert_msg: %s\n",
+                    PQresultErrorMessage(res));
         ret = false;
     }
-    sqlite3_int64 rowid = sqlite3_last_insert_rowid(server->db.db);
-    msg->msg_id = rowid;
+    else
+    {
+        warn("NO PGRES_TUPLES_OK for insert_msg.\n");
+        ret = false;
+    }
 
-    sqlite3_finalize(stmt);
-
+    PQclear(res);
     return ret;
 }
 
 dbuser_file_t* 
 server_db_select_userfile(server_t* server, const char* hash)
 {
-    i32 rc;
-    const char* sql;
-    sqlite3_stmt* stmt;
+    PGresult* res;
+    i32 rows;
     dbuser_file_t* file = NULL;
+    const char* sql = "SELECT * FROM UserFiles WHERE hash = $1::TEXT;";
 
-    sql = "SELECT * FROM UserFiles WHERE hash = ?;";
-    rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
-    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_TRANSIENT);
+    const char* vals[1] = {
+        hash
+    };
+    const i32 lens[1] = {
+        strnlen(hash, DB_PFP_HASH_MAX)
+    };
+    const i32 formats[1] = {0};
 
-    rc = sqlite3_step(stmt);
-    if (rc == SQLITE_ROW)
+    res = PQexecParams(server->db.conn, sql, 1, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
-        file = calloc(1, sizeof(dbuser_file_t));
-        const char* dbhash;
-        const char* dbname;
-        const char* dbmime_type;
-
-        dbhash = (const char*)sqlite3_column_text(stmt, 0);
-        if (dbhash)
-            strncpy(file->hash, dbhash, DB_PFP_HASH_MAX);
-        else
-            warn("SELECT UserFiles: dbhash is NULL!\n");
-
-        dbname = (const char*)sqlite3_column_text(stmt, 1);
-        if (dbname)
-            strncpy(file->name, dbname, DB_PFP_NAME_MAX);
-        else
-            warn("SELECT UserFiles: dbname is NULL!\n");
-
-        file->size = sqlite3_column_int64(stmt, 2);
-        
-        dbmime_type = (const char*)sqlite3_column_text(stmt, 3);
-        if (dbmime_type)
-            strncpy(file->mime_type, dbmime_type, DB_MIME_TYPE_LEN);
-        else
-            warn("SELECT UserFiles: dbmime_type is NULL!\n");
-
-        file->flags = sqlite3_column_int(stmt, 4);
-        file->ref_count = sqlite3_column_int(stmt, 5);
+        error("PQexecParams() failed for select_userfile: %s\n",
+                    PQresultErrorMessage(res));
+        goto cleanup;
     }
-    else if (rc != SQLITE_OK)
-        error("Failed to select userfile: %s\n", sqlite3_errmsg(server->db.db));
 
-    sqlite3_finalize(stmt);
-    
+    rows = PQntuples(res);
+
+    if (rows == 0)
+        goto cleanup;
+
+    file = calloc(1, sizeof(dbuser_file_t));
+    db_row_to_userfile(file, res, 0);
+
+cleanup:
+    PQclear(res);
     return file;
 }
 
 i32
 server_db_select_userfile_ref_count(server_t* server, const char* hash)
 {
-    i32 rc;
+    PGresult* res;
+    i32 rows;
     i32 ref_count = 0;
-    const char* sql;
-    sqlite3_stmt* stmt;
+    const char* ref_count_str;
+    const char* sql = "SELECT ref_count FROM UserFiles WHERE hash = $1::TEXT;";
 
-    sql = "SELECT ref_count FROM UserFiles WHERE hash = ?;";
-    rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
-    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_TRANSIENT);
+    const char* vals[1] = {
+        hash
+    };
+    const i32 lens[1] = {
+        strnlen(hash, DB_PFP_HASH_MAX)
+    };
+    const i32 formats[1] = {0};
 
-    rc = sqlite3_step(stmt);
-    if (rc == SQLITE_ROW) // if rc is SQLITE_ROW it means it still exists.
-        ref_count = sqlite3_column_int(stmt, 0);
-    else if (rc != SQLITE_DONE && rc != SQLITE_OK)
-        error("Failed to select userfile ref_count: %s\n", sqlite3_errmsg(server->db.db));
+    res = PQexecParams(server->db.conn, sql, 1, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
+    {
+        error("PQexecParams() failed for select_userfile: %s\n",
+                    PQresultErrorMessage(res));
+        goto cleanup;
+    }
 
-    sqlite3_finalize(stmt);
+    rows = PQntuples(res);
 
+    if (rows == 0)
+        goto cleanup;
+
+    ref_count_str = PQgetvalue(res, 0, 0);
+    ref_count = atoi(ref_count_str);
+
+cleanup:
+    PQclear(res);
     return ref_count;
 }
 
 bool        
 server_db_insert_userfile(server_t* server, dbuser_file_t* file)
 {
-    i32 rc;
+    PGresult* res;
     bool ret = true;
-    sqlite3_stmt* stmt;
-    rc = sqlite3_prepare_v2(server->db.db, server->db.insert_userfiles, -1, &stmt, NULL);
 
-    sqlite3_bind_text(stmt, 1, file->hash, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, file->name, -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int64(stmt, 3, file->size);
-    sqlite3_bind_text(stmt, 4, file->mime_type, -1, SQLITE_TRANSIENT);
+    i32 lens[3];
+    char size_str[50];
 
-    rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE && rc != SQLITE_ROW && rc != SQLITE_OK)
+    lens[0] = strnlen(file->hash, DB_PFP_HASH_MAX);
+    lens[1] = snprintf(size_str, 50, "%zu", file->size);
+    lens[2] = strnlen(file->mime_type, DB_MIME_TYPE_LEN);
+
+    const char* vals[3] = {
+        file->hash,
+        size_str,
+        file->mime_type
+    };
+    const i32 formats[3] = {0};
+
+    res = PQexecParams(server->db.conn, server->db.insert_userfiles, 3, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
-        error("Failed to insert userfile: %s\n", sqlite3_errmsg(server->db.db));
+        error("PQexecParams() failed for insert_userfiles: %s\n", 
+                PQresultErrorMessage(res));
         ret = false;
     }
 
-    sqlite3_finalize(stmt);
-
+    PQclear(res);
     return ret;
 }
 
 bool        
 server_db_delete_userfile(server_t* server, const char* hash)
 {
-    i32 rc;
-    bool error = false;
+    PGresult* res;
     bool ret = false;
-    sqlite3_stmt* stmt;
-    const char* sql = "UPDATE UserFiles SET ref_count = ref_count - 1 WHERE hash = ?;";
-    rc = sqlite3_prepare_v2(server->db.db, sql, -1, &stmt, NULL);
-    
-    sqlite3_bind_text(stmt, 1, hash, -1, SQLITE_TRANSIENT);
+    const char* sql = "UPDATE UserFiles SET ref_count = ref_count - 1 WHERE hash = $1::TEXT;";
 
-    rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE && rc != SQLITE_ROW && rc != SQLITE_OK)
+    const char* vals[1] = {
+        hash
+    };
+    const i32 lens[1] = {
+        strnlen(hash, DB_PFP_HASH_MAX)
+    };
+    const i32 formats[1] = {0};
+
+    res = PQexecParams(server->db.conn, sql, 1, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
-        error("Failed to decrement userfile: %s\n", sqlite3_errmsg(server->db.db));
-        error = true;
+        error("PQexecParams() failed for delete_userfile: %s\n",
+                PQresultErrorMessage(res));
+        goto cleanup;
     }
-
-    sqlite3_finalize(stmt);
-    if (error)
-        return false;
 
     if (server_db_select_userfile_ref_count(server, hash) <= 0)
         ret = true;
 
+cleanup:
+    PQclear(res);
     return ret;
 }
 
