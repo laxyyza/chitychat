@@ -94,6 +94,8 @@ server_handle_client_register(server_t* server,
     if (!server_db_insert_user(server, &new_user))
         return "Username already taken";
 
+    info("\tUser created: '%s' (%s)\n", new_user.displayname, new_user.username);
+
     return NULL;
 }
 

@@ -66,6 +66,12 @@ db_exec_sql(server_t* server, const char* sql)
     return ret;
 }
 
+static void
+db_notice_processor(UNUSED void* arg, const char* msg)
+{
+    verbose("db: %s", msg);
+}
+
 bool 
 server_db_open(server_t* server)
 {
@@ -85,6 +91,8 @@ server_db_open(server_t* server)
                 PQerrorMessage(db->conn));
         return false;
     }
+
+    PQsetNoticeProcessor(server->db.conn, db_notice_processor, NULL);
 
     db->schema = server_db_load_sql(server->conf.sql_schema, &db->schema_len);
 

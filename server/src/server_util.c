@@ -125,7 +125,10 @@ file_isdir(const char* filepath)
     struct stat file_stat;
     if (stat(filepath, &file_stat) == -1)
     {
-        error("stat on '%s': %s\n", filepath, ERRSTR);
+        if (errno == ENOENT)
+            debug("stat on '%s': %s\n", filepath, ERRSTR);
+        else
+            error("stat on '%s': %s\n", filepath, ERRSTR);
         return -1;
     }
 

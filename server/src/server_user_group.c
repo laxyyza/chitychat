@@ -97,9 +97,7 @@ server_client_groups(server_t* server, client_t* client, json_object* respond_js
             &n_groups);
 
     if (!groups)
-    {
         return "Server failed to get user groups";
-    }
 
     json_object_object_add(respond_json, "type", 
             json_object_new_string("client_groups"));
@@ -307,7 +305,7 @@ server_get_send_group_msg(server_t* server,
 
 const char* 
 server_group_msg(server_t* server, client_t* client, 
-        json_object* payload, UNUSED json_object* respond_json)
+            json_object* payload, UNUSED json_object* respond_json)
 {
     json_object* group_id_json = json_object_object_get(payload, 
             "group_id");
@@ -319,25 +317,17 @@ server_group_msg(server_t* server, client_t* client,
     const char* content = json_object_get_string(content_json);
     const u64 user_id = client->dbuser->user_id;
     const size_t len = json_object_array_length(attachments_json);
-    // const char* attachments;
-    
-    // attachments = json_object_to_json_string(attachments_json);
 
     dbmsg_t new_msg = {
         .user_id = user_id,
         .group_id = group_id,
     };
     strncpy(new_msg.content, content, DB_MESSAGE_MAX);
-    // new_msg.attachments = strdup(attachments);
-
-    info("Group Message attach len: %zu\n", len);
 
     if (len == 0)
     {
         if (!server_db_insert_msg(server, &new_msg))
-        {
             return "Failed to send message";
-        }
 
         return server_get_send_group_msg(server, new_msg.msg_id, group_id);
     }
@@ -355,7 +345,7 @@ server_group_msg(server_t* server, client_t* client,
 
 const char* 
 get_group_msgs(server_t* server, client_t* client, json_object* payload, 
-        json_object* respond_json)
+                    json_object* respond_json)
 {
     json_object* limit_json;
     json_object* group_id_json;
