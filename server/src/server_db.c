@@ -644,7 +644,7 @@ server_db_insert_group(server_t* server, dbgroup_t* group)
     };
     const i32 formats[3] = {
         0,
-        (group->desc) ? 0 : -1,
+            0,
         0
     };
     const i32 lens[3] = {
