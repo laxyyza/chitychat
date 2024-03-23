@@ -4,7 +4,7 @@
 #include "common.h"
 #include "server_crypt.h"
 
-#include <sqlite3.h>
+#include <libpq-fe.h>
 
 #define DB_USERNAME_MAX 50
 #define DB_DISPLAYNAME_MAX 50
@@ -17,9 +17,11 @@
 #define DB_PFP_NAME_MAX NAME_MAX
 #define DB_MIME_TYPE_LEN 32 
 
+#define DB_CONNINTO_LEN 256
+
 typedef struct 
 {
-    u64 user_id;
+    u32 user_id;
     char username[DB_USERNAME_MAX];
     char displayname[DB_DISPLAYNAME_MAX];
     char bio[DB_BIO_MAX];
@@ -33,8 +35,8 @@ typedef struct
 
 typedef struct 
 {
-    u64 group_id;
-    u64 owner_id;
+    u32 group_id;
+    u32 owner_id;
     char displayname[DB_DISPLAYNAME_MAX];
     char desc[DB_DESC_MAX];
     i32 flags;
@@ -42,17 +44,17 @@ typedef struct
 
 typedef struct 
 {
-    u64 user_id;
-    u64 group_id;
+    u32 user_id;
+    u32 group_id;
     char join_date[DB_TIMESTAMP_MAX];
     i32 flags;
 } dbgroup_member_t;
 
 typedef struct 
 {
-    u64 msg_id;
-    u64 user_id;
-    u64 group_id;
+    u32 msg_id;
+    u32 user_id;
+    u32 group_id;
     char content[DB_MESSAGE_MAX];
     char timestamp[DB_TIMESTAMP_MAX];
     char* attachments;
@@ -74,7 +76,7 @@ typedef struct
 
 typedef struct 
 {
-    sqlite3* db;
+    PGconn* conn;
 
     char* schema;
     size_t schema_len;
@@ -117,25 +119,25 @@ typedef struct
 bool        server_db_open(server_t* server);
 void        server_db_close(server_t* server);
 
-dbuser_t*   server_db_get_user_from_id(server_t* server, u64 user_id);
+dbuser_t*   server_db_get_user_from_id(server_t* server, u32 user_id);
 dbuser_t*   server_db_get_user_from_name(server_t* server, const char* username);
-dbuser_t*   server_db_get_users_from_group(server_t* server, u64 group_id, u32* n);
+dbuser_t*   server_db_get_users_from_group(server_t* server, u32 group_id, u32* n);
 bool        server_db_insert_user(server_t* server, dbuser_t* user);
 
 bool        server_db_update_user(server_t* server, const char* new_username, 
-const char* new_displayname, const char* new_pfp_name, const u64 user_id);
+const char* new_displayname, const char* new_pfp_name, const u32 user_id);
 
-dbuser_t*   server_db_get_group_members(server_t* server, u64 group_id, u32* n);
-bool        server_db_user_in_group(server_t* server, u64 group_id, u64 user_id);
-bool        server_db_insert_group_member(server_t* server, u64 group_id, u64 user_id);
+dbuser_t*   server_db_get_group_members(server_t* server, u32 group_id, u32* n);
+bool        server_db_user_in_group(server_t* server, u32 group_id, u32 user_id);
+bool        server_db_insert_group_member(server_t* server, u32 group_id, u32 user_id);
 
-dbgroup_t*  server_db_get_group(server_t* server, u64 group_id);
+dbgroup_t*  server_db_get_group(server_t* server, u32 group_id);
 dbgroup_t*  server_db_get_all_groups(server_t* server, u32* n);
-dbgroup_t*  server_db_get_user_groups(server_t* server, u64 user_id, u32* n);
+dbgroup_t*  server_db_get_user_groups(server_t* server, u32 user_id, u32* n);
 bool        server_db_insert_group(server_t* server, dbgroup_t* group);
 
-dbmsg_t*    server_db_get_msg(server_t* server, u64 msg_id);
-dbmsg_t*    server_db_get_msgs_from_group(server_t* server, u64 group_id, u32 limit, u32 offset, u32* n);
+dbmsg_t*    server_db_get_msg(server_t* server, u32 msg_id);
+dbmsg_t*    server_db_get_msgs_from_group(server_t* server, u32 group_id, u32 limit, u32 offset, u32* n);
 bool        server_db_insert_msg(server_t* server, dbmsg_t* msg);
 
 dbuser_file_t*     server_db_select_userfile(server_t* server, const char* hash);

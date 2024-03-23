@@ -154,3 +154,25 @@ combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr)
 
     return buffer;
 }
+
+void hexstr_to_u8(const char* hexstr, size_t hexstr_len, u8* output)
+{
+    if (hexstr[0] == '\\' && hexstr[1] == 'x')
+    {
+        hexstr += 2;
+        hexstr_len -= 2;
+    }
+    size_t index = 0;
+
+    for (size_t i = 0; i < hexstr_len; i += 2)
+    {
+        char hexpair[3];
+        hexpair[0] = hexstr[i];
+        hexpair[1] = hexstr[i + 1];
+        hexpair[2] = 0x00;
+        char* endptr;
+
+        output[index] = (u8)strtoul(hexpair, &endptr, 16);
+        index++;
+    }
+}
