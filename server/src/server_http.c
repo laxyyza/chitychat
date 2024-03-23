@@ -751,9 +751,8 @@ server_handle_msg_attach(server_t* server, client_t* client, const http_t* http,
                 msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
 
                 if (server_db_insert_msg(server, msg))
-                {
-                    server_get_send_group_msg(server, msg->msg_id, msg->group_id);
-                }
+                    server_get_send_group_msg(server, msg, msg->group_id);
+
                 server_del_upload_token(server, ut);
             }
         }
