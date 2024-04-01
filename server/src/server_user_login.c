@@ -77,10 +77,11 @@ error:
 
 static const char* 
 server_handle_client_register(server_t* server, 
-        const char* username, json_object* displayname_json, 
-        const char* displayname, const char* password)
+                              const char* username, 
+                              const char* displayname, 
+                              const char* password)
 {
-    if (!displayname_json || !displayname)
+    if (!displayname)
         return "Require display name.";
 
     dbuser_t new_user;
@@ -128,7 +129,8 @@ server_handle_not_logged_in_client(server_t* server, client_t* client,
             "displayname");
 
     if (!strcmp(type, "session"))
-        return server_handle_client_session(server, client, payload, respond_json);
+        return server_handle_client_session(server, client, payload, 
+                                            respond_json);
 
     const char* username = json_object_get_string(username_json);
     const char* password = json_object_get_string(password_json);
@@ -145,7 +147,7 @@ server_handle_not_logged_in_client(server_t* server, client_t* client,
         errmsg = server_handle_client_login(server, username, password);
     else if (!strcmp(type, "register"))
         errmsg = server_handle_client_register(server, username, 
-                displayname_json, displayname, password);
+                                               displayname, password);
     else
         return "Not logged in.";
 
