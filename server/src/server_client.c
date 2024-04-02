@@ -83,7 +83,7 @@ server_free_client(server_t* server, client_t* client)
         union timer_data data = {
             .session = client->session
         };
-        server_timer_t* timer = server_addtimer(server, 5, 
+        server_timer_t* timer = server_addtimer(server, MINUTES(30), 
                                                 TIMER_ONCE, TIMER_CLIENT_SESSION, 
                                                 &data, sizeof(void*));
         if (timer)
