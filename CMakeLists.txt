@@ -28,6 +28,7 @@ target_sources(chitychat PRIVATE
     server/src/server_client_session.c
     server/src/server_upload_token.c
     server/src/server_events.c
+    server/src/server_timer.c
 )
 
 target_include_directories(chitychat PRIVATE

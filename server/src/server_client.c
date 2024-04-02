@@ -77,9 +77,17 @@ server_free_client(server_t* server, client_t* client)
         SSL_free(client->ssl);
     }
 
-    if (client->session)
+    if (client->session && client->session->timerfd == 0)
     {
         // TODO: Set client session timer
+        union timer_data data = {
+            .session = client->session
+        };
+        server_timer_t* timer = server_addtimer(server, 5, 
+                                                TIMER_ONCE, TIMER_CLIENT_SESSION, 
+                                                &data, sizeof(void*));
+        if (timer)
+            client->session->timerfd = timer->fd;
     }
 
     if (client->recv.data)

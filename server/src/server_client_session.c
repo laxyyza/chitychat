@@ -52,6 +52,23 @@ server_get_client_session(server_t* server, u32 session_id)
     return NULL;
 }
 
+session_t* 
+server_get_client_session_uid(server_t* server, u32 user_id)
+{
+    session_t* node;
+
+    node = server->session_head;
+
+    while (node)
+    {
+        if (node->user_id == user_id)
+            return node;
+        node = node->next;
+    }
+
+    return NULL;
+}
+
 void 
 server_del_client_session(server_t* server, session_t* session)
 {
@@ -65,13 +82,6 @@ server_del_client_session(server_t* server, session_t* session)
     }
 
     verbose("Deleting session: %u for user %u\n", session->session_id, session->user_id);
-
-    if (session->timerfd)
-    {
-        server_ep_delfd(server, session->timerfd);
-        if (close(session->timerfd) == -1)
-            error("close(%d) session timerfd: %s\n", session->timerfd, ERRSTR);
-    }
 
     next = session->next;
     prev = session->prev;

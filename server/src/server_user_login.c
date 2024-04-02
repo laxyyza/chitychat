@@ -1,11 +1,14 @@
 #include "server_user_login.h"
 #include "server.h"
+#include "server_client_sesson.h"
+#include "server_events.h"
 
 static const char* 
 server_set_client_logged_in(server_t* server, client_t* client, 
                 session_t* session, json_object* respond_json)
 {
     dbuser_t* dbuser;
+    server_event_t* session_timer_ev = NULL;
 
     dbuser = server_db_get_user_from_id(server, session->user_id);
     if (!dbuser)
@@ -25,6 +28,14 @@ server_set_client_logged_in(server_t* server, client_t* client,
     {
         client->state |= CLIENT_STATE_LOGGED_IN;
         client->session = session;
+    }
+
+    if (session->timerfd)
+    {
+        session_timer_ev = server_get_event(server, session->timerfd);
+        if (session_timer_ev)
+            server_del_event(server, session_timer_ev);
+        session->timerfd = 0;
     }
 
     return NULL;

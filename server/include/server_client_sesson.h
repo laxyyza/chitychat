@@ -16,6 +16,7 @@ typedef struct session
 
 session_t*      server_new_client_session(server_t* server, client_t* client);
 session_t*      server_get_client_session(server_t* server, u32 session_id);
+session_t*      server_get_client_session_uid(server_t* server, u32 user_id);
 void            server_del_client_session(server_t* server, session_t* session);
 
 #endif // _SERVER_CLIENT_SESSION_H_
