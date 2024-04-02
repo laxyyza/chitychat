@@ -87,8 +87,9 @@ typedef struct server
     bool running;
 } server_t;
 
-void            server_run(server_t* server);
-void            server_cleanup(server_t* server);
+void server_run(server_t* server);
+void server_cleanup(server_t* server);
+void server_print_sockerr(i32 fd);
 
 ssize_t     server_send(const client_t* client, const void* buf, size_t len);
 ssize_t     server_recv(const client_t* client, void* buf, size_t len);

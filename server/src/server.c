@@ -1,11 +1,18 @@
 #include "server.h"
 #include "server_events.h"
 
-/*
-* TODO: Fix memory leaks
-*/
-
 #define MAX_EP_EVENTS 10
+
+void
+server_print_sockerr(i32 fd)
+{
+    i32 error;
+    socklen_t len = sizeof(i32);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) == -1)
+        error("getsockopt(%d): %s\n", fd, ERRSTR);
+    else
+        error("socket (%d): %s\n", fd, strerror(error));
+}
 
 static void 
 server_ep_event(server_t* server, const struct epoll_event* event)
@@ -24,33 +31,22 @@ server_ep_event(server_t* server, const struct epoll_event* event)
 
     if (ev & EPOLLERR)
     {
-        i32 error = 0;
-        socklen_t errlen = sizeof(i32);
-        if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &errlen) == 0)
-        {
-            error("Epoll error on fd: %d: %s\n", fd, strerror(error));
-        }
-        else
-            error("epoll error on fd: %d, (no error string).\n", fd);
+        server_print_sockerr(fd);
+        server_del_event(server, se);
     }
-
-    if (ev & EPOLLRDHUP || ev & EPOLLHUP)
+    else if (ev & (EPOLLRDHUP | EPOLLHUP))
     {
         verbose("fd: %d hang up.\n", fd);
         server_del_event(server, se);
-        return;
     }
-
-    if (ev & EPOLLIN)
+    else if (ev & EPOLLIN)
     {
         ret = se->read(server, se);
         if (ret == SE_CLOSE || ret == SE_ERROR)
             server_del_event(server, se);
     }
     else
-    {
-        warn("Not handled fd: %d, ev: %u\n", fd, ev);
-    }
+        warn("Not handled fd: %d, ev: 0x%x\n", fd, ev);
 }
 
 // Should ONLU be used in server_sig_handler()
