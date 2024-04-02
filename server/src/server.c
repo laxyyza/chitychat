@@ -152,20 +152,6 @@ server_del_all_upload_tokens(server_t* server)
     }
 }
 
-void 
-print_all_events(server_t* server)
-{
-    server_event_t* node;
-
-    node = server->se_head;
-
-    while (node)
-    {
-        debug("event fd: %d\n", node->fd);
-        node = node->next;
-    }
-}
-
 void
 server_del_all_events(server_t* server)
 {
@@ -177,7 +163,6 @@ server_del_all_events(server_t* server)
     while (node)
     {
         next = node->next;
-        debug("Deleting event fd: %d\n", node->fd);
         server_del_event(server, node);
         node = next;
     }
@@ -188,8 +173,6 @@ server_cleanup(server_t* server)
 {
     if (!server)
         return;
-
-    print_all_events(server);
 
     server_del_all_events(server);
     server_del_all_clients(server);

@@ -93,7 +93,4 @@ void            server_cleanup(server_t* server);
 ssize_t     server_send(const client_t* client, const void* buf, size_t len);
 ssize_t     server_recv(const client_t* client, void* buf, size_t len);
 
-void 
-print_all_events(server_t* server);
-
 #endif // _SERVER_H_

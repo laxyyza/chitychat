@@ -69,8 +69,6 @@ se_accept_conn(server_t* server, UNUSED server_event_t* ev)
     info("Client (fd:%d, IP: %s:%s) connected.\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv);
 
-    print_all_events(server);
-
     return SE_OK;
 error:
     server_free_client(server, client);
