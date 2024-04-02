@@ -21,7 +21,6 @@ server_ep_event(server_t* server, const struct epoll_event* event)
     const u32 ev = event->events;
     enum se_status ret;
     server_event_t* se = server_get_event(server, fd);
-    se->ep_events = ev;
 
     if (!se)
     {
@@ -29,6 +28,7 @@ server_ep_event(server_t* server, const struct epoll_event* event)
         server_ep_delfd(server, fd);
         return;
     }
+    se->ep_events = ev;
 
     if (ev & EPOLLERR)
     {
