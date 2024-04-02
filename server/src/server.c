@@ -191,10 +191,8 @@ server_cleanup(server_t* server)
 
     print_all_events(server);
 
-    if (server->se_head)
-        server_del_event(server, server->se_head);
-    //server_del_all_events(server);
-    //server_del_all_clients(server);
+    server_del_all_events(server);
+    server_del_all_clients(server);
     server_del_all_sessions(server);
     server_del_all_upload_tokens(server);
     server_db_close(server);
