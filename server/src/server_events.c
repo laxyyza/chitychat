@@ -4,13 +4,13 @@
 #include "server_client.h"
 
 i32 
-server_ep_addfd(server_t* server, i32 fd)
+server_ep_addfd(server_t* server, i32 fd, u32 events)
 {
     i32 ret;
 
     struct epoll_event ev = {
         .data.fd = fd,
-        .events = EPOLLIN | EPOLLRDHUP | EPOLLHUP
+        .events = events
     };
 
     ret = epoll_ctl(server->epfd, EPOLL_CTL_ADD, fd, &ev);
@@ -169,6 +169,7 @@ server_new_event(server_t* server, i32 fd, void* data,
 {
     server_event_t* se;
     server_event_t* head_next;
+    u32 listen_events = DEFAULT_EPEV;
 
     if (!server || !read_callback || (data && !close_callback))
     {
@@ -178,7 +179,7 @@ server_new_event(server_t* server, i32 fd, void* data,
     }
     
     se = calloc(1, sizeof(server_event_t));
-    if (server_ep_addfd(server, fd) == -1)
+    if (server_ep_addfd(server, fd, listen_events) == -1)
     {
         free(se);
         error("ep_addfd %d failed\n", fd);
@@ -188,6 +189,7 @@ server_new_event(server_t* server, i32 fd, void* data,
     se->data = data;
     se->read = read_callback;
     se->close = close_callback;
+    se->listen_events = listen_events;
 
     if (server->se_head == NULL)
     {

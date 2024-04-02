@@ -7,6 +7,8 @@
  *  `se` = "Server Event"
  */
 
+#define DEFAULT_EPEV (EPOLLIN | EPOLLRDHUP)
+
 enum se_status 
 {
     SE_OK,
@@ -23,6 +25,7 @@ typedef struct server_event
 {
     i32 fd;
     u32 ep_events;
+    u32 listen_events;
     void* data;
     se_read_callback_t read;
     se_close_callback_t close;
@@ -37,7 +40,7 @@ server_event_t* server_new_event(server_t* server, i32 fd, void* data,
 server_event_t* server_get_event(server_t* server, i32 fd);
 void            server_del_event(server_t* server, server_event_t* se);
 
-int server_ep_addfd(server_t* server, i32 fd);
+int server_ep_addfd(server_t* server, i32 fd, u32 events);
 int server_ep_delfd(server_t* server, i32 fd);
 
 // Handlers 
