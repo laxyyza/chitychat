@@ -1,11 +1,15 @@
 #include "server_upload_token.h"
 #include "server.h"
+#include "server_events.h"
+#include "server_timer.h"
 
 upload_token_t* 
 server_new_upload_token(server_t* server, u32 user_id)
 {
     upload_token_t* ut;
     upload_token_t* head_next;
+    server_timer_t* timer;
+    union timer_data timer_data;
 
     ut = calloc(1, sizeof(upload_token_t));
     ut->user_id = user_id;
@@ -24,6 +28,17 @@ server_new_upload_token(server_t* server, u32 user_id)
     ut->prev = server->upload_token_head;
     if (head_next)
         head_next->prev = ut;
+
+    timer_data.ut = ut;
+    // TODO: Make seconds configurable
+    timer = server_addtimer(server, MINUTES(1), 
+                            TIMER_ONCE, TIMER_UPLOAD_TOKEN, 
+                            &timer_data, sizeof(void*));
+    if (timer)
+    {
+        ut->timerfd = timer->fd;
+        ut->timer_seconds = timer->seconds;
+    }
 
     return ut;
 }
@@ -82,6 +97,7 @@ server_del_upload_token(server_t* server, upload_token_t* upload_token)
 {
     upload_token_t* next;
     upload_token_t* prev;
+    server_event_t* se_timer;
     dbmsg_t* msg;
 
     if (!server || !upload_token)
@@ -92,9 +108,8 @@ server_del_upload_token(server_t* server, upload_token_t* upload_token)
 
     if (upload_token->timerfd)
     {
-        server_ep_delfd(server, upload_token->timerfd);
-        if (close(upload_token->timerfd) == -1)
-            error("close(%d) ut timerfd: %s\n", upload_token->timerfd, ERRSTR);
+        se_timer = server_get_event(server, upload_token->timerfd);
+        server_del_event(server, se_timer);
     }
 
     if (upload_token->type == UT_MSG_ATTACHMENT)

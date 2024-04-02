@@ -21,6 +21,7 @@ timer_ut(server_t* server, server_timer_t* timer)
 
     debug("Upload token for user_id:%u expired: %u\n", 
           ut->user_id, ut->token);
+    ut->timerfd = 0;
     server_del_upload_token(server, ut);
 
     return SE_CLOSE;

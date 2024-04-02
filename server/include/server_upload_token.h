@@ -28,6 +28,7 @@ typedef struct upload_token
         tmp_msg_t msg_state;
     };
     i32 timerfd;
+    i32 timer_seconds;
 
     struct upload_token* next;
     struct upload_token* prev;

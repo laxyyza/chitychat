@@ -79,10 +79,10 @@ server_free_client(server_t* server, client_t* client)
 
     if (client->session && client->session->timerfd == 0)
     {
-        // TODO: Set client session timer
         union timer_data data = {
             .session = client->session
         };
+        // TODO: Make client session timer configurable
         server_timer_t* timer = server_addtimer(server, MINUTES(30), 
                                                 TIMER_ONCE, TIMER_CLIENT_SESSION, 
                                                 &data, sizeof(void*));
