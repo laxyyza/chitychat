@@ -388,10 +388,10 @@ server_init_epoll(server_t* server)
         fatal("epoll_create1: %s\n", ERRSTR);
         return false;
     }
-    
-    if (server_ep_addfd(server, server->sock) == -1)
-        return false;
 
+    if (server_new_event(server, server->sock, NULL, se_accept_conn, NULL) == NULL)
+        return false;
+    
     return true;
 }
 

@@ -112,7 +112,7 @@ server_ws_parse(server_t* server, client_t* client,
         case WS_CLOSE_FRAME:
         {
             verbose("CLOSE FRAME: %s\n", ws.payload);
-            server_del_client(server, client);
+            //server_del_client(server, client);
             return RECV_DISCONNECT;
         }
         case WS_PING_FRAME:

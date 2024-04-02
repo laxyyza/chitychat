@@ -54,26 +54,21 @@ server_get_client_user_id(server_t* server, u64 id)
 }
 
 void 
-server_del_client(server_t* server, client_t* client)
+server_free_client(server_t* server, client_t* client)
 {
-    i32 ret;
     client_t* next;
     client_t* prev;
 
     if (!server || !client)
         return;
 
-    ret = server_ep_delfd(server, client->addr.sock);
-    if (ret != -1 || server_get_loglevel() == SERVER_VERBOSE)
+    info("Client (fd:%d, IP: %s:%s, host: %s) disconnected.\n", 
+            client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
+    if (client->dbuser)
     {
-        info("Client (fd:%d, IP: %s:%s, host: %s) disconnected.\n", 
-                client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
-        if (client->dbuser)
-        {
-            if (client->dbuser->user_id)
-                debug("\tUser:%u %s '%s' logged out.\n", 
-                    client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
-        }
+        if (client->dbuser->user_id)
+            debug("\tUser:%u %s '%s' logged out.\n", 
+                client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
     }
 
     if (client->ssl)
@@ -134,4 +129,28 @@ server_client_ssl_handsake(server_t* server, client_t* client)
 
     client->secure = true;
     return 1;
+}
+
+void 
+server_get_client_info(client_t* client)
+{
+    i32 ret;
+    i32 domain;
+
+    ret = getnameinfo(client->addr.addr_ptr, client->addr.len, client->addr.host, NI_MAXHOST, client->addr.serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
+    if (ret == -1)
+    {
+        error("getnameinfo: %s\n", ERRSTR);
+    }
+
+    if (client->addr.version == IPv4)
+    {
+        domain = AF_INET;
+        inet_ntop(domain, &client->addr.ipv4.sin_addr, client->addr.ip_str, INET_ADDRSTRLEN);
+    }
+    else
+    {
+        domain = AF_INET6;
+        inet_ntop(domain, &client->addr.ipv6.sin6_addr, client->addr.ip_str, INET6_ADDRSTRLEN);
+    }
 }

@@ -18,7 +18,7 @@ server_ws_handle_text_frame(server_t* server, client_t* client,
     if (!payload)
     {
         warn("WS JSON parse failed, message:\n%s\n", buf);
-        server_del_client(server, client);
+        // server_del_client(server, client);
         return RECV_DISCONNECT;
     }
 

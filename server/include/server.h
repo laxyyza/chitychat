@@ -14,6 +14,7 @@
 #include "server_init.h"
 #include "server_client_sesson.h"
 #include "server_upload_token.h"
+#include "server_events.h"
 
 #define SERVER_CONFIG_PATH "server/config.json"
 
@@ -59,33 +60,11 @@ typedef struct
     const char* sql_update_user;
     const char* sql_insert_userfiles;
 } server_config_t;
-
-enum se_status 
-{
-    SE_OK,
-    SE_END,
-    SE_ERROR,
-};
-
-// TODO: Use server_event_t
-typedef enum se_status (*se_close_callback_t)(server_t* server, void* data);
-typedef enum se_status (*se_read_callback_t)(server_t* server, const u32 ep_events, void* data);
-
-typedef struct server_event
-{
-    i32 fd;
-    void* data;
-    se_read_callback_t read;
-    se_close_callback_t close;
-
-    struct server_event* next;
-    struct server_event* prev;
-} server_event_t;
  
 typedef struct server
 {
-    int sock;
-    int epfd;
+    i32 sock;
+    i32 epfd;
     server_config_t conf;
     server_db_t db;
     magic_t magic_cookie;
@@ -111,16 +90,10 @@ typedef struct server
 void            server_run(server_t* server);
 void            server_cleanup(server_t* server);
 
-server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
-                                se_read_callback_t read_callback, 
-                                se_close_callback_t close_callback);
-server_event_t* server_get_event(server_t* server, i32 fd);
-void            server_del_event(server_t* server, server_event_t* se);
-
-int         server_ep_addfd(server_t* server, i32 fd);
-int         server_ep_delfd(server_t* server, i32 fd);
-
 ssize_t     server_send(const client_t* client, const void* buf, size_t len);
 ssize_t     server_recv(const client_t* client, void* buf, size_t len);
+
+void 
+print_all_events(server_t* server);
 
 #endif // _SERVER_H_

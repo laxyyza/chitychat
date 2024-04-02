@@ -97,7 +97,7 @@ typedef struct
 } http_to_str_t;
 
 enum client_recv_status server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len);
-void server_handle_http(server_t* server, client_t* client, http_t* http);
+enum client_recv_status server_handle_http(server_t* server, client_t* client, http_t* http);
 http_header_t* http_get_header(const http_t* http, const char* name);
 http_t* http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_len);
 ssize_t http_send(client_t* client, http_t* http);

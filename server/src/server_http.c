@@ -528,7 +528,7 @@ server_http_url_checks(http_t* http)
     return 0;
 }
 
-static void 
+static enum client_recv_status 
 server_handle_http_get(server_t* server, client_t* client, http_t* http)
 {    
     char path[PATH_MAX];
@@ -541,7 +541,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     if (server_http_url_checks(http) == -1)
     {
         server_http_resp_error(client, HTTP_CODE_NOT_FOUND, "Not found");
-        return;
+        return RECV_ERROR;
     }
 
     // TODO: Add "default_file_per_dir" config, default should be "index.html"
@@ -555,7 +555,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     if (isdir == -1)
     {
         server_http_resp_404_not_found(client);
-        return;
+        return RECV_ERROR;
     }
     else if (isdir)
         strcat(path, "/index.html");
@@ -567,7 +567,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     {
         error("GET request of '%s' failed: %s\n", path, ERRSTR);
         server_http_resp_404_not_found(client);
-        return;
+        return RECV_ERROR;
     }
     content_len = fdsize(fd);
     content = malloc(content_len);
@@ -576,7 +576,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
         error("read '%s' failed: %s\n", path, ERRSTR);
         close(fd);
         server_http_resp_404_not_found(client);
-        return;
+        return RECV_ERROR;
     }
     close(fd);
 
@@ -590,6 +590,8 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     verbose("Got file (%s): '%s'\n", content_type, path);
     server_http_resp_ok(client, content, content_len, content_type);
     free(content);
+
+    return RECV_OK;
 }
 
 static upload_token_t*
@@ -808,64 +810,77 @@ respond:
     }
 }
 
-static void 
+static enum client_recv_status 
 server_handle_http_req(server_t* server, client_t* client, http_t* http)
 {
 #define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
+    enum client_recv_status ret = RECV_OK;
 
     if (!HTTP_CMP_METHOD("GET"))
         server_handle_http_get(server, client, http);
     else if (!HTTP_CMP_METHOD("POST"))
         server_handle_http_post(server, client, http);
     else
+    {
         warn("Need to implement '%s' HTTP request.\n", http->req.method);
+        ret = RECV_DISCONNECT;
+    }
+
+    return ret;
 }
 
-static void 
+static enum client_recv_status
 server_handle_http_resp(UNUSED server_t* server, UNUSED client_t* client, UNUSED http_t* http)
 {
     debug("Implement handling response http\n");
+    return RECV_ERROR;
 }
 
-void 
+enum client_recv_status
 server_handle_http(server_t* server, client_t* client, http_t* http)
 {
+    enum client_recv_status ret = RECV_OK;
+
     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
         server_handle_client_upgrade(client, http);
     else
     {
         if (http->type == HTTP_REQUEST)
-            server_handle_http_req(server, client, http);
+            ret = server_handle_http_req(server, client, http);
         else if (http->type == HTTP_RESPOND)
-            server_handle_http_resp(server, client, http);
+            ret = server_handle_http_resp(server, client, http);
         else
+        {
             warn("Unknown http type: %d. Request or Respond? Ignored.\n", http->type);
+            ret = RECV_DISCONNECT;
+        }
     }
 
     http_free(http);
+
+    return ret;
 }
 
 enum client_recv_status 
 server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
 {
     http_t* http;
+    enum client_recv_status ret = RECV_OK;
 
     http = parse_http(client, (char*)buf, buf_len);
     if (!http)
     {
         error("parse_http() returned NULL, deleting client.\n");
-        server_del_client(server, client);
-        return RECV_DISCONNECT;
+        //server_del_client(server, client);
+        return RECV_ERROR;
     }
 
     print_parsed_http(http);
 
     if (!http->buf.missing)
-    {
-        server_handle_http(server, client, http);
-    }
+        ret = server_handle_http(server, client, http);
 
-    return RECV_OK;
+    return ret;
 }
 
 ssize_t 
