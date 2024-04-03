@@ -19,7 +19,7 @@ server_new_upload_token(server_t* server, u32 user_id)
     if (server->upload_token_head == NULL)
     {
         server->upload_token_head = ut;
-        return ut;
+        goto add_timer;
     }
 
     head_next = server->upload_token_head->next;
@@ -29,9 +29,10 @@ server_new_upload_token(server_t* server, u32 user_id)
     if (head_next)
         head_next->prev = ut;
 
+add_timer:
     timer_data.ut = ut;
     // TODO: Make seconds configurable
-    timer = server_addtimer(server, MINUTES(1), 
+    timer = server_addtimer(server, 10, 
                             TIMER_ONCE, TIMER_UPLOAD_TOKEN, 
                             &timer_data, sizeof(void*));
     if (timer)

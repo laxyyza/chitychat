@@ -50,7 +50,7 @@ server_ep_event(server_t* server, const struct epoll_event* event)
         warn("Not handled fd: %d, ev: 0x%x\n", fd, ev);
 }
 
-// Should ONLU be used in server_sig_handler()
+// Should ONLY be used in server_sig_handler()
 server_t* __server_sig = NULL;
 
 static void 

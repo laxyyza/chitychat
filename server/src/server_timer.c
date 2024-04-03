@@ -7,8 +7,8 @@ timer_client_session(server_t* server, server_timer_t* timer)
 {
     session_t* session = timer->data.session;
 
-    debug("Client session for user_id:%u expired, id: %u.\n", 
-          session->user_id, session->session_id);
+    debug("Client session for user_id:%u expired %zu times, id: %u.\n", 
+          session->user_id, timer->exp, session->session_id);
     server_del_client_session(server, session);
 
     return SE_CLOSE;
@@ -19,8 +19,11 @@ timer_ut(server_t* server, server_timer_t* timer)
 {
     upload_token_t* ut = timer->data.ut;
 
-    debug("Upload token for user_id:%u expired: %u\n", 
-          ut->user_id, ut->token);
+    debug("Upload token for user_id:%u expired %zu times: %u\n", 
+          ut->user_id, timer->exp, ut->token);
+    /* Set ut->timerfd to 0 so `server_del_upload_token()` won't
+     * free this event 
+     */
     ut->timerfd = 0;
     server_del_upload_token(server, ut);
 
@@ -113,22 +116,48 @@ server_addtimer(server_t* server, i32 seconds, i32 flags,
 
     return timer;
 error:;
-    if (timer->fd != -1)
-        close(timer->fd);
-    free(timer);
+    server_close_timer(timer);
     return NULL;
 }
 
 i32                 
-server_timer_set(UNUSED server_timer_t* timer, UNUSED i32 seconds)
+server_timer_set(server_timer_t* timer, i32 seconds)
 {
-    return -1;
+    i32 ret;
+    struct itimerspec its;
+
+    its.it_value.tv_sec = seconds;
+    its.it_value.tv_nsec = 0;
+    its.it_interval.tv_nsec = 0;
+    if (timer->flags & TIMER_ONCE)
+        its.it_interval.tv_sec = 0;
+    else
+        its.it_interval.tv_sec = seconds;
+
+    ret = timerfd_settime(timer->fd, 0, &its, NULL);
+    if (ret == -1)
+        error("timerfd_settime(%d, %ds): %s\n",
+              timer->fd, seconds, ERRSTR);
+    else
+        timer->seconds = seconds;
+
+    return ret;
 }
 
 i32                 
-server_timer_get(UNUSED server_timer_t* timer)
+server_timer_get(server_timer_t* timer)
 {
-    return -1;
+    i32 ret;
+    struct itimerspec its;
+
+    ret = timerfd_gettime(timer->fd, &its);
+    if (ret == -1)
+        error("timerfd_gettime(%d): %s\n",
+              timer->fd, ERRSTR);
+    else
+        ret = its.it_value.tv_sec;
+
+    return ret;
 }
 
 void
