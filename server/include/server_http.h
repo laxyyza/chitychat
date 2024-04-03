@@ -96,10 +96,24 @@ typedef struct
     size_t max;
 } http_to_str_t;
 
-enum client_recv_status server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len);
+enum client_recv_status server_http_parse(server_t* server, client_t* client, u8* buf, 
+                                          size_t buf_len);
 enum client_recv_status server_handle_http(server_t* server, client_t* client, http_t* http);
-http_header_t* http_get_header(const http_t* http, const char* name);
-http_t* http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_len);
-ssize_t http_send(client_t* client, http_t* http);
+http_header_t*          http_get_header(const http_t* http, const char* name);
+http_t*                 http_new_resp(u16 code, const char* status_msg, const char* body, 
+                                      size_t body_len);
+ssize_t                 http_send(client_t* client, http_t* http);
+void                    http_free(http_t* http);
+int                     server_http_url_checks(http_t* http);
+void                    server_http_resp_error(client_t* client, u16 error_code, 
+                                               const char* status_msg);
+void                    server_http_resp_404_not_found(client_t* client);
+void                    server_http_resp_ok(client_t* client, char* content, 
+                                            size_t content_len, const char* content_type);
+
+enum client_recv_status server_handle_http_get(server_t* server, client_t* client, http_t* http);
+
+void                    server_handle_http_post(server_t* server, client_t* client, 
+                                                const http_t* http);
 
 #endif // _SERVER_HTTP_H_

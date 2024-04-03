@@ -51,14 +51,9 @@ http_to_str(const http_t* http)
     strcat(to_str.str, HTTP_END);
     size_t current_len = strnlen(to_str.str, to_str.max);
     if (http->body)
-    {
         memcpy(to_str.str + current_len, http->body, http->body_len);
-    }
 
-    // to_str.len = strnlen(to_str.str, to_str.max);
     to_str.len = current_len + http->body_len;
-
-    //printf("HTTP to string (%zu):\n%s\n================End.\n", to_str.len, to_str.str);
 
     return to_str;
 }
@@ -136,17 +131,11 @@ static void
 handle_http_header(client_t* client, http_t* http, http_header_t* header)
 {
     if (NAME_CMP("Content-Length"))
-    {
         http_handle_content_len(http, header);
-    }
     else if (NAME_CMP("Connection"))
-    {
         set_client_connection(client, header);
-    }
     else if (NAME_CMP("Sec-WebSocket-Key"))
-    {
         handle_websocket_key(http, header);
-    }
 }
 
 static http_t* 
@@ -295,7 +284,6 @@ print_parsed_http(const http_t* http)
     for (size_t i = 0; i < http->n_headers; i++)
     {
         const http_header_t* header = &http->headers[i];
-
         verbose("H:\t'%s' = '%s'\n", header->name, header->val);
     }
 
@@ -303,7 +291,7 @@ print_parsed_http(const http_t* http)
         verbose("BODY (strlen: %zu, http: %zu):\t'%s'\n", strlen(http->body), http->body_len, (http->body) ? http->body : "NULL");
 }
 
-static void 
+void 
 http_free(http_t* http)
 {
     if (!http)
@@ -429,7 +417,7 @@ http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_le
     return http;
 }
 
-static void 
+void 
 server_http_resp_ok(client_t* client, char* content, size_t content_len, const char* content_type)
 {
     http_t* http = http_new_resp(HTTP_CODE_OK, "OK", content, content_len);
@@ -440,7 +428,7 @@ server_http_resp_ok(client_t* client, char* content, size_t content_len, const c
     http_free(http);
 }
 
-static void 
+void 
 server_http_resp_error(client_t* client, u16 error_code, const char* status_msg)
 {
     http_t* http = http_new_resp(error_code, status_msg, NULL, 0);
@@ -450,7 +438,7 @@ server_http_resp_error(client_t* client, u16 error_code, const char* status_msg)
     http_free(http);
 }
 
-static void 
+void 
 server_http_resp_404_not_found(client_t* client)
 {
     const char* not_found_html = "<h1>Not Found</h1>";
@@ -463,55 +451,7 @@ server_http_resp_404_not_found(client_t* client)
     http_free(http);
 }
 
-static const char* 
-server_get_content_type(const char* path)
-{
-#define CMP_EXT(ext) !strcmp(extention, ext)
-
-    const char* extention = strrchr(path, '.');
-    if (extention)
-    {
-        extention++;
-        if (CMP_EXT("html"))
-            return "text/html";
-        else if (CMP_EXT("css"))
-            return "text/css";
-        else if (CMP_EXT("csv"))
-            return "text/csv";
-        else if (CMP_EXT("js"))
-            return "application/javascript";
-        else if (CMP_EXT("png"))
-            return "image/png";
-        else if (CMP_EXT("gif"))
-            return "image/gif";
-        else if (CMP_EXT("jpg") || CMP_EXT("jpeg"))
-            return "image/jpeg";
-        else if (CMP_EXT("bmp"))
-            return "image/bmp";
-        else if (CMP_EXT("svg"))
-            return "image/svg+xml";
-        else if (CMP_EXT("avif"))
-            return "image/avif";
-        else if (CMP_EXT("mp4"))
-            return "video/mp4";
-        else if (CMP_EXT("mov"))
-            return "video/quicktime";
-        else if (CMP_EXT("ico"))
-            return "image/x-icon";
-        else if (CMP_EXT("xml"))
-            return "application/xml";
-        else if (CMP_EXT("zip"))
-            return "application/zip";
-        else if (CMP_EXT("gz"))
-            return "application/gzip";
-        else if (CMP_EXT("json"))
-            return "application/json";
-    }
-
-    return "application/octet-stream";
-}
-
-static int 
+int 
 server_http_url_checks(http_t* http)
 {
     const char* url = http->req.url;
@@ -526,288 +466,6 @@ server_http_url_checks(http_t* http)
     }
 
     return 0;
-}
-
-static enum client_recv_status 
-server_handle_http_get(server_t* server, client_t* client, http_t* http)
-{    
-    char path[PATH_MAX];
-    memset(path, 0, PATH_MAX);
-    i32 fd;
-    size_t content_len;
-    char* content;
-    size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
-
-    if (server_http_url_checks(http) == -1)
-    {
-        server_http_resp_error(client, HTTP_CODE_NOT_FOUND, "Not found");
-        return RECV_ERROR;
-    }
-
-    // TODO: Add "default_file_per_dir" config, default should be "index.html"
-    if (http->req.url[url_len - 1] == '/')
-        snprintf(path, PATH_MAX, "%s%s%s", server->conf.root_dir, http->req.url, "index.html"); 
-    else
-        snprintf(path, PATH_MAX, "%s%s", server->conf.root_dir, http->req.url); 
-        //strncpy(path, http->req.url, HTTP_URL_LEN);
-    
-    i32 isdir = file_isdir(path);
-    if (isdir == -1)
-    {
-        server_http_resp_404_not_found(client);
-        return RECV_ERROR;
-    }
-    else if (isdir)
-        strcat(path, "/index.html");
-
-    const char* content_type = server_get_content_type(path);
-
-    fd = open(path, O_RDONLY);
-    if (fd == -1)
-    {
-        error("GET request of '%s' failed: %s\n", path, ERRSTR);
-        server_http_resp_404_not_found(client);
-        return RECV_ERROR;
-    }
-    content_len = fdsize(fd);
-    content = malloc(content_len);
-    if (read(fd, content, content_len) == -1)
-    {
-        error("read '%s' failed: %s\n", path, ERRSTR);
-        close(fd);
-        server_http_resp_404_not_found(client);
-        return RECV_ERROR;
-    }
-    close(fd);
-
-    if (strcmp(content_type, "application/octet-stream") == 0)
-    {
-        const char* temp = server_mime_type(server, content, content_len);
-        if (temp)
-            content_type = temp;
-    }
-
-    verbose("Got file (%s): '%s'\n", content_type, path);
-    server_http_resp_ok(client, content, content_len, content_type);
-    free(content);
-
-    return RECV_OK;
-}
-
-static upload_token_t*
-server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
-{
-    char* endptr;
-    const http_header_t* upload_token_header = http_get_header(http, "Upload-Token");
-    const char* token_str = upload_token_header->val;
-    if (!token_str)
-    {
-        error("No Upload-Token in POST request!\n");
-        return NULL;
-    }
-
-    const u64 token = strtoull(token_str, &endptr, 10);
-    if ((errno == ERANGE && (token == ULONG_MAX)) || (errno != 0 && token == 0))
-    {
-        error("HTTP POST Upload-Token: '%s' failed to convert to uint64_t: %s\n",
-            token_str, ERRSTR);
-        return NULL;
-    }
-
-    if (endptr == token_str)
-    {
-        error("HTTP POST strtoull: No digits were found.\n");
-        return NULL;
-    }
-
-    upload_token_t* real_token = server_get_upload_token(server, token);
-    if (real_token == NULL)
-    {
-        error("No upload token found: %zu\n", token);
-        return NULL;
-    }
-
-    if (real_token->token != token)
-    {
-        error("*real_token != token?? %zu != %zu\n", *real_token, token);
-        return NULL;
-    }
-
-    if (real_token->type == UT_USER_PFP && user_id)
-        *user_id = real_token->user_id;
-    // memset(real_token, 0, sizeof(upload_token_t));
-    // server_del_upload_token(server, real_token);
-
-    return real_token;
-}
-
-static void 
-server_handle_user_pfp_update(server_t* server, client_t* client, const http_t* http, u32 user_id)
-{
-    http_t* resp = NULL;
-    dbuser_t* user;
-    bool failed = false;
-    const char* post_img_cmd = "/img/";
-    size_t post_img_cmd_len = strlen(post_img_cmd);
-
-    if (strncmp(http->req.url, post_img_cmd, post_img_cmd_len) != 0)
-    {
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Not image", NULL, 0);
-        goto respond;
-    }
-
-    user = server_db_get_user_from_id(server, user_id);
-    if (!user)
-    {
-        warn("User %u not found.\n", user_id);
-        failed = true;
-        goto respond;
-    }
-    const char* filename = http->req.url + post_img_cmd_len;
-
-    dbuser_file_t file;
-
-    if (server_save_file_img(server, http->body, http->body_len, filename, &file))
-    {
-        if (!server_db_update_user(server, NULL, NULL, file.hash, user_id))
-            failed = true;
-        else
-        {
-            dbuser_file_t* dbfile = server_db_select_userfile(server, user->pfp_hash);
-            if (dbfile)
-            {
-                server_delete_file(server, dbfile);
-                free(dbfile);
-            }
-            else
-                warn("User:%d %s (%s) no pfp?\n", user->user_id, user->username, user->displayname);
-        }
-    }
-    else
-        failed = true;
-
-    free(user);
-
-respond:
-    if (!resp)
-    {
-        if (failed)
-            resp = http_new_resp(HTTP_CODE_INTERAL_ERROR, "Interal server error", NULL, 0);
-        else
-            resp = http_new_resp(HTTP_CODE_OK, "OK", http->body, http->body_len);
-    }
-
-    http_send(client, resp);
-    http_free(resp);
-}
-
-static void 
-server_handle_msg_attach(server_t* server, client_t* client, const http_t* http, 
-            upload_token_t* ut)
-{
-    http_t* resp = NULL;
-    dbmsg_t* msg = &ut->msg_state.msg;
-    size_t attach_index = 0;
-    char* endptr;
-    http_header_t* attach_index_header = http_get_header(http, "Attach-Index");
-    json_object* attach_json;
-    json_object* name_json;
-    const char* name;
-
-    if (attach_index_header == NULL)
-    {
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "No Attach-Index header", NULL, 0);
-        goto respond;
-    }
-
-    attach_index = strtoul(attach_index_header->val, &endptr, 10);
-    if (attach_index == ULONG_MAX)
-    {
-        warn("Invalid Attach-Index: %s = %s\n", 
-                attach_index_header->name, attach_index_header->val);
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Invalid Attach-Index", NULL, 0);
-        goto respond;
-    }
-
-    if (attach_index > ut->msg_state.total)
-    {
-        warn("Attach-Index > msg_state.total. %zu/%zu\n", 
-                attach_index, ut->msg_state.total);
-    }
-
-    attach_json = json_object_array_get_idx(msg->attachments_json, attach_index);
-    if (attach_json)
-    {
-        name_json = json_object_object_get(attach_json, "name");
-        name = json_object_get_string(name_json);
-        dbuser_file_t file;
-
-        if (server_save_file_img(server, http->body, http->body_len, name, &file))
-        {
-            json_object_object_add(attach_json, "hash",
-                    json_object_new_string(file.hash));
-
-            ut->msg_state.current++;
-            if (ut->msg_state.current >= ut->msg_state.total)
-            {
-                msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
-
-                if (server_db_insert_msg(server, msg))
-                    server_get_send_group_msg(server, msg, msg->group_id);
-
-                server_del_upload_token(server, ut);
-            }
-        }
-    }
-    else
-    {
-        warn("Failed to get json array index: %zu\n", attach_index);
-    }
-
-respond:
-    if (resp)
-    {
-        http_send(client, resp);
-        http_free(resp);
-    }
-}
-
-static void 
-server_handle_http_post(server_t* server, client_t* client, const http_t* http)
-{
-    http_t* resp = NULL;
-    u32 user_id;
-    upload_token_t* ut = NULL;
-
-    ut = server_check_upload_token(server, http, &user_id);
-
-    if (ut == NULL)
-    {
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Upload-Token failed", NULL, 0);
-        goto respond;
-    }
-
-    if (ut->type == UT_USER_PFP)
-    {
-        free(ut);
-        server_handle_user_pfp_update(server, client, http, user_id);
-    }
-    else if (ut->type == UT_MSG_ATTACHMENT)
-    {
-        server_handle_msg_attach(server, client, http, ut);
-    }
-    else
-    {
-        warn("Upload Token unknown type: %d\n", ut->type);
-        free(ut);
-    }
-
-respond:
-    if (resp)
-    {
-        http_send(client, resp);
-        http_free(resp);
-    }
 }
 
 static enum client_recv_status 
@@ -871,7 +529,6 @@ server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
     if (!http)
     {
         error("parse_http() returned NULL, deleting client.\n");
-        //server_del_client(server, client);
         return RECV_ERROR;
     }
 

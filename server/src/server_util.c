@@ -179,3 +179,51 @@ void hexstr_to_u8(const char* hexstr, size_t hexstr_len, u8* output)
         index++;
     }
 }
+
+const char* 
+server_get_content_type(const char* path)
+{
+#define CMP_EXT(ext) !strcmp(extention, ext)
+
+    const char* extention = strrchr(path, '.');
+    if (extention)
+    {
+        extention++;
+        if (CMP_EXT("html"))
+            return "text/html";
+        else if (CMP_EXT("css"))
+            return "text/css";
+        else if (CMP_EXT("csv"))
+            return "text/csv";
+        else if (CMP_EXT("js"))
+            return "application/javascript";
+        else if (CMP_EXT("png"))
+            return "image/png";
+        else if (CMP_EXT("gif"))
+            return "image/gif";
+        else if (CMP_EXT("jpg") || CMP_EXT("jpeg"))
+            return "image/jpeg";
+        else if (CMP_EXT("bmp"))
+            return "image/bmp";
+        else if (CMP_EXT("svg"))
+            return "image/svg+xml";
+        else if (CMP_EXT("avif"))
+            return "image/avif";
+        else if (CMP_EXT("mp4"))
+            return "video/mp4";
+        else if (CMP_EXT("mov"))
+            return "video/quicktime";
+        else if (CMP_EXT("ico"))
+            return "image/x-icon";
+        else if (CMP_EXT("xml"))
+            return "application/xml";
+        else if (CMP_EXT("zip"))
+            return "application/zip";
+        else if (CMP_EXT("gz"))
+            return "application/gzip";
+        else if (CMP_EXT("json"))
+            return "application/json";
+    }
+
+    return "application/octet-stream";
+}
