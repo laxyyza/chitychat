@@ -439,7 +439,7 @@ server_init(int argc, char* const* argv)
     if (!server_init_epoll(server))
         goto error;
 
-    if (!server_db_open(server))
+    if (!server_db_init(server))
         goto error;
 
     if (!server_init_magic(server))

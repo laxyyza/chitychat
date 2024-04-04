@@ -19,13 +19,13 @@ server_add_user_in_json(dbuser_t* dbuser, json_object* json)
 }
 
 const char* 
-server_get_user(server_t* server, client_t* client, 
+server_get_user(server_thread_t* th, client_t* client, 
         json_object* payload, json_object* respond_json)
 {
     json_object* user_id_json = json_object_object_get(payload, "id");
     u64 user_id = json_object_get_int(user_id_json);
 
-    dbuser_t* dbuser = server_db_get_user_from_id(server, user_id);
+    dbuser_t* dbuser = server_db_get_user_from_id(&th->db, user_id);
     if (!dbuser)
         return "User not found";
 
@@ -52,7 +52,7 @@ server_client_user_info(client_t* client, json_object* respond_json)
     return NULL;
 }
 
-const char* server_user_edit_account(server_t* server, client_t* client, 
+const char* server_user_edit_account(server_thread_t* th, client_t* client, 
         json_object* payload, UNUSED json_object* respond_json)
 {
     json_object* new_username_json = json_object_object_get(payload, 
@@ -66,7 +66,7 @@ const char* server_user_edit_account(server_t* server, client_t* client,
     const char* new_displayname = json_object_get_string(new_displayname_json);
     const bool new_pfp = json_object_get_boolean(new_pfp_json);
 
-    if (!server_db_update_user(server, new_username, new_displayname, 
+    if (!server_db_update_user(&th->db, new_username, new_displayname, 
             NULL, client->dbuser->user_id))
     {
         return "Failed to update user"; 
@@ -74,7 +74,7 @@ const char* server_user_edit_account(server_t* server, client_t* client,
 
     if (new_pfp)
     {
-        upload_token_t* upload_token = server_new_upload_token(server, 
+        upload_token_t* upload_token = server_new_upload_token(th->server, 
                 client->dbuser->user_id);
         // Create new upload token
 

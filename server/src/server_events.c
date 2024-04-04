@@ -48,9 +48,10 @@ server_ep_delfd(server_t* server, i32 fd)
 }
 
 enum se_status
-se_accept_conn(server_t* server, UNUSED server_event_t* ev)
+se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
 {
     i32 ret;
+    server_t* server = th->server;
     client_t* client = server_new_client(server);
 
     client->addr.len = server->addr_len;
@@ -88,7 +89,7 @@ error:
 }
 
 enum se_status
-se_read_client(server_t* server, server_event_t* ev)
+se_read_client(server_thread_t* th, server_event_t* ev)
 {
     ssize_t bytes_recv;
     u8* buf;
@@ -138,14 +139,16 @@ se_read_client(server_t* server, server_event_t* ev)
         verbose("HTTP recv: %zu/%zu\n", http->buf.total_recv, http->body_len);
         if ((size_t)bytes_recv >= buf_size)
         {
-            server_handle_http(server, client, client->recv.http);
+            server_handle_http(th, client, client->recv.http);
             client->recv.http = NULL;
         }
     }
     else
     {
-        if (client->state & CLIENT_STATE_WEBSOCKET) recv_status = server_ws_parse(server, client, buf, bytes_recv + offset); else
-            recv_status = server_http_parse(server, client, buf, bytes_recv);
+        if (client->state & CLIENT_STATE_WEBSOCKET) 
+            recv_status = server_ws_parse(th, client, buf, bytes_recv + offset); 
+        else
+            recv_status = server_http_parse(th, client, buf, bytes_recv);
     }
 
     if (recv_status != RECV_DISCONNECT && !client->recv.busy)
@@ -169,7 +172,7 @@ se_read_client(server_t* server, server_event_t* ev)
 }
 
 enum se_status
-se_close_client(server_t *server, server_event_t *ev)
+se_close_client(server_t* server, server_event_t *ev)
 {
     server_free_client(server, ev->data);
     return SE_OK;

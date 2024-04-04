@@ -1,5 +1,8 @@
 #include "server.h"
 #include "server_events.h"
+#include "server_tm.h"
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 
 #define MAX_EP_EVENTS 10
 
@@ -15,8 +18,9 @@ server_print_sockerr(i32 fd)
 }
 
 void 
-server_ep_event(server_t* server, const server_job_t* job)
+server_ep_event(server_thread_t* th, const server_job_t* job)
 {
+    server_t* server = th->server;
     const i32 fd = job->fd;
     const u32 ev = job->ev;
     enum se_status ret;
@@ -42,7 +46,7 @@ server_ep_event(server_t* server, const server_job_t* job)
     }
     else if (ev & EPOLLIN)
     {
-        ret = se->read(server, se);
+        ret = se->read(th, se);
         if (ret == SE_CLOSE || ret == SE_ERROR)
             server_del_event(server, se);
         else if (se->listen_events & EPOLLONESHOT)
@@ -90,7 +94,8 @@ server_run(server_t* server)
 
     server_init_signal_handlers(server);
 
-    info("Server listening on IP: %s, port: %u\n", server->conf.addr_ip, server->conf.addr_port);
+    info("Server listening on IP: %s, port: %u, thread pool: %zu\n", 
+         server->conf.addr_ip, server->conf.addr_port, server->tm.n_threads);
 
     while (server->running)
     {
@@ -182,7 +187,7 @@ server_cleanup(server_t* server)
     server_del_all_clients(server);
     server_del_all_sessions(server);
     server_del_all_upload_tokens(server);
-    server_db_close(server);
+    server_db_free(server);
     server_close_magic(server);
 
     SSL_CTX_free(server->ssl_ctx);

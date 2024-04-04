@@ -1,5 +1,6 @@
 #include "server_user_file.h"
 #include "server.h"
+#include "server_tm.h"
 
 static const char*
 server_mime_type_dir(server_t* server, const char* mime_type)
@@ -117,7 +118,8 @@ cleanup:
 }
 
 bool 
-server_save_file(UNUSED server_t* server, UNUSED const void* data, UNUSED size_t size, UNUSED const char* name)
+server_save_file(UNUSED server_thread_t* th, UNUSED const void* data, 
+                 UNUSED size_t size, UNUSED const char* name)
 {
     // dbuser_file_t file;
     debug("Implement server_save_file()\n");
@@ -126,7 +128,8 @@ server_save_file(UNUSED server_t* server, UNUSED const void* data, UNUSED size_t
 }
 
 bool 
-server_save_file_img(server_t* server, const void* data, size_t size, const char* name, dbuser_file_t* file_output)
+server_save_file_img(server_thread_t* th, const void* data, size_t size, 
+                     const char* name, dbuser_file_t* file_output)
 {
     dbuser_file_t file;
     const char* mime_type;
@@ -135,7 +138,7 @@ server_save_file_img(server_t* server, const void* data, size_t size, const char
 
     memset(&file, 0, sizeof(dbuser_file_t));
 
-    mime_type = server_mime_type(server, data, size);
+    mime_type = server_mime_type(th->server, data, size);
     if (mime_type == NULL || strstr(mime_type, "image/") == NULL)
     {
         warn("save img mime_type failed: %s\n", mime_type);
@@ -150,14 +153,14 @@ server_save_file_img(server_t* server, const void* data, size_t size, const char
 
     strncpy(file.name, name, DB_PFP_NAME_MAX);
 
-    if (server_db_insert_userfile(server, &file))
+    if (server_db_insert_userfile(&th->db, &file))
     {
-        ref_count = server_db_select_userfile_ref_count(server, 
+        ref_count = server_db_select_userfile_ref_count(&th->db, 
                     file.hash);
         if (ref_count == 1)
         {
             ret = server_write_file(data, size, 
-                    server->conf.img_dir, file.hash);
+                    th->server->conf.img_dir, file.hash);
         }
         else if (ref_count == 0)
         {
@@ -176,13 +179,13 @@ server_save_file_img(server_t* server, const void* data, size_t size, const char
 }
 
 void* 
-server_get_file(server_t* server, dbuser_file_t* file)
+server_get_file(server_thread_t* th, dbuser_file_t* file)
 {
     void* data;
     const char* dir;
     ssize_t actual_size;
 
-    dir = server_mime_type_dir(server, file->mime_type);
+    dir = server_mime_type_dir(th->server, file->mime_type);
 
     data = calloc(1, file->size);
 
@@ -203,16 +206,16 @@ error:
 }
 
 bool 
-server_delete_file(server_t* server, dbuser_file_t* file)
+server_delete_file(server_thread_t* th, dbuser_file_t* file)
 {
     const char* dir;
     char* path = NULL;
     bool ret = true;
 
     // I think this function might return wrong. from ref_count.
-    if (server_db_delete_userfile(server, file->hash))
+    if (server_db_delete_userfile(&th->db, file->hash))
     {
-        dir = server_mime_type_dir(server, file->mime_type);
+        dir = server_mime_type_dir(th->server, file->mime_type);
         path = calloc(1, PATH_MAX);
         
         snprintf(path, PATH_MAX, "%s/%s", dir, file->hash);

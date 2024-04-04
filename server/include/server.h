@@ -68,7 +68,7 @@ typedef struct server
     i32 sock;
     i32 epfd;
     server_config_t conf;
-    server_db_t db;
+    server_db_commands_t db_commands;
     server_tm_t tm;
     magic_t magic_cookie;
 
@@ -93,7 +93,7 @@ typedef struct server
 void server_run(server_t* server);
 void server_cleanup(server_t* server);
 void server_print_sockerr(i32 fd);
-void server_ep_event(server_t* server, const server_job_t* job);
+void server_ep_event(server_thread_t* th, const server_job_t* job);
 
 ssize_t     server_send(const client_t* client, const void* buf, size_t len);
 ssize_t     server_recv(const client_t* client, void* buf, size_t len);

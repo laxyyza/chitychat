@@ -25,7 +25,7 @@ server_msg_to_json(const dbmsg_t* dbmsg, json_object* json)
 }
 
 const char* 
-server_group_create(server_t* server, client_t* client, json_object* payload, 
+server_group_create(server_thread_t* th, client_t* client, json_object* payload, 
         json_object* respond_json)
 {
     json_object* name_json = json_object_object_get(payload, "name");
@@ -36,7 +36,7 @@ server_group_create(server_t* server, client_t* client, json_object* payload,
     new_group.owner_id = client->dbuser->user_id;
     strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
 
-    if (!server_db_insert_group(server, &new_group))
+    if (!server_db_insert_group(&th->db, &new_group))
     {
         return "Failed to create group";
     }
@@ -51,7 +51,7 @@ server_group_create(server_t* server, client_t* client, json_object* payload,
     json_object* group_array_json = json_object_object_get(respond_json, 
                 "groups");
 
-    dbgroup_t* g = server_db_get_group(server, new_group.group_id);
+    dbgroup_t* g = server_db_get_group(&th->db, new_group.group_id);
     json_object* group_json = json_object_new_object();
     json_object_object_add(group_json, "id", 
             json_object_new_int(g->group_id));
@@ -61,8 +61,8 @@ server_group_create(server_t* server, client_t* client, json_object* payload,
             json_object_new_string(g->desc));
 
     u32 n_members;
-    dbuser_t* gmembers = server_db_get_group_members(server, 
-                g->group_id, &n_members);
+    dbuser_t* gmembers = server_db_get_group_members(&th->db, 
+                                                     g->group_id, &n_members);
     
     json_object_object_add(group_json, "members_id",    
             json_object_new_array_ext(n_members));
@@ -88,12 +88,12 @@ server_group_create(server_t* server, client_t* client, json_object* payload,
 }
 
 const char* 
-server_client_groups(server_t* server, client_t* client, json_object* respond_json) 
+server_client_groups(server_thread_t* th, client_t* client, json_object* respond_json) 
 {
     dbgroup_t* groups;
     u32 n_groups;
 
-    groups = server_db_get_user_groups(server, client->dbuser->user_id, 
+    groups = server_db_get_user_groups(&th->db, client->dbuser->user_id, 
             &n_groups);
 
     if (!groups)
@@ -118,7 +118,7 @@ server_client_groups(server_t* server, client_t* client, json_object* respond_js
                 json_object_new_string(g->desc));
 
         u32 n_members;
-        dbuser_t* gmembers = server_db_get_group_members(server, 
+        dbuser_t* gmembers = server_db_get_group_members(&th->db, 
                 g->group_id, &n_members);
         
         json_object_object_add(group_json, "members_id", 
@@ -146,10 +146,10 @@ server_client_groups(server_t* server, client_t* client, json_object* respond_js
 }
 
 const char* 
-server_get_all_groups(server_t* server, client_t* client, json_object* respond_json)
+server_get_all_groups(server_thread_t* th, client_t* client, json_object* respond_json)
 {
     u32 n_groups;
-    dbgroup_t* groups = server_db_get_all_groups(server, &n_groups);
+    dbgroup_t* groups = server_db_get_all_groups(&th->db, &n_groups);
     if (!groups)
         return "Failed to get groups";
 
@@ -184,19 +184,19 @@ server_get_all_groups(server_t* server, client_t* client, json_object* respond_j
 }
 
 const char* 
-server_join_group(server_t* server, client_t* client, 
+server_join_group(server_thread_t* th, client_t* client, 
         json_object* payload, json_object* respond_json)
 {
     json_object* group_id_json = json_object_object_get(payload, 
             "group_id");
     const u64 group_id = json_object_get_int(group_id_json);
 
-    dbgroup_t* group = server_db_get_group(server, group_id);
+    dbgroup_t* group = server_db_get_group(&th->db, group_id);
     if (!group)
         return "Group not found";
 
-    if (!server_db_insert_group_member(server, group->group_id, 
-            client->dbuser->user_id))
+    if (!server_db_insert_group_member(&th->db, group->group_id, 
+                                       client->dbuser->user_id))
         return "Failed to join";
 
     json_object_object_add(respond_json, "type", 
@@ -216,8 +216,8 @@ server_join_group(server_t* server, client_t* client,
             json_object_new_string(group->desc));
 
     u32 n_members;
-    dbuser_t* gmembers = server_db_get_group_members(server, 
-            group->group_id, &n_members);
+    dbuser_t* gmembers = server_db_get_group_members(&th->db, 
+                                                     group->group_id, &n_members);
 
     json_object_object_add(group_json, "members_id", 
             json_object_new_array_ext(n_members));
@@ -235,7 +235,7 @@ server_join_group(server_t* server, client_t* client,
     for (u32 m = 0; m < n_members; m++)
     {
         const dbuser_t* member = gmembers + m;
-        const client_t* member_client = server_get_client_user_id(server, 
+        const client_t* member_client = server_get_client_user_id(th->server, 
                 member->user_id);
 
         if (member_client && member_client != client)
@@ -262,7 +262,7 @@ server_join_group(server_t* server, client_t* client,
 }
 
 const char*
-server_get_send_group_msg(server_t* server, 
+server_get_send_group_msg(server_thread_t* th, 
                 const dbmsg_t* dbmsg, const u32 group_id)
 {
     json_object* respond_json;
@@ -271,7 +271,7 @@ server_get_send_group_msg(server_t* server,
 
     respond_json = json_object_new_object();
 
-    gmemebrs = server_db_get_group_members(server, group_id, 
+    gmemebrs = server_db_get_group_members(&th->db, group_id, 
                                                     &n_memebrs);
     if (!gmemebrs)
         return "Failed to get group members";
@@ -282,7 +282,7 @@ server_get_send_group_msg(server_t* server,
     for (size_t i = 0; i < n_memebrs; i++)
     {
         const dbuser_t* member = gmemebrs + i;
-        const client_t* member_client = server_get_client_user_id(server, 
+        const client_t* member_client = server_get_client_user_id(th->server, 
                 member->user_id);
 
         // If member_client is not NULL it means they are online.
@@ -298,7 +298,7 @@ server_get_send_group_msg(server_t* server,
 }
 
 const char* 
-server_group_msg(server_t* server, client_t* client, 
+server_group_msg(server_thread_t* th, client_t* client, 
             json_object* payload, UNUSED json_object* respond_json)
 {
     json_object* group_id_json = json_object_object_get(payload, 
@@ -320,14 +320,14 @@ server_group_msg(server_t* server, client_t* client,
 
     if (len == 0)
     {
-        if (!server_db_insert_msg(server, &new_msg))
+        if (!server_db_insert_msg(&th->db, &new_msg))
             return "Failed to send message";
 
-        return server_get_send_group_msg(server, &new_msg, group_id);
+        return server_get_send_group_msg(th, &new_msg, group_id);
     }
     else
     {
-        upload_token_t* ut = server_new_upload_token_attach(server, &new_msg);
+        upload_token_t* ut = server_new_upload_token_attach(th->server, &new_msg);
         ut->msg_state.msg.attachments_json = json_object_get(attachments_json);
         ut->msg_state.total = len;
 
@@ -338,7 +338,7 @@ server_group_msg(server_t* server, client_t* client,
 }
 
 const char* 
-get_group_msgs(server_t* server, client_t* client, json_object* payload, 
+get_group_msgs(server_thread_t* th, client_t* client, json_object* payload, 
                     json_object* respond_json)
 {
     json_object* limit_json;
@@ -360,7 +360,7 @@ get_group_msgs(server_t* server, client_t* client, json_object* payload,
     limit = (limit_json) ? json_object_get_int(limit_json) : -1;
     offset = (offset_json) ? json_object_get_int(offset_json) : 0;
 
-    msgs = server_db_get_msgs_from_group(server, group_id, limit, 
+    msgs = server_db_get_msgs_from_group(&th->db, group_id, limit, 
             offset, &n_msgs);
 
     json_object_object_add(respond_json, "type", 

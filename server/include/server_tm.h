@@ -3,6 +3,9 @@
 
 #include "common.h"
 #include <pthread.h>
+#include "server_db.h"
+
+#define THREAD_NAME_LEN 32
 
 typedef struct server_job
 {
@@ -20,8 +23,17 @@ typedef struct
 
 typedef struct 
 {
+    pthread_t   pth;
+    pid_t       tid;
+    server_db_t db;
+    server_t*   server;
+    char name[THREAD_NAME_LEN];
+} server_thread_t;
+
+typedef struct 
+{
     server_queue_t  q;
-    pthread_t*      threads;
+    server_thread_t* threads;
     size_t          n_threads;
     u8              shutdown;
 
@@ -30,6 +42,7 @@ typedef struct
 } server_tm_t;
 
 bool    server_tm_init(server_t* server, size_t n_threads);
+bool    server_tm_init_thread(server_t* server, server_thread_t* th, size_t i);
 void    server_tm_shutdown(server_t* server);
 
 void            server_tm_enq(server_tm_t* tm, i32 fd, u32 ev);

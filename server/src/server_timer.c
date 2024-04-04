@@ -31,7 +31,7 @@ timer_ut(server_t* server, server_timer_t* timer)
 }
 
 enum se_status
-se_timer_read(server_t* server, server_event_t* ev)
+se_timer_read(server_thread_t* th, server_event_t* ev)
 {
     enum se_status ret = SE_OK;
     server_timer_t* timer = ev->data;
@@ -47,10 +47,10 @@ se_timer_read(server_t* server, server_event_t* ev)
     switch (timer->type)
     {
         case TIMER_CLIENT_SESSION:
-            ret = timer_client_session(server, timer);
+            ret = timer_client_session(th->server, timer);
             break;
         case TIMER_UPLOAD_TOKEN:
-            ret = timer_ut(server, timer);
+            ret = timer_ut(th->server, timer);
             break;
         default:
         {

@@ -1,7 +1,8 @@
 #include "server_ws_pld_hdlr.h"
+#include "server_websocket.h"
 
 enum client_recv_status 
-server_ws_handle_text_frame(server_t* server, client_t* client, 
+server_ws_handle_text_frame(server_thread_t* th, client_t* client, 
                             char* buf, size_t buf_len) 
 {
     char* buf_print = strndup(buf, buf_len);
@@ -27,10 +28,10 @@ server_ws_handle_text_frame(server_t* server, client_t* client,
     const char* error_msg = NULL;
 
     if (client->state & CLIENT_STATE_LOGGED_IN)
-        error_msg = server_handle_logged_in_client(server, client, payload, 
+        error_msg = server_handle_logged_in_client(th, client, payload, 
                                                     respond_json, type);
     else
-        error_msg = server_handle_not_logged_in_client(server, client, 
+        error_msg = server_handle_not_logged_in_client(th, client, 
                                             payload, respond_json, type);
 
     if (error_msg)

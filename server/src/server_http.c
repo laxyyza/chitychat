@@ -469,15 +469,15 @@ server_http_url_checks(http_t* http)
 }
 
 static enum client_recv_status 
-server_handle_http_req(server_t* server, client_t* client, http_t* http)
+server_handle_http_req(server_thread_t* th, client_t* client, http_t* http)
 {
 #define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
     enum client_recv_status ret = RECV_OK;
 
     if (!HTTP_CMP_METHOD("GET"))
-        server_handle_http_get(server, client, http);
+        server_handle_http_get(th->server, client, http);
     else if (!HTTP_CMP_METHOD("POST"))
-        server_handle_http_post(server, client, http);
+        server_handle_http_post(th, client, http);
     else
     {
         warn("Need to implement '%s' HTTP request.\n", http->req.method);
@@ -495,7 +495,7 @@ server_handle_http_resp(UNUSED server_t* server, UNUSED client_t* client, UNUSED
 }
 
 enum client_recv_status
-server_handle_http(server_t* server, client_t* client, http_t* http)
+server_handle_http(server_thread_t* th, client_t* client, http_t* http)
 {
     enum client_recv_status ret = RECV_OK;
 
@@ -504,9 +504,9 @@ server_handle_http(server_t* server, client_t* client, http_t* http)
     else
     {
         if (http->type == HTTP_REQUEST)
-            ret = server_handle_http_req(server, client, http);
+            ret = server_handle_http_req(th, client, http);
         else if (http->type == HTTP_RESPOND)
-            ret = server_handle_http_resp(server, client, http);
+            ret = server_handle_http_resp(th->server, client, http);
         else
         {
             warn("Unknown http type: %d. Request or Respond? Ignored.\n", http->type);
@@ -520,7 +520,7 @@ server_handle_http(server_t* server, client_t* client, http_t* http)
 }
 
 enum client_recv_status 
-server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
+server_http_parse(server_thread_t* th, client_t* client, u8* buf, size_t buf_len)
 {
     http_t* http;
     enum client_recv_status ret = RECV_OK;
@@ -535,7 +535,7 @@ server_http_parse(server_t* server, client_t* client, u8* buf, size_t buf_len)
     print_parsed_http(http);
 
     if (!http->buf.missing)
-        ret = server_handle_http(server, client, http);
+        ret = server_handle_http(th, client, http);
 
     return ret;
 }

@@ -2,6 +2,7 @@
 #define _SERVER_EVENTS_H_
 
 #include "common.h"
+#include "server_tm.h"
 
 /*
  *  `se` = "Server Event"
@@ -18,8 +19,8 @@ enum se_status
 
 typedef struct server_event server_event_t;
 
+typedef enum se_status (*se_read_callback_t)(server_thread_t* th, server_event_t* ev);
 typedef enum se_status (*se_close_callback_t)(server_t* server, server_event_t* ev);
-typedef enum se_status (*se_read_callback_t)(server_t* server, server_event_t* ev);
 // TODO: Use server_event_t
 typedef struct server_event
 {
@@ -30,8 +31,8 @@ typedef struct server_event
     se_read_callback_t read;
     se_close_callback_t close;
 
-    struct server_event* next;
-    struct server_event* prev;
+    struct server_event* _Atomic next;
+    struct server_event* _Atomic prev;
 } server_event_t;
 
 server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
@@ -45,8 +46,8 @@ i32 server_ep_delfd(server_t* server, i32 fd);
 i32 server_ep_rearm(server_t* server, i32 fd);
 
 // Handlers 
-enum se_status se_accept_conn(server_t* server, server_event_t* ev);
-enum se_status se_read_client(server_t* server, server_event_t* ev);
+enum se_status se_accept_conn(server_thread_t* th, server_event_t* ev);
+enum se_status se_read_client(server_thread_t* th, server_event_t* ev);
 enum se_status se_close_client(server_t* server, server_event_t* ev);
 
 #endif // _SERVER_EVENTS_H_
