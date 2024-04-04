@@ -16,7 +16,6 @@ server_ws_pong(client_t* client)
 static void 
 server_ws_parse_check_offset(const ws_t* ws, size_t* offset)
 {
-
     if (ws->frame.payload_len == 126)
         *offset += 2;
     else if (ws->frame.payload_len == 127)
@@ -39,58 +38,62 @@ server_ws_parse(server_thread_t* th, client_t* client,
 
     memcpy(&ws.frame, buf, sizeof(ws_frame_t));
 
-    verbose("FIN: %u\n", ws.frame.fin);
-    verbose("RSV1: %u\n", ws.frame.rsv1);
-    verbose("RSV2: %u\n", ws.frame.rsv2);
-    verbose("RSV3: %u\n", ws.frame.rsv3);
-    verbose("MASK: %u\n", ws.frame.mask);
-    verbose("OPCODE: %02X\n", ws.frame.opcode);
-    verbose("PAYLOAD LEN: %u\n", ws.frame.payload_len);
-
+    // Set the payload offset
     server_ws_parse_check_offset(&ws, &offset);
 
     if (ws.frame.payload_len == 126)
     {
         ws.ext.u16 = WS_PAYLOAD_LEN16(buf);
         ws.payload_len = (u16)ws.ext.u16;
-        // offset += 2;
-        verbose("Payload len 16-bit: %zu\n", ws.payload_len);
     }
     else if (ws.frame.payload_len == 127)
     {
         ws.ext.u64 = WS_PAYLOAD_LEN64(buf);
         ws.payload_len = ws.ext.u64;
-        // offset += 8;
-        verbose("Payload len 64-bit\n");
     }
     else
         ws.payload_len   = ws.frame.payload_len;
 
     const size_t total_size = ws.payload_len + offset;
+
     if (total_size < buf_len)
     {
+        /*
+         * If total packet size is less than received buffer size,
+         * that means 2 or more packets in received buffer recv() from client
+         * Calculate the pointer to the next packet in the buffer and its size
+         */
         next_buf = buf + total_size;
         next_size = buf_len - total_size;
     }
     else if (total_size > buf_len)
     {
+        /*
+         * If the total packet size is bigger than the recv buffer size
+         *
+         * allocate a new buffer based on the packet header's payload size,
+         * then copy the current buffer into new buffer 
+         * and set client recv as busy to indicate that the previous recv() is not yet done
+         */        
         u8* new_buf = malloc(total_size);
-        size_t new_offset = buf_len;
         memcpy(new_buf, buf, buf_len);
-        client->recv.busy = true;
 
+        /*
+         * Free the previous buffer and update client recv information
+         */
         free(client->recv.data);
         client->recv.data = new_buf;
         client->recv.data_size = total_size;
-        client->recv.offset = new_offset;
+        client->recv.offset = buf_len;
+        client->recv.busy = true;
 
         return RECV_OK;
     }
 
     if (ws.frame.mask)
     {
+        // Unmask payload
         memcpy(ws.ext.maskkey, buf + (offset - WS_MASKKEY_LEN), WS_MASKKEY_LEN);
-        // offset += WS_MASKKEY_LEN;
         ws.payload = (char*)&buf[offset];
         mask((u8*)ws.payload, ws.payload_len, ws.ext.maskkey, 
             WS_MASKKEY_LEN);
@@ -101,21 +104,17 @@ server_ws_parse(server_thread_t* th, client_t* client,
     switch (ws.frame.opcode)
     {
         case WS_CONTINUE_FRAME:
-            verbose("CONTINUE FRAME: %s\n", ws.payload);
+            warn("Not handled CONTINUE FRAME: %s\n", ws.payload);
             break;
         case WS_TEXT_FRAME:
             ret = server_ws_handle_text_frame(th, client, ws.payload, 
                                         ws.payload_len);
             break;
         case WS_BINARY_FRAME:
-            verbose("BINARY FRAME: %s\n", ws.payload);
+            warn("Not handled binary frame: %s\n", ws.payload);
             break;
         case WS_CLOSE_FRAME:
-        {
-            verbose("CLOSE FRAME: %s\n", ws.payload);
-            //server_del_client(server, client);
             return RECV_DISCONNECT;
-        }
         case WS_PING_FRAME:
         {
             verbose("PING FRAME: %s\n", ws.payload);
@@ -123,18 +122,15 @@ server_ws_parse(server_thread_t* th, client_t* client,
             break;
         }
         case WS_PONG_FRAME:
-            verbose("PONG FRAME: %s\n", ws.payload);
+            warn("Not handled pong frame: %s\n", ws.payload);
             break;
         default:
-            verbose("UNKNOWN FRAME (%u): %s\n", ws.frame.opcode, ws.payload);
+            warn("UNKNOWN FRAME (%u): %s\n", ws.frame.opcode, ws.payload);
             break;
     }
 
     if (next_buf && ret == RECV_OK)
-    {
-        verbose("next_buf: %p, size: %zu\n", next_buf, next_size);
         ret = server_ws_parse(th, client, next_buf, next_size);
-    }
     else
         client->recv.busy = false;
 
@@ -225,8 +221,6 @@ ws_json_send(const client_t* client, json_object* json)
 {
     size_t len;
     const char* string = json_object_to_json_string_length(json, 0, &len);
-
-    verbose("Sending %zu bytes:\n\t%s\n", len, string);
 
     return ws_send(client, string, len);
 }
