@@ -7,7 +7,7 @@
  *  `se` = "Server Event"
  */
 
-#define DEFAULT_EPEV (EPOLLIN | EPOLLRDHUP)
+#define DEFAULT_EPEV (EPOLLIN | EPOLLRDHUP | EPOLLONESHOT)
 
 enum se_status 
 {
@@ -40,8 +40,9 @@ server_event_t* server_new_event(server_t* server, i32 fd, void* data,
 server_event_t* server_get_event(server_t* server, i32 fd);
 void            server_del_event(server_t* server, server_event_t* se);
 
-int server_ep_addfd(server_t* server, i32 fd, u32 events);
-int server_ep_delfd(server_t* server, i32 fd);
+i32 server_ep_addfd(server_t* server, i32 fd);
+i32 server_ep_delfd(server_t* server, i32 fd);
+i32 server_ep_rearm(server_t* server, i32 fd);
 
 // Handlers 
 enum se_status se_accept_conn(server_t* server, server_event_t* ev);

@@ -440,7 +440,7 @@ server_db_get_group_members(server_t* server, u32 group_id, u32* n_ptr)
 {
     PGresult* res;
     dbuser_t* users = NULL;
-    i32 rows;
+    i32 rows = 0;
 
     char group_id_str[50];
     snprintf(group_id_str, 50, "%u", group_id);
@@ -476,10 +476,9 @@ server_db_get_group_members(server_t* server, u32 group_id, u32* n_ptr)
         db_row_to_user(user, res, i);
     }
 
+cleanup:
     if (n_ptr)
         *n_ptr = rows;
-
-cleanup:
     PQclear(res);
     return users;
 }

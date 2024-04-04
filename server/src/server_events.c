@@ -3,21 +3,33 @@
 #include "server.h"
 #include "server_client.h"
 
-i32 
-server_ep_addfd(server_t* server, i32 fd, u32 events)
+static i32
+server_ep_ctl(server_t* server, i32 op, i32 fd)
 {
     i32 ret;
 
     struct epoll_event ev = {
         .data.fd = fd,
-        .events = events
+        .events = DEFAULT_EPEV
     };
 
-    ret = epoll_ctl(server->epfd, EPOLL_CTL_ADD, fd, &ev);
+    ret = epoll_ctl(server->epfd, op, fd, &ev);
     if (ret == -1)
-        error("epoll_ctl ADD fd:%d: %s\n", fd, ERRSTR);
+        error("epoll_ctl op:%d, fd:%d\n", op, fd);
 
     return ret;
+}
+
+i32 
+server_ep_rearm(server_t* server, i32 fd)
+{
+    return server_ep_ctl(server, EPOLL_CTL_MOD, fd);
+}
+
+i32 
+server_ep_addfd(server_t* server, i32 fd)
+{
+    return server_ep_ctl(server, EPOLL_CTL_ADD, fd);
 }
 
 i32 
@@ -169,7 +181,6 @@ server_new_event(server_t* server, i32 fd, void* data,
 {
     server_event_t* se;
     server_event_t* head_next;
-    u32 listen_events = DEFAULT_EPEV;
 
     if (!server || !read_callback || (data && !close_callback))
     {
@@ -179,7 +190,7 @@ server_new_event(server_t* server, i32 fd, void* data,
     }
     
     se = calloc(1, sizeof(server_event_t));
-    if (server_ep_addfd(server, fd, listen_events) == -1)
+    if (server_ep_addfd(server, fd) == -1)
     {
         free(se);
         error("ep_addfd %d failed\n", fd);
@@ -189,7 +200,7 @@ server_new_event(server_t* server, i32 fd, void* data,
     se->data = data;
     se->read = read_callback;
     se->close = close_callback;
-    se->listen_events = listen_events;
+    se->listen_events = DEFAULT_EPEV;
 
     if (server->se_head == NULL)
     {

@@ -448,6 +448,9 @@ server_init(int argc, char* const* argv)
     if (!server_init_ssl(server) && server->conf.secure_only)
         goto error;
 
+    if (!server_tm_init(server, 10))
+        goto error;
+
     server->running = true;
 
     return server;
