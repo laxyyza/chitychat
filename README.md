@@ -50,6 +50,7 @@
     * HTTP
     * Web Sockets
     * SSL/TLS
+    * Multi-Threading
 * SQL Database Usage with SQLite3, later PostgreSQL.
 * Frontend Development with JavaScript, HTML, and CSS.
 * Password Security with SHA512 hashing.
