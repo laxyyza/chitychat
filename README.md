@@ -38,7 +38,7 @@
 * **I/O Multiplexing:** Utilizes [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) for efficient I/O.
 * **Database Management:** Uses PostgreSQL for SQL database.
 * **Session Management:** Users receive session IDs for persistent login.
-* **Multi-Threaded:**: Utilizes a thread pool to efficiently manage concurrent events.
+* **Multi-Threaded:** Utilizes a thread pool to efficiently manage concurrent events.
 
 ### Web Server limitations
 * **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
