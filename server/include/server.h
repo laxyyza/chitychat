@@ -45,6 +45,7 @@ typedef struct
     char database[CONFIG_PATH_LEN];
     bool secure_only;
     bool fork;
+    i32  thread_pool;
 
     const char* sql_schema;
     const char* sql_insert_user;

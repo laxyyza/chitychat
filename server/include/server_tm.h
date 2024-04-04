@@ -41,9 +41,10 @@ typedef struct
     pthread_cond_t  cond;
 } server_tm_t;
 
-bool    server_tm_init(server_t* server, size_t n_threads);
+bool    server_tm_init(server_t* server, i32 n_threads);
 bool    server_tm_init_thread(server_t* server, server_thread_t* th, size_t i);
 void    server_tm_shutdown(server_t* server);
+i32     server_tm_system_threads(void);
 
 void            server_tm_enq(server_tm_t* tm, i32 fd, u32 ev);
 server_job_t*   server_tm_deq(server_tm_t* tm);

@@ -1,30 +1,33 @@
 #include "server_init.h"
 #include "server.h"
+#include <json-c/json_object.h>
 
 static json_object* 
 server_default_config(void)
 {
     json_object* config = json_object_new_object();
     json_object_object_add(config, "root_dir", 
-            json_object_new_string("client/public"));
+                           json_object_new_string("client/public"));
     json_object_object_add(config, "img_dir", 
-            json_object_new_string("client/public/upload/imgs"));
+                           json_object_new_string("client/public/upload/imgs"));
     json_object_object_add(config, "vid_dir", 
-            json_object_new_string("client/public/upload/vids"));
+                           json_object_new_string("client/public/upload/vids"));
     json_object_object_add(config, "file_dir", 
-            json_object_new_string("client/public/upload/files"));
+                           json_object_new_string("client/public/upload/files"));
     json_object_object_add(config, "addr_ip", 
-            json_object_new_string("any"));
+                           json_object_new_string("any"));
     json_object_object_add(config, "addr_port", 
-            json_object_new_int(8080));
+                           json_object_new_int(8080));
     json_object_object_add(config, "addr_version", 
-            json_object_new_string("ipv6"));
+                           json_object_new_string("ipv6"));
     json_object_object_add(config, "log_level", 
-            json_object_new_string("debug"));
-    json_object_object_add(config, "database", 
-            json_object_new_string("server/chitychat.db"));
+                           json_object_new_string("debug"));
+    json_object_object_add(config, "database_name", 
+                           json_object_new_string("chitychat"));
     json_object_object_add(config, "secure_only", 
-                json_object_new_boolean(true));
+                           json_object_new_boolean(true));
+    json_object_object_add(config, "thread_pool",
+                           json_object_new_int(-1));
 
     return config;
 }
@@ -52,8 +55,9 @@ print_help(const char* exe_path)
         "  -h, --help\t\t\tShow this message\n"\
         "  -v, --verbose\t\t\tSet log level to verbose\n"\
         "  -p, --port=PORT\t\tPort number to bind\n"\
-        "  -s, --secure_only\t\tOnly use SSL/TLS, if client handshake fails server will close them\n"\
-        "  -d, --database=DATABASE\tDatabase path\n"\
+        "  -s, --secure-only\t\tOnly use SSL/TLS, if client handshake fails server will close them\n"\
+        "  -d, --database-name=NAME\tPostgreSQL database name\n"\
+        "  -T, --thread-pool=N\tSet the number of threads for the thread pool. Use -1 (default) to automatically determine the number based on system threads.\n"
         "  -6, --ipv6\t\t\tUse IPv6\n"\
         "  -4, --ipv4\t\t\tUse IPv4\n",
         exe_path
@@ -68,17 +72,18 @@ server_argv(server_t* server, int argc, char* const* argv)
 
     struct option long_opts[] = {
         {"port", required_argument, NULL, 'p'},
-        {"secure_only", 0, NULL, 's'},
+        {"secure-only", 0, NULL, 's'},
         {"verbose", 0, NULL, 'v'},
         {"database", required_argument, NULL, 'd'},
         {"ipv6", 0, NULL, '6'},
         {"ipv4", 0, NULL, '4'},
         {"fork", 0, NULL, 'f'},
         {"help", 0, NULL, 'h'},
+        {"thread-pool", required_argument, NULL, 'T'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "p:d:sv46hf", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "T:p:d:sv46hf", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
@@ -119,6 +124,9 @@ server_argv(server_t* server, int argc, char* const* argv)
             case 'f':
                 server->conf.fork = true;
                 break;
+            case 'T':
+                server->conf.thread_pool = atoi(optarg);
+                break;
             case '?':
                 error("Unknown or missing argument\n");
                 return false;
@@ -145,6 +153,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     json_object* database;
     json_object* log_level_json;
     json_object* secure_only_json;
+    json_object* thread_pool_json;
     const char* root_dir_str;
     const char* img_dir_str;
     const char* vid_dir_str;
@@ -153,6 +162,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* addr_version_str;
     const char* database_str;
     const char* loglevel_str;
+    const char* thread_pool_str;
     enum server_log_level log_level = SERVER_DEBUG;
     const char* config_path = SERVER_CONFIG_PATH;
 
@@ -244,9 +254,13 @@ server_load_config(server_t* server, int argc, char* const* argv)
     else
         warn("Config: addr_version: \"%s\"? Default to IPv4\n", addr_version_str);
 
-    database = JSON_GET("database");
+    database = JSON_GET("database_name");
     database_str = json_object_get_string(database);
     strncpy(server->conf.database, database_str, CONFIG_PATH_LEN);
+
+    thread_pool_json = JSON_GET("thread_pool");
+    thread_pool_str = json_object_get_string(thread_pool_json);
+    server->conf.thread_pool = atoi(thread_pool_str);
 
     log_level_json = JSON_GET("log_level");
     if (log_level_json)
@@ -305,6 +319,9 @@ server_load_config(server_t* server, int argc, char* const* argv)
     server->conf.sql_delete_msg = "server/sql/delete_msg.sql";
     server->conf.sql_update_user = "server/sql/update_user.sql";
     server->conf.sql_insert_userfiles = "server/sql/insert_userfiles.sql";
+
+    if (server->conf.thread_pool == -1)
+        server->conf.thread_pool = server_tm_system_threads();
 
     return true;
 }
@@ -448,7 +465,7 @@ server_init(int argc, char* const* argv)
     if (!server_init_ssl(server) && server->conf.secure_only)
         goto error;
 
-    if (!server_tm_init(server, 10))
+    if (!server_tm_init(server, server->conf.thread_pool))
         goto error;
 
     server->running = true;
