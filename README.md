@@ -38,12 +38,11 @@
 * **I/O Multiplexing:** Utilizes [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) for efficient I/O.
 * **Database Management:** Uses PostgreSQL for SQL database.
 * **Session Management:** Users receive session IDs for persistent login.
+* **Multi-Threaded:**: Utilizes a thread pool to efficiently manage concurrent events.
 
 ### Web Server limitations
 * **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
-* **Single-Threaded:** Becomes inefficient under heavy user load.
 * **Monolithic Architecture:** Combines web server and chat server functionalities within a single process, requiring recompilation for any server code modifications.
-* **Implemented in C:** Development and implementation may take longer, with potential risks of memory leaks and vulnerabilities.
 
 ### Learning experience
 > Through building Chity Chat, I learned:
