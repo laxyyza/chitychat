@@ -76,8 +76,6 @@ typedef struct
 
 typedef struct 
 {
-    PGconn* conn;
-
     char* schema;
     size_t schema_len;
 
@@ -114,36 +112,44 @@ typedef struct
 
     char* insert_userfiles;
     size_t insert_userfiles_len;
+} server_db_commands_t;
+
+typedef struct 
+{
+    PGconn*                 conn;
+    const server_db_commands_t*   cmd;
 } server_db_t;
 
-bool        server_db_open(server_t* server);
-void        server_db_close(server_t* server);
+bool        server_db_init(server_t* server);
+bool        server_db_open(server_db_t* db);
+void        server_db_free(server_t* server);
+void        server_db_close(server_db_t* db);
 
-dbuser_t*   server_db_get_user_from_id(server_t* server, u32 user_id);
-dbuser_t*   server_db_get_user_from_name(server_t* server, const char* username);
-dbuser_t*   server_db_get_users_from_group(server_t* server, u32 group_id, u32* n);
-bool        server_db_insert_user(server_t* server, dbuser_t* user);
+dbuser_t*   server_db_get_user_from_id(server_db_t* db, u32 user_id);
+dbuser_t*   server_db_get_user_from_name(server_db_t* db, const char* username);
+dbuser_t*   server_db_get_users_from_group(server_db_t* db, u32 group_id, u32* n);
+bool        server_db_insert_user(server_db_t* db, dbuser_t* user);
 
-bool        server_db_update_user(server_t* server, const char* new_username, 
+bool        server_db_update_user(server_db_t* db, const char* new_username, 
 const char* new_displayname, const char* new_pfp_name, const u32 user_id);
 
-dbuser_t*   server_db_get_group_members(server_t* server, u32 group_id, u32* n);
-bool        server_db_user_in_group(server_t* server, u32 group_id, u32 user_id);
-bool        server_db_insert_group_member(server_t* server, u32 group_id, u32 user_id);
+dbuser_t*   server_db_get_group_members(server_db_t* db, u32 group_id, u32* n);
+bool        server_db_user_in_group(server_db_t* db, u32 group_id, u32 user_id);
+bool        server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id);
 
-dbgroup_t*  server_db_get_group(server_t* server, u32 group_id);
-dbgroup_t*  server_db_get_all_groups(server_t* server, u32* n);
-dbgroup_t*  server_db_get_user_groups(server_t* server, u32 user_id, u32* n);
-bool        server_db_insert_group(server_t* server, dbgroup_t* group);
+dbgroup_t*  server_db_get_group(server_db_t* db, u32 group_id);
+dbgroup_t*  server_db_get_all_groups(server_db_t* db, u32* n);
+dbgroup_t*  server_db_get_user_groups(server_db_t* db, u32 user_id, u32* n);
+bool        server_db_insert_group(server_db_t* db, dbgroup_t* group);
 
-dbmsg_t*    server_db_get_msg(server_t* server, u32 msg_id);
-dbmsg_t*    server_db_get_msgs_from_group(server_t* server, u32 group_id, u32 limit, u32 offset, u32* n);
-bool        server_db_insert_msg(server_t* server, dbmsg_t* msg);
+dbmsg_t*    server_db_get_msg(server_db_t* db, u32 msg_id);
+dbmsg_t*    server_db_get_msgs_from_group(server_db_t* db, u32 group_id, u32 limit, u32 offset, u32* n);
+bool        server_db_insert_msg(server_db_t* db, dbmsg_t* msg);
 
-dbuser_file_t*     server_db_select_userfile(server_t* server, const char* hash);
-i32                 server_db_select_userfile_ref_count(server_t* server, const char* hash);
-bool                server_db_insert_userfile(server_t* server, dbuser_file_t* file);
-bool                server_db_delete_userfile(server_t* server, const char* hash);
+dbuser_file_t*     server_db_select_userfile(server_db_t* db, const char* hash);
+i32                 server_db_select_userfile_ref_count(server_db_t* db, const char* hash);
+bool                server_db_insert_userfile(server_db_t* db, dbuser_file_t* file);
+bool                server_db_delete_userfile(server_db_t* db, const char* hash);
 
 void dbmsg_free(dbmsg_t* msg);
 

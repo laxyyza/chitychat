@@ -3,21 +3,33 @@
 #include "server.h"
 #include "server_client.h"
 
-i32 
-server_ep_addfd(server_t* server, i32 fd, u32 events)
+static i32
+server_ep_ctl(server_t* server, i32 op, i32 fd)
 {
     i32 ret;
 
     struct epoll_event ev = {
         .data.fd = fd,
-        .events = events
+        .events = DEFAULT_EPEV
     };
 
-    ret = epoll_ctl(server->epfd, EPOLL_CTL_ADD, fd, &ev);
+    ret = epoll_ctl(server->epfd, op, fd, &ev);
     if (ret == -1)
-        error("epoll_ctl ADD fd:%d: %s\n", fd, ERRSTR);
+        error("epoll_ctl op:%d, fd:%d\n", op, fd);
 
     return ret;
+}
+
+i32 
+server_ep_rearm(server_t* server, i32 fd)
+{
+    return server_ep_ctl(server, EPOLL_CTL_MOD, fd);
+}
+
+i32 
+server_ep_addfd(server_t* server, i32 fd)
+{
+    return server_ep_ctl(server, EPOLL_CTL_ADD, fd);
 }
 
 i32 
@@ -36,9 +48,10 @@ server_ep_delfd(server_t* server, i32 fd)
 }
 
 enum se_status
-se_accept_conn(server_t* server, UNUSED server_event_t* ev)
+se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
 {
     i32 ret;
+    server_t* server = th->server;
     client_t* client = server_new_client(server);
 
     client->addr.len = server->addr_len;
@@ -76,7 +89,7 @@ error:
 }
 
 enum se_status
-se_read_client(server_t* server, server_event_t* ev)
+se_read_client(server_thread_t* th, server_event_t* ev)
 {
     ssize_t bytes_recv;
     u8* buf;
@@ -126,14 +139,16 @@ se_read_client(server_t* server, server_event_t* ev)
         verbose("HTTP recv: %zu/%zu\n", http->buf.total_recv, http->body_len);
         if ((size_t)bytes_recv >= buf_size)
         {
-            server_handle_http(server, client, client->recv.http);
+            server_handle_http(th, client, client->recv.http);
             client->recv.http = NULL;
         }
     }
     else
     {
-        if (client->state & CLIENT_STATE_WEBSOCKET) recv_status = server_ws_parse(server, client, buf, bytes_recv + offset); else
-            recv_status = server_http_parse(server, client, buf, bytes_recv);
+        if (client->state & CLIENT_STATE_WEBSOCKET) 
+            recv_status = server_ws_parse(th, client, buf, bytes_recv + offset); 
+        else
+            recv_status = server_http_parse(th, client, buf, bytes_recv);
     }
 
     if (recv_status != RECV_DISCONNECT && !client->recv.busy)
@@ -157,7 +172,7 @@ se_read_client(server_t* server, server_event_t* ev)
 }
 
 enum se_status
-se_close_client(server_t *server, server_event_t *ev)
+se_close_client(server_t* server, server_event_t *ev)
 {
     server_free_client(server, ev->data);
     return SE_OK;
@@ -169,7 +184,6 @@ server_new_event(server_t* server, i32 fd, void* data,
 {
     server_event_t* se;
     server_event_t* head_next;
-    u32 listen_events = DEFAULT_EPEV;
 
     if (!server || !read_callback || (data && !close_callback))
     {
@@ -179,7 +193,7 @@ server_new_event(server_t* server, i32 fd, void* data,
     }
     
     se = calloc(1, sizeof(server_event_t));
-    if (server_ep_addfd(server, fd, listen_events) == -1)
+    if (server_ep_addfd(server, fd) == -1)
     {
         free(se);
         error("ep_addfd %d failed\n", fd);
@@ -189,7 +203,7 @@ server_new_event(server_t* server, i32 fd, void* data,
     se->data = data;
     se->read = read_callback;
     se->close = close_callback;
-    se->listen_events = listen_events;
+    se->listen_events = DEFAULT_EPEV;
 
     if (server->se_head == NULL)
     {

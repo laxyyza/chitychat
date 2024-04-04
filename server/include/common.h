@@ -1,6 +1,8 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_  
 
+#define _GNU_SOURCE
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

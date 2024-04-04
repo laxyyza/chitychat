@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "server_client.h"
+#include "server_tm.h"
 #include <json-c/json.h>
 
                                     //      Opcode
@@ -96,7 +97,7 @@ typedef struct
     char* payload;
 } ws_t;
 
-enum client_recv_status server_ws_parse(server_t* server, client_t* client, u8* buf, size_t buf_len);
+enum client_recv_status server_ws_parse(server_thread_t* th, client_t* client, u8* buf, size_t buf_len);
 ssize_t ws_send(const client_t* client, const char* buf, size_t len);
 ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey);
 ssize_t ws_json_send(const client_t* client, json_object* json);

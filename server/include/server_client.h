@@ -43,8 +43,8 @@ typedef struct client
     recv_buf_t recv;
     bool secure;
 
-    struct client* next;
-    struct client* prev;
+    struct client* _Atomic next;
+    struct client* _Atomic prev;
 } client_t;
 
 client_t*   server_new_client(server_t* server);

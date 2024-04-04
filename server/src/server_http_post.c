@@ -48,7 +48,7 @@ server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
 }
 
 static void 
-server_handle_user_pfp_update(server_t* server, client_t* client, const http_t* http, u32 user_id)
+server_handle_user_pfp_update(server_thread_t* th, client_t* client, const http_t* http, u32 user_id)
 {
     http_t* resp = NULL;
     dbuser_t* user;
@@ -62,7 +62,7 @@ server_handle_user_pfp_update(server_t* server, client_t* client, const http_t* 
         goto respond;
     }
 
-    user = server_db_get_user_from_id(server, user_id);
+    user = server_db_get_user_from_id(&th->db, user_id);
     if (!user)
     {
         warn("User %u not found.\n", user_id);
@@ -73,16 +73,16 @@ server_handle_user_pfp_update(server_t* server, client_t* client, const http_t* 
 
     dbuser_file_t file;
 
-    if (server_save_file_img(server, http->body, http->body_len, filename, &file))
+    if (server_save_file_img(th, http->body, http->body_len, filename, &file))
     {
-        if (!server_db_update_user(server, NULL, NULL, file.hash, user_id))
+        if (!server_db_update_user(&th->db, NULL, NULL, file.hash, user_id))
             failed = true;
         else
         {
-            dbuser_file_t* dbfile = server_db_select_userfile(server, user->pfp_hash);
+            dbuser_file_t* dbfile = server_db_select_userfile(&th->db, user->pfp_hash);
             if (dbfile)
             {
-                server_delete_file(server, dbfile);
+                server_delete_file(th, dbfile);
                 free(dbfile);
             }
             else
@@ -108,7 +108,7 @@ respond:
 }
 
 static void 
-server_handle_msg_attach(server_t* server, client_t* client, const http_t* http, 
+server_handle_msg_attach(server_thread_t* th, client_t* client, const http_t* http, 
             upload_token_t* ut)
 {
     http_t* resp = NULL;
@@ -148,7 +148,7 @@ server_handle_msg_attach(server_t* server, client_t* client, const http_t* http,
         name = json_object_get_string(name_json);
         dbuser_file_t file;
 
-        if (server_save_file_img(server, http->body, http->body_len, name, &file))
+        if (server_save_file_img(th, http->body, http->body_len, name, &file))
         {
             json_object_object_add(attach_json, "hash",
                     json_object_new_string(file.hash));
@@ -158,10 +158,10 @@ server_handle_msg_attach(server_t* server, client_t* client, const http_t* http,
             {
                 msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
 
-                if (server_db_insert_msg(server, msg))
-                    server_get_send_group_msg(server, msg, msg->group_id);
+                if (server_db_insert_msg(&th->db, msg))
+                    server_get_send_group_msg(th, msg, msg->group_id);
 
-                server_del_upload_token(server, ut);
+                server_del_upload_token(th->server, ut);
             }
         }
     }
@@ -178,8 +178,9 @@ respond:
 
 
 void 
-server_handle_http_post(server_t* server, client_t* client, const http_t* http)
+server_handle_http_post(server_thread_t* th, client_t* client, const http_t* http)
 {
+    server_t* server = th->server;
     http_t* resp = NULL;
     u32 user_id;
     upload_token_t* ut = NULL;
@@ -195,11 +196,11 @@ server_handle_http_post(server_t* server, client_t* client, const http_t* http)
     if (ut->type == UT_USER_PFP)
     {
         free(ut);
-        server_handle_user_pfp_update(server, client, http, user_id);
+        server_handle_user_pfp_update(th, client, http, user_id);
     }
     else if (ut->type == UT_MSG_ATTACHMENT)
     {
-        server_handle_msg_attach(server, client, http, ut);
+        server_handle_msg_attach(th, client, http, ut);
     }
     else
     {

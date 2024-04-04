@@ -1,6 +1,7 @@
 #include "server_websocket.h"
 #include "server.h"
 #include "server_ws_pld_hdlr.h"
+#include <openssl/ssl.h>
 #include <sys/uio.h>
 
 ssize_t 
@@ -26,7 +27,7 @@ server_ws_parse_check_offset(const ws_t* ws, size_t* offset)
 }
 
 enum client_recv_status 
-server_ws_parse(server_t* server, client_t* client, 
+server_ws_parse(server_thread_t* th, client_t* client, 
                 u8* buf, size_t buf_len)
 {
     ws_t ws;
@@ -103,7 +104,7 @@ server_ws_parse(server_t* server, client_t* client,
             verbose("CONTINUE FRAME: %s\n", ws.payload);
             break;
         case WS_TEXT_FRAME:
-            ret = server_ws_handle_text_frame(server, client, ws.payload, 
+            ret = server_ws_handle_text_frame(th, client, ws.payload, 
                                         ws.payload_len);
             break;
         case WS_BINARY_FRAME:
@@ -132,7 +133,7 @@ server_ws_parse(server_t* server, client_t* client,
     if (next_buf && ret == RECV_OK)
     {
         verbose("next_buf: %p, size: %zu\n", next_buf, next_size);
-        ret = server_ws_parse(server, client, next_buf, next_size);
+        ret = server_ws_parse(th, client, next_buf, next_size);
     }
     else
         client->recv.busy = false;

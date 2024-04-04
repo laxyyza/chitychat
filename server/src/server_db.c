@@ -1,6 +1,7 @@
 #include "server_db.h"
 #include "server.h"
 #include "common.h"
+#include <libpq-fe.h>
 
 static char* 
 server_db_load_sql(const char* path, size_t* size)
@@ -40,8 +41,8 @@ server_db_load_sql(const char* path, size_t* size)
     return buffer;
 }
 
-static i32 
-db_exec_sql(server_t* server, const char* sql)
+UNUSED static i32 
+db_exec_sql(server_db_t* db, const char* sql)
 {
     i32 ret = 0;
     PGresult* res;
@@ -52,7 +53,7 @@ db_exec_sql(server_t* server, const char* sql)
         return -1;
     }
 
-    res = PQexec(server->db.conn, sql);
+    res = PQexec(db->conn, sql);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         debug("Executing SQL:\n%s\n==================== Done\n", sql);
@@ -73,17 +74,50 @@ db_notice_processor(UNUSED void* arg, const char* msg)
 }
 
 bool 
-server_db_open(server_t* server)
+server_db_init(server_t* server)
+{
+    server_db_commands_t* cmd;
+
+    cmd = &server->db_commands;
+
+    cmd->schema = server_db_load_sql(server->conf.sql_schema, &cmd->schema_len);
+
+    cmd->insert_user = server_db_load_sql(server->conf.sql_insert_user, &cmd->insert_user_len);
+    cmd->select_user = server_db_load_sql(server->conf.sql_select_user, &cmd->select_user_len);
+    cmd->delete_user = server_db_load_sql(server->conf.sql_delete_user, &cmd->delete_user_len);
+
+    cmd->insert_group = server_db_load_sql(server->conf.sql_insert_group, &cmd->insert_group_len);
+    cmd->select_group = server_db_load_sql(server->conf.sql_select_group, &cmd->select_group_len);
+    cmd->delete_group = server_db_load_sql(server->conf.sql_delete_group, &cmd->delete_group_len);
+
+    cmd->insert_groupmember = server_db_load_sql(server->conf.sql_insert_groupmember, &cmd->insert_groupmember_len);
+    cmd->select_groupmember = server_db_load_sql(server->conf.sql_select_groupmember, &cmd->select_groupmember_len);
+    cmd->delete_groupmember = server_db_load_sql(server->conf.sql_delete_groupmember, &cmd->delete_groupmember_len);
+
+    cmd->insert_msg = server_db_load_sql(server->conf.sql_insert_msg, &cmd->insert_msg_len);
+    cmd->select_msg = server_db_load_sql(server->conf.sql_select_msg, &cmd->select_msg_len);
+    cmd->delete_msg = server_db_load_sql(server->conf.sql_delete_msg, &cmd->delete_msg_len);
+
+    cmd->update_user = server_db_load_sql(server->conf.sql_update_user, &cmd->delete_msg_len);
+    cmd->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &cmd->insert_userfiles_len);
+
+    //if (db_exec_sql(, cmd->schema) == -1)
+        //return false;
+
+    return true;
+}
+
+bool
+server_db_open(server_db_t* db)
 {
     const char* dbname = "chitychat";
     char user[SYSTEM_USERNAME_LEN];
     char conninfo[DB_CONNINTO_LEN];
 
     getlogin_r(user, SYSTEM_USERNAME_LEN);
-    
+
     snprintf(conninfo, DB_CONNINTO_LEN, "dbname=%s user=%s", dbname, user);
-    
-    server_db_t* db = &server->db;
+
     db->conn = PQconnectdb(conninfo);
     if (PQstatus(db->conn) != CONNECTION_OK)
     {
@@ -92,64 +126,47 @@ server_db_open(server_t* server)
         return false;
     }
 
-    PQsetNoticeProcessor(server->db.conn, db_notice_processor, NULL);
-
-    db->schema = server_db_load_sql(server->conf.sql_schema, &db->schema_len);
-
-    db->insert_user = server_db_load_sql(server->conf.sql_insert_user, &db->insert_user_len);
-    db->select_user = server_db_load_sql(server->conf.sql_select_user, &db->select_user_len);
-    db->delete_user = server_db_load_sql(server->conf.sql_delete_user, &db->delete_user_len);
-
-    db->insert_group = server_db_load_sql(server->conf.sql_insert_group, &db->insert_group_len);
-    db->select_group = server_db_load_sql(server->conf.sql_select_group, &db->select_group_len);
-    db->delete_group = server_db_load_sql(server->conf.sql_delete_group, &db->delete_group_len);
-
-    db->insert_groupmember = server_db_load_sql(server->conf.sql_insert_groupmember, &db->insert_groupmember_len);
-    db->select_groupmember = server_db_load_sql(server->conf.sql_select_groupmember, &db->select_groupmember_len);
-    db->delete_groupmember = server_db_load_sql(server->conf.sql_delete_groupmember, &db->delete_groupmember_len);
-
-    db->insert_msg = server_db_load_sql(server->conf.sql_insert_msg, &db->insert_msg_len);
-    db->select_msg = server_db_load_sql(server->conf.sql_select_msg, &db->select_msg_len);
-    db->delete_msg = server_db_load_sql(server->conf.sql_delete_msg, &db->delete_msg_len);
-
-    db->update_user = server_db_load_sql(server->conf.sql_update_user, &db->delete_msg_len);
-    db->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &db->insert_userfiles_len);
-
-    if (db_exec_sql(server, db->schema) == -1)
-        return false;
+    PQsetNoticeProcessor(db->conn, db_notice_processor, NULL);
 
     return true;
 }
 
 void 
-server_db_close(server_t* server)
+server_db_free(server_t* server)
 {
     if (!server)
         return;
 
-    server_db_t* db = &server->db;
+    server_db_commands_t* cmd = &server->db_commands;
 
-    free(db->schema);
+    free(cmd->schema);
 
-    free(db->insert_user);
-    free(db->select_user);
-    free(db->delete_user);
+    free(cmd->insert_user);
+    free(cmd->select_user);
+    free(cmd->delete_user);
 
-    free(db->insert_group);
-    free(db->select_group);
-    free(db->delete_group);
+    free(cmd->insert_group);
+    free(cmd->select_group);
+    free(cmd->delete_group);
 
-    free(db->insert_groupmember);
-    free(db->select_groupmember);
-    free(db->delete_groupmember);
+    free(cmd->insert_groupmember);
+    free(cmd->select_groupmember);
+    free(cmd->delete_groupmember);
 
-    free(db->insert_msg);
-    free(db->select_msg);
-    free(db->delete_msg);
+    free(cmd->insert_msg);
+    free(cmd->select_msg);
+    free(cmd->delete_msg);
 
-    free(db->update_user);
-    free(db->insert_userfiles);
-    
+    free(cmd->update_user);
+    free(cmd->insert_userfiles);
+}
+
+void 
+server_db_close(server_db_t* db)
+{
+    if (!db)
+        return;
+
     PQfinish(db->conn);
 }
 
@@ -287,9 +304,8 @@ db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
 }
 
 dbuser_t* 
-server_db_get_user(server_t* server, u32 user_id, const char* username_to) 
+server_db_get_user(server_db_t* db, u32 user_id, const char* username_to) 
 {
-    server_db_t* db = &server->db;
     PGresult* res;
     dbuser_t* user = NULL;
     ExecStatusType status_type;
@@ -308,7 +324,7 @@ server_db_get_user(server_t* server, u32 user_id, const char* username_to)
 
     int formats[2] = {0, 0};
 
-    res = PQexecParams(db->conn, db->select_user, 2, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->select_user, 2, NULL, vals, lens, formats, 0);
     status_type = PQresultStatus(res);
     if (status_type != PGRES_TUPLES_OK)
     {
@@ -334,26 +350,26 @@ cleanup:
 }
 
 dbuser_t* 
-server_db_get_user_from_id(server_t* server, u32 user_id)
+server_db_get_user_from_id(server_db_t* db, u32 user_id)
 {
-    return server_db_get_user(server, user_id, "");
+    return server_db_get_user(db, user_id, "");
 }
 
 dbuser_t* 
-server_db_get_user_from_name(server_t* server, const char* username)
+server_db_get_user_from_name(server_db_t* db, const char* username)
 {
-    return server_db_get_user(server, -1, username);
+    return server_db_get_user(db, -1, username);
 }
 
 dbuser_t* 
-server_db_get_users_from_group(UNUSED server_t* server, UNUSED u32 group_id, UNUSED u32* n)
+server_db_get_users_from_group(UNUSED server_db_t* db, UNUSED u32 group_id, UNUSED u32* n)
 {
     debug("Implement server_db_get_users_from_group()!\n");
     return NULL;
 }
 
 bool 
-server_db_insert_user(server_t* server, dbuser_t* user)
+server_db_insert_user(server_db_t* db, dbuser_t* user)
 {
     bool ret = true;
     PGresult* res;
@@ -379,7 +395,7 @@ server_db_insert_user(server_t* server, dbuser_t* user)
         SERVER_SALT_SIZE
     };
 
-    res = PQexecParams(server->db.conn, server->db.insert_user, 5, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->insert_user, 5, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed insert_user: %s\n", 
@@ -393,7 +409,7 @@ server_db_insert_user(server_t* server, dbuser_t* user)
 }
 
 bool 
-server_db_update_user(server_t* server, const char* new_username,
+server_db_update_user(server_db_t* db, const char* new_username,
                            const char* new_displayname,
                            const char* new_hash_name, const u32 user_id) 
 {
@@ -422,7 +438,7 @@ server_db_update_user(server_t* server, const char* new_username,
         strlen(user_id_str)
     };
 
-    res = PQexecParams(server->db.conn, server->db.update_user, 7, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->update_user, 7, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed for update_user: %s\n", 
@@ -436,11 +452,11 @@ server_db_update_user(server_t* server, const char* new_username,
 }
 
 dbuser_t* 
-server_db_get_group_members(server_t* server, u32 group_id, u32* n_ptr)
+server_db_get_group_members(server_db_t* db, u32 group_id, u32* n_ptr)
 {
     PGresult* res;
     dbuser_t* users = NULL;
-    i32 rows;
+    i32 rows = 0;
 
     char group_id_str[50];
     snprintf(group_id_str, 50, "%u", group_id);
@@ -455,7 +471,7 @@ server_db_get_group_members(server_t* server, u32 group_id, u32* n_ptr)
         0
     };
 
-    res = PQexecParams(server->db.conn, server->db.select_groupmember, 1, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->select_groupmember, 1, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PQexecParams() failed for select_groupmembers: %s\n",
@@ -476,23 +492,22 @@ server_db_get_group_members(server_t* server, u32 group_id, u32* n_ptr)
         db_row_to_user(user, res, i);
     }
 
+cleanup:
     if (n_ptr)
         *n_ptr = rows;
-
-cleanup:
     PQclear(res);
     return users;
 }
 
 bool 
-server_db_user_in_group(UNUSED server_t* server, UNUSED u32 group_id, UNUSED u32 user_id)
+server_db_user_in_group(UNUSED server_db_t* db, UNUSED u32 group_id, UNUSED u32 user_id)
 {
     debug("Implement or remove server_db_user_in_group()\n");
     return false;
 }
 
 bool 
-server_db_insert_group_member(server_t* server, u32 group_id, u32 user_id)
+server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id)
 {
     PGresult* res;
     bool ret = true;
@@ -516,7 +531,7 @@ server_db_insert_group_member(server_t* server, u32 group_id, u32 user_id)
         strlen(group_id_str)
     };
 
-    res = PQexecParams(server->db.conn, server->db.insert_groupmember, 2, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->insert_groupmember, 2, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed for insert_groupmember: %s\n",
@@ -530,7 +545,7 @@ server_db_insert_group_member(server_t* server, u32 group_id, u32 user_id)
 }
 
 static dbgroup_t* 
-server_db_get_groups(server_t* server, u32 user_id, u32 group_id, u32* n_ptr)
+server_db_get_groups(server_db_t* db, u32 user_id, u32 group_id, u32* n_ptr)
 {
     PGresult* res;
     i32 rows;
@@ -552,7 +567,7 @@ server_db_get_groups(server_t* server, u32 user_id, u32 group_id, u32* n_ptr)
         strlen(user_id_str)
     };
 
-    res = PQexecParams(server->db.conn, server->db.select_group, 2, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->select_group, 2, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PGexecParams() failed for select_group: %s\n", 
@@ -582,20 +597,20 @@ cleanup:
 }
 
 dbgroup_t* 
-server_db_get_group(server_t* server, u32 group_id)
+server_db_get_group(server_db_t* db, u32 group_id)
 {
-    return server_db_get_groups(server, -1, group_id, NULL);
+    return server_db_get_groups(db, -1, group_id, NULL);
 }
 
 dbgroup_t*  
-server_db_get_all_groups(server_t* server, u32* n_ptr)
+server_db_get_all_groups(server_db_t* db, u32* n_ptr)
 {
     const char* sql = "SELECT * FROM Groups;";
     PGresult* res;
     i32 rows;
     dbgroup_t* groups = NULL;
 
-    res = PQexecParams(server->db.conn, sql, 0, NULL, NULL, NULL, NULL, 0);
+    res = PQexecParams(db->conn, sql, 0, NULL, NULL, NULL, NULL, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PGexecParams() failed for get all groups: %s\n", 
@@ -622,13 +637,13 @@ cleanup:
 }
 
 dbgroup_t* 
-server_db_get_user_groups(server_t* server, u32 user_id, u32* n_ptr)
+server_db_get_user_groups(server_db_t* db, u32 user_id, u32* n_ptr)
 {
-    return server_db_get_groups(server, user_id, -1, n_ptr);
+    return server_db_get_groups(db, user_id, -1, n_ptr);
 }
 
 bool 
-server_db_insert_group(server_t* server, dbgroup_t* group)
+server_db_insert_group(server_db_t* db, dbgroup_t* group)
 {
     PGresult* res;
     bool ret = true;
@@ -653,7 +668,7 @@ server_db_insert_group(server_t* server, dbgroup_t* group)
         strlen(vals[2]),
     };
 
-    res = PQexecParams(server->db.conn, server->db.insert_group, 3, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->insert_group, 3, NULL, vals, lens, formats, 0);
     status_type = PQresultStatus(res);
     if (status_type == PGRES_TUPLES_OK)
     {
@@ -675,7 +690,7 @@ server_db_insert_group(server_t* server, dbgroup_t* group)
 }
 
 static dbmsg_t* 
-server_db_get_msgs(server_t* server, u32 msg_id, u32 group_id, u32 limit, u32 offset, u32* n_ptr)
+server_db_get_msgs(server_db_t* db, u32 msg_id, u32 group_id, u32 limit, u32 offset, u32* n_ptr)
 {
     PGresult* res;
     i32 rows;
@@ -700,7 +715,7 @@ server_db_get_msgs(server_t* server, u32 msg_id, u32 group_id, u32 limit, u32 of
     };
     const i32 formats[4] = {0};
 
-    res = PQexecParams(server->db.conn, server->db.select_msg, 4, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->select_msg, 4, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PGexecParams() failed for select_msg: %s\n",
@@ -727,19 +742,19 @@ cleanup:
 }
 
 dbmsg_t* 
-server_db_get_msg(server_t* server, u32 msg_id)
+server_db_get_msg(server_db_t* db, u32 msg_id)
 {
-    return server_db_get_msgs(server, msg_id, -1, 1, 0, NULL);
+    return server_db_get_msgs(db, msg_id, -1, 1, 0, NULL);
 }
 
 dbmsg_t* 
-server_db_get_msgs_from_group(server_t* server, u32 group_id, u32 limit, u32 offset, u32* n)
+server_db_get_msgs_from_group(server_db_t* db, u32 group_id, u32 limit, u32 offset, u32* n)
 {
-    return server_db_get_msgs(server, -1, group_id, limit, offset, n);
+    return server_db_get_msgs(db, -1, group_id, limit, offset, n);
 }
 
 bool 
-server_db_insert_msg(server_t* server, dbmsg_t* msg)
+server_db_insert_msg(server_db_t* db, dbmsg_t* msg)
 {
     PGresult* res;
     bool ret = true;
@@ -765,7 +780,7 @@ server_db_insert_msg(server_t* server, dbmsg_t* msg)
     };
     const i32 formats[4] = {0};
 
-    res = PQexecParams(server->db.conn, server->db.insert_msg, 4, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->insert_msg, 4, NULL, vals, lens, formats, 0);
     status_type = PQresultStatus(res);
     if (status_type == PGRES_TUPLES_OK)
     {
@@ -790,7 +805,7 @@ server_db_insert_msg(server_t* server, dbmsg_t* msg)
 }
 
 dbuser_file_t* 
-server_db_select_userfile(server_t* server, const char* hash)
+server_db_select_userfile(server_db_t* db, const char* hash)
 {
     PGresult* res;
     i32 rows;
@@ -805,7 +820,7 @@ server_db_select_userfile(server_t* server, const char* hash)
     };
     const i32 formats[1] = {0};
 
-    res = PQexecParams(server->db.conn, sql, 1, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, sql, 1, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PQexecParams() failed for select_userfile: %s\n",
@@ -827,7 +842,7 @@ cleanup:
 }
 
 i32
-server_db_select_userfile_ref_count(server_t* server, const char* hash)
+server_db_select_userfile_ref_count(server_db_t* db, const char* hash)
 {
     PGresult* res;
     i32 rows;
@@ -843,7 +858,7 @@ server_db_select_userfile_ref_count(server_t* server, const char* hash)
     };
     const i32 formats[1] = {0};
 
-    res = PQexecParams(server->db.conn, sql, 1, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, sql, 1, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PQexecParams() failed for select_userfile: %s\n",
@@ -865,7 +880,7 @@ cleanup:
 }
 
 bool        
-server_db_insert_userfile(server_t* server, dbuser_file_t* file)
+server_db_insert_userfile(server_db_t* db, dbuser_file_t* file)
 {
     PGresult* res;
     bool ret = true;
@@ -884,7 +899,7 @@ server_db_insert_userfile(server_t* server, dbuser_file_t* file)
     };
     const i32 formats[3] = {0};
 
-    res = PQexecParams(server->db.conn, server->db.insert_userfiles, 3, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->insert_userfiles, 3, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed for insert_userfiles: %s\n", 
@@ -897,7 +912,7 @@ server_db_insert_userfile(server_t* server, dbuser_file_t* file)
 }
 
 bool        
-server_db_delete_userfile(server_t* server, const char* hash)
+server_db_delete_userfile(server_db_t* db, const char* hash)
 {
     PGresult* res;
     bool ret = false;
@@ -911,7 +926,7 @@ server_db_delete_userfile(server_t* server, const char* hash)
     };
     const i32 formats[1] = {0};
 
-    res = PQexecParams(server->db.conn, sql, 1, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, sql, 1, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed for delete_userfile: %s\n",
@@ -919,7 +934,7 @@ server_db_delete_userfile(server_t* server, const char* hash)
         goto cleanup;
     }
 
-    if (server_db_select_userfile_ref_count(server, hash) <= 0)
+    if (server_db_select_userfile_ref_count(db, hash) <= 0)
         ret = true;
 
 cleanup:
