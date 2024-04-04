@@ -108,9 +108,8 @@ server_db_init(server_t* server)
 }
 
 bool
-server_db_open(server_db_t* db)
+server_db_open(server_db_t* db, const char* dbname)
 {
-    const char* dbname = "chitychat";
     char user[SYSTEM_USERNAME_LEN];
     char conninfo[DB_CONNINTO_LEN];
 

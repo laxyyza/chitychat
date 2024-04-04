@@ -57,7 +57,8 @@ print_help(const char* exe_path)
         "  -p, --port=PORT\t\tPort number to bind\n"\
         "  -s, --secure-only\t\tOnly use SSL/TLS, if client handshake fails server will close them\n"\
         "  -d, --database-name=NAME\tPostgreSQL database name\n"\
-        "  -T, --thread-pool=N\tSet the number of threads for the thread pool. Use -1 (default) to automatically determine the number based on system threads.\n"
+        "  -T, --thread-pool=N\t\tSet the number of threads for the thread pool,\n"\
+        "\t\t\t\tUse -1 (default) to automatically determine the number based on system threads.\n"\
         "  -6, --ipv6\t\t\tUse IPv6\n"\
         "  -4, --ipv4\t\t\tUse IPv4\n",
         exe_path
@@ -74,7 +75,7 @@ server_argv(server_t* server, int argc, char* const* argv)
         {"port", required_argument, NULL, 'p'},
         {"secure-only", 0, NULL, 's'},
         {"verbose", 0, NULL, 'v'},
-        {"database", required_argument, NULL, 'd'},
+        {"database-name", required_argument, NULL, 'd'},
         {"ipv6", 0, NULL, '6'},
         {"ipv4", 0, NULL, '4'},
         {"fork", 0, NULL, 'f'},

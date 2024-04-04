@@ -61,7 +61,7 @@ server_tm_init(server_t* server, i32 n_threads)
 bool
 server_tm_init_thread(server_t* server, server_thread_t* th, size_t i)
 {
-    if (server_db_open(&th->db) == false)
+    if (server_db_open(&th->db, server->conf.database) == false)
         return false;
     th->db.cmd = &server->db_commands;
     th->server = server;
