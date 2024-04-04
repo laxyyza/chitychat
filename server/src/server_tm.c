@@ -34,7 +34,7 @@ tm_worker(void* arg)
 }
 
 bool    
-server_tm_init(server_t* server, i32 n_threads)
+server_init_tm(server_t* server, i32 n_threads)
 {
     server_tm_t* tm = &server->tm;
 

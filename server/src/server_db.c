@@ -74,7 +74,7 @@ db_notice_processor(UNUSED void* arg, const char* msg)
 }
 
 bool 
-server_db_init(server_t* server)
+server_init_db(server_t* server)
 {
     server_db_commands_t* cmd;
 

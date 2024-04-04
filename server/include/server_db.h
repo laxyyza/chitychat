@@ -120,7 +120,7 @@ typedef struct
     const server_db_commands_t*   cmd;
 } server_db_t;
 
-bool        server_db_init(server_t* server);
+bool        server_init_db(server_t* server);
 bool        server_db_open(server_db_t* db, const char* dbname);
 void        server_db_free(server_t* server);
 void        server_db_close(server_db_t* db);

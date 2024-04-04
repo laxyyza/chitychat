@@ -48,7 +48,7 @@ static void
 print_help(const char* exe_path)
 {
     printf(
-"Usage\n"\
+        "Usage\n"\
         "\t%s [options]\n"\
         "Chity Chat server\n"\
         "\nArguments will override config.json\n\n"\
@@ -446,27 +446,36 @@ server_init_ssl(server_t* server)
 server_t*   
 server_init(int argc, char* const* argv)
 {
-    server_t* server = calloc(1, sizeof(server_t));
+    server_t* server;
 
+    server = calloc(1, sizeof(server_t));
+
+    // Load config and command line arguments
     if (!server_load_config(server, argc, argv))
         goto error;
 
+    // Self-Explanatory
     if (!server_init_socket(server))
         goto error;
 
+    // Init Linux's Event Poll
     if (!server_init_epoll(server))
         goto error;
 
-    if (!server_db_init(server))
+    // Init DataBase
+    if (!server_init_db(server))
         goto error;
 
+    // Init libmagic (for file mime types)
     if (!server_init_magic(server))
         goto error;
 
+    // Init OpenSSL
     if (!server_init_ssl(server) && server->conf.secure_only)
         goto error;
 
-    if (!server_tm_init(server, server->conf.thread_pool))
+    // Init Thread Manager
+    if (!server_init_tm(server, server->conf.thread_pool))
         goto error;
 
     server->running = true;
