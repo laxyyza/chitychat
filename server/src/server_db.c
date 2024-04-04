@@ -41,16 +41,16 @@ server_db_load_sql(const char* path, size_t* size)
     return buffer;
 }
 
-UNUSED static i32 
+static bool
 db_exec_sql(server_db_t* db, const char* sql)
 {
-    i32 ret = 0;
+    bool ret = true;
     PGresult* res;
 
     if (!sql)
     {
         warn("db_exec_sql() sql is NULL!\n");
-        return -1;
+        return false;
     }
 
     res = PQexec(db->conn, sql);
@@ -59,7 +59,7 @@ db_exec_sql(server_db_t* db, const char* sql)
         debug("Executing SQL:\n%s\n==================== Done\n", sql);
         error("PQexec() failed: %s\n",
                 PQresultErrorMessage(res));
-        ret = -1;
+        ret = false;
     }
 
     PQclear(res);
@@ -71,6 +71,23 @@ static void
 db_notice_processor(UNUSED void* arg, const char* msg)
 {
     verbose("db: %s", msg);
+}
+
+static bool 
+db_exec_schema(server_t* server)
+{
+    bool ret = true;
+    server_db_t db;
+
+    if (!server_db_open(&db, server->conf.database))
+        ret = false;
+
+    if (ret && !db_exec_sql(&db, server->db_commands.schema))
+        ret = false;
+
+    server_db_close(&db);
+
+    return ret;
 }
 
 bool 
@@ -101,10 +118,7 @@ server_init_db(server_t* server)
     cmd->update_user = server_db_load_sql(server->conf.sql_update_user, &cmd->delete_msg_len);
     cmd->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &cmd->insert_userfiles_len);
 
-    //if (db_exec_sql(, cmd->schema) == -1)
-        //return false;
-
-    return true;
+    return db_exec_schema(server);
 }
 
 bool
