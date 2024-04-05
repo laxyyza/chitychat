@@ -422,8 +422,8 @@ h1, h2, h3 {
 
 #popup_create_group{
     display: none;
-    margin: 0 auto;
-    height: 100%;
+    /* margin: 0 auto; */
+    /* height: 100%; */
     width: 300px;
 }
 
@@ -542,6 +542,11 @@ h1, h2, h3 {
 
 #popup_create_group_button:hover{
     background-color: rgb(0, 255, 0);
+}
+
+#popup_create_group_public{
+    width: 20px;
+    height: 20px;
 }
 
 #close_popup{

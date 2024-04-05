@@ -63,6 +63,7 @@ export class App
         this.add_attachment_button = document.getElementById("msg_upload_button");
         this.popup_image = document.getElementById("popup_image");
         this.current_attachments = [];
+        this.popup_create_group_public = document.getElementById("popup_create_group_public");
 
         this.groups = {};
         this.current_group;
@@ -103,7 +104,7 @@ export class App
         });
 
         this.create_group_button.addEventListener("click", () => {
-            this.start_popup_create_group(400, 200);
+            this.start_popup_create_group(400, 240);
         });
 
         this.join_group_button.addEventListener("click", () => {
@@ -304,9 +305,12 @@ export class App
             if (input.value == "")
                 return;
 
+            const public_group = this.popup_create_group_public.checked;
+
             const packet = {
                 type: "group_create",
-                name: input.value
+                name: input.value,
+                public: public_group
             };
 
             this.server.ws_send(packet);
