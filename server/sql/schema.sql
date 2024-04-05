@@ -1,5 +1,7 @@
 SET CONSTRAINTS ALL DEFERRED;
 
+CREATE EXTENSTION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS UserFiles(
     hash            TEXT PRIMARY KEY UNIQUE,
     size            BIGINT NOT NULL,
@@ -55,6 +57,13 @@ CREATE TABLE IF NOT EXISTS Messages(
     FOREIGN KEY (user_id, group_id) REFERENCES GroupMembers(user_id, group_id),
     FOREIGN KEY (parent_msg_id) REFERENCES Messages(msg_id),
     CHECK (parent_msg_id != msg_id)
+);
+
+CREATE TABLE IF NOT EXISTS GroupCodes(
+    invite_code VARCHAR(8) PRIMARY KEY DEFAULT ENCODE(gen_random_bytes(4), 'hex'),
+    group_id    INT NOT NULL,
+    uses        INT DEFAULT -1,
+    FOREIGN KEY (group_id) REFERENCES Groups(group_id)
 );
 
 CREATE OR REPLACE FUNCTION insert_owner_group_member()

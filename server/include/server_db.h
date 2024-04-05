@@ -16,6 +16,7 @@
 #define DB_PFP_HASH_MAX     SERVER_HASH256_STR_SIZE
 #define DB_PFP_NAME_MAX     NAME_MAX
 #define DB_MIME_TYPE_LEN    32 
+#define DB_GROUP_CODE_MAX   8
 
 #define DB_CONNINTO_LEN     256
 
@@ -79,6 +80,13 @@ typedef struct
 
 typedef struct 
 {
+    char    invite_code[DB_GROUP_CODE_MAX];
+    u32     group_id;
+    i32     uses;
+} dbgroup_code_t;
+
+typedef struct 
+{
     char*   schema;
     size_t  schema_len;
 
@@ -139,8 +147,10 @@ const char* new_displayname, const char* new_pfp_name, const u32 user_id);
 dbuser_t*   server_db_get_group_members(server_db_t* db, u32 group_id, u32* n);
 bool        server_db_user_in_group(server_db_t* db, u32 group_id, u32 user_id);
 bool        server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id);
+bool        server_db_insert_group_member_code(server_db_t* db, u32 invite_code, u32 user_id);
 
 dbgroup_t*  server_db_get_group(server_db_t* db, u32 group_id);
+dbgroup_t*  server_db_get_group_from_invite(server_db_t* db, u32 invite_code);
 dbgroup_t*  server_db_get_all_groups(server_db_t* db, u32* n);
 dbgroup_t*  server_db_get_user_groups(server_db_t* db, u32 user_id, u32* n);
 bool        server_db_insert_group(server_db_t* db, dbgroup_t* group);
@@ -148,6 +158,10 @@ bool        server_db_insert_group(server_db_t* db, dbgroup_t* group);
 dbmsg_t*    server_db_get_msg(server_db_t* db, u32 msg_id);
 dbmsg_t*    server_db_get_msgs_from_group(server_db_t* db, u32 group_id, u32 limit, u32 offset, u32* n);
 bool        server_db_insert_msg(server_db_t* db, dbmsg_t* msg);
+
+dbgroup_code_t* server_db_get_group_code(server_db_t* db, u32 invite_code);
+dbgroup_code_t* server_db_get_all_group_codes(server_db_t* db, u32 group_id, u32* n);
+bool            server_db_insert_group_code(server_db_t* db, dbgroup_code_t* code);
 
 dbuser_file_t*      server_db_select_userfile(server_db_t* db, const char* hash);
 i32                 server_db_select_userfile_ref_count(server_db_t* db, const char* hash);
