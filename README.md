@@ -8,7 +8,7 @@
 
 ### Planned Features
 - [ ] **Private Groups:** Invitation-only groups.
-   - [ ] Mark group as private, only group members can get it.
+   - [X] Mark group as private, only group members can get it.
    - [ ] Create invites/codes to join.
       - [ ] Front-end implementation: Create links/codes, join with code, and links.
          - [ ] Settings on codes/links like expire date and max uses.
