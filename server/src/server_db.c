@@ -375,8 +375,8 @@ server_db_get_user(server_db_t* db, u32 user_id, const char* username_to)
     int rows;
 
     const char* vals[2];
-    char user_id_str[50];
-    snprintf(user_id_str, 50, "%d", user_id);
+    char user_id_str[DB_INTSTR_MAX];
+    snprintf(user_id_str, DB_INTSTR_MAX, "%d", user_id);
     vals[0] = user_id_str;
     vals[1] = username_to;
 
@@ -478,8 +478,8 @@ server_db_update_user(server_db_t* db, const char* new_username,
 {
     PGresult* res;
     bool ret = true;
-    char user_id_str[50];
-    snprintf(user_id_str, 50, "%u", user_id);
+    char user_id_str[DB_INTSTR_MAX];
+    snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id);
 
     const char* vals[7] = {
         (new_username) ? "true" : "false",
@@ -521,8 +521,8 @@ server_db_get_group_members(server_db_t* db, u32 group_id, u32* n_ptr)
     dbuser_t* users = NULL;
     i32 rows = 0;
 
-    char group_id_str[50];
-    snprintf(group_id_str, 50, "%u", group_id);
+    char group_id_str[DB_INTSTR_MAX];
+    snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id);
 
     const char* vals[1] = {
         group_id_str
@@ -575,11 +575,11 @@ server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id)
     PGresult* res;
     bool ret = true;
 
-    char user_id_str[50];
-    char group_id_str[50];
+    char user_id_str[DB_INTSTR_MAX];
+    char group_id_str[DB_INTSTR_MAX];
 
-    snprintf(user_id_str, 50, "%u", user_id);
-    snprintf(group_id_str, 50, "%u", group_id);
+    snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id);
+    snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id);
 
     const char* vals[2] = {
         user_id_str,
@@ -614,11 +614,11 @@ server_db_get_groups(server_db_t* db, u32 user_id, u32 group_id, u32* n_ptr)
     i32 rows;
     dbgroup_t* groups = NULL;
 
-    char user_id_str[50];
-    char group_id_str[50];
+    char user_id_str[DB_INTSTR_MAX];
+    char group_id_str[DB_INTSTR_MAX];
 
-    snprintf(user_id_str, 50, "%d", user_id);
-    snprintf(group_id_str, 50, "%d", group_id);
+    snprintf(user_id_str, DB_INTSTR_MAX, "%d", user_id);
+    snprintf(group_id_str, DB_INTSTR_MAX, "%d", group_id);
 
     const char* vals[2] = {
         group_id_str,
@@ -712,10 +712,10 @@ server_db_insert_group(server_db_t* db, dbgroup_t* group)
     bool ret = true;
     ExecStatusType status_type;
 
-    char owner_id_str[50];
-    snprintf(owner_id_str, 50, "%u", group->owner_id);
-    char flags_id_str[50];
-    snprintf(flags_id_str, 50, "%u", group->flags);
+    char owner_id_str[DB_INTSTR_MAX];
+    snprintf(owner_id_str, DB_INTSTR_MAX, "%u", group->owner_id);
+    char flags_id_str[DB_INTSTR_MAX];
+    snprintf(flags_id_str, DB_INTSTR_MAX, "%u", group->flags);
 
     const char* vals[4] = {
         group->displayname,
@@ -764,16 +764,16 @@ server_db_get_msgs(server_db_t* db, u32 msg_id, u32 group_id, u32 limit, u32 off
     i32 rows;
     dbmsg_t* msgs = NULL;
 
-    char group_id_str[50];
-    char msg_id_str[50];
-    char limit_str[50];
-    char offset_str[50];
+    char group_id_str[DB_INTSTR_MAX];
+    char msg_id_str[DB_INTSTR_MAX];
+    char limit_str[DB_INTSTR_MAX];
+    char offset_str[DB_INTSTR_MAX];
     i32 lens[4];
 
-    lens[0] = snprintf(group_id_str, 50, "%d", group_id);
-    lens[1] = snprintf(msg_id_str, 50, "%d", msg_id);
-    lens[2] = snprintf(limit_str, 50, "%u", limit);
-    lens[3] = snprintf(offset_str, 50, "%u", offset);
+    lens[0] = snprintf(group_id_str, DB_INTSTR_MAX, "%d", group_id);
+    lens[1] = snprintf(msg_id_str, DB_INTSTR_MAX, "%d", msg_id);
+    lens[2] = snprintf(limit_str, DB_INTSTR_MAX, "%u", limit);
+    lens[3] = snprintf(offset_str, DB_INTSTR_MAX, "%u", offset);
 
     const char* vals[4] = {
         group_id_str,
@@ -829,14 +829,14 @@ server_db_insert_msg(server_db_t* db, dbmsg_t* msg)
     i32 lens[4];
     ExecStatusType status_type;
 
-    char user_id_str[50];
-    char group_id_str[50];
+    char user_id_str[DB_INTSTR_MAX];
+    char group_id_str[DB_INTSTR_MAX];
 
     if (!msg->attachments)
         msg->attachments = "[]";
 
-    lens[0] = snprintf(user_id_str, 50, "%d", msg->user_id);
-    lens[1] = snprintf(group_id_str, 50, "%d", msg->group_id);
+    lens[0] = snprintf(user_id_str, DB_INTSTR_MAX, "%d", msg->user_id);
+    lens[1] = snprintf(group_id_str, DB_INTSTR_MAX, "%d", msg->group_id);
     lens[2] = strnlen(msg->content, DB_MESSAGE_MAX);
     lens[3] = strlen(msg->attachments);
 
@@ -918,9 +918,9 @@ server_db_get_all_group_codes(server_db_t* db, u32 group_id, u32* n)
     i32 rows = 0;
     dbgroup_code_t* groupcodes = NULL;
 
-    char group_id_str[50];
+    char group_id_str[DB_INTSTR_MAX];
     const i32 lens[1] = {
-        snprintf(group_id_str, 50, "%u", group_id)
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id)
     };
     const char* vals[1] = {group_id_str};
     const i32 format[1] = {0};
@@ -961,10 +961,10 @@ server_db_insert_group_code(server_db_t* db, dbgroup_code_t* code)
     PGresult* res;
     ExecStatusType status_type;
 
-    char vals[2][50];
+    char vals[2][DB_INTSTR_MAX];
     const i32 lens[2] = {
-        snprintf(vals[0], 50, "%u", code->group_id),
-        snprintf(vals[1], 50, "%d", code->uses)
+        snprintf(vals[0], DB_INTSTR_MAX, "%u", code->group_id),
+        snprintf(vals[1], DB_INTSTR_MAX, "%d", code->uses)
     };
     const i32 formats[2] = {0};
 
@@ -1070,10 +1070,10 @@ server_db_insert_userfile(server_db_t* db, dbuser_file_t* file)
     bool ret = true;
 
     i32 lens[3];
-    char size_str[50];
+    char size_str[DB_INTSTR_MAX];
 
     lens[0] = strnlen(file->hash, DB_PFP_HASH_MAX);
-    lens[1] = snprintf(size_str, 50, "%zu", file->size);
+    lens[1] = snprintf(size_str, DB_INTSTR_MAX, "%zu", file->size);
     lens[2] = strnlen(file->mime_type, DB_MIME_TYPE_LEN);
 
     const char* vals[3] = {

@@ -22,6 +22,8 @@
 
 #define DB_GROUP_PUBLIC     0x01
 
+#define DB_INTSTR_MAX       30
+
 typedef struct 
 {
     u32     user_id;
