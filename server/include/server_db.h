@@ -19,6 +19,8 @@
 
 #define DB_CONNINTO_LEN     256
 
+#define DB_GROUP_PUBLIC     0x01
+
 typedef struct 
 {
     u32     user_id;
@@ -40,6 +42,7 @@ typedef struct
     char    displayname[DB_DISPLAYNAME_MAX];
     char    desc[DB_DESC_MAX];
     i32     flags;
+    char    created_at[DB_TIMESTAMP_MAX];
 } dbgroup_t;
 
 typedef struct 

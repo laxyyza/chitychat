@@ -249,17 +249,40 @@ db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
     char* endptr;
 
     const char* group_id_str = PQgetvalue(res, row, 0);
-    group->group_id = strtoul(group_id_str, &endptr, 10);
+    if (group_id_str)
+        group->group_id = strtoul(group_id_str, &endptr, 10);
+    else
+        warn("group_id_str is NULL\n");
 
     const char* owner_id_str = PQgetvalue(res, row, 1);
-    group->owner_id = strtoul(owner_id_str, &endptr, 10);
+    if (owner_id_str)
+        group->owner_id = strtoul(owner_id_str, &endptr, 10);
+    else
+        warn("owner_id_str is NULL!\n");
 
     const char* name = PQgetvalue(res, row, 2);
-    strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
+    if (name)
+        strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
+    else
+        warn("group displayname is NULL\n");
 
     const char* desc = PQgetvalue(res, row, 3);
     if (desc)
         strncpy(group->desc, desc, DB_DESC_MAX);
+    else
+        warn("group desc is NULL!\n");
+
+    const char* flags_str = PQgetvalue(res, row, 4);
+    if (flags_str)
+        group->flags = strtoul(flags_str, &endptr, 10);
+    else
+        warn("group flags_str is NULL\n");
+
+    const char* created_at = PQgetvalue(res, row, 5);
+    if (created_at)
+        strncpy(group->created_at, created_at, DB_TIMESTAMP_MAX);
+    else
+        warn("group created_at is NULL!\n");
 }
 
 static void 
@@ -664,24 +687,29 @@ server_db_insert_group(server_db_t* db, dbgroup_t* group)
 
     char owner_id_str[50];
     snprintf(owner_id_str, 50, "%u", group->owner_id);
+    char flags_id_str[50];
+    snprintf(flags_id_str, 50, "%u", group->flags);
 
-    const char* vals[3] = {
+    const char* vals[4] = {
         group->displayname,
         group->desc,
-        owner_id_str
+        owner_id_str,
+        flags_id_str
     };
-    const i32 formats[3] = {
+    const i32 formats[4] = {
+        0,
         0,
         0,
         0
     };
-    const i32 lens[3] = {
+    const i32 lens[4] = {
         strlen(vals[0]),
         strlen(vals[1]),
         strlen(vals[2]),
+        strlen(vals[3])
     };
 
-    res = PQexecParams(db->conn, db->cmd->insert_group, 3, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, db->cmd->insert_group, 4, NULL, vals, lens, formats, 0);
     status_type = PQresultStatus(res);
     if (status_type == PGRES_TUPLES_OK)
     {

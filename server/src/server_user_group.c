@@ -1,5 +1,8 @@
 #include "server_user_group.h"
 #include "server.h"
+#include "server_db.h"
+#include "server_tm.h"
+#include <json-c/json_object.h>
 
 static void
 server_msg_to_json(const dbmsg_t* dbmsg, json_object* json)
@@ -24,16 +27,61 @@ server_msg_to_json(const dbmsg_t* dbmsg, json_object* json)
             json_object_new_string(dbmsg->timestamp));
 }
 
+static void 
+server_group_to_json(server_thread_t* th, const dbgroup_t* dbgroup, json_object* json)
+{
+    u32 n_members;
+    dbuser_t* gmembers;
+    json_object* members_array_json;
+
+    json_object_object_add(json, "id", 
+                           json_object_new_int(dbgroup->group_id));
+    json_object_object_add(json, "owner_id",
+                           json_object_new_int(dbgroup->owner_id));
+    json_object_object_add(json, "name",
+                           json_object_new_string(dbgroup->displayname));
+    json_object_object_add(json, "desc",
+                           json_object_new_string(dbgroup->desc));
+    json_object_object_add(json, "public",
+                           json_object_new_boolean(dbgroup->flags & DB_GROUP_PUBLIC));
+
+    if (th)
+    {
+        gmembers = server_db_get_group_members(&th->db, dbgroup->group_id, &n_members);
+        
+        json_object_object_add(json, "members_id", 
+                               json_object_new_array_ext(n_members));
+        members_array_json = json_object_object_get(json, "members_id");
+
+        // TODO: Add full user info in packet
+        for (u32 m = 0; m < n_members; m++)
+        {
+            const dbuser_t* member = gmembers + m;
+            json_object_array_add(members_array_json, 
+                    json_object_new_int(member->user_id));
+        }
+
+        if (gmembers)
+            free(gmembers);
+    }
+}
+
 const char* 
 server_group_create(server_thread_t* th, client_t* client, json_object* payload, 
-        json_object* respond_json)
+                    json_object* respond_json)
 {
+    bool public_group = false;
     json_object* name_json = json_object_object_get(payload, "name");
     const char* name = json_object_get_string(name_json);
+    json_object* public_json = json_object_object_get(payload, "public");
+    if (public_json)
+        public_group = json_object_get_boolean(public_json);
 
     dbgroup_t new_group;
     memset(&new_group, 0, sizeof(dbgroup_t));
     new_group.owner_id = client->dbuser->user_id;
+    if (public_group)
+        new_group.flags |= DB_GROUP_PUBLIC;
     strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
 
     if (!server_db_insert_group(&th->db, &new_group))
@@ -110,32 +158,9 @@ server_client_groups(server_thread_t* th, client_t* client, json_object* respond
     {
         const dbgroup_t* g = groups + i;
         json_object* group_json = json_object_new_object();
-        json_object_object_add(group_json, "id", 
-                json_object_new_int(g->group_id));
-        json_object_object_add(group_json, "name", 
-                json_object_new_string(g->displayname));
-        json_object_object_add(group_json, "desc", 
-                json_object_new_string(g->desc));
 
-        u32 n_members;
-        dbuser_t* gmembers = server_db_get_group_members(&th->db, 
-                g->group_id, &n_members);
-        
-        json_object_object_add(group_json, "members_id", 
-                json_object_new_array_ext(n_members));
-        json_object* members_array_json = json_object_object_get(group_json, 
-                "members_id");
-
-        // TODO: Add full user info in packet
-        for (u32 m = 0; m < n_members; m++)
-        {
-            const dbuser_t* member = gmembers + m;
-            json_object_array_add(members_array_json, 
-                    json_object_new_int(member->user_id));
-        }
-
+        server_group_to_json(th, g, group_json);
         json_object_array_add(group_array_json, group_json);
-        free(gmembers);
     }
 
     ws_json_send(client, respond_json);
@@ -143,6 +168,36 @@ server_client_groups(server_thread_t* th, client_t* client, json_object* respond
     free(groups);
 
     return NULL;
+}
+
+static bool
+server_client_in_group(server_thread_t* th, const client_t* client, const dbgroup_t* group)
+{
+    bool ret = false;
+    dbuser_t* gmembers;
+    u32     n_members;
+
+    if (!client || !client->dbuser || !group || !th)
+        return false;
+
+    gmembers = server_db_get_group_members(&th->db, group->group_id, &n_members);
+    if (gmembers)
+    {
+        for (u32 i = 0; i < n_members; i++)
+        {
+            dbuser_t* member = gmembers + i;
+            if (member->user_id == client->dbuser->user_id)
+            {
+                ret = true;
+                break;
+            }
+        }
+
+        free(gmembers);
+    }
+
+    return ret;
+
 }
 
 const char* 
@@ -163,17 +218,13 @@ server_get_all_groups(server_thread_t* th, client_t* client, json_object* respon
     for (size_t i = 0; i < n_groups; i++)
     {
         dbgroup_t* g = groups + i;
+        if (g->flags & DB_GROUP_PUBLIC || server_client_in_group(th, client, g))
+        {
+            json_object* group_json = json_object_new_object();
 
-        json_object* group_json = json_object_new_object();
-        json_object_object_add(group_json, "id", 
-                json_object_new_int(g->group_id));
-        json_object_object_add(group_json, "owner_id", 
-                json_object_new_int(g->owner_id));
-        json_object_object_add(group_json, "name", 
-                json_object_new_string(g->displayname));
-        json_object_object_add(group_json, "desc", 
-                json_object_new_string(g->desc));
-        json_object_array_add(groups_json, group_json);
+            server_group_to_json(NULL, g, group_json);
+            json_object_array_add(groups_json, group_json);
+        }
     }
 
     ws_json_send(client, respond_json);
