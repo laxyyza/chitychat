@@ -286,6 +286,33 @@ db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
 }
 
 static void 
+db_row_to_groupcode(dbgroup_code_t* groupcode, PGresult* res, i32 row)
+{
+    char* endptr;
+    const char* invite_code;
+    const char* group_id_str;
+    const char* uses_str;
+
+    invite_code = PQgetvalue(res, row, 0);
+    if (invite_code)
+        strncpy(groupcode->invite_code, invite_code, DB_GROUP_CODE_MAX);
+    else
+        warn("invite_code is NULL!\n");
+
+    group_id_str = PQgetvalue(res, row, 1);
+    if (group_id_str)
+        groupcode->group_id = strtoul(group_id_str, &endptr, 10);
+    else
+        warn("group_id_str for group_code is NULL!\n");
+
+    uses_str = PQgetvalue(res, row, 2);
+    if (uses_str)
+        groupcode->uses = atoi(uses_str);
+    else
+        warn("uses_str is NULL!\n");
+}
+
+static void 
 db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
 {
     char* endptr;
@@ -841,6 +868,122 @@ server_db_insert_msg(server_db_t* db, dbmsg_t* msg)
         ret = false;
     }
 
+    PQclear(res);
+    return ret;
+}
+
+dbgroup_code_t* 
+server_db_get_group_code(server_db_t* db, const char* code)
+{
+    const char* sql = "\
+        SELECT * FROM GroupCodes\
+        WHERE invite_code = $1::VARCHAR(8);";
+    dbgroup_code_t* group_code = NULL;
+    PGresult* res;
+    i32 rows;
+
+    const char* vals[1] = {code};
+    const i32 lens[1] = {DB_GROUP_CODE_MAX};
+    const i32 format[1] = {0};
+
+    res = PQexecParams(db->conn, sql, 1, NULL, vals, lens, format, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
+    {
+        error("PQexecParams() failed for select group codes: %s\n",
+              PQresultErrorMessage(res));
+        goto cleanup;
+    }
+
+    if ((rows = PQntuples(res)) == 0)
+    {
+        error("Not rows in select group_code '%s'.\n", code);
+        goto cleanup;
+    }
+
+    group_code = malloc(sizeof(dbgroup_code_t));
+    db_row_to_groupcode(group_code, res, 0);
+
+cleanup:
+    PQclear(res);
+    return group_code;
+}
+
+dbgroup_code_t* 
+server_db_get_all_group_codes(server_db_t* db, u32 group_id, u32* n)
+{
+    const char* sql = "\
+        SELECT * FROM GroupCodes\
+        WHERE group_id = $1::int;";
+    PGresult* res;
+    i32 rows = 0;
+    dbgroup_code_t* groupcodes = NULL;
+
+    char group_id_str[50];
+    const i32 lens[1] = {
+        snprintf(group_id_str, 50, "%u", group_id)
+    };
+    const char* vals[1] = {group_id_str};
+    const i32 format[1] = {0};
+
+    res = PQexecParams(db->conn, sql, 1, NULL, vals, lens, format, 0);
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
+    {
+        error("PQexecParams() faield for select all group_codes: %s\n",
+              PQresultErrorMessage(res));
+        goto cleanup;
+    }
+
+    if ((rows = PQntuples(res)) == 0)
+    {
+        error("No rows in get all group codes.\n");
+        goto cleanup;
+    }
+
+    groupcodes = malloc(sizeof(dbgroup_code_t) * rows);
+    for (i32 i = 0; i < rows; i++)
+        db_row_to_groupcode(groupcodes + i, res, i);
+
+cleanup:
+    PQclear(res);
+    if (n)
+        *n = rows;
+    return groupcodes;
+}
+
+bool            
+server_db_insert_group_code(server_db_t* db, dbgroup_code_t* code)
+{
+    const char* sql = "\
+        INSERT INTO GroupCodes(group_id, uses)\
+        VALUES($1::int, $2::int)\
+        RETURNING invite_code;";
+    bool ret = true;
+    PGresult* res;
+    ExecStatusType status_type;
+
+    char vals[2][50];
+    const i32 lens[2] = {
+        snprintf(vals[0], 50, "%u", code->group_id),
+        snprintf(vals[1], 50, "%d", code->uses)
+    };
+    const i32 formats[2] = {0};
+
+    res = PQexecParams(db->conn, sql, 2, NULL, 
+                       (const char* const*)vals, 
+                       lens, formats, 0);
+    status_type = PQresultStatus(res);
+    if (status_type == PGRES_TUPLES_OK)
+    {
+        const char* invite_code = PQgetvalue(res, 0, 0);
+        strncpy(code->invite_code, invite_code, DB_GROUP_CODE_MAX);
+    }
+    else
+    {
+        error("PQexecParams() failed for insert group codes: %s\n", 
+              PQresultErrorMessage(res));
+        ret = false;
+    }
+    
     PQclear(res);
     return ret;
 }
