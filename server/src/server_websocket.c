@@ -71,18 +71,10 @@ server_ws_parse(server_thread_t* th, client_t* client,
         /*
          * If the total packet size is bigger than the recv buffer size
          *
-         * allocate a new buffer based on the packet header's payload size,
-         * then copy the current buffer into new buffer 
-         * and set client recv as busy to indicate that the previous recv() is not yet done
+         * resize buffer based on the packet header's payload size,
+         * and update client recv information
          */        
-        u8* new_buf = malloc(total_size);
-        memcpy(new_buf, buf, buf_len);
-
-        /*
-         * Free the previous buffer and update client recv information
-         */
-        free(client->recv.data);
-        client->recv.data = new_buf;
+        client->recv.data = realloc(client->recv.data, total_size);
         client->recv.data_size = total_size;
         client->recv.offset = buf_len;
         client->recv.busy = true;
