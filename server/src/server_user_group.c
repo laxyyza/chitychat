@@ -444,3 +444,48 @@ get_group_msgs(server_thread_t* th, client_t* client, json_object* payload,
     free(msgs);
     return NULL;
 }
+
+const char* server_create_group_code(server_thread_t* th, 
+                                     client_t* client,
+                                     json_object* payload, 
+                                     json_object* respond_json)
+{
+    json_object* group_id_json;
+    json_object* uses_json;
+    dbgroup_code_t group_code;
+    u32 group_id;
+    i32 uses;
+
+    group_id_json = json_object_object_get(payload, "group_id");
+    group_id = json_object_get_int(group_id_json);
+
+    uses_json = json_object_object_get(payload, "uses");
+    if (uses_json)
+        uses = json_object_get_int(uses_json);
+    else 
+        uses = -1;
+
+    if (!client->dbuser || !server_db_user_in_group(&th->db, group_id, 
+                                                    client->dbuser->user_id))
+        return "Not a group member";
+
+    group_code.group_id = group_id;
+    group_code.uses = uses;
+
+    if (!server_db_insert_group_code(&th->db, &group_code))
+        return "Failed to create group code";
+
+    json_object_object_add(respond_json, "type", 
+                           json_object_new_string("create_group_code"));
+    json_object_object_add(respond_json, "group_id", 
+                           json_object_new_int(group_code.group_id));
+    json_object_object_add(respond_json, "uses", 
+                           json_object_new_int(group_code.uses));
+    json_object_object_add(respond_json, "code", 
+                           json_object_new_string_len(group_code.invite_code, 
+                                                      DB_GROUP_CODE_MAX));
+
+    ws_json_send(client, respond_json);
+
+    return NULL;
+}
