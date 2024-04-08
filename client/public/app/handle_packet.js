@@ -337,6 +337,15 @@ function handle_login(packet)
         window.location.href = "/login";
 }
 
+function group_codes(packet)
+{
+    for (let i = 0; i < packet.codes.length; i++)
+    {
+        let code = packet.codes[i];
+        app.add_group_invite_list(code.code, code.uses, code.max_uses);
+    }
+}
+
 export function handle_packet_state(packet)
 {
     if (app.logged_in)
@@ -359,4 +368,5 @@ export function init_packet_commads()
     packet_commands.join_group = join_group;
     packet_commands.edit_account = edit_account;
     packet_commands.send_attachments = send_attachments;
+    packet_commands.group_codes = group_codes;
 }

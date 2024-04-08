@@ -69,6 +69,10 @@ export class App
         this.group_desc = document.getElementById("group_desc");
         this.group_members_info = document.getElementById("group_members_info");
         this.group_info_arrow = document.getElementById("group_info_arrow");
+        this.group_info_dropdown = document.getElementById("group_info_dropdown");
+        this.popup_group_invite = document.getElementById("popup_group_invite");
+        this.group_current_invite_list = document.getElementById("group_current_invite_list");
+        this.popup_group_invite_header = document.getElementById("popup_group_invite_header");
 
         this.groups = {};
         this.current_group;
@@ -85,17 +89,32 @@ export class App
 
         this.logged_in = false;
 
-        this.group_info_button.addEventListener("click", () => {
-            let dropdown = document.getElementById("group_info_dropdown");
-
-            if (dropdown.style.display === "block")
+        this.group_info_dropdown.addEventListener("click", (e) => {
+            if (e.target.tagName === "OPTION") 
             {
-                dropdown.style.display = "none";
+                switch (e.target.value) 
+                {
+                    case "invite":
+                        this.start_popup_group_invite(); 
+                        break;
+                    case "settings":
+                        this.start_popup_group_settings();
+                        break;
+                    default:
+                        break;
+                }
+            }
+        });
+
+        this.group_info_button.addEventListener("click", () => {
+            if (this.group_info_dropdown.style.display === "block")
+            {
+                this.group_info_dropdown.style.display = "none";
                 this.group_info_arrow.className = "arrow adown";
             }
             else
             {
-                dropdown.style.display = "block";
+                this.group_info_dropdown.style.display = "block";
                 this.group_info_arrow.className = "arrow aup";
             }
         });
@@ -206,6 +225,73 @@ export class App
 
         init_packet_commads();
         this.server = new Server(this);
+    }
+
+    add_group_invite_list(code, uses, max_uses)
+    {
+        let con = document.createElement("div");
+        con.className = "group_current_invite";
+
+        let group_code = document.createElement("div");
+        group_code.className = "group_invite";
+
+        let copy_button = document.createElement("button");
+        copy_button.innerHTML = "COPY";
+        copy_button.addEventListener("click", () => {
+            // COPY
+        });
+
+        let code_span = document.createElement("span");
+        code_span.innerHTML = code;
+        code_span.style.color = "yellow";
+
+        group_code.appendChild(copy_button);
+        group_code.appendChild(code_span);
+        con.appendChild(group_code);
+
+        let uses_span = document.createElement("span");
+        uses_span.innerHTML = uses + " Users joined";
+        con.appendChild(uses_span);
+
+        let max_uses_div = document.createElement("div");
+        let max_uses_span = document.createElement("span");
+        max_uses_span.className = "invite_uses";
+        max_uses_span.innerHTML = (max_uses === -1) ? "Infinite Uses" : max_uses + " Max Uses";
+
+        let delete_code_button = document.createElement("button");
+        delete_code_button.className = "delete_button";
+        delete_code_button.innerHTML = "DELETE";
+        delete_code_button.addEventListener("click", () => {
+            this.group_current_invite_list.removeChild(con);
+        });
+
+        max_uses_div.appendChild(max_uses_span);
+        max_uses_div.appendChild(delete_code_button);
+
+        con.appendChild(max_uses_div);
+
+        this.group_current_invite_list.appendChild(con);
+    }
+
+    start_popup_group_invite()
+    {
+        this.popup_container.style.display = "block";
+        this.popup.style.width = "700px";
+        this.popup.style.height = "600px";
+        this.popup_group_invite.style.display = "block";
+        this.group_current_invite_list.innerHTML = "";
+        this.popup_group_invite_header.innerHTML = this.current_group.name + " Invite Codes";
+
+        const packet = {
+            type: "get_group_codes",
+            group_id: this.current_group.id
+        };
+        this.server.ws_send(packet);
+    }
+
+    start_popup_group_settings()
+    {
+
     }
 
     start_popup_settings()
@@ -435,6 +521,7 @@ export class App
         this.popup_join_group.style.display = "none";
         this.popup_settings.style.display = "none";
         this.popup_image.style.display = "none";
+        this.popup_group_invite.style.display = "none";
         this.popup_image.innerHTML = "";
         this.popup_join = false;
     }

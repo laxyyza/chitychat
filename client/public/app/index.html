@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 </head>
 <body>
@@ -84,6 +85,43 @@
     <div id="popup_con">
         <div id="popup">
             <div class="popup_content">
+                <div id="popup_group_invite">
+                    <h1 id="popup_group_invite_header">THE LAXYYY Invite Codes</h1>
+                    <div id="group_current_invite_list" class="content_bg">
+                        <div class="group_current_invite">
+                            <div class="group_invite">
+                                <button>COPY</button>
+                                <span>1f22334f</span>
+                            </div>
+                            <span>1 Users joined</span>
+                            <div>
+                                <span class="invite_uses">10 Max uses</span>
+                                <button class="delete_button">DELETE</button>
+                            </div>
+                        </div>
+                        <div class="group_current_invite">
+                            <div class="group_invite">
+                                <button>COPY</button>
+                                <span>1f22334f</span>
+                            </div>
+                            <span>1 Users joined</span>
+                            <div>
+                                <span class="invite_uses">10 Max uses</span>
+                                <button class="delete_button">DELETE</button>
+                            </div>
+                        </div>
+                    </div>
+                    <h1>Generate Invite Code</h1>
+                    <div class="content_bg" id="gen_group_code">
+                        <label for="group_invite_infinite">Infinite Uses</label>
+                        <input type="checkbox" id="group_invite_checkbox">
+                        <div id="max-uses">
+                            <label>Max Uses</label>
+                            <input style="display: inline-block" type="number" id="max-uses-input" min="1" step="1">
+                        </div>
+                        <button id="generate_group_code">Generate</button>
+                    </div>
+                </div>
                 <div id="popup_create_group">
                     <h1 class="popup_header">Create Group</h1>
                     <input id="popup_create_group_input" type="text" placeholder="Group Name" required> 
