@@ -1,5 +1,6 @@
 #include "server_user_group.h"
 #include "server.h"
+#include "server_client.h"
 #include "server_db.h"
 #include "server_tm.h"
 #include <json-c/json_object.h>
@@ -234,22 +235,10 @@ server_get_all_groups(server_thread_t* th, client_t* client, json_object* respon
     return NULL;
 }
 
-const char* 
-server_join_group(server_thread_t* th, client_t* client, 
-        json_object* payload, json_object* respond_json)
+static void
+on_user_group_join(server_thread_t* th, client_t* client,
+                   dbgroup_t* group, json_object* respond_json)
 {
-    json_object* group_id_json = json_object_object_get(payload, 
-            "group_id");
-    const u64 group_id = json_object_get_int(group_id_json);
-
-    dbgroup_t* group = server_db_get_group(&th->db, group_id);
-    if (!group)
-        return "Group not found";
-
-    if (!server_db_insert_group_member(&th->db, group->group_id, 
-                                       client->dbuser->user_id))
-        return "Failed to join";
-
     json_object_object_add(respond_json, "type", 
             json_object_new_string("client_groups"));
     json_object_object_add(respond_json, "groups", 
@@ -259,7 +248,7 @@ server_join_group(server_thread_t* th, client_t* client,
 
     // TODO: DRY!
     json_object* group_json = json_object_new_object();
-    json_object_object_add(group_json, "id", 
+    json_object_object_add(group_json, "id",            // TODO: Make "id" to "group_id"
             json_object_new_int(group->group_id));
     json_object_object_add(group_json, "name", 
             json_object_new_string(group->displayname));
@@ -281,7 +270,7 @@ server_join_group(server_thread_t* th, client_t* client,
     json_object_object_add(other_clients_respond, "user_id", 
         json_object_new_int(client->dbuser->user_id));
     json_object_object_add(other_clients_respond, "group_id", 
-        json_object_new_int(group_id));
+        json_object_new_int(group->group_id));
 
     for (u32 m = 0; m < n_members; m++)
     {
@@ -290,23 +279,38 @@ server_join_group(server_thread_t* th, client_t* client,
                 member->user_id);
 
         if (member_client && member_client != client)
-        {
             ws_json_send(member_client, other_clients_respond);
-        }
 
         json_object_array_add(members_array_json, 
                 json_object_new_int(member->user_id));
     }
 
     json_object_put(other_clients_respond);
-
     json_object_array_add(array_json, group_json);
 
-    // TODO: Send to all other online clients in that group that a new user joined
-    
     ws_json_send(client, respond_json);
 
     free(gmembers);
+}
+
+const char* 
+server_join_group(server_thread_t* th, client_t* client, 
+        json_object* payload, json_object* respond_json)
+{
+    json_object* group_id_json = json_object_object_get(payload, 
+            "group_id");
+    const u64 group_id = json_object_get_int(group_id_json);
+
+    dbgroup_t* group = server_db_get_group(&th->db, group_id);
+    if (!group)
+        return "Group not found";
+
+    if (!server_db_insert_group_member(&th->db, group->group_id, 
+                                       client->dbuser->user_id))
+        return "Failed to join";
+
+    on_user_group_join(th, client, group, respond_json);
+
     free(group);
 
     return NULL;
@@ -488,4 +492,30 @@ const char* server_create_group_code(server_thread_t* th,
     ws_json_send(client, respond_json);
 
     return NULL;
+}
+
+const char* server_join_group_code(server_thread_t* th,
+                                   client_t* client,
+                                   json_object* payload,
+                                   json_object* respond_json)
+{
+    json_object* code_json;
+    const char* code;
+    const char* errmsg = NULL;
+    const u32 user_id = client->dbuser->user_id;
+    dbgroup_t* group_joined;
+
+    code_json = json_object_object_get(payload, "code");
+    code = json_object_get_string(code_json);
+
+    group_joined = server_db_insert_group_member_code(&th->db,
+                                                      code,
+                                                      user_id);
+    if (!group_joined)
+        return "Failed to join or already joined";
+
+    on_user_group_join(th, client, group_joined, respond_json);
+        
+    free(group_joined);
+    return errmsg;
 }

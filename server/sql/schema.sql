@@ -62,9 +62,24 @@ CREATE TABLE IF NOT EXISTS Messages(
 CREATE TABLE IF NOT EXISTS GroupCodes(
     invite_code VARCHAR(8) PRIMARY KEY DEFAULT ENCODE(gen_random_bytes(4), 'hex'),
     group_id    INT NOT NULL,
-    uses        INT DEFAULT -1,
+    uses        INT DEFAULT 0,
+    max_uses    INT NOT NULL,
     FOREIGN KEY (group_id) REFERENCES Groups(group_id)
 );
+
+CREATE OR REPLACE FUNCTION delete_groupcode_if_over_max()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM GroupCodes
+    WHERE uses >= max_uses;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER delete_groupcode_if_over_max
+AFTER UPDATE OF uses ON GroupCodes
+FOR EACH ROW
+EXECUTE FUNCTION delete_groupcode_if_over_max();
 
 CREATE OR REPLACE FUNCTION insert_owner_group_member()
 RETURNS TRIGGER AS $$

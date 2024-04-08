@@ -107,7 +107,7 @@ server_init_db(server_t* server)
     cmd->select_group = server_db_load_sql(server->conf.sql_select_group, &cmd->select_group_len);
     cmd->delete_group = server_db_load_sql(server->conf.sql_delete_group, &cmd->delete_group_len);
 
-    cmd->insert_groupmember = server_db_load_sql(server->conf.sql_insert_groupmember, &cmd->insert_groupmember_len);
+    cmd->insert_groupmember_code = server_db_load_sql(server->conf.sql_insert_groupmember_code, &cmd->insert_groupmember_code_len);
     cmd->select_groupmember = server_db_load_sql(server->conf.sql_select_groupmember, &cmd->select_groupmember_len);
     cmd->delete_groupmember = server_db_load_sql(server->conf.sql_delete_groupmember, &cmd->delete_groupmember_len);
 
@@ -162,7 +162,7 @@ server_db_free(server_t* server)
     free(cmd->select_group);
     free(cmd->delete_group);
 
-    free(cmd->insert_groupmember);
+    free(cmd->insert_groupmember_code);
     free(cmd->select_groupmember);
     free(cmd->delete_groupmember);
 
@@ -292,6 +292,7 @@ db_row_to_groupcode(dbgroup_code_t* groupcode, PGresult* res, i32 row)
     const char* invite_code;
     const char* group_id_str;
     const char* uses_str;
+    const char* max_uses_str;
 
     invite_code = PQgetvalue(res, row, 0);
     if (invite_code)
@@ -310,6 +311,12 @@ db_row_to_groupcode(dbgroup_code_t* groupcode, PGresult* res, i32 row)
         groupcode->uses = atoi(uses_str);
     else
         warn("uses_str is NULL!\n");
+
+    max_uses_str = PQgetvalue(res, row, 3);
+    if (max_uses_str)
+        groupcode->max_uses = atoi(max_uses_str);
+    else
+        warn("max_uses_str is NULL!\n");
 }
 
 static void 
@@ -572,6 +579,9 @@ server_db_user_in_group(UNUSED server_db_t* db, UNUSED u32 group_id, UNUSED u32 
 bool 
 server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id)
 {
+    const char* sql = "\
+        INSERT INTO GroupMembers(user_id, group_id)\
+        VALUES ($1::int, $2::int);";
     PGresult* res;
     bool ret = true;
 
@@ -594,7 +604,7 @@ server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id)
         strlen(group_id_str)
     };
 
-    res = PQexecParams(db->conn, db->cmd->insert_groupmember, 2, NULL, vals, lens, formats, 0);
+    res = PQexecParams(db->conn, sql, 2, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed for insert_groupmember: %s\n",
@@ -605,6 +615,39 @@ server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id)
     PQclear(res);
 
     return ret;
+}
+
+dbgroup_t*
+server_db_insert_group_member_code(server_db_t* db, 
+                                   const char* invite_code, u32 user_id)
+{
+    dbgroup_t* group = NULL;    
+    PGresult* res;
+    ExecStatusType status_type;
+
+    char user_id_str[DB_INTSTR_MAX];
+    i32 lens[2];
+    lens[0] = snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id);
+    lens[1] = DB_GROUP_CODE_MAX;
+    const i32 format[2] = {0};
+    const char* const vals[2] = {
+        user_id_str,
+        invite_code
+    };
+
+    res = PQexecParams(db->conn, db->cmd->insert_groupmember_code, 2, NULL,
+                       vals, lens, format, 0);
+    status_type = PQresultStatus(res);
+    if (status_type == PGRES_TUPLES_OK)
+    {
+        group = malloc(sizeof(dbgroup_t));
+        db_row_to_group(group, res, 0);
+    }
+    else
+        error("PQexecParams() failed to insert group member from code: %s\n",
+              PQresultErrorMessage(res));
+
+    return group;
 }
 
 static dbgroup_t* 
@@ -954,7 +997,7 @@ bool
 server_db_insert_group_code(server_db_t* db, dbgroup_code_t* code)
 {
     const char* sql = "\
-        INSERT INTO GroupCodes(group_id, uses)\
+        INSERT INTO GroupCodes(group_id, max_uses)\
         VALUES($1::int, $2::int)\
         RETURNING invite_code;";
     bool ret = true;

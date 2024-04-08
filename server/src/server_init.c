@@ -312,7 +312,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     server->conf.sql_insert_group = "server/sql/insert_group.sql";
     server->conf.sql_select_group = "server/sql/select_group.sql";
     server->conf.sql_delete_group = "server/sql/delete_group.sql";
-    server->conf.sql_insert_groupmember = "server/sql/insert_groupmember.sql";
+    server->conf.sql_insert_groupmember_code = "server/sql/insert_groupmember_code.sql";
     server->conf.sql_select_groupmember = "server/sql/select_groupmember.sql";
     server->conf.sql_delete_groupmember = "server/sql/delete_groupmember.sql";
     server->conf.sql_insert_msg = "server/sql/insert_msg.sql";

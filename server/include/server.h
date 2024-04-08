@@ -54,7 +54,7 @@ typedef struct
     const char* sql_insert_group;
     const char* sql_select_group;
     const char* sql_delete_group;
-    const char* sql_insert_groupmember;
+    const char* sql_insert_groupmember_code;
     const char* sql_select_groupmember;
     const char* sql_delete_groupmember;
     const char* sql_insert_msg;

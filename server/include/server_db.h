@@ -85,6 +85,7 @@ typedef struct
     char    invite_code[DB_GROUP_CODE_MAX];
     u32     group_id;
     i32     uses;
+    i32     max_uses;
 } dbgroup_code_t;
 
 typedef struct 
@@ -106,8 +107,6 @@ typedef struct
     char*   delete_group;
     size_t  delete_group_len;
 
-    char*   insert_groupmember;
-    size_t  insert_groupmember_len;
     char*   select_groupmember;
     size_t  select_groupmember_len;
     char*   delete_groupmember;
@@ -125,6 +124,9 @@ typedef struct
 
     char*   insert_userfiles;
     size_t  insert_userfiles_len;
+
+    char*   insert_groupmember_code;
+    size_t  insert_groupmember_code_len;
 } server_db_commands_t;
 
 typedef struct 
@@ -151,7 +153,7 @@ bool        server_db_update_user(server_db_t* db,
 dbuser_t*   server_db_get_group_members(server_db_t* db, u32 group_id, u32* n);
 bool        server_db_user_in_group(server_db_t* db, u32 group_id, u32 user_id);
 bool        server_db_insert_group_member(server_db_t* db, u32 group_id, u32 user_id);
-bool        server_db_insert_group_member_code(server_db_t* db, 
+dbgroup_t*  server_db_insert_group_member_code(server_db_t* db, 
                                                const char* invite_code, u32 user_id);
 
 dbgroup_t*  server_db_get_group(server_db_t* db, u32 group_id);
