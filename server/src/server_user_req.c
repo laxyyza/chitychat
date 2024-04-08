@@ -29,6 +29,8 @@ server_handle_logged_in_client(server_thread_t* th, client_t* client,
         return server_create_group_code(th, client, payload, respond_json);
     else if (!strcmp(type, "join_group_code"))
         return server_join_group_code(th, client, payload, respond_json);
+    else if (!strcmp(type, "get_group_codes"))
+        return server_get_group_codes(th, client, payload, respond_json);
     else
         warn("Unknown packet type: '%s'\n", type);
 

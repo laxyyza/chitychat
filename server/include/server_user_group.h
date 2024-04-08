@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "server_websocket.h"
+#include <json-c/json_types.h>
 
 const char* server_group_create(server_thread_t* th, 
                                 client_t* client, 
@@ -42,6 +43,11 @@ const char* server_create_group_code(server_thread_t* th,
                                      json_object* respond_json);
 
 const char* server_join_group_code(server_thread_t* th,
+                                   client_t* client,
+                                   json_object* payload,
+                                   json_object* respond_json);
+
+const char* server_get_group_codes(server_thread_t* th,
                                    client_t* client,
                                    json_object* payload,
                                    json_object* respond_json);

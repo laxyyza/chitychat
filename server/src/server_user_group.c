@@ -519,3 +519,53 @@ const char* server_join_group_code(server_thread_t* th,
     free(group_joined);
     return errmsg;
 }
+
+const char* server_get_group_codes(server_thread_t* th,
+                                   client_t* client,
+                                   json_object* payload,
+                                   json_object* respond_json)
+{
+    json_object* group_id_json;
+    u32 group_id;
+    dbgroup_code_t* codes;
+    u32 n_codes;
+    json_object* codes_array_json;
+
+    group_id_json = json_object_object_get(payload, "group_id");
+    group_id = json_object_get_int(group_id_json);
+
+    if (!server_db_user_in_group(&th->db, group_id, client->dbuser->user_id))
+        return "Not a group member";
+
+    codes = server_db_get_all_group_codes(&th->db, group_id, &n_codes);
+
+    json_object_object_add(respond_json, "type", 
+                           json_object_new_string("group_codes"));
+    json_object_object_add(respond_json, "group_id",
+                           json_object_new_int(group_id));
+    json_object_object_add(respond_json, "codes",
+                           json_object_new_array_ext(n_codes));
+    codes_array_json = json_object_object_get(respond_json, "codes");
+
+    for (u32 i = 0; i < n_codes; i++)
+    {
+        const dbgroup_code_t* invite_code = codes + i;
+
+        json_object* code_json = json_object_new_object();
+        json_object_object_add(code_json, "code",
+                               json_object_new_string_len(invite_code->invite_code, 
+                                                          DB_GROUP_CODE_MAX));
+        json_object_object_add(code_json, "uses",
+                               json_object_new_int(invite_code->uses));
+        json_object_object_add(code_json, "max_uses",
+                               json_object_new_int(invite_code->max_uses));
+
+        json_object_array_add(codes_array_json, code_json);
+    }
+
+    ws_json_send(client, respond_json);
+
+    if (codes)
+        free(codes);
+    return NULL;
+}
