@@ -82,8 +82,10 @@ export class Group
                 app.server.ws_send(packet);
             }
 
-
             app.messages_container.addEventListener('scroll', this.get_scroll_messages)
+            app.group_info_name.innerHTML = this.name;
+            app.group_desc.innerHTML = this.desc;
+            app.group_members_info.innerHTML = this.members.length + " members";
         });
 
 

@@ -64,6 +64,11 @@ export class App
         this.popup_image = document.getElementById("popup_image");
         this.current_attachments = [];
         this.popup_create_group_public = document.getElementById("popup_create_group_public");
+        this.group_info_button = document.getElementById("group_info");
+        this.group_info_name = document.getElementById("group_info_name")
+        this.group_desc = document.getElementById("group_desc");
+        this.group_members_info = document.getElementById("group_members_info");
+        this.group_info_arrow = document.getElementById("group_info_arrow");
 
         this.groups = {};
         this.current_group;
@@ -79,6 +84,21 @@ export class App
         this.popup_join = false;
 
         this.logged_in = false;
+
+        this.group_info_button.addEventListener("click", () => {
+            let dropdown = document.getElementById("group_info_dropdown");
+
+            if (dropdown.style.display === "block")
+            {
+                dropdown.style.display = "none";
+                this.group_info_arrow.className = "arrow adown";
+            }
+            else
+            {
+                dropdown.style.display = "block";
+                this.group_info_arrow.className = "arrow aup";
+            }
+        });
 
         this.popup_container.addEventListener("click", (e) => {
             if (e.target == this.popup_container)
