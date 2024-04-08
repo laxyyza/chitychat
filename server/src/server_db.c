@@ -570,10 +570,44 @@ cleanup:
 }
 
 bool 
-server_db_user_in_group(UNUSED server_db_t* db, UNUSED u32 group_id, UNUSED u32 user_id)
+server_db_user_in_group(server_db_t* db, u32 group_id, u32 user_id)
 {
-    debug("Implement or remove server_db_user_in_group()\n");
-    return false;
+    const char* sql = "\
+        SELECT FROM GroupMembers\
+        WHERE user_id = $1::int AND group_id = $2::int;";
+    PGresult* res;
+    bool ret = false;
+    i32 rows;
+
+    char user_id_str[DB_INTSTR_MAX];
+    char group_id_str[DB_INTSTR_MAX];
+
+    const i32 lens[2] = {
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id),
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id),
+    };
+    const char* vals[2] = {
+        user_id_str, 
+        group_id_str
+    };
+    const i32 formats[2] = {0};
+
+    res = PQexecParams(db->conn, sql, 2, NULL, 
+                       vals, lens, formats, 0);
+    if (PQresultStatus(res) == PGRES_TUPLES_OK)
+    {
+        rows = PQntuples(res);
+        if (rows)
+            ret = true;
+    }
+    else
+    {
+        error("PQexecParams() failed for user in group: %s\n", 
+              PQresultErrorMessage(res));
+    }
+
+    PQclear(res);
+    return ret;
 }
 
 bool 
