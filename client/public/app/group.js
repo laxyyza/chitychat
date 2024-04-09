@@ -6,7 +6,7 @@ export class Group
     constructor(id, name, desc, members_id)
     {
         this.name = name;
-        this.id = id;
+        this.id = Number(id);
         if (members_id)
             this.members_id = members_id;
         else 
@@ -39,53 +39,7 @@ export class Group
             }
         };
         this.div_list.addEventListener("click", () => {
-            if (app.selected_group)
-            {
-                app.selected_group.classList.remove("active");
-            }
-
-            this.div_list.classList.add("active");
-
-            app.selected_group = this.div_list;
-
-            document.getElementsByClassName("messages");
-
-            let current_messages = document.getElementById("messages");
-            let current_group_list = document.getElementById("group_members_list");
-
-            if (current_messages)
-                app.messages_container.replaceChild(this.div_chat_messages, current_messages);
-            else
-                app.messages_container.appendChild(this.div_chat_messages);
-
-            if (current_group_list)
-                app.group_member_container.replaceChild(this.div_group_members, current_group_list);
-            else
-                app.group_member_container.appendChild(this.div_group_members);
-
-            app.messages_container.scrollTo(0, app.messages_container.scrollHeight);
-
-            if (app.current_group && app.current_group.get_scroll_messages)
-                app.messages_container.removeEventListener('scroll', app.current_group.get_scroll_messages);
-            app.current_group = this;
-
-            if (this.messages.length === 0)
-            {
-                const packet = {
-                    type: "get_group_msgs",
-                    group_id: this.id,
-                    limit: 15,
-                    offset: this.msg_offset
-                };
-                this.msg_offset += packet.limit;
-
-                app.server.ws_send(packet);
-            }
-
-            app.messages_container.addEventListener('scroll', this.get_scroll_messages)
-            app.group_info_name.innerHTML = this.name;
-            app.group_desc.innerHTML = this.desc;
-            app.group_members_info.innerHTML = this.members.length + " members";
+            this.select();
         });
 
 
@@ -236,5 +190,56 @@ export class Group
         this.messages.push(msg);
     }
 
+    select()
+    {
+        if (app.selected_group)
+        {
+            app.selected_group.classList.remove("active");
+        }
+
+        this.div_list.classList.add("active");
+
+        app.selected_group = this.div_list;
+
+        document.getElementsByClassName("messages");
+
+        let current_messages = document.getElementById("messages");
+        let current_group_list = document.getElementById("group_members_list");
+
+        if (current_messages)
+            app.messages_container.replaceChild(this.div_chat_messages, current_messages);
+        else
+            app.messages_container.appendChild(this.div_chat_messages);
+
+        if (current_group_list)
+            app.group_member_container.replaceChild(this.div_group_members, current_group_list);
+        else
+            app.group_member_container.appendChild(this.div_group_members);
+
+        app.messages_container.scrollTo(0, app.messages_container.scrollHeight);
+
+        if (app.current_group && app.current_group.get_scroll_messages)
+            app.messages_container.removeEventListener('scroll', app.current_group.get_scroll_messages);
+        app.current_group = this;
+
+        if (this.messages.length === 0)
+        {
+            const packet = {
+                type: "get_group_msgs",
+                group_id: this.id,
+                limit: 15,
+                offset: this.msg_offset
+            };
+            this.msg_offset += packet.limit;
+
+            app.server.ws_send(packet);
+        }
+
+        app.messages_container.addEventListener('scroll', this.get_scroll_messages)
+        app.group_info_name.innerHTML = this.name;
+        app.group_desc.innerHTML = this.desc;
+        app.group_members_info.innerHTML = this.members.length + " members";
+        localStorage.setItem("group_id", this.id);
+    }
     // TODO: Add a `update_member()` method.
 }

@@ -34,11 +34,27 @@ function client_user_info(packet)
 
 function client_groups(packet)
 {
+    let urlparam = new URLSearchParams(window.location.search);
+    let param_group_id = urlparam.get("group_id");
+    let selected = false;
     for (let i = 0; i < packet.groups.length; i++)
     {
         const group = packet.groups[i];
         const new_group = new Group(group.id, group.name, group.desc, group.members_id);
         app.groups[group.id] = new_group;
+
+        if (!param_group_id)
+            param_group_id = localStorage.getItem("group_id");
+
+        if (param_group_id)
+        {
+            param_group_id = Number(param_group_id);
+            if (param_group_id === new_group.id)
+            {
+                new_group.select();
+                selected = true;
+            }
+        }
 
         if (app.popup_join)
         {
@@ -51,6 +67,9 @@ function client_groups(packet)
             }
         }
     }
+
+    if (!selected)
+        localStorage.removeItem("group_id");
 }
 
 function group_members(packet)
@@ -342,7 +361,7 @@ function group_codes(packet)
     for (let i = 0; i < packet.codes.length; i++)
     {
         let code = packet.codes[i];
-        app.add_group_invite_list(code.code, code.uses, code.max_uses);
+        app.add_group_invite_list(code.code, code.uses, code.max_uses, packet.group_id);
     }
 }
 

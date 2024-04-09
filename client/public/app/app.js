@@ -73,6 +73,9 @@ export class App
         this.popup_group_invite = document.getElementById("popup_group_invite");
         this.group_current_invite_list = document.getElementById("group_current_invite_list");
         this.popup_group_invite_header = document.getElementById("popup_group_invite_header");
+        this.gen_group_code_button = document.getElementById("generate_group_code");
+        this.gen_group_code_checkbox = document.getElementById("group_invite_checkbox");
+        this.gen_group_code_max_uses = document.getElementById("max-uses-input");
 
         this.groups = {};
         this.current_group;
@@ -88,6 +91,28 @@ export class App
         this.popup_join = false;
 
         this.logged_in = false;
+
+        this.gen_group_code_button.addEventListener("click", () => {
+            let max_uses;
+            let group_id;
+
+            if (!this.current_group)
+                return;
+            else
+                group_id = this.current_group.id;
+
+            if (this.gen_group_code_checkbox.checked)
+                max_uses = -1;
+            else
+                max_uses = this.gen_group_code_max_uses.value;
+
+            const packet = {
+                type: "create_group_code",
+                max_uses: max_uses,
+                group_id: group_id
+            }
+            this.server.ws_send(packet);
+        });
 
         this.group_info_dropdown.addEventListener("click", (e) => {
             if (e.target.tagName === "OPTION") 
@@ -227,7 +252,7 @@ export class App
         this.server = new Server(this);
     }
 
-    add_group_invite_list(code, uses, max_uses)
+    add_group_invite_list(code, uses, max_uses, group_id)
     {
         let con = document.createElement("div");
         con.className = "group_current_invite";
@@ -262,6 +287,13 @@ export class App
         delete_code_button.className = "delete_button";
         delete_code_button.innerHTML = "DELETE";
         delete_code_button.addEventListener("click", () => {
+            const packet = {
+                type: "delete_group_code",
+                code: code,
+                group_id: group_id
+            };
+            this.server.ws_send(packet);
+
             this.group_current_invite_list.removeChild(con);
         });
 

@@ -113,13 +113,15 @@
                     </div>
                     <h1>Generate Invite Code</h1>
                     <div class="content_bg" id="gen_group_code">
-                        <label for="group_invite_infinite">Infinite Uses</label>
-                        <input type="checkbox" id="group_invite_checkbox">
-                        <div id="max-uses">
-                            <label>Max Uses</label>
-                            <input style="display: inline-block" type="number" id="max-uses-input" min="1" step="1">
-                        </div>
-                        <button id="generate_group_code">Generate</button>
+                        <form action="javascript:void(0);" id="generate_code_form">
+                            <label for="group_invite_infinite">Infinite Uses</label>
+                            <input type="checkbox" id="group_invite_checkbox">
+                            <div id="max-uses">
+                                <label>Max Uses</label>
+                                <input style="display: inline-block" type="number" id="max-uses-input" min="1" step="1" required>
+                            </div>
+                            <button type="submit" id="generate_group_code">Generate</button>
+                        </form>
                     </div>
                 </div>
                 <div id="popup_create_group">

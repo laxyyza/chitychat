@@ -16,7 +16,11 @@ export class Server
 
     init_socket()
     {
-        this.socket = new WebSocket("wss://" + window.location.hostname + ":" + window.location.port);
+        this.socket = new WebSocket("wss://" + 
+                                    window.location.hostname + ":" + 
+                                    window.location.port + 
+                                    window.location.pathname + 
+                                    window.location.search);
 
         this.socket.addEventListener('open', (event) => {
             this.connected = true;
