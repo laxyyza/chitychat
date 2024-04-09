@@ -276,8 +276,10 @@ export class App
 
         let copy_button = document.createElement("button");
         copy_button.innerHTML = "COPY";
+        copy_button.title = "Copy " + code;
         copy_button.addEventListener("click", () => {
-            // COPY
+            navigator.clipboard.writeText(code);
+            copy_button.title = "Copied";
         });
 
         let code_span = document.createElement("span");
