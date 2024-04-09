@@ -252,7 +252,7 @@ server_get_all_groups(server_thread_t* th, client_t* client, json_object* respon
     for (size_t i = 0; i < n_groups; i++)
     {
         dbgroup_t* g = groups + i;
-        if (g->flags & DB_GROUP_PUBLIC || server_client_in_group(th, client, g))
+        if (g->flags & DB_GROUP_PUBLIC && !server_client_in_group(th, client, g))
         {
             json_object* group_json = json_object_new_object();
 
