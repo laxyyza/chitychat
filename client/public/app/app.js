@@ -76,6 +76,7 @@ export class App
         this.gen_group_code_button = document.getElementById("generate_group_code");
         this.gen_group_code_checkbox = document.getElementById("group_invite_checkbox");
         this.gen_group_code_max_uses = document.getElementById("max-uses-input");
+        this.join_group_viacode_button = document.getElementById("join_group_code_button");
 
         this.groups = {};
         this.current_group;
@@ -91,6 +92,19 @@ export class App
         this.popup_join = false;
 
         this.logged_in = false;
+
+        this.join_group_viacode_button.addEventListener("click", () => {
+            let input = document.getElementById("join_group_code_input");
+            const code = input.value;
+            if (code)
+            {
+                const packet = {
+                    type: "join_group_code",
+                    code: code
+                };
+                this.server.ws_send(packet);
+            }
+        });
 
         this.gen_group_code_button.addEventListener("click", () => {
             let max_uses;
