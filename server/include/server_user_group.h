@@ -52,4 +52,8 @@ const char* server_get_group_codes(server_thread_t* th,
                                    json_object* payload,
                                    json_object* respond_json);
 
+const char* server_delete_group_code(server_thread_t* th,
+                                     client_t* client, 
+                                     json_object* payload);
+
 #endif // _SERVER_USER_GROUP_H_

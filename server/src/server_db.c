@@ -684,6 +684,34 @@ server_db_insert_group_member_code(server_db_t* db,
     return group;
 }
 
+bool        
+server_db_delete_group_code(server_db_t* db, const char* invite_code)
+{
+    const char* sql = "DELETE FROM GroupCodes WHERE invite_code = $1::VARCHAR(8);";
+    PGresult* res;
+    bool ret = true;
+
+    const char* const vals[1] = {
+        invite_code
+    };
+    const i32 lens[1] = {
+        DB_GROUP_CODE_MAX
+    };
+    const i32 formats[1] = {0};
+
+    res = PQexecParams(db->conn, sql, 1, NULL,
+                       vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        error("PQexecParams() failed for delete group code: %s\n",
+              PQresultErrorMessage(res));
+        ret = false;
+    }
+
+    PQclear(res);
+    return ret;
+}
+
 static dbgroup_t* 
 server_db_get_groups(server_db_t* db, u32 user_id, u32 group_id, u32* n_ptr)
 {
@@ -1038,16 +1066,21 @@ server_db_insert_group_code(server_db_t* db, dbgroup_code_t* code)
     PGresult* res;
     ExecStatusType status_type;
 
-    char vals[2][DB_INTSTR_MAX];
+    char group_id_str[DB_INTSTR_MAX];
+    char max_uses_str[DB_INTSTR_MAX];
+
     const i32 lens[2] = {
-        snprintf(vals[0], DB_INTSTR_MAX, "%u", code->group_id),
-        snprintf(vals[1], DB_INTSTR_MAX, "%d", code->uses)
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", code->group_id),
+        snprintf(max_uses_str, DB_INTSTR_MAX, "%d", code->max_uses)
+    };
+    const char* const vals[2] = {
+        group_id_str, 
+        max_uses_str
     };
     const i32 formats[2] = {0};
 
     res = PQexecParams(db->conn, sql, 2, NULL, 
-                       (const char* const*)vals, 
-                       lens, formats, 0);
+                       vals, lens, formats, 0);
     status_type = PQresultStatus(res);
     if (status_type == PGRES_TUPLES_OK)
     {

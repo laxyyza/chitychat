@@ -67,6 +67,39 @@ server_group_to_json(server_thread_t* th, const dbgroup_t* dbgroup, json_object*
     }
 }
 
+static void 
+server_send_group_codes(client_t* client, dbgroup_code_t* codes, 
+                        u32 n_codes, u32 group_id, json_object* respond_json)
+{
+    json_object* codes_array_json;
+
+    json_object_object_add(respond_json, "type", 
+                           json_object_new_string("group_codes"));
+    json_object_object_add(respond_json, "group_id",
+                           json_object_new_int(group_id));
+    json_object_object_add(respond_json, "codes",
+                           json_object_new_array_ext(n_codes));
+    codes_array_json = json_object_object_get(respond_json, "codes");
+
+    for (u32 i = 0; i < n_codes; i++)
+    {
+        const dbgroup_code_t* invite_code = codes + i;
+
+        json_object* code_json = json_object_new_object();
+        json_object_object_add(code_json, "code",
+                               json_object_new_string_len(invite_code->invite_code, 
+                                                          DB_GROUP_CODE_MAX));
+        json_object_object_add(code_json, "uses",
+                               json_object_new_int(invite_code->uses));
+        json_object_object_add(code_json, "max_uses",
+                               json_object_new_int(invite_code->max_uses));
+
+        json_object_array_add(codes_array_json, code_json);
+    }
+
+    ws_json_send(client, respond_json);
+}
+
 const char* 
 server_group_create(server_thread_t* th, client_t* client, json_object* payload, 
                     json_object* respond_json)
@@ -458,38 +491,33 @@ const char* server_create_group_code(server_thread_t* th,
     json_object* uses_json;
     dbgroup_code_t group_code;
     u32 group_id;
-    i32 uses;
+    i32 max_uses;
 
     group_id_json = json_object_object_get(payload, "group_id");
     group_id = json_object_get_int(group_id_json);
 
-    uses_json = json_object_object_get(payload, "uses");
+    uses_json = json_object_object_get(payload, "max_uses");
     if (uses_json)
-        uses = json_object_get_int(uses_json);
+    {
+        max_uses = json_object_get_int(uses_json);
+        if (max_uses == 0)
+            max_uses = 1;
+    }
     else 
-        uses = -1;
+        max_uses = -1;
 
     if (!client->dbuser || !server_db_user_in_group(&th->db, group_id, 
                                                     client->dbuser->user_id))
         return "Not a group member";
 
     group_code.group_id = group_id;
-    group_code.uses = uses;
+    group_code.max_uses = max_uses;
+    group_code.uses = 0;
 
     if (!server_db_insert_group_code(&th->db, &group_code))
         return "Failed to create group code";
 
-    json_object_object_add(respond_json, "type", 
-                           json_object_new_string("create_group_code"));
-    json_object_object_add(respond_json, "group_id", 
-                           json_object_new_int(group_code.group_id));
-    json_object_object_add(respond_json, "uses", 
-                           json_object_new_int(group_code.uses));
-    json_object_object_add(respond_json, "code", 
-                           json_object_new_string_len(group_code.invite_code, 
-                                                      DB_GROUP_CODE_MAX));
-
-    ws_json_send(client, respond_json);
+    server_send_group_codes(client, &group_code, 1, group_id, respond_json);
 
     return NULL;
 }
@@ -529,7 +557,6 @@ const char* server_get_group_codes(server_thread_t* th,
     u32 group_id;
     dbgroup_code_t* codes;
     u32 n_codes;
-    json_object* codes_array_json;
 
     group_id_json = json_object_object_get(payload, "group_id");
     group_id = json_object_get_int(group_id_json);
@@ -539,33 +566,34 @@ const char* server_get_group_codes(server_thread_t* th,
 
     codes = server_db_get_all_group_codes(&th->db, group_id, &n_codes);
 
-    json_object_object_add(respond_json, "type", 
-                           json_object_new_string("group_codes"));
-    json_object_object_add(respond_json, "group_id",
-                           json_object_new_int(group_id));
-    json_object_object_add(respond_json, "codes",
-                           json_object_new_array_ext(n_codes));
-    codes_array_json = json_object_object_get(respond_json, "codes");
-
-    for (u32 i = 0; i < n_codes; i++)
-    {
-        const dbgroup_code_t* invite_code = codes + i;
-
-        json_object* code_json = json_object_new_object();
-        json_object_object_add(code_json, "code",
-                               json_object_new_string_len(invite_code->invite_code, 
-                                                          DB_GROUP_CODE_MAX));
-        json_object_object_add(code_json, "uses",
-                               json_object_new_int(invite_code->uses));
-        json_object_object_add(code_json, "max_uses",
-                               json_object_new_int(invite_code->max_uses));
-
-        json_object_array_add(codes_array_json, code_json);
-    }
-
-    ws_json_send(client, respond_json);
+    server_send_group_codes(client, codes, n_codes, group_id, respond_json);
 
     if (codes)
         free(codes);
+    return NULL;
+}
+
+const char* server_delete_group_code(server_thread_t* th,
+                                     client_t* client, 
+                                     json_object* payload)
+{
+    json_object* code_json;
+    json_object* group_id_json;
+    u32 group_id;
+    u32 user_id = client->dbuser->user_id;
+    const char* code;
+
+    code_json = json_object_object_get(payload, "code");
+    group_id_json = json_object_object_get(payload, "group_id");
+
+    code = json_object_get_string(code_json);
+    group_id = json_object_get_int(group_id_json);
+
+    if (!server_db_user_in_group(&th->db, group_id, user_id)) 
+        return "Not a group owner";
+
+    if (!server_db_delete_group_code(&th->db, code))
+        return "Failed to delete group code";
+
     return NULL;
 }
