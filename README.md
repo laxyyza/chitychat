@@ -11,7 +11,7 @@
    - [X] Mark group as private, only group members can get it.
    - [X] Implement Invite Codes
    - [ ] Implement Invite Links  
-         - [ ] Link management (e.g. https://localhost:8080/invites/6141611) - how would I implement this? 
+      - [ ] Link management (e.g. https://localhost:8080/invites/6141611) - how would I implement this? 
 - [ ] **Group Member Roles:** Admins, mods, etc.
 - [ ] **User Account Management:** Change username, display name, bio, and password.
 - [ ] **Deletion:** Ability to delete accounts, messages, and groups.
