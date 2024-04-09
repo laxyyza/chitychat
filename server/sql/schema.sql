@@ -71,7 +71,7 @@ CREATE OR REPLACE FUNCTION delete_groupcode_if_over_max()
 RETURNS TRIGGER AS $$
 BEGIN
     DELETE FROM GroupCodes
-    WHERE uses >= max_uses;
+    WHERE max_uses != -1 AND uses >= max_uses;
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
