@@ -138,6 +138,39 @@ handle_http_header(client_t* client, http_t* http, http_header_t* header)
         handle_websocket_key(http, header);
 }
 
+static void 
+parse_url(http_t* http, char* url)
+{
+    char* path;
+    char* params_line;
+    char* param;
+    char* endptr;
+
+    path = strtok_r(url, "?", &params_line);
+    
+    if (*params_line)
+    {
+        param = strtok_r(params_line, "&", &endptr);
+
+        while (param && http->n_params < HTTP_MAX_PARAMS)
+        {
+            char* key;
+            char* val;
+            http_header_t* http_param = http->params + http->n_params;
+
+            key = strtok_r(param, "=", &val);
+
+            strncpy(http_param->name, key, HTTP_HEAD_NAME_LEN);
+            strncpy(http_param->val, val, HTTP_HEAD_VAL_LEN);
+
+            param = strtok_r(NULL, "&", &endptr);
+            http->n_params++;
+        }
+    }
+
+    strncpy(http->req.url, path, HTTP_URL_LEN);
+}
+
 static http_t* 
 parse_http(client_t* client, char* buf, size_t buf_len) 
 {
@@ -193,7 +226,7 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     if (token)
     {
         if (http->type == HTTP_REQUEST)
-            strncpy(http->req.url, token, HTTP_URL_LEN);
+            parse_url(http, token);
         else
             http->resp.code = atoi(token);
     }
@@ -277,7 +310,14 @@ print_parsed_http(const http_t* http)
     
     verbose("Parsed HTTP: %s\n", (http->type == HTTP_REQUEST) ? "Request" : "Respond");
     if (http->type == HTTP_REQUEST)
+    {
         verbose("\tMethod: '%s'\n\t\t\tURL: '%s'\n\t\t\tVersion: '%s'\n", http->req.method, http->req.url, http->req.version);
+        for (size_t i = 0; i < http->n_params; i++)
+        {
+            const http_header_t* param = http->params + i;
+            verbose("\t'%s' = '%s'\n", param->name, param->val);
+        }
+    }
     else
         verbose("\tVersion: '%s'\n\t\t\tCode: %u\n\t\t\tStatus: '%s'\n", http->resp.version, http->resp.code, http->resp.msg);
 
@@ -358,6 +398,12 @@ server_upgrade_client_to_websocket(client_t* client, http_t* req_http)
     http_add_header(http, "Connection", HTTP_HEAD_CONN_UPGRADE);
     http_add_header(http, "Upgrade", "websocket");
     http_add_header(http, HTTP_HEAD_WS_ACCEPT, req_http->websocket_key);
+
+    for (size_t i = 0; i < http->n_params; i++)
+    {
+        http_header_t* param = http->params + i;
+        debug("ws: '%s' = '%s'\n", param->name, param->val);
+    }
 
     if (http_send(client, http) != -1)
     {

@@ -12,19 +12,21 @@
 // #define HTTP_VERSION "HTTP/3"
 #define HTTP_VERSION "HTTP/1.1"
 
-#define HTTP_METHOD_LEN 16
-#define HTTP_VERSION_LEN 16
-#define HTTP_URL_LEN 256
-#define HTTP_HEAD_NAME_LEN 64
-#define HTTP_HEAD_VAL_LEN 256
-#define HTTP_MAX_HEADERS 20
-#define HTTP_CODE_LEN 6
+#define HTTP_METHOD_LEN     16
+#define HTTP_VERSION_LEN    16
+#define HTTP_URL_LEN        256
+#define HTTP_HEAD_NAME_LEN  64
+#define HTTP_HEAD_VAL_LEN   256
+#define HTTP_CODE_LEN       6
 #define HTTP_STATUS_MSG_LEN 128
 
-#define HTTP_CODE_SW_PROTO 101
-#define HTTP_CODE_OK 200
-#define HTTP_CODE_BAD_REQ 400
-#define HTTP_CODE_NOT_FOUND 404
+#define HTTP_MAX_HEADERS    20
+#define HTTP_MAX_PARAMS     10
+
+#define HTTP_CODE_SW_PROTO      101
+#define HTTP_CODE_OK            200
+#define HTTP_CODE_BAD_REQ       400
+#define HTTP_CODE_NOT_FOUND     404
 #define HTTP_CODE_INTERAL_ERROR 500
 
 #define HTTP_HEAD_CONTENT_LEN "Content-Length"
@@ -74,6 +76,8 @@ typedef struct http
     };
     http_header_t headers[HTTP_MAX_HEADERS];
     size_t n_headers;
+    http_header_t params[HTTP_MAX_PARAMS];
+    size_t n_params;
     char* body;
     size_t body_len;
     size_t header_len;
