@@ -13,7 +13,7 @@ if (session_id)
         status_h1.innerHTML = "Connected to server. Waiting for server";
         var packet = {
             type: "session",
-            id: session_id
+            id: Number(session_id)
         };
 
         socket.send(JSON.stringify(packet));

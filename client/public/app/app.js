@@ -122,7 +122,7 @@ export class App
 
             const packet = {
                 type: "create_group_code",
-                max_uses: max_uses,
+                max_uses: Number(max_uses),
                 group_id: group_id
             }
             this.server.ws_send(packet);
@@ -377,7 +377,7 @@ export class App
 
         const session_packet = {
             type: "session",
-            id: session_id
+            id: Number(session_id)
         };
 
         this.server.ws_send(session_packet);
