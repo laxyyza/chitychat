@@ -449,10 +449,26 @@ server_init(int argc, char* const* argv)
     server_t* server;
 
     server = calloc(1, sizeof(server_t));
+    if (!server)
+    {
+        fatal("calloc() failed.\n");
+        return NULL;
+    }
 
     // Load config and command line arguments
     if (!server_load_config(server, argc, argv))
         goto error;
+
+    // if --fork is used, fork and exit parent process 
+    // e.i. becomes a background process
+    if (server->conf.fork)
+    {
+        if (fork() != 0)
+        {
+            // Parent
+            exit(0);
+        }
+    }
 
     // Self-Explanatory
     if (!server_init_socket(server))
