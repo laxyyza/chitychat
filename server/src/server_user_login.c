@@ -3,6 +3,8 @@
 #include "server_client_sesson.h"
 #include "server_events.h"
 #include "server_tm.h"
+#include "server_ws_pld_hdlr.h"
+#include <json-c/json_object.h>
 
 static const char* 
 server_set_client_logged_in(server_thread_t* th, client_t* client, 
@@ -49,8 +51,8 @@ server_handle_client_session(server_thread_t* th, client_t* client,
     json_object* session_id_json;
     session_t* session;
     u32 session_id;
-
-    session_id_json = json_object_object_get(payload, "id");
+    
+    RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_int);
     session_id = json_object_get_uint64(session_id_json);
 
     session = server_get_client_session(th->server, session_id);
@@ -133,27 +135,28 @@ const char*
 server_handle_not_logged_in_client(server_thread_t* th, client_t* client, 
         json_object* payload, json_object* respond_json, const char* type)
 {
-    json_object* username_json = json_object_object_get(payload, 
-            "username");
-    json_object* password_json = json_object_object_get(payload, 
-            "password");
-    json_object* displayname_json = json_object_object_get(payload, 
-            "displayname");
+    json_object* username_json;
+    json_object* password_json;
+    json_object* displayname_json;
+    const char* username;
+    const char* password;
+    const char* displayname;
+    const char* errmsg = NULL;
 
     if (!strcmp(type, "session"))
         return server_handle_client_session(th, client, payload, 
                                             respond_json);
 
-    const char* username = json_object_get_string(username_json);
-    const char* password = json_object_get_string(password_json);
-    const char* displayname = json_object_get_string(displayname_json);
+    RET_IF_JSON_BAD(username_json, payload, "username", json_type_string);
+    RET_IF_JSON_BAD(password_json, payload, "password", json_type_string);
 
-    if (!username_json || !username)
-        return "Require username.";
-    if (!password_json || !password)
-        return "Require password.";
+    displayname_json = json_object_object_get(payload, "displayname");
+    if (displayname_json && json_object_is_type(displayname_json, json_type_string))
+        return JSON_INVALID_STR("displayname");
 
-    const char* errmsg = NULL;
+    username = json_object_get_string(username_json);
+    password = json_object_get_string(password_json);
+    displayname = json_object_get_string(displayname_json);
 
     if (!strcmp(type, "login"))
         errmsg = server_handle_client_login(th, username, password);
