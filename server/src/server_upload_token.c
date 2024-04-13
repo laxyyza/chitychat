@@ -81,7 +81,7 @@ server_send_upload_token(client_t* client, const char* packet_type, upload_token
 
     respond_json = json_object_new_object();
 
-    json_object_object_add(respond_json, "type", 
+    json_object_object_add(respond_json, "cmd", 
             json_object_new_string(packet_type));
     json_object_object_add(respond_json, "upload_token", 
             json_object_new_uint64(ut->token));

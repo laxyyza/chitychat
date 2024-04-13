@@ -5,7 +5,7 @@
 static void 
 server_add_user_in_json(dbuser_t* dbuser, json_object* json)
 {
-    json_object_object_add(json, "id", 
+    json_object_object_add(json, "user_id", 
                            json_object_new_int(dbuser->user_id));
     json_object_object_add(json, "username",
                            json_object_new_string(dbuser->username));
@@ -21,21 +21,21 @@ server_add_user_in_json(dbuser_t* dbuser, json_object* json)
 
 const char* 
 server_get_user(server_thread_t* th, client_t* client, 
-        json_object* payload, json_object* respond_json)
+                json_object* payload, json_object* respond_json)
 {
     json_object* user_id_json; 
     dbuser_t* dbuser;
     u64 user_id; 
 
-    RET_IF_JSON_BAD(user_id_json, payload, "id", json_type_int);
+    RET_IF_JSON_BAD(user_id_json, payload, "user_id", json_type_int);
 
     user_id = json_object_get_int(user_id_json);
     dbuser = server_db_get_user_from_id(&th->db, user_id);
     if (!dbuser)
         return "User not found";
 
-    json_object_object_add(respond_json, "type", 
-            json_object_new_string("get_user"));
+    json_object_object_add(respond_json, "cmd", 
+                           json_object_new_string("get_user"));
     server_add_user_in_json(dbuser, respond_json);
 
     ws_json_send(client, respond_json);
@@ -48,7 +48,7 @@ server_get_user(server_thread_t* th, client_t* client,
 const char* 
 server_client_user_info(client_t* client, json_object* respond_json)
 {
-    json_object_object_add(respond_json, "type", 
+    json_object_object_add(respond_json, "cmd", 
                            json_object_new_string("client_user_info"));
     server_add_user_in_json(client->dbuser, respond_json);
 
@@ -97,7 +97,7 @@ const char* server_user_edit_account(server_thread_t* th, client_t* client,
     {
         // Create new upload token
         upload_token_t* upload_token = server_new_upload_token(th->server, 
-                client->dbuser->user_id);
+                                                    client->dbuser->user_id);
 
         if (upload_token == NULL)
             return "Failed to create upload token";

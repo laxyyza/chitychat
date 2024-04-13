@@ -22,7 +22,7 @@ server_set_client_logged_in(server_thread_t* th, client_t* client,
     memcpy(client->dbuser, dbuser, sizeof(dbuser_t));
     free(dbuser);
 
-    json_object_object_add(respond_json, "type", 
+    json_object_object_add(respond_json, "cmd", 
                         json_object_new_string("session"));
     json_object_object_add(respond_json, "id", 
                         json_object_new_uint64(session->session_id));
@@ -132,8 +132,11 @@ server_create_client_session(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_handle_not_logged_in_client(server_thread_t* th, client_t* client, 
-        json_object* payload, json_object* respond_json, const char* type)
+server_handle_not_logged_in_client(server_thread_t* th, 
+                                   client_t* client, 
+                                   json_object* payload, 
+                                   json_object* respond_json, 
+                                   const char* cmd)
 {
     json_object* username_json;
     json_object* password_json;
@@ -143,7 +146,7 @@ server_handle_not_logged_in_client(server_thread_t* th, client_t* client,
     const char* displayname;
     const char* errmsg = NULL;
 
-    if (!strcmp(type, "session"))
+    if (!strcmp(cmd, "session"))
         return server_handle_client_session(th, client, payload, 
                                             respond_json);
 
@@ -158,9 +161,9 @@ server_handle_not_logged_in_client(server_thread_t* th, client_t* client,
     password = json_object_get_string(password_json);
     displayname = json_object_get_string(displayname_json);
 
-    if (!strcmp(type, "login"))
+    if (!strcmp(cmd, "login"))
         errmsg = server_handle_client_login(th, username, password);
-    else if (!strcmp(type, "register"))
+    else if (!strcmp(cmd, "register"))
         errmsg = server_handle_client_register(th, username, 
                                                displayname, password);
     else
