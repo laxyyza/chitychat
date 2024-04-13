@@ -28,7 +28,7 @@ export class Group
             if (app.messages_container.scrollTop === 0)
             {
                 const packet = {
-                    type: "get_group_msgs",
+                    cmd: "get_group_msgs",
                     group_id: this.id,
                     limit: 15,
                     offset: this.msg_offset
@@ -57,8 +57,8 @@ export class Group
                 else
                 {
                     const packet = {
-                        type: "get_user",
-                        id: id
+                        cmd: "get_user",
+                        user_id: id
                     };
 
                     app.server.ws_send(packet);
@@ -225,7 +225,7 @@ export class Group
         if (this.messages.length === 0)
         {
             const packet = {
-                type: "get_group_msgs",
+                cmd: "get_group_msgs",
                 group_id: this.id,
                 limit: 15,
                 offset: this.msg_offset

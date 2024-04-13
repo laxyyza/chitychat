@@ -11,18 +11,18 @@ function init()
     });
 
     socket.addEventListener('message', (event) => {
-        var respond = JSON.parse(event.data);
+        let respond = JSON.parse(event.data);
 
         console.log(event.data);
 
-        if (respond.type === "session")
+        if (respond.cmd === "session")
         {
             console.log("Sucsess: ", respond.id)
             localStorage.removeItem("session_id");
             localStorage.setItem("session_id", respond.id);
             window.location.href = "/app";
         }
-        else if (respond.type === "error")
+        else if (respond.cmd === "error")
         {
             error_msg.innerHTML = respond.error_msg;
         }
@@ -40,11 +40,11 @@ function init()
     document.getElementById("login_form").addEventListener("submit", (event) => {
         event.preventDefault();
 
-        var username = document.getElementById("login_username").value;
-        var password = document.getElementById("login_password").value;
+        let username = document.getElementById("login_username").value;
+        let password = document.getElementById("login_password").value;
 
-        var login_details = {
-            type: "login",
+        let login_details = {
+            cmd: "login",
             username: username,
             password: password
         };
@@ -56,12 +56,12 @@ function init()
     document.getElementById("register_form").addEventListener("submit", (event) => {
         event.preventDefault();
 
-        var username = document.getElementById("register_username").value;
-        var displayname = document.getElementById("register_displayname").value;
-        var password = document.getElementById("register_password").value;
+        let username = document.getElementById("register_username").value;
+        let displayname = document.getElementById("register_displayname").value;
+        let password = document.getElementById("register_password").value;
 
-        var login_details = {
-            type: "register",
+        let login_details = {
+            cmd: "register",
             username: username,
             displayname: displayname,
             password: password

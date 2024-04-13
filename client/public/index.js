@@ -12,7 +12,7 @@ if (session_id)
     socket.addEventListener("open", (event) => {
         status_h1.innerHTML = "Connected to server. Waiting for server";
         var packet = {
-            type: "session",
+            cmd: "session",
             id: Number(session_id)
         };
 
@@ -21,7 +21,7 @@ if (session_id)
 
     socket.addEventListener("message", (event) => {
         const packet = JSON.parse(event.data);
-        if (packet.type == "session")
+        if (packet.cmd == "session")
         {
             status_h1.innerHTML = "Good, switching to /app";
             window.location.href = "/app";
@@ -29,7 +29,7 @@ if (session_id)
         else
         {
             console.log(packet);
-            if (packet.type === "error")
+            if (packet.cmd === "error")
                 status_h1.innerHTML = "Error: " + packet.error_msg;
             localStorage.removeItem("session_id");
             window.location.href = "/login";

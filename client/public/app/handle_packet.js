@@ -4,15 +4,15 @@ import {User} from './user.js';
 
 let packet_commands = {}
 
-function type_session(packet)
+function cmd_session(packet)
 {
     app.logged_in = true;
 
     const req_user_info = {
-        type: "client_user_info"
+        cmd: "client_user_info"
     };
     const req_groups = {
-        type: "client_groups"
+        cmd: "client_groups"
     };
 
     app.server.ws_send(req_user_info);
@@ -21,7 +21,7 @@ function type_session(packet)
 
 function client_user_info(packet)
 {
-    app.client_user = new User(packet.id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
+    app.client_user = new User(packet.user_id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
     app.users[app.client_user.id] = this.client_user;
     let me_displayname = document.getElementById("me_displayname");
     me_displayname.innerHTML = app.client_user.displayname;
@@ -40,8 +40,8 @@ function client_groups(packet)
     for (let i = 0; i < packet.groups.length; i++)
     {
         const group = packet.groups[i];
-        const new_group = new Group(group.id, group.name, group.desc, group.members_id);
-        app.groups[group.id] = new_group;
+        const new_group = new Group(group.group_id, group.name, group.desc, group.members_id);
+        app.groups[group.group_id] = new_group;
 
         if (!param_group_id)
             param_group_id = localStorage.getItem("group_id");
@@ -94,8 +94,8 @@ function group_members(packet)
         }
 
         const new_packet = {
-            type: "get_user",
-            id: user_id
+            cmd: "get_user",
+            user_id: user_id
         };
 
         app.server.ws_send(new_packet);
@@ -104,9 +104,9 @@ function group_members(packet)
 
 function get_user(packet)
 {
-    if (app.users[packet.id])
+    if (app.users[packet.user_id])
         return;
-    let new_user = new User(packet.id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
+    let new_user = new User(packet.user_id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
     app.users[new_user.id] = new_user;
 
     for (let group_id in app.groups)
@@ -177,8 +177,8 @@ function get_all_groups(packet)
             if (!requested_users.includes(group.owner_id))
             {
                 const req_packet = {
-                    type: "get_user",
-                    id: group.owner_id
+                    cmd: "get_user",
+                    user_id: group.owner_id
                 };
 
                 // const json_string = JSON.stringify(req_packet);
@@ -219,13 +219,13 @@ function get_group_msgs(packet)
         if (!user)
         {
             user = {
-                id: msg.user_id,
+                user_id: msg.user_id,
                 displayname: msg.user_id
             };
 
             const get_user_packet = {
-                type: "get_user",
-                id: msg.user_id
+                cmd: "get_user",
+                user_id: msg.user_id
             };
             app.server.ws_send(get_user_packet);
         }
@@ -242,8 +242,8 @@ function join_group(packet)
     if (!user)
     {
         const get_user_packet = {
-            type: "get_user",
-            id: packet.user_id
+            cmd: "get_user",
+            user_id: packet.user_id
         };
 
         app.server.ws_send(get_user_packet);
@@ -340,17 +340,17 @@ function send_attachments(packet)
 
 function handle_packet(packet)
 {
-    if (packet_commands.hasOwnProperty(packet.type))
-        packet_commands[packet.type](packet);
-    else if (packet.type === "error")
+    if (packet_commands.hasOwnProperty(packet.cmd))
+        packet_commands[packet.cmd](packet);
+    else if (packet.cmd === "error")
         console.error("ERROR: " + packet.error_msg);
     else
-        console.error("No packet type: " + packet.type);
+        console.error("No packet cmd: " + packet.type);
 }
 
 function handle_login(packet)
 {
-    if (packet.type === "session")
+    if (packet.cmd === "session")
         packet_commands.session(packet);
     else
         window.location.href = "/login";
@@ -375,7 +375,7 @@ export function handle_packet_state(packet)
 
 export function init_packet_commads()
 {
-    packet_commands.session = type_session;
+    packet_commands.session = cmd_session;
 
     packet_commands.client_user_info = client_user_info;
     packet_commands.client_groups = client_groups;

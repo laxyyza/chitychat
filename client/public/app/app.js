@@ -8,7 +8,7 @@ class Attach
     {
         this.file = file;
         this.name = file.name;
-        this.type = file.type;
+        this.cmd = file.type;
         this.size = file.size;
         
         const reader = new FileReader();
@@ -23,7 +23,7 @@ class Attach
     tojson()
     {
         let f = {
-            type: this.type,
+            cmd: this.type,
             name: this.name
         };
         return JSON.stringify(f);
@@ -99,7 +99,7 @@ export class App
             if (code)
             {
                 const packet = {
-                    type: "join_group_code",
+                    cmd: "join_group_code",
                     code: code
                 };
                 this.server.ws_send(packet);
@@ -121,7 +121,7 @@ export class App
                 max_uses = this.gen_group_code_max_uses.value;
 
             const packet = {
-                type: "create_group_code",
+                cmd: "create_group_code",
                 max_uses: Number(max_uses),
                 group_id: group_id
             }
@@ -205,7 +205,7 @@ export class App
                 new_pfp = true;
 
             const edit_account_packet = {
-                type: "edit_account",
+                cmd: "edit_account",
                 new_username: null,
                 new_displayname: null,
                 new_pfp: new_pfp
@@ -254,7 +254,7 @@ export class App
                 {
                     let item = data.items[i];
 
-                    if (item.type.startsWith("image/"))
+                    if (item.cmd.startsWith("image/"))
                     {
                         this.add_attachment(item.getAsFile());
                     }
@@ -304,7 +304,7 @@ export class App
         delete_code_button.innerHTML = "DELETE";
         delete_code_button.addEventListener("click", () => {
             const packet = {
-                type: "delete_group_code",
+                cmd: "delete_group_code",
                 code: code,
                 group_id: group_id
             };
@@ -331,7 +331,7 @@ export class App
         this.popup_group_invite_header.innerHTML = this.current_group.name + " Invite Codes";
 
         const packet = {
-            type: "get_group_codes",
+            cmd: "get_group_codes",
             group_id: this.current_group.id
         };
         this.server.ws_send(packet);
@@ -376,7 +376,7 @@ export class App
         }
 
         const session_packet = {
-            type: "session",
+            cmd: "session",
             id: Number(session_id)
         };
 
@@ -402,7 +402,7 @@ export class App
 
     add_attachment(file)
     {
-        if (!file.type.startsWith("image/"))
+        if (!file.cmd.startsWith("image/"))
         {
             console.log(file.name + " - is not image.");
             return;
@@ -427,7 +427,7 @@ export class App
         //     img.src = e.target.result;
         // };
         // reader.readAsDataURL(file);
-        // console.log("type: " + file.type);
+        // console.log("cmd: " + file.type);
 
         let filename_span = document.createElement("span");
         filename_span.className = "attachment_name";
@@ -462,7 +462,7 @@ export class App
             const public_group = this.popup_create_group_public.checked;
 
             const packet = {
-                type: "group_create",
+                cmd: "group_create",
                 name: input.value,
                 public: public_group
             };
@@ -486,7 +486,7 @@ export class App
         group_list.innerHTML = "";
 
         const packet = {
-            type: "get_all_groups"
+            cmd: "get_all_groups"
         };
 
         this.server.ws_send(packet);
@@ -532,7 +532,7 @@ export class App
                 join_button.setAttribute("joining_group", group.id)
 
                 const packet = {
-                    type: "join_group",
+                    cmd: "join_group",
                     group_id: group.id
                 };
 
@@ -611,7 +611,7 @@ export class App
             return;
 
         let packet = {
-            type: "group_msg",
+            cmd: "group_msg",
             group_id: this.current_group.id,
             content: msg,
             attachments: []
@@ -621,7 +621,7 @@ export class App
         {
             const att = this.current_attachments[i];
             packet.attachments.push({
-                type: att.type,
+                cmd: att.type,
                 name: att.name
             });
         }
