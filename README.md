@@ -15,6 +15,9 @@
 - [ ] **Group Member Roles:** Admins, mods, etc.
 - [ ] **User Account Management:** Change username, display name, bio, and password.
 - [ ] **Deletion:** Ability to delete accounts, messages, and groups.
+   - [x] Delete messages.
+   - [ ] Delete accounts.
+   - [ ] Detete groups. 
 - [ ] **Direct Messaging (DM):** Private messaging between users.
 - [ ] **Enhanced Messaging:** Send photos, videos, files, reply to messages, and edit messages.
    - [X] Front-end implementation (images)
