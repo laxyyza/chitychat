@@ -8,7 +8,7 @@ class Attach
     {
         this.file = file;
         this.name = file.name;
-        this.cmd = file.type;
+        this.type = file.type;
         this.size = file.size;
         
         const reader = new FileReader();
@@ -254,7 +254,7 @@ export class App
                 {
                     let item = data.items[i];
 
-                    if (item.cmd.startsWith("image/"))
+                    if (item.type.startsWith("image/"))
                     {
                         this.add_attachment(item.getAsFile());
                     }
@@ -402,7 +402,7 @@ export class App
 
     add_attachment(file)
     {
-        if (!file.cmd.startsWith("image/"))
+        if (!file.type.startsWith("image/"))
         {
             console.log(file.name + " - is not image.");
             return;
@@ -621,7 +621,7 @@ export class App
         {
             const att = this.current_attachments[i];
             packet.attachments.push({
-                cmd: att.type,
+                type: att.type,
                 name: att.name
             });
         }
