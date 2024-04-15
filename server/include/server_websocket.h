@@ -50,8 +50,8 @@
  *      |                     Payload Data continued ...                |
  *      +---------------------------------------------------------------+
  */
-/* LSD = Least significant bit
- * MSD = Most significant bit
+/* LSB = Least significant bit
+ * MSB = Most significant bit
  */
 typedef struct 
 {
@@ -73,7 +73,7 @@ typedef struct
     // LSB
     u8 payload_len: 7; /* Payload len. 7 bits, 16 bits or 64 bits */
     u8 mask: 1; /* If payload is masked */
-    // MSD
+    // MSB
     /* ------ byte 1 ----- */
 } ws_frame_t;
 
