@@ -149,7 +149,7 @@ ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len,
     iov[i].iov_base = &ws.frame;
     iov[i].iov_len = sizeof(ws_frame_t);
 
-    if (len >= 125)
+    if (len >= 126)
     {
         i++;
         if (len >= UINT16_MAX)
