@@ -2,6 +2,7 @@
 #define _SERVER_USER_GROUP_H_
 
 #include "common.h"
+#include "server_tm.h"
 #include "server_websocket.h"
 #include <json-c/json_types.h>
 
@@ -55,5 +56,10 @@ const char* server_get_group_codes(server_thread_t* th,
 const char* server_delete_group_code(server_thread_t* th,
                                      client_t* client, 
                                      json_object* payload);
+
+const char* server_delete_group_msg(server_thread_t* th,
+                                    client_t* client,
+                                    json_object* payload,
+                                    json_object* respond_json);
 
 #endif // _SERVER_USER_GROUP_H_

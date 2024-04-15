@@ -167,6 +167,7 @@ dbmsg_t*    server_db_get_msg(server_db_t* db, u32 msg_id);
 dbmsg_t*    server_db_get_msgs_from_group(server_db_t* db, u32 group_id, 
                                           u32 limit, u32 offset, u32* n);
 bool        server_db_insert_msg(server_db_t* db, dbmsg_t* msg);
+bool        server_db_delete_msg(server_db_t* db, u32 msg_id);
 
 dbgroup_code_t* server_db_get_group_code(server_db_t* db, const char* invite_code);
 dbgroup_code_t* server_db_get_all_group_codes(server_db_t* db, u32 group_id, u32* n);

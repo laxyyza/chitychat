@@ -61,6 +61,10 @@ server_handle_logged_in_client(server_thread_t* th,
     // Delete Group Invite Code
     else if (!strcmp(cmd, "delete_group_code"))
         return server_delete_group_code(th, client, payload);
+      
+    // Delete Group Message
+    else if (!strcmp(cmd, "delete_msg"))
+        return server_delete_group_msg(th, client, payload, respond_json);
 
     /*
      * Future implementations:
@@ -71,9 +75,6 @@ server_handle_logged_in_client(server_thread_t* th,
 
     else if (!strcmp(cmd, "edit_group"))
         return server_edit_group(th, client, payload, respond_json);
-     
-    else if (!strcmp(cmd, "delete_msg"))
-        return server_delete_msg(th, client, payload, respond_json);
 
     else if (!strcmp(cmd, "delete_user_account"))
         return server_delete_user_account(th, client, payload, respond_json);

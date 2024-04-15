@@ -977,6 +977,32 @@ server_db_insert_msg(server_db_t* db, dbmsg_t* msg)
     return ret;
 }
 
+bool 
+server_db_delete_msg(server_db_t* db, u32 msg_id)
+{
+    const char* sql = "DELETE FROM Messages WHERE msg_id = $1::int;";
+    PGresult* res;
+    bool ret = true;
+    char msg_id_str[DB_INTSTR_MAX];
+
+    const i32 lens[1] = {
+        snprintf(msg_id_str, DB_INTSTR_MAX, "%u", msg_id)
+    };
+    const i32 formats[1] = {0};
+    const char* vals[1] = {msg_id_str};
+
+    res = PQexecParams(db->conn, sql, 1, NULL, vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        error("PQexecParams() failed for delete message: %s\n",
+              PQresultErrorMessage(res));
+        ret = false;
+    }
+
+    PQclear(res);
+    return ret;
+}
+
 dbgroup_code_t* 
 server_db_get_group_code(server_db_t* db, const char* code)
 {

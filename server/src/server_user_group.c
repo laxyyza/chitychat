@@ -6,6 +6,28 @@
 #include "server_ws_pld_hdlr.h"
 #include <json-c/json_types.h>
 
+static void 
+server_group_broadcast(server_thread_t* th, u32 group_id, json_object* json)
+{
+    const dbuser_t* member;
+    const client_t* member_client;
+    dbuser_t* gmembers;
+    u32 n_members;
+
+    gmembers = server_db_get_group_members(&th->db, group_id, &n_members);
+
+    for (u32 i = 0; i < n_members; i++)
+    {
+        member = gmembers + i;
+        member_client = server_get_client_user_id(th->server, member->user_id);
+
+        if (member_client)
+            ws_json_send(member_client, json);
+    }
+
+    free(gmembers);
+}
+
 static void
 server_msg_to_json(const dbmsg_t* dbmsg, json_object* json)
 {
@@ -384,34 +406,17 @@ server_join_group(server_thread_t* th, client_t* client,
 
 const char*
 server_get_send_group_msg(server_thread_t* th, 
-                const dbmsg_t* dbmsg, const u32 group_id)
+                          const dbmsg_t* dbmsg, 
+                          const u32 group_id)
 {
     json_object* respond_json;
-    u32 n_memebrs;
-    dbuser_t* gmemebrs;
 
     respond_json = json_object_new_object();
-
-    gmemebrs = server_db_get_group_members(&th->db, group_id, 
-                                                    &n_memebrs);
-    if (!gmemebrs)
-        return "Failed to get group members";
 
     server_msg_to_json(dbmsg, respond_json);
 
     // Update all other online group members
-    for (size_t i = 0; i < n_memebrs; i++)
-    {
-        const dbuser_t* member = gmemebrs + i;
-        const client_t* member_client = server_get_client_user_id(th->server, 
-                member->user_id);
-
-        // If member_client is not NULL it means they are online.
-        if (member_client)
-            ws_json_send(member_client, respond_json);
-    }
-
-    free(gmemebrs);
+    server_group_broadcast(th, group_id, respond_json);
 
     json_object_put(respond_json);
 
@@ -670,4 +675,62 @@ const char* server_delete_group_code(server_thread_t* th,
         return "Failed to delete group code";
 
     return NULL;
+}
+
+const char* server_delete_group_msg(server_thread_t* th,
+                                    client_t* client,
+                                    json_object* payload,
+                                    json_object* respond_json)
+{
+    json_object* msg_id_json;
+    u32 msg_id;
+    dbmsg_t* msg_to_delete;
+    dbgroup_t* group;
+    const char* errmsg = NULL;
+
+    RET_IF_JSON_BAD(msg_id_json, payload, "msg_id", json_type_int);
+    msg_id = json_object_get_int(msg_id_json);
+
+    msg_to_delete = server_db_get_msg(&th->db, msg_id);
+    if (!msg_to_delete)
+        return "Message not found";
+
+    group = server_db_get_group(&th->db, msg_to_delete->group_id);
+    if (!group)
+    {
+        errmsg = "Group not found";
+        goto cleanup;
+    }
+
+    /*
+     * Currently only group owner and user's own can delete messages.
+     * Will change, when member roles (admin) are implemented.
+     */
+    if (client->dbuser->user_id != group->owner_id &&
+        client->dbuser->user_id != msg_to_delete->user_id)
+    {
+        errmsg = "Permission denied";
+        goto cleanup;
+    } 
+
+    if (!server_db_delete_msg(&th->db, msg_to_delete->msg_id))
+    {
+        errmsg = "Failed to delete message";
+        goto cleanup;
+    }
+
+    json_object_object_add(respond_json, "cmd", 
+                           json_object_new_string("delete_msg"));
+    json_object_object_add(respond_json, "group_id",
+                           json_object_new_int(msg_to_delete->group_id));
+    json_object_object_add(respond_json, "msg_id",
+                           json_object_new_int(msg_to_delete->msg_id));
+
+    server_group_broadcast(th, group->group_id, respond_json);
+
+cleanup:
+    free(msg_to_delete);
+    free(group);
+
+    return errmsg;
 }
