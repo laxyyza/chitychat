@@ -155,19 +155,18 @@ server_handle_not_logged_in_client(server_thread_t* th,
     RET_IF_JSON_BAD(username_json, payload, "username", json_type_string);
     RET_IF_JSON_BAD(password_json, payload, "password", json_type_string);
 
-    displayname_json = json_object_object_get(payload, "displayname");
-    if (displayname_json && json_object_is_type(displayname_json, json_type_string))
-        return JSON_INVALID_STR("displayname");
-
     username = json_object_get_string(username_json);
     password = json_object_get_string(password_json);
-    displayname = json_object_get_string(displayname_json);
 
     if (!strcmp(cmd, "login"))
         errmsg = server_handle_client_login(th, username, password);
     else if (!strcmp(cmd, "register"))
+    {
+        RET_IF_JSON_BAD(displayname_json, payload, "displayname", json_type_string);
+        displayname = json_object_get_string(displayname_json);
         errmsg = server_handle_client_register(th, username, 
                                                displayname, password);
+    }
     else
         return "Not logged in.";
 
