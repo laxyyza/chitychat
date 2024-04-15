@@ -2,6 +2,7 @@
 #include "server_client.h"
 #include "server_db.h"
 #include "server_tm.h"
+#include "server_util.h"
 #include "server_ws_pld_hdlr.h"
 #include <json-c/json_types.h>
 
@@ -417,6 +418,29 @@ server_get_send_group_msg(server_thread_t* th,
     return NULL;
 }
 
+static const char*
+server_verify_msg_attachments(json_object* attachments_json, size_t n)
+{
+    json_object* attach;
+    json_object* name_json;
+    json_object* type_json;
+    const char*  type;
+
+    for (size_t i = 0; i < n; i++)
+    {
+        attach = json_object_array_get_idx(attachments_json, i);
+
+        RET_IF_JSON_BAD(name_json, attach, "name", json_type_string);
+        RET_IF_JSON_BAD(type_json, attach, "type", json_type_string);
+
+        type = json_object_get_string(type_json);
+        if (!str_startwith(type, "image/"))
+            return "Attachment type is not image.";
+    }
+
+    return NULL;
+}
+
 const char* 
 server_group_msg(server_thread_t* th, client_t* client, 
                  json_object* payload, UNUSED json_object* respond_json)
@@ -429,6 +453,7 @@ server_group_msg(server_thread_t* th, client_t* client,
     u32 user_id;
     size_t n_attachments;
     dbmsg_t new_msg;
+    const char* errmsg;
 
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     RET_IF_JSON_BAD(content_json, payload, "content", json_type_string);
@@ -458,6 +483,9 @@ server_group_msg(server_thread_t* th, client_t* client,
     }
     else
     {
+        if ((errmsg = server_verify_msg_attachments(attachments_json, n_attachments)))
+            return errmsg;
+
         /*
          * If message has attachments, create upload token (session), 
          * save the message temporarily, send the upload token to client,

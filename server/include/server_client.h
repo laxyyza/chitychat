@@ -6,6 +6,7 @@
 #include "server_db.h"
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include "server_client_sesson.h"
 
 #define USERNAME_MAX 50
 #define DISPLAYNAME_MAX 50

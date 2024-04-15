@@ -6,6 +6,20 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 
+bool 
+str_startwith(const char* restrict str, 
+              const char* restrict start)
+{
+    size_t start_len;
+
+    if (!str || !start)
+        return false;
+
+    start_len = strlen(start);
+
+    return strncmp(str, start, start_len) == 0;
+}
+
 char* 
 strsplit(char* restrict str, const char* restrict delm, char** restrict saveprr)
 {

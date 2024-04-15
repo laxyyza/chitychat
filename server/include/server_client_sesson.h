@@ -2,7 +2,8 @@
 #define _SERVER_CLIENT_SESSION_H_
 
 #include "common.h"
-#include "server_client.h"
+
+typedef struct client client_t;
 
 typedef struct session
 {

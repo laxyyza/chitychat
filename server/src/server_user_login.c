@@ -1,5 +1,4 @@
 #include "server_user_login.h"
-#include "server.h"
 #include "server_client_sesson.h"
 #include "server_events.h"
 #include "server_tm.h"
@@ -8,7 +7,7 @@
 
 static const char* 
 server_set_client_logged_in(server_thread_t* th, client_t* client, 
-                session_t* session, json_object* respond_json)
+                            session_t* session, json_object* respond_json)
 {
     dbuser_t* dbuser;
     server_event_t* session_timer_ev = NULL;
@@ -37,7 +36,10 @@ server_set_client_logged_in(server_thread_t* th, client_t* client,
     {
         session_timer_ev = server_get_event(th->server, session->timerfd);
         if (session_timer_ev)
+        {
+            session_timer_ev->keep_data = true;
             server_del_event(th->server, session_timer_ev);
+        }
         session->timerfd = 0;
     }
 
@@ -46,7 +48,7 @@ server_set_client_logged_in(server_thread_t* th, client_t* client,
 
 static const char* 
 server_handle_client_session(server_thread_t* th, client_t* client, 
-                json_object* payload, json_object* respond_json)
+                             json_object* payload, json_object* respond_json)
 {
     json_object* session_id_json;
     session_t* session;
@@ -64,7 +66,7 @@ server_handle_client_session(server_thread_t* th, client_t* client,
 
 static const char* 
 server_handle_client_login(server_thread_t* th, const char* username, 
-                                const char* password)
+                           const char* password)
 {
     dbuser_t* user = server_db_get_user_from_name(&th->db, username);
     if (!user)
@@ -116,7 +118,7 @@ server_handle_client_register(server_thread_t* th,
 
 static const char* 
 server_create_client_session(server_thread_t* th, client_t* client, 
-                const char* username, json_object* respond_json)
+                             const char* username, json_object* respond_json)
 {
     session_t* session;
 

@@ -36,6 +36,6 @@ server_timer_t*     server_addtimer(server_t* server, i32 seconds, i32 flags,
                                     size_t size);
 i32                 server_timer_set(server_timer_t* timer, i32 seconds);
 i32                 server_timer_get(server_timer_t* timer);
-void                server_close_timer(server_timer_t* timer);
+void                server_close_timer(server_t* server, server_timer_t* timer, bool keep_data);
 
 #endif // _SERVER_TIMER_H_

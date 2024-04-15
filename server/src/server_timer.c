@@ -30,27 +30,18 @@ timer_ut(server_t* server, server_timer_t* timer)
     return SE_CLOSE;
 }
 
-enum se_status
-se_timer_read(server_thread_t* th, server_event_t* ev)
+static enum se_status
+server_timer_exp(server_t* server, server_timer_t* timer)
 {
-    enum se_status ret = SE_OK;
-    server_timer_t* timer = ev->data;
-    u64 exp;
-
-    if (read(timer->fd, &exp, sizeof(u64)) == -1)
-    {
-        error("read timer->fd (%d): %s\n", timer->fd, ERRSTR);
-        return SE_ERROR;
-    }
-    timer->exp += exp;
+    enum se_status ret;
 
     switch (timer->type)
     {
         case TIMER_CLIENT_SESSION:
-            ret = timer_client_session(th->server, timer);
+            ret = timer_client_session(server, timer);
             break;
         case TIMER_UPLOAD_TOKEN:
-            ret = timer_ut(th->server, timer);
+            ret = timer_ut(server, timer);
             break;
         default:
         {
@@ -64,9 +55,25 @@ se_timer_read(server_thread_t* th, server_event_t* ev)
 }
 
 enum se_status
-se_timer_close(UNUSED server_t* server, server_event_t* ev)
+se_timer_read(server_thread_t* th, server_event_t* ev)
 {
-    server_close_timer(ev->data);
+    server_timer_t* timer = ev->data;
+    u64 exp;
+
+    if (read(timer->fd, &exp, sizeof(u64)) == -1)
+    {
+        error("read timer->fd (%d): %s\n", timer->fd, ERRSTR);
+        return SE_ERROR;
+    }
+    timer->exp += exp;
+
+    return server_timer_exp(th->server, timer);
+}
+
+enum se_status
+se_timer_close(server_t* server, server_event_t* ev)
+{
+    server_close_timer(server, ev->data, ev->keep_data);
     return SE_OK;
 }
 
@@ -91,7 +98,17 @@ server_addtimer(server_t* server, i32 seconds, i32 flags,
     timer->type = type;
     if (size > sizeof(union timer_data))
         size = sizeof(union timer_data);
-    memcpy(&timer->data, data, size);
+    timer->data = *data;
+
+    switch (timer->type)
+    {
+        case TIMER_CLIENT_SESSION:
+            timer->data.session->timerfd = timer->fd;
+            break;
+        case TIMER_UPLOAD_TOKEN:
+            timer->data.ut->timerfd = timer->fd;
+            break;
+    }
 
     it.it_value.tv_sec = seconds;
     it.it_value.tv_nsec = 0;
@@ -116,7 +133,7 @@ server_addtimer(server_t* server, i32 seconds, i32 flags,
 
     return timer;
 error:;
-    server_close_timer(timer);
+    server_close_timer(server, timer, 0);
     return NULL;
 }
 
@@ -161,10 +178,13 @@ server_timer_get(server_timer_t* timer)
 }
 
 void
-server_close_timer(server_timer_t* timer)
+server_close_timer(server_t* server, server_timer_t* timer, bool keep_data)
 {
     if (!timer)
         return;
+
+    if (keep_data == false)
+        server_timer_exp(server, timer);
 
     if (close(timer->fd) == -1)
         error("close timer->fd (%d): %s\n", timer->fd, ERRSTR);

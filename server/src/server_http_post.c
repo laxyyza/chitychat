@@ -1,4 +1,5 @@
 #include "server.h"
+#include "server_events.h"
 #include "server_http.h"
 #include "server_user_group.h"
 
@@ -108,8 +109,8 @@ respond:
 }
 
 static void 
-server_handle_msg_attach(server_thread_t* th, client_t* client, const http_t* http, 
-            upload_token_t* ut)
+server_handle_msg_attach(server_thread_t* th, client_t* client, 
+                         const http_t* http, upload_token_t* ut)
 {
     http_t* resp = NULL;
     dbmsg_t* msg = &ut->msg_state.msg;
@@ -156,12 +157,17 @@ server_handle_msg_attach(server_thread_t* th, client_t* client, const http_t* ht
             ut->msg_state.current++;
             if (ut->msg_state.current >= ut->msg_state.total)
             {
+
                 msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
 
                 if (server_db_insert_msg(&th->db, msg))
                     server_get_send_group_msg(th, msg, msg->group_id);
 
-                server_del_upload_token(th->server, ut);
+                server_event_t* se = server_get_event(th->server, ut->timerfd);
+                if (se)
+                    server_del_event(th->server, se);
+                else
+                    server_del_upload_token(th->server, ut);
             }
         }
     }

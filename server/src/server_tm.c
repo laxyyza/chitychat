@@ -29,6 +29,7 @@ tm_worker(void* arg)
     }
 
     verbose("Worker %d shutting down...\n", th->tid);
+    server_db_close(&th->db);
 
     return NULL;
 }
@@ -72,15 +73,15 @@ server_tm_init_thread(server_t* server, server_thread_t* th, size_t i)
     return true;
 }
 
-void    
-server_tm_shutdown(server_t* server)
+static void 
+server_tm_shutdown_threads(server_tm_t* tm)
 {
-    server_tm_t* tm = &server->tm;
     server_job_t* job;
 
     tm_lock(tm);
     tm->shutdown = 1;
 
+    // Clear all the jobs
     while ((job = tm->q.front))
     {
         tm->q.front = job->next;
@@ -91,10 +92,20 @@ server_tm_shutdown(server_t* server)
     tm_unlock(tm);
 
     for (size_t i = 0; i < tm->n_threads; i++)
-        server_db_close(&tm->threads[i].db);
+        pthread_join(tm->threads[i].pth, NULL);
+}
+
+void    
+server_tm_shutdown(server_t* server)
+{
+    server_tm_t* tm = &server->tm;
+
+    server_tm_shutdown_threads(tm);
 
     pthread_cond_destroy(&tm->cond);
     pthread_mutex_destroy(&tm->mutex);
+
+    free(tm->threads);
 }
 
 void            

@@ -28,6 +28,7 @@ typedef struct server_event
     u32 ep_events;
     u32 listen_events;
     void* data;
+    bool  keep_data;
     se_read_callback_t read;
     se_close_callback_t close;
 
