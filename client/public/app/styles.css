@@ -169,13 +169,39 @@ h1, h2, h3 {
 }
 
 .msg{
+    position: relative;
     padding: 5px;
     margin: 10px;
     border-radius: 13px;
 }
 
+.del_msg_button{
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 5px;
+    font-size: 14px;
+    background-color: inherit;
+    border-top-right-radius: inherit;
+    border-bottom-left-radius: 5px;
+    border: none;
+    display: none;
+}
+
+.del_msg_button:hover{
+    background-color: rgb(109, 0, 0);
+}
+
+.del_msg_button:active{
+    background-color: red;
+}
+
 .msg:hover{
     background-color: var(--bg-hovr);
+}
+
+.msg:hover .del_msg_button{
+    display: block;
 }
 
 .msg_displayname{

@@ -40,7 +40,13 @@ function client_groups(packet)
     for (let i = 0; i < packet.groups.length; i++)
     {
         const group = packet.groups[i];
-        const new_group = new Group(group.group_id, group.name, group.desc, group.members_id);
+        const new_group = new Group(
+            group.group_id, 
+            group.owner_id, 
+            group.name, 
+            group.desc, 
+            group.members_id
+        );
         app.groups[group.group_id] = new_group;
 
         if (!param_group_id)
@@ -373,6 +379,18 @@ export function handle_packet_state(packet)
         handle_login(packet);
 }
 
+function delete_msg(packet)
+{
+    const group_id = packet.group_id;
+    const msg_id = packet.msg_id;
+
+    let group = app.groups[group_id];
+    
+    let msg = group.div_chat_messages.querySelector("[msg_id=\"" + msg_id + "\"]");
+    if (msg)
+        msg.remove();
+}
+
 export function init_packet_commads()
 {
     packet_commands.session = cmd_session;
@@ -388,4 +406,5 @@ export function init_packet_commads()
     packet_commands.edit_account = edit_account;
     packet_commands.send_attachments = send_attachments;
     packet_commands.group_codes = group_codes;
+    packet_commands.delete_msg = delete_msg;
 }

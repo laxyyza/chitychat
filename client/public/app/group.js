@@ -3,10 +3,11 @@ import {app} from './app.js';
 
 export class Group
 {
-    constructor(id, name, desc, members_id)
+    constructor(id, owner_id, name, desc, members_id)
     {
         this.name = name;
         this.id = Number(id);
+        this.owner_id = Number(owner_id);
         if (members_id)
             this.members_id = members_id;
         else 
@@ -97,21 +98,44 @@ export class Group
         let div_msg = document.createElement("div");
         div_msg.className = "msg";
         div_msg.setAttribute("msg_user_id", user.id);
+        div_msg.setAttribute("msg_id", msg.msg_id);
 
         let div_img = document.createElement("img");
         div_img.className = "msg_img";
         div_img.src = user.pfp_url;
+        div_msg.appendChild(div_img);
 
         let span_displayname = document.createElement("span");
         span_displayname.className = "msg_displayname";
         span_displayname.innerHTML = user.displayname;
+        div_msg.appendChild(span_displayname);
 
         let span_timestamp = document.createElement("span");
         span_timestamp.className = "msg_timestamp";
         span_timestamp.innerHTML = msg.timestamp;
+        div_msg.appendChild(span_timestamp);
 
         let div_content = document.createElement("div");
         div_content.className = "msg_content_con";
+
+        if (this.owner_id === app.client_user.id || 
+            msg.user_id === app.client_user.id)
+        {
+            let delete_button = document.createElement("button");
+            delete_button.className = "del_msg_button";
+            delete_button.innerHTML = "<i class=\"fa fa-trash-o\"></i>";
+
+            delete_button.addEventListener("click", () => {
+                const packet = {
+                    cmd: "delete_msg",
+                    msg_id: msg.msg_id
+                };
+
+                app.server.ws_send(packet);
+            });
+
+            div_msg.appendChild(delete_button);
+        }
 
         // let img = document.createElement("img");
         // img.setAttribute("src", "/img/default.png");
@@ -124,14 +148,10 @@ export class Group
         span_msg_content.className = "msg_content";
         span_msg_content.innerHTML = content;
         div_content.appendChild(span_msg_content);
+        div_msg.appendChild(div_content);
 
         let attach_con = document.createElement("div");
         attach_con.className = "msg_attach_con";
-
-        div_msg.appendChild(div_img);
-        div_msg.appendChild(span_displayname);
-        div_msg.appendChild(span_timestamp);
-        div_msg.appendChild(div_content);
 
         for (let i = 0; i < attachments.length; i++)
         {
