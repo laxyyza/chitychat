@@ -611,6 +611,12 @@ export class App
         if (msg == "" && this.current_attachments.length === 0)
             return;
 
+        if (!this.current_group)
+        {
+            console.warn("Group not selected.");
+            return;
+        }
+
         let packet = {
             cmd: "group_msg",
             group_id: this.current_group.id,
