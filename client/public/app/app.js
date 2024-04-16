@@ -518,7 +518,7 @@ export class App
 
         let join_button = document.createElement("button");
         join_button.id = "popup_join_group_button";
-        if (this.groups[group.id])
+        if (this.groups[group.group_id])
         {
             join_button.innerHTML = "Joined";
             join_button.classList.add("joined");
@@ -529,12 +529,13 @@ export class App
             join_button.addEventListener("click", (event) => {
                 join_button.innerHTML = "Joining...";
                 join_button.classList.add("joining");
-                join_button.setAttribute("joining_group", group.id)
+                join_button.setAttribute("joining_group", group.group_id)
 
                 const packet = {
                     cmd: "join_group",
-                    group_id: group.id
+                    group_id: group.group_id
                 };
+                console.log(packet);
 
                 this.server.ws_send(packet);
             });
