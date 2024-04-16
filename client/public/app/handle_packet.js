@@ -37,7 +37,8 @@ function client_groups(packet)
     let urlparam = new URLSearchParams(window.location.search);
     let param_group_id = urlparam.get("group_id");
     let selected = false;
-    for (let i = 0; i < packet.groups.length; i++)
+    const len = packet.groups.length;
+    for (let i = 0; i < len; i++)
     {
         const group = packet.groups[i];
         const new_group = new Group(
@@ -52,7 +53,12 @@ function client_groups(packet)
         if (!param_group_id)
             param_group_id = localStorage.getItem("group_id");
 
-        if (param_group_id)
+        if (len === 1)
+        {
+            new_group.select();
+            selected = true;
+        }
+        else if (param_group_id)
         {
             param_group_id = Number(param_group_id);
             if (param_group_id === new_group.id)
