@@ -1,8 +1,8 @@
 INSERT INTO Users (username, displayname, bio, hash, salt)
 VALUES(
-    LOWER($1::VARCHAR(50)), 
-    $2::VARCHAR(50), 
-    $3::TEXT, 
-    $4::BYTEA, 
-    $5::BYTEA
+    LOWER($1::varchar(50)), 
+    $2::varchar(50), 
+    $3::text, 
+    $4::bytea, 
+    $5::bytea
 );

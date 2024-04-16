@@ -2,7 +2,7 @@ INSERT INTO Messages (user_id, group_id, content, attachments)
 VALUES (
     $1::int, 
     $2::int, 
-    $3::TEXT, 
-    $4::JSON
+    $3::text, 
+    $4::json
 )
 RETURNING msg_id;

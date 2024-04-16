@@ -3,41 +3,41 @@ SET CONSTRAINTS ALL DEFERRED;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS UserFiles(
-    hash            TEXT PRIMARY KEY UNIQUE,
-    size            BIGINT NOT NULL,
-    mime_type       TEXT NOT NULL,
-    flags           INTEGER DEFAULT 0,
-    ref_count       INTEGER DEFAULT 1
+    hash            text PRIMARY KEY UNIQUE,
+    size            bigint NOT null,
+    mime_type       text NOT null,
+    flags           int DEFAULT 0,
+    ref_count       int DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS Users(
     user_id         SERIAL PRIMARY KEY,
-    username        VARCHAR(50) NOT NULL UNIQUE,
-    displayname     VARCHAR(50) NOT NULL,
-    bio             TEXT,
-    hash            BYTEA NOT NULL,
-    salt            BYTEA NOT NULL, 
-    flags           INTEGER DEFAULT 0,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    pfp             TEXT,
+    username        varchar(50) NOT null UNIQUE,
+    displayname     varchar(50) NOT null,
+    bio             text,
+    hash            bytea NOT null,
+    salt            bytea NOT null, 
+    flags           int DEFAULT 0,
+    created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
+    pfp             text,
     FOREIGN KEY (pfp) REFERENCES UserFiles(hash)
 );
 
 CREATE TABLE IF NOT EXISTS Groups(
     group_id        SERIAL PRIMARY KEY,
-    owner_id        INTEGER,
-    name            VARCHAR(50) NOT NULL,
-    "desc"          TEXT,
-    flags           INTEGER DEFAULT 0,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    owner_id        int,
+    name            varchar(50) NOT null,
+    "desc"          text,
+    flags           int DEFAULT 0,
+    created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES Users(user_id)
 );
 
 CREATE TABLE IF NOT EXISTS GroupMembers(
-    user_id         INTEGER,
-    group_id        INTEGER,
-    join_date       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    flags           INTEGER DEFAULT 0,
+    user_id         int,
+    group_id        int,
+    join_date       timestamp DEFAULT CURRENT_TIMESTAMP,
+    flags           int DEFAULT 0,
     PRIMARY KEY (user_id, group_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (group_id) REFERENCES Groups(group_id)
@@ -45,13 +45,13 @@ CREATE TABLE IF NOT EXISTS GroupMembers(
 
 CREATE TABLE IF NOT EXISTS Messages(
     msg_id          SERIAL PRIMARY KEY,
-    user_id         INTEGER,
-    group_id        INTEGER,
-    content         TEXT,
-    timestamp       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    attachments     JSON DEFAULT NULL,
-    flags           INTEGER DEFAULT 0,
-    parent_msg_id   INTEGER DEFAULT NULL,
+    user_id         int,
+    group_id        int,
+    content         text,
+    timestamp       timestamp DEFAULT CURRENT_TIMESTAMP,
+    attachments     json DEFAULT null,
+    flags           int DEFAULT 0,
+    parent_msg_id   int DEFAULT null,
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (group_id) REFERENCES Groups(group_id),
     FOREIGN KEY (user_id, group_id) REFERENCES GroupMembers(user_id, group_id),
@@ -61,9 +61,9 @@ CREATE TABLE IF NOT EXISTS Messages(
 
 CREATE TABLE IF NOT EXISTS GroupCodes(
     invite_code VARCHAR(8) PRIMARY KEY DEFAULT ENCODE(gen_random_bytes(4), 'hex'),
-    group_id    INT NOT NULL,
-    uses        INT DEFAULT 0,
-    max_uses    INT NOT NULL,
+    group_id    int NOT null,
+    uses        int DEFAULT 0,
+    max_uses    int NOT null,
     FOREIGN KEY (group_id) REFERENCES Groups(group_id)
 );
 
@@ -72,7 +72,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     DELETE FROM GroupCodes
     WHERE max_uses != -1 AND uses >= max_uses;
-    RETURN NULL;
+    RETURN null;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -86,7 +86,7 @@ RETURNS TRIGGER AS $$
 BEGIN 
     INSERT INTO GroupMembers(user_id, group_id)
     VALUES (NEW.owner_id, NEW.group_id);
-    RETURN NULL;
+    RETURN null;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -100,7 +100,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     DELETE FROM UserFiles
     WHERE ref_count <= 0;
-    RETURN NULL;
+    RETURN null;
 END;
 $$ LANGUAGE plpgsql;
 

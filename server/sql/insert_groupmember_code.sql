@@ -4,14 +4,14 @@
 WITH gc AS (
     SELECT *
     FROM GroupCodes
-    WHERE invite_code = $2::VARCHAR(8)
+    WHERE invite_code = $2::varchar(8)
 ),
 
 -- Insert Group Member with user_id ($1), gc.group_id
 insert_gm AS (
     INSERT INTO GroupMembers(user_id, group_id)
     VALUES(
-        $1::INT,
+        $1::int,
         (SELECT group_id FROM gc)
     )
 ),
