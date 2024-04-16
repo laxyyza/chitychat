@@ -206,7 +206,7 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
 
     g = server_db_get_group(&th->db, new_group.group_id);
     group_json = json_object_new_object();
-    json_object_object_add(group_json, "id", 
+    json_object_object_add(group_json, "group_id", 
                            json_object_new_int(g->group_id));
     json_object_object_add(group_json, "name", 
                            json_object_new_string(g->displayname));
