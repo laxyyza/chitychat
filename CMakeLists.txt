@@ -33,6 +33,7 @@ target_sources(chitychat PRIVATE
     server/src/chat/user_session.c
     server/src/chat/upload_token.c
     server/src/chat/db.c
+    server/src/chat/user_upload.c
 )
 
 target_include_directories(chitychat PRIVATE
