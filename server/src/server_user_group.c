@@ -2,6 +2,7 @@
 #include "server_client.h"
 #include "server_db.h"
 #include "server_tm.h"
+#include "server_user_file.h"
 #include "server_util.h"
 #include "server_ws_pld_hdlr.h"
 #include <json-c/json_types.h>
@@ -26,6 +27,52 @@ server_group_broadcast(server_thread_t* th, u32 group_id, json_object* json)
     }
 
     free(gmembers);
+}
+
+static void 
+server_delete_msg_attachments(server_thread_t* th, dbmsg_t* msg)
+{
+    json_object* attach_json;
+    json_object* hash_json;
+    json_object* type_json;
+    json_object* name_json;
+    dbuser_file_t file;
+    const char* hash;
+    const char* type;
+    const char* name;
+    size_t n;
+    bool put_json = false;
+
+    if (msg->attachments_json == NULL)
+    {
+        msg->attachments_json = json_tokener_parse(msg->attachments);
+        put_json = true;
+    }
+
+    n = json_object_array_length(msg->attachments_json);
+
+    for (size_t i = 0; i < n; i++)
+    {
+        attach_json = json_object_array_get_idx(msg->attachments_json, i);
+        memset(&file, 0, sizeof(dbuser_file_t));
+
+        hash_json = json_object_object_get(attach_json, "hash");
+        hash = json_object_get_string(hash_json);
+        strncpy(file.hash, hash, DB_PFP_HASH_MAX);
+
+        type_json = json_object_object_get(attach_json, "type");
+        type = json_object_get_string(type_json);
+        strncpy(file.mime_type, type, DB_MIME_TYPE_LEN);
+
+        name_json = json_object_object_get(attach_json, "name");
+        name = json_object_get_string(name_json);
+        strncpy(file.name, name, DB_PFP_NAME_MAX);
+
+        server_delete_file(th, &file);
+    }
+
+    if (put_json)
+        json_object_put(msg->attachments_json);
 }
 
 static void
@@ -727,6 +774,7 @@ const char* server_delete_group_msg(server_thread_t* th,
                            json_object_new_int(msg_to_delete->msg_id));
 
     server_group_broadcast(th, group->group_id, respond_json);
+    server_delete_msg_attachments(th, msg_to_delete);
 
 cleanup:
     free(msg_to_delete);

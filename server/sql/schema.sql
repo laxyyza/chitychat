@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS Users(
     displayname     VARCHAR(50) NOT NULL,
     bio             TEXT,
     hash            BYTEA NOT NULL,
-    salt            BYTEA NOT NULL,
+    salt            BYTEA NOT NULL, 
     flags           INTEGER DEFAULT 0,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     pfp             TEXT,
