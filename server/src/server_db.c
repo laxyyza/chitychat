@@ -101,19 +101,15 @@ server_init_db(server_t* server)
 
     cmd->insert_user = server_db_load_sql(server->conf.sql_insert_user, &cmd->insert_user_len);
     cmd->select_user = server_db_load_sql(server->conf.sql_select_user, &cmd->select_user_len);
-    cmd->delete_user = server_db_load_sql(server->conf.sql_delete_user, &cmd->delete_user_len);
 
     cmd->insert_group = server_db_load_sql(server->conf.sql_insert_group, &cmd->insert_group_len);
     cmd->select_group = server_db_load_sql(server->conf.sql_select_group, &cmd->select_group_len);
-    cmd->delete_group = server_db_load_sql(server->conf.sql_delete_group, &cmd->delete_group_len);
 
     cmd->insert_groupmember_code = server_db_load_sql(server->conf.sql_insert_groupmember_code, &cmd->insert_groupmember_code_len);
     cmd->select_groupmember = server_db_load_sql(server->conf.sql_select_groupmember, &cmd->select_groupmember_len);
-    cmd->delete_groupmember = server_db_load_sql(server->conf.sql_delete_groupmember, &cmd->delete_groupmember_len);
 
     cmd->insert_msg = server_db_load_sql(server->conf.sql_insert_msg, &cmd->insert_msg_len);
     cmd->select_msg = server_db_load_sql(server->conf.sql_select_msg, &cmd->select_msg_len);
-    cmd->delete_msg = server_db_load_sql(server->conf.sql_delete_msg, &cmd->delete_msg_len);
 
     cmd->update_user = server_db_load_sql(server->conf.sql_update_user, &cmd->delete_msg_len);
     cmd->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &cmd->insert_userfiles_len);
