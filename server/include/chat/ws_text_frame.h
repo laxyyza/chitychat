@@ -2,9 +2,6 @@
 #define _SERVER_WS_PLD_HDLR_H_
 
 #include "server.h"
-#include "json-c/json.h"
-#include "server_user_login.h"
-#include "server_user_req.h"
 
 #define JSON_INVALID_STR(key) "\""key"\"" " is invalid or not found"
 #define RET_IF_JSON_BAD(dest_json, src_json, key, type)\

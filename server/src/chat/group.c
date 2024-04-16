@@ -1,11 +1,6 @@
-#include "server_user_group.h"
-#include "server_client.h"
-#include "server_db.h"
-#include "server_tm.h"
-#include "server_user_file.h"
-#include "server_util.h"
-#include "server_ws_pld_hdlr.h"
-#include <json-c/json_types.h>
+#include "chat/group.h"
+#include "chat/ws_text_frame.h"
+#include "server_websocket.h"
 
 static void 
 server_group_broadcast(server_thread_t* th, u32 group_id, json_object* json)

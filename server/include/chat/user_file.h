@@ -2,8 +2,8 @@
 #define _SERVER_FILE_H_
 
 #include "common.h"
-#include "server_db.h"
 #include "server_tm.h"
+#include "chat/db.h"
 
 bool            server_init_magic(server_t* server);
 void            server_close_magic(server_t* server);

@@ -1,7 +1,4 @@
-#include "server_db.h"
 #include "server.h"
-#include "common.h"
-#include <libpq-fe.h>
 
 static char* 
 server_db_load_sql(const char* path, size_t* size)

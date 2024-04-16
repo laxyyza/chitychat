@@ -2,8 +2,8 @@
 #define _SERVER_UPLOAD_TOKEN_H_
 
 #include "common.h"
-#include "server_db.h"
 #include "server_client.h"
+#include "chat/db.h"
 
 enum upload_token_type 
 {

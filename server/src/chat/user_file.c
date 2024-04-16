@@ -1,6 +1,5 @@
-#include "server_user_file.h"
+#include "chat/user_file.h"
 #include "server.h"
-#include "server_tm.h"
 
 static const char*
 server_mime_type_dir(server_t* server, const char* mime_type)

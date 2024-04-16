@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include <pthread.h>
-#include "server_db.h"
+#include "chat/db.h"
 
 #define THREAD_NAME_LEN 32
 

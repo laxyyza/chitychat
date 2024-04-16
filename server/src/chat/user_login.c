@@ -1,9 +1,5 @@
-#include "server_user_login.h"
-#include "server_client_sesson.h"
-#include "server_events.h"
-#include "server_tm.h"
-#include "server_ws_pld_hdlr.h"
-#include <json-c/json_object.h>
+#include "chat/user_login.h"
+#include "chat/ws_text_frame.h"
 
 static const char* 
 server_set_client_logged_in(server_thread_t* th, client_t* client, 
@@ -15,7 +11,7 @@ server_set_client_logged_in(server_thread_t* th, client_t* client,
     dbuser = server_db_get_user_from_id(&th->db, session->user_id);
     if (!dbuser)
     {
-        server_del_client_session(th->server, session);
+        server_del_user_session(th->server, session);
         return "Server could not find user in database";
     }
     memcpy(client->dbuser, dbuser, sizeof(dbuser_t));
@@ -47,7 +43,7 @@ server_set_client_logged_in(server_thread_t* th, client_t* client,
 }
 
 static const char* 
-server_handle_client_session(server_thread_t* th, client_t* client, 
+server_handle_user_session(server_thread_t* th, client_t* client, 
                              json_object* payload, json_object* respond_json)
 {
     json_object* session_id_json;
@@ -57,7 +53,7 @@ server_handle_client_session(server_thread_t* th, client_t* client,
     RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_int);
     session_id = json_object_get_uint64(session_id_json);
 
-    session = server_get_client_session(th->server, session_id);
+    session = server_get_user_session(th->server, session_id);
     if (!session)
         return "Invalid session ID or session expired";
 
@@ -117,7 +113,7 @@ server_handle_client_register(server_thread_t* th,
 }
 
 static const char* 
-server_create_client_session(server_thread_t* th, client_t* client, 
+server_create_user_session(server_thread_t* th, client_t* client, 
                              const char* username, json_object* respond_json)
 {
     session_t* session;
@@ -126,7 +122,7 @@ server_create_client_session(server_thread_t* th, client_t* client,
     if (!user)
         return "Invalid username";
 
-    session = server_new_client_session(th->server, client);
+    session = server_new_user_session(th->server, client);
     session->user_id = user->user_id;
     free(user);
 
@@ -149,7 +145,7 @@ server_handle_not_logged_in_client(server_thread_t* th,
     const char* errmsg = NULL;
 
     if (!strcmp(cmd, "session"))
-        return server_handle_client_session(th, client, payload, 
+        return server_handle_user_session(th, client, payload, 
                                             respond_json);
 
     RET_IF_JSON_BAD(username_json, payload, "username", json_type_string);
@@ -171,6 +167,6 @@ server_handle_not_logged_in_client(server_thread_t* th,
         return "Not logged in.";
 
     if (!errmsg)
-        server_create_client_session(th, client, username, respond_json);
+        server_create_user_session(th, client, username, respond_json);
     return errmsg;
 }

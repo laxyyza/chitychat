@@ -4,7 +4,8 @@
 #include "common.h"
 #include <openssl/evp.h>
 #include <openssl/sha.h>
-#include <sys/random.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #define SERVER_SALT_SIZE        (16)
 #define SERVER_HASH_SIZE (EVP_MAX_MD_SIZE)

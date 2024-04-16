@@ -1,12 +1,10 @@
 #ifndef _SERVER_CLIENT_H_
 #define _SERVER_CLIENT_H_
 
-#include "server_net.h"
 #include "common.h"
-#include "server_db.h"
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include "server_client_sesson.h"
+#include "server_net.h"
+#include "chat/db.h"
+#include "chat/user_session.h"
 
 #define USERNAME_MAX 50
 #define DISPLAYNAME_MAX 50

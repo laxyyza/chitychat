@@ -1,5 +1,6 @@
-#include "server_ws_pld_hdlr.h"
-#include "server_websocket.h"
+#include "chat/ws_text_frame.h"
+#include "chat/user_login.h"
+#include "chat/user_req.h"
 
 bool json_bad(json_object* json, json_type type)
 {

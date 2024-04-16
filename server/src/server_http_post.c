@@ -1,7 +1,7 @@
 #include "server.h"
 #include "server_events.h"
 #include "server_http.h"
-#include "server_user_group.h"
+#include "chat/group.h"
 
 static upload_token_t*
 server_check_upload_token(server_t* server, const http_t* http, u32* user_id)

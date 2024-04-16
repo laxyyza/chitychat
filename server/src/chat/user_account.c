@@ -1,6 +1,5 @@
-#include "server_user_account.h"
-#include "server.h"
-#include "server_ws_pld_hdlr.h"
+#include "chat/user_account.h"
+#include "chat/ws_text_frame.h"
 
 static void 
 server_add_user_in_json(dbuser_t* dbuser, json_object* json)

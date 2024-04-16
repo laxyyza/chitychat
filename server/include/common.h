@@ -12,15 +12,17 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
-#include <sys/random.h>
-#include <sys/timerfd.h>
-#include <fcntl.h>
+#include <magic.h>
 #include <libgen.h>
 #include <getopt.h>
 #include <json-c/json.h>
+
+#include <sys/random.h>
+#include <sys/timerfd.h>
 #include <linux/limits.h>
-#include <magic.h>
-#include <json-c/json.h>
+#include <fcntl.h>
+
+#include "server_log.h"
 
 typedef uint8_t     u8;
 typedef uint16_t    u16;

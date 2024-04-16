@@ -1,15 +1,15 @@
-#include "server_client_sesson.h"
+#include "chat/user_session.h"
 #include "server.h"
 
 session_t* 
-server_new_client_session(server_t* server, client_t* client)
+server_new_user_session(server_t* server, client_t* client)
 {
     session_t* new_sesion;
     session_t* head_next;
 
     if (!server || !client || !client->dbuser)
     {
-        warn("new_client_session(%p, %p) dbuser: %p: Something is NULL!\n", server, client, client->dbuser);
+        warn("new_user_session(%p, %p) dbuser: %p: Something is NULL!\n", server, client, client->dbuser);
         return NULL;
     }
 
@@ -36,7 +36,7 @@ server_new_client_session(server_t* server, client_t* client)
 }
 
 session_t* 
-server_get_client_session(server_t* server, u32 session_id)
+server_get_user_session(server_t* server, u32 session_id)
 {
     session_t* node;
 
@@ -70,14 +70,14 @@ server_get_client_session_uid(server_t* server, u32 user_id)
 }
 
 void 
-server_del_client_session(server_t* server, session_t* session)
+server_del_user_session(server_t* server, session_t* session)
 {
     session_t* next;
     session_t* prev;
 
     if (!server || !session)
     {
-        warn("del_client_session(%p, %p): Something is NULL!\n", server, session);
+        warn("del_user_session(%p, %p): Something is NULL!\n", server, session);
         return;
     }
 

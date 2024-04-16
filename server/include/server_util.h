@@ -2,7 +2,6 @@
 #define _SERVER_UTIL_H_
 
 #include "common.h"
-#include <sys/uio.h>
 
 bool        str_startwith(const char* restrict str, const char* restrict start);
 char*       strsplit(char* restrict str, const char* restrict delm, char** restrict saveptr);

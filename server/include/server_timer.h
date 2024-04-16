@@ -2,7 +2,7 @@
 #define _SERVER_TIMER_H_
 
 #include "common.h"
-#include "server_upload_token.h"
+#include "chat/upload_token.h"
 
 #define MINUTES(x)  (x * 60)
 #define HOURS(x)    (x * 3600)

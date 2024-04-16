@@ -1,7 +1,5 @@
-#include "server_upload_token.h"
+#include "chat/upload_token.h"
 #include "server.h"
-#include "server_events.h"
-#include "server_timer.h"
 
 upload_token_t* 
 server_new_upload_token(server_t* server, u32 user_id)

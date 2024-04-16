@@ -15,23 +15,24 @@ target_sources(chitychat PRIVATE
     server/src/server_client.c
     server/src/server_http.c
     server/src/server_websocket.c
-    server/src/server_ws_pld_hdlr.c
-    server/src/server_db.c
     server/src/server_util.c
     server/src/server_crypt.c
-    server/src/server_user_file.c
-    server/src/server_user_login.c
-    server/src/server_user_req.c
-    server/src/server_user_group.c
-    server/src/server_user_account.c
     server/src/server_init.c
-    server/src/server_client_session.c
-    server/src/server_upload_token.c
     server/src/server_events.c
     server/src/server_timer.c
     server/src/server_http_get.c
     server/src/server_http_post.c
     server/src/server_tm.c
+
+    server/src/chat/user_file.c
+    server/src/chat/user_login.c
+    server/src/chat/user_req.c
+    server/src/chat/group.c
+    server/src/chat/user_account.c
+    server/src/chat/ws_text_frame.c
+    server/src/chat/user_session.c
+    server/src/chat/upload_token.c
+    server/src/chat/db.c
 )
 
 target_include_directories(chitychat PRIVATE

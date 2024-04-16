@@ -1,7 +1,6 @@
 #ifndef _SERVER_USER_ACCOUNT_H_
 #define _SERVER_USER_ACCOUNT_H_
 
-#include "common.h"
 #include "server_websocket.h"
 
 const char* server_client_user_info(client_t* client, 

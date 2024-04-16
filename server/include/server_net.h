@@ -1,7 +1,7 @@
 #ifndef _SERVER_NET_H_
 #define _SERVER_NET_H_
 
-#include <stdint.h>
+#include "common.h"
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -18,7 +18,7 @@ enum ip_version
 
 typedef struct 
 {
-    int sock;
+    i32 sock;
     enum ip_version version;
     struct sockaddr* addr_ptr;
     union {

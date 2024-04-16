@@ -1,9 +1,5 @@
 #include "server_http.h"
-#include "server_util.h"
-#include "server_log.h"
-#include <fcntl.h>
 #include "server.h"
-#include "server_user_group.h"
 
 #define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
 

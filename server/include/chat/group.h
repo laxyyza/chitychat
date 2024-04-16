@@ -1,10 +1,8 @@
 #ifndef _SERVER_USER_GROUP_H_
 #define _SERVER_USER_GROUP_H_
 
-#include "common.h"
 #include "server_tm.h"
-#include "server_websocket.h"
-#include <json-c/json_types.h>
+#include "server_client.h"
 
 const char* server_group_create(server_thread_t* th, 
                                 client_t* client, 

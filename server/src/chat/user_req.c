@@ -1,7 +1,6 @@
-#include "server_user_req.h"
-#include "server.h"
-#include "server_user_group.h"
-#include "server_user_account.h"
+#include "chat/user_req.h"
+#include "chat/group.h"
+#include "chat/user_account.h"
 
 const char* 
 server_handle_logged_in_client(server_thread_t* th, 

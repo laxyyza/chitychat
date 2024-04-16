@@ -1,8 +1,4 @@
 #include "server.h"
-#include "server_events.h"
-#include "server_tm.h"
-#include <openssl/err.h>
-#include <openssl/ssl.h>
 
 #define MAX_EP_EVENTS 10
 
@@ -138,7 +134,7 @@ server_del_all_sessions(server_t* server)
     while (node)
     {
         next = node->next;
-        server_del_client_session(server, node);
+        server_del_user_session(server, node);
         node = next;
     }
 }

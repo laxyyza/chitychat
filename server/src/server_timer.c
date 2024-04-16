@@ -1,15 +1,14 @@
 #include "server_timer.h"
 #include "server.h"
-#include <sys/timerfd.h>
 
 static enum se_status
-timer_client_session(server_t* server, server_timer_t* timer)
+timer_user_session(server_t* server, server_timer_t* timer)
 {
     session_t* session = timer->data.session;
 
     debug("Client session for user_id:%u expired %zu times, id: %u.\n", 
           session->user_id, timer->exp, session->session_id);
-    server_del_client_session(server, session);
+    server_del_user_session(server, session);
 
     return SE_CLOSE;
 }
@@ -38,7 +37,7 @@ server_timer_exp(server_t* server, server_timer_t* timer)
     switch (timer->type)
     {
         case TIMER_CLIENT_SESSION:
-            ret = timer_client_session(server, timer);
+            ret = timer_user_session(server, timer);
             break;
         case TIMER_UPLOAD_TOKEN:
             ret = timer_ut(server, timer);

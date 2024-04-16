@@ -1,7 +1,5 @@
 #include "server_events.h"
-#include "common.h"
 #include "server.h"
-#include "server_client.h"
 
 static i32
 server_ep_ctl(server_t* server, i32 op, i32 fd)
