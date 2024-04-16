@@ -262,6 +262,11 @@ export class App
             }
         });
 
+        document.addEventListener("keydown", (ev) => {
+            if (ev.key === "Escape")
+                this.stop_popup();
+        });
+
         init_packet_commads();
         this.server = new Server(this);
     }
