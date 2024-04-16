@@ -190,6 +190,7 @@ server_handle_http_post(server_thread_t* th, client_t* client, const http_t* htt
     http_t* resp = NULL;
     u32 user_id;
     upload_token_t* ut = NULL;
+    server_event_t* se;
 
     ut = server_check_upload_token(server, http, &user_id);
 
@@ -201,8 +202,12 @@ server_handle_http_post(server_thread_t* th, client_t* client, const http_t* htt
 
     if (ut->type == UT_USER_PFP)
     {
-        free(ut);
         server_handle_user_pfp_update(th, client, http, user_id);
+        se = server_get_event(th->server, ut->timerfd);
+        if (se)
+            server_del_event(th->server, se);
+        else
+            server_del_upload_token(th->server, ut);
     }
     else if (ut->type == UT_MSG_ATTACHMENT)
     {
