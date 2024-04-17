@@ -173,12 +173,8 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
     json_object* public_json;
     json_object* group_array_json;
     json_object* group_json;
-    json_object* members_array_json;
-    dbuser_t* gmembers;
     dbgroup_t new_group;
-    dbgroup_t* g;
     const char* name;
-    u32 n_members;
     bool public_group;
 
     RET_IF_JSON_BAD(name_json, payload, "name", json_type_string);
@@ -205,34 +201,11 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
             json_object_new_array_ext(1));
     group_array_json = json_object_object_get(respond_json, "groups");
 
-    g = server_db_get_group(&th->db, new_group.group_id);
     group_json = json_object_new_object();
-    json_object_object_add(group_json, "group_id", 
-                           json_object_new_int(g->group_id));
-    json_object_object_add(group_json, "name", 
-                           json_object_new_string(g->displayname));
-    json_object_object_add(group_json, "desc", 
-                           json_object_new_string(g->desc));
-
-    gmembers = server_db_get_group_members(&th->db, g->group_id, &n_members);
-    
-    json_object_object_add(group_json, "members_id", 
-                           json_object_new_array_ext(n_members));
-    members_array_json = json_object_object_get(group_json, "members_id");
-
-    for (u32 m = 0; m < n_members; m++)
-    {
-        const dbuser_t* member = gmembers + m;
-        json_object_array_add(members_array_json, 
-                json_object_new_int(member->user_id));
-    }
-
+    server_group_to_json(th, &new_group, group_json);
     json_object_array_add(group_array_json, group_json);
 
     ws_json_send(client, respond_json);
-    
-    free(g);
-    free(gmembers);
 
     return NULL;
 }
