@@ -99,6 +99,9 @@ server_run(server_t* server)
     {
         if ((nfds = epoll_wait(server->epfd, events, MAX_EP_EVENTS, -1)) == -1)
         {
+            if (errno == EINTR)
+                continue;
+
             error("epoll_wait: %s\n", ERRSTR);
             server->running = false;
         }
@@ -195,7 +198,7 @@ server_cleanup(server_t* server)
     if (server->sock)
         close(server->sock);
 
-    info("Server stopped.\n");
+    debug("Server stopped.\n");
 
     free(server);
 }
