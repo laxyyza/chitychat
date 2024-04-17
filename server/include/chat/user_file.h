@@ -3,7 +3,17 @@
 
 #include "common.h"
 #include "server_tm.h"
-#include "chat/db.h"
+#include "chat/db_def.h"
+
+typedef struct 
+{
+    char    hash[DB_PFP_HASH_MAX];
+    char    name[DB_PFP_NAME_MAX];
+    char    mime_type[DB_MIME_TYPE_LEN];
+    size_t  size;
+    i32     ref_count;
+    i32     flags;
+} dbuser_file_t;
 
 bool            server_init_magic(server_t* server);
 void            server_close_magic(server_t* server);

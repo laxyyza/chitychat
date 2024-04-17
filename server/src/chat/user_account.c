@@ -1,4 +1,5 @@
 #include "chat/user_account.h"
+#include "chat/rtusm.h"
 #include "chat/ws_text_frame.h"
 
 static void 
@@ -45,13 +46,17 @@ server_get_user(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_client_user_info(client_t* client, json_object* respond_json)
+server_client_user_info(server_thread_t* th, 
+                        client_t* client, 
+                        json_object* respond_json)
 {
     json_object_object_add(respond_json, "cmd", 
                            json_object_new_string("client_user_info"));
     server_add_user_in_json(client->dbuser, respond_json);
 
     ws_json_send(client, respond_json);
+
+    server_rtusm_user_connect(th, client->dbuser);
 
     return NULL;
 }
@@ -95,7 +100,7 @@ const char* server_user_edit_account(server_thread_t* th, client_t* client,
     if (new_pfp)
     {
         // Create new upload token
-        upload_token_t* upload_token = server_new_upload_token(th->server, 
+        upload_token_t* upload_token = server_new_upload_token(th, 
                                                     client->dbuser->user_id);
 
         if (upload_token == NULL)

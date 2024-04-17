@@ -73,6 +73,7 @@ typedef struct server
     server_config_t conf;
     server_db_commands_t db_commands;
     server_tm_t tm;
+    server_thread_t main_th;
     magic_t magic_cookie;
 
     struct sockaddr* addr;

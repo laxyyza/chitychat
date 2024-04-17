@@ -1,4 +1,5 @@
 #include "chat/user_login.h"
+#include "chat/rtusm.h"
 #include "chat/ws_text_frame.h"
 
 static void 
@@ -59,7 +60,7 @@ server_set_client_logged_in(server_thread_t* th, client_t* client,
         if (session_timer_ev)
         {
             session_timer_ev->keep_data = true;
-            server_del_event(th->server, session_timer_ev);
+            server_del_event(th, session_timer_ev);
         }
         session->timerfd = 0;
     }

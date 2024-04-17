@@ -31,11 +31,11 @@ typedef struct
     union timer_data data;
 } server_timer_t;
 
-server_timer_t*     server_addtimer(server_t* server, i32 seconds, i32 flags, 
+server_timer_t*     server_addtimer(server_thread_t* th, i32 seconds, i32 flags, 
                                     enum timer_type type, union timer_data* data, 
                                     size_t size);
 i32                 server_timer_set(server_timer_t* timer, i32 seconds);
 i32                 server_timer_get(server_timer_t* timer);
-void                server_close_timer(server_t* server, server_timer_t* timer, bool keep_data);
+void                server_close_timer(server_thread_t* th, server_timer_t* timer, bool keep_data);
 
 #endif // _SERVER_TIMER_H_

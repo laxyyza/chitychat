@@ -540,7 +540,7 @@ server_group_msg(server_thread_t* th, client_t* client,
          * then insert the message into database.
          */
 
-        upload_token_t* ut = server_new_upload_token_attach(th->server, &new_msg);
+        upload_token_t* ut = server_new_upload_token_attach(th, &new_msg);
         ut->msg_state.msg.attachments_json = json_object_get(attachments_json);
         ut->msg_state.total = n_attachments;
 

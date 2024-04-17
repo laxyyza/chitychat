@@ -54,13 +54,15 @@ server_get_client_user_id(server_t* server, u64 id)
 }
 
 void 
-server_free_client(server_t* server, client_t* client)
+server_free_client(server_thread_t* th, client_t* client)
 {
     client_t* next;
     client_t* prev;
+    server_t* server = th->server;
 
-    if (!server || !client)
+    if (!client)
         return;
+
 
     info("Client (fd:%d, IP: %s:%s, host: %s) disconnected.\n", 
             client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
@@ -86,7 +88,7 @@ server_free_client(server_t* server, client_t* client)
             .session = client->session
         };
         // TODO: Make client session timer configurable
-        server_timer_t* timer = server_addtimer(server, MINUTES(30), 
+        server_timer_t* timer = server_addtimer(th, MINUTES(30), 
                                                 TIMER_ONCE, TIMER_CLIENT_SESSION, 
                                                 &data, sizeof(void*));
         if (timer)

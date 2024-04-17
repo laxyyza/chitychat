@@ -11,7 +11,7 @@ server_handle_logged_in_client(server_thread_t* th,
 {
     // Get Client User info
     if (!strcmp(cmd, "client_user_info"))
-        return server_client_user_info(client, respond_json);
+        return server_client_user_info(th, client, respond_json);
 
     // Create Group
     else if (!strcmp(cmd, "group_create"))

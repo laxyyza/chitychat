@@ -52,6 +52,10 @@ server_init_tm(server_t* server, i32 n_threads)
     pthread_mutex_init(&tm->mutex, NULL);
     pthread_cond_init(&tm->cond, NULL);
 
+    if (server_db_open(&server->main_th.db, server->conf.database) == false)
+        return false;
+    snprintf(server->main_th.name, THREAD_NAME_LEN, "main_thread");
+
     for (i32 i = 0; i < n_threads; i++)
         if (server_tm_init_thread(server, tm->threads + i, i) == false)
             return false;
@@ -104,6 +108,8 @@ server_tm_shutdown(server_t* server)
 
     pthread_cond_destroy(&tm->cond);
     pthread_mutex_destroy(&tm->mutex);
+
+    server_db_close(&server->main_th.db);
 
     free(tm->threads);
 }

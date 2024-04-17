@@ -14,7 +14,7 @@ timer_user_session(server_t* server, server_timer_t* timer)
 }
 
 static enum se_status
-timer_ut(server_t* server, server_timer_t* timer)
+timer_ut(server_thread_t* th, server_timer_t* timer)
 {
     upload_token_t* ut = timer->data.ut;
 
@@ -24,23 +24,23 @@ timer_ut(server_t* server, server_timer_t* timer)
      * free this event 
      */
     ut->timerfd = 0;
-    server_del_upload_token(server, ut);
+    server_del_upload_token(th, ut);
 
     return SE_CLOSE;
 }
 
 static enum se_status
-server_timer_exp(server_t* server, server_timer_t* timer)
+server_timer_exp(server_thread_t* th, server_timer_t* timer)
 {
     enum se_status ret;
 
     switch (timer->type)
     {
         case TIMER_CLIENT_SESSION:
-            ret = timer_user_session(server, timer);
+            ret = timer_user_session(th->server, timer);
             break;
         case TIMER_UPLOAD_TOKEN:
-            ret = timer_ut(server, timer);
+            ret = timer_ut(th, timer);
             break;
         default:
         {
@@ -67,21 +67,21 @@ se_timer_read(server_thread_t* th, server_event_t* ev)
     }
     timer->exp += exp;
 
-    ret = server_timer_exp(th->server, timer);
+    ret = server_timer_exp(th, timer);
     if (ret == SE_CLOSE)
         ev->keep_data = true;
     return ret;
 }
 
 enum se_status
-se_timer_close(server_t* server, server_event_t* ev)
+se_timer_close(server_thread_t* th, server_event_t* ev)
 {
-    server_close_timer(server, ev->data, ev->keep_data);
+    server_close_timer(th, ev->data, ev->keep_data);
     return SE_OK;
 }
 
 server_timer_t*     
-server_addtimer(server_t* server, i32 seconds, i32 flags, 
+server_addtimer(server_thread_t* th, i32 seconds, i32 flags, 
                 enum timer_type type, union timer_data* data,
                 size_t size)
 {
@@ -128,7 +128,7 @@ server_addtimer(server_t* server, i32 seconds, i32 flags,
         goto error;
     }
 
-    if (server_new_event(server, timer->fd, timer, se_timer_read, se_timer_close) == NULL)
+    if (server_new_event(th->server, timer->fd, timer, se_timer_read, se_timer_close) == NULL)
         goto error;
 
     debug("New timer for %ds, flags:0x%x, type:%d\n",
@@ -136,7 +136,7 @@ server_addtimer(server_t* server, i32 seconds, i32 flags,
 
     return timer;
 error:;
-    server_close_timer(server, timer, 0);
+    server_close_timer(th, timer, 0);
     return NULL;
 }
 
@@ -181,13 +181,13 @@ server_timer_get(server_timer_t* timer)
 }
 
 void
-server_close_timer(server_t* server, server_timer_t* timer, bool keep_data)
+server_close_timer(server_thread_t* th, server_timer_t* timer, bool keep_data)
 {
     if (!timer)
         return;
 
     if (keep_data == false)
-        server_timer_exp(server, timer);
+        server_timer_exp(th, timer);
 
     if (close(timer->fd) == -1)
         error("close timer->fd (%d): %s\n", timer->fd, ERRSTR);

@@ -1,6 +1,8 @@
 #include "server_events.h"
+#include "chat/rtusm.h"
 #include "server.h"
 #include "server_client.h"
+#include "server_tm.h"
 
 static i32
 server_ep_ctl(server_t* server, i32 op, i32 fd)
@@ -83,7 +85,7 @@ se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
 
     return SE_OK;
 error:
-    server_free_client(server, client);
+    server_free_client(th, client);
     return SE_ERROR;
 }
 
@@ -171,14 +173,16 @@ se_read_client(server_thread_t* th, server_event_t* ev)
 }
 
 enum se_status
-se_close_client(server_t* server, server_event_t* ev)
+se_close_client(server_thread_t* th, server_event_t* ev)
 {
     client_t* client = ev->data;
 
     if (ev->err == EPIPE)
         client->state |= CLIENT_STATE_BROKEN_PIPE;
+    else if (client->dbuser)
+        server_rtusm_user_disconnect(th, client->dbuser);
 
-    server_free_client(server, client);
+    server_free_client(th, client);
     return SE_OK;
 }
 
@@ -226,8 +230,9 @@ server_new_event(server_t* server, i32 fd, void* data,
 }
 
 void 
-server_del_event(server_t* server, server_event_t* se)
+server_del_event(server_thread_t* th, server_event_t* se)
 {
+    server_t* server = th->server;
     server_event_t* next;
     server_event_t* prev;
 
@@ -240,7 +245,7 @@ server_del_event(server_t* server, server_event_t* se)
 
     server_ep_delfd(server, se->fd);
     if (se->close)
-        se->close(server, se);
+        se->close(th, se);
     else
         if (close(se->fd) == -1)
             error("del_event: close(%d): %s\n", se->fd, ERRSTR);

@@ -35,18 +35,18 @@ server_ep_event(server_thread_t* th, const server_job_t* job)
     if (ev & EPOLLERR)
     {
         se->err = server_print_sockerr(fd);
-        server_del_event(server, se);
+        server_del_event(th, se);
     }
     else if (ev & (EPOLLRDHUP | EPOLLHUP))
     {
         verbose("fd: %d hang up.\n", fd);
-        server_del_event(server, se);
+        server_del_event(th, se);
     }
     else if (ev & EPOLLIN)
     {
         ret = se->read(th, se);
         if (ret == SE_CLOSE || ret == SE_ERROR)
-            server_del_event(server, se);
+            server_del_event(th, se);
         else if (se->listen_events & EPOLLONESHOT)
             server_ep_rearm(server, fd);
     }
@@ -123,7 +123,7 @@ server_del_all_clients(server_t* server)
     while (node)
     {
         next = node->next;
-        server_free_client(server, node);
+        server_free_client(&server->main_th, node);
         node = next;
     }
 }
@@ -156,7 +156,7 @@ server_del_all_upload_tokens(server_t* server)
     {
         next = node->next;
         verbose("Deleting upload token: %u for user %u\n", node->token, node->user_id);
-        server_del_upload_token(server, node);
+        server_del_upload_token(&server->main_th, node);
         node = next;
     }
 }
@@ -172,7 +172,7 @@ server_del_all_events(server_t* server)
     while (node)
     {
         next = node->next;
-        server_del_event(server, node);
+        server_del_event(&server->main_th, node);
         node = next;
     }
 }

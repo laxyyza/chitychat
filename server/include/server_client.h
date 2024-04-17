@@ -3,8 +3,8 @@
 
 #include "common.h"
 #include "server_net.h"
-#include "chat/db.h"
 #include "chat/user_session.h"
+#include "chat/user.h"
 
 #define USERNAME_MAX 50
 #define DISPLAYNAME_MAX 50
@@ -51,7 +51,7 @@ client_t*   server_new_client(server_t* server);
 int         server_client_ssl_handsake(server_t* server, client_t* client);
 client_t*   server_get_client_fd(server_t* server, i32 fd);
 client_t*   server_get_client_user_id(server_t* server, u64 id);
-void        server_free_client(server_t* server, client_t* client);
+void        server_free_client(server_thread_t* th, client_t* client);
 void        server_get_client_info(client_t* client);
 
 #endif // _SERVER_CLIENT_H_

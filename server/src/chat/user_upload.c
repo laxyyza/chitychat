@@ -164,9 +164,9 @@ server_handle_msg_attach(server_thread_t* th, client_t* client,
 
                 server_event_t* se = server_get_event(th->server, ut->timerfd);
                 if (se)
-                    server_del_event(th->server, se);
+                    server_del_event(th, se);
                 else
-                    server_del_upload_token(th->server, ut);
+                    server_del_upload_token(th, ut);
             }
         }
     }
@@ -202,9 +202,9 @@ void server_handle_user_upload(server_thread_t* th, client_t* client, const http
         server_handle_user_pfp_update(th, client, http, user_id);
         se = server_get_event(th->server, ut->timerfd);
         if (se)
-            server_del_event(th->server, se);
+            server_del_event(th, se);
         else
-            server_del_upload_token(th->server, ut);
+            server_del_upload_token(th, ut);
     }
     else if (ut->type == UT_MSG_ATTACHMENT)
     {

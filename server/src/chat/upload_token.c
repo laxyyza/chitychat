@@ -2,12 +2,13 @@
 #include "server.h"
 
 upload_token_t* 
-server_new_upload_token(server_t* server, u32 user_id)
+server_new_upload_token(server_thread_t* th, u32 user_id)
 {
     upload_token_t* ut;
     upload_token_t* head_next;
     server_timer_t* timer;
     union timer_data timer_data;
+    server_t* server = th->server;
 
     ut = calloc(1, sizeof(upload_token_t));
     ut->user_id = user_id;
@@ -30,7 +31,7 @@ server_new_upload_token(server_t* server, u32 user_id)
 add_timer:
     timer_data.ut = ut;
     // TODO: Make seconds configurable
-    timer = server_addtimer(server, 10, 
+    timer = server_addtimer(th, 10, 
                             TIMER_ONCE, TIMER_UPLOAD_TOKEN, 
                             &timer_data, sizeof(void*));
     if (timer)
@@ -43,11 +44,11 @@ add_timer:
 }
 
 upload_token_t* 
-server_new_upload_token_attach(server_t* server, dbmsg_t* msg)
+server_new_upload_token_attach(server_thread_t* th, dbmsg_t* msg)
 {
     upload_token_t* ut;
 
-    ut = server_new_upload_token(server, 0);
+    ut = server_new_upload_token(th, 0);
     ut->type = UT_MSG_ATTACHMENT;
     memcpy(&ut->msg_state.msg, msg, sizeof(dbmsg_t));
 
@@ -92,8 +93,9 @@ server_send_upload_token(client_t* client, const char* packet_type, upload_token
 }
 
 void 
-server_del_upload_token(server_t* server, upload_token_t* upload_token)
+server_del_upload_token(server_thread_t* th, upload_token_t* upload_token)
 {
+    server_t* server = th->server;
     upload_token_t* next;
     upload_token_t* prev;
     server_event_t* se_timer;
@@ -108,7 +110,7 @@ server_del_upload_token(server_t* server, upload_token_t* upload_token)
     if (upload_token->timerfd)
     {
         se_timer = server_get_event(server, upload_token->timerfd);
-        server_del_event(server, se_timer);
+        server_del_event(th, se_timer);
     }
 
     if (upload_token->type == UT_MSG_ATTACHMENT)
