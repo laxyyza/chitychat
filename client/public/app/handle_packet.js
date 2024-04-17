@@ -408,6 +408,8 @@ function rtusm(packet)
     let user = app.users[packet.user_id];
     if (packet.status)
         user.set_status(packet.status);
+    if (packet.pfp_name)
+        user.update_pfp(packet.pfp_name, true);
 }
 
 export function init_packet_commads()
