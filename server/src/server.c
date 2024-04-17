@@ -114,7 +114,7 @@ server_run(server_t* server)
     }
 }
 
-UNUSED static void 
+static void 
 server_del_all_clients(server_t* server)
 {
     client_t* node = server->client_head;
