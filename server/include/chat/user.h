@@ -5,6 +5,8 @@
 #include "chat/db_def.h"
 #include "chat/rtusm.h"
 
+typedef struct client client_t;
+
 typedef struct dbuser
 {
     u32     user_id;
@@ -18,5 +20,13 @@ typedef struct dbuser
     i32     flags;
     rtusm_t rtusm;
 } dbuser_t;
+
+const char* server_client_user_info(server_thread_t* th, 
+                                    client_t* client, 
+                                    json_object* respond_json);
+const char* server_get_user(server_thread_t* th, client_t* client, 
+        json_object* payload, json_object* respond_json);
+const char* server_user_edit_account(server_thread_t* th, client_t* client, 
+        json_object* payload, json_object* respond_json);
 
 #endif // _SERVER_CHAT_USER_H_

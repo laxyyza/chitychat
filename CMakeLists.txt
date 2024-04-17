@@ -28,7 +28,7 @@ target_sources(chitychat PRIVATE
     server/src/chat/user_login.c
     server/src/chat/user_req.c
     server/src/chat/group.c
-    server/src/chat/user_account.c
+    server/src/chat/user.c
     server/src/chat/ws_text_frame.c
     server/src/chat/user_session.c
     server/src/chat/upload_token.c
