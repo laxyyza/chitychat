@@ -153,6 +153,7 @@ server_db_free(server_t* server)
 
     free(cmd->insert_user);
     free(cmd->select_user);
+    free(cmd->select_connected_users);
     free(cmd->delete_user);
 
     free(cmd->insert_group);
