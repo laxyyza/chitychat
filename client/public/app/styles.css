@@ -454,18 +454,16 @@ h1, h2, h3 {
     height: 12px;
     border: 1px solid black;
 }
-
-.member_status.online{
+[member_status="online"]{
     background-color: #00ff00;
 }
-
-.member_status.offline{
+[member_status="offline"]{
     background-color: grey;
 }
-.member_status.away{
+[member_status="away"]{
     background-color: yellow;
 }
-.member_status.dnd{
+[member_status="dnd"]{
     background-color: red;
 }
 
