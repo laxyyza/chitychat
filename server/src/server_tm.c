@@ -55,6 +55,7 @@ server_init_tm(server_t* server, i32 n_threads)
     if (server_db_open(&server->main_th.db, server->conf.database) == false)
         return false;
     snprintf(server->main_th.name, THREAD_NAME_LEN, "main_thread");
+    server->main_th.server = server;
 
     for (i32 i = 0; i < n_threads; i++)
         if (server_tm_init_thread(server, tm->threads + i, i) == false)
