@@ -31,9 +31,6 @@ export class User
             let group = app.groups[group_id];
             let group_member = group.div_group_members.querySelector("[group_member_id=\"" + 
                                                                     this.id + "\"]");
-
-            console.log("group_id", group_id);
-            console.log(group_member);
             
             if (group_member)
             {
