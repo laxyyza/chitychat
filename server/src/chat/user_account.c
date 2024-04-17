@@ -1,6 +1,7 @@
 #include "chat/user_account.h"
 #include "chat/rtusm.h"
 #include "chat/ws_text_frame.h"
+#include "server_client.h"
 
 static void 
 server_add_user_in_json(dbuser_t* dbuser, json_object* json)
@@ -17,6 +18,8 @@ server_add_user_in_json(dbuser_t* dbuser, json_object* json)
                            json_object_new_string(dbuser->created_at));
     json_object_object_add(json, "pfp_name", 
                            json_object_new_string(dbuser->pfp_hash));
+    json_object_object_add(json, "status", 
+                           json_object_new_string(rtusm_get_status_str(dbuser->rtusm.status)));
 }
 
 const char* 
@@ -26,11 +29,20 @@ server_get_user(server_thread_t* th, client_t* client,
     json_object* user_id_json; 
     dbuser_t* dbuser;
     u64 user_id; 
+    const client_t* connected_user;
+    bool free_user = false;
 
     RET_IF_JSON_BAD(user_id_json, payload, "user_id", json_type_int);
-
     user_id = json_object_get_int(user_id_json);
-    dbuser = server_db_get_user_from_id(&th->db, user_id);
+
+    if ((connected_user = server_get_client_user_id(th->server, user_id)))
+        dbuser = connected_user->dbuser;
+    else
+    {
+        dbuser = server_db_get_user_from_id(&th->db, user_id);
+        free_user = true;
+    }
+
     if (!dbuser)
         return "User not found";
 
@@ -40,7 +52,8 @@ server_get_user(server_thread_t* th, client_t* client,
 
     ws_json_send(client, respond_json);
 
-    free(dbuser);
+    if (free_user)
+        free(dbuser);
 
     return NULL;
 }

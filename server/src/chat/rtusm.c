@@ -74,3 +74,8 @@ server_rtusm_user_connect(server_thread_t* th, dbuser_t* user)
 
     rtusm_broadcast(th, user);
 }
+
+const char* rtusm_get_status_str(enum rtusm_status status)
+{
+    return rtusm_status_str[status];
+}

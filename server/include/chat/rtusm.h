@@ -34,4 +34,6 @@ void    server_rtusm_set_user_status(server_thread_t* th, dbuser_t* user,
 void    server_rtusm_user_connect(server_thread_t* th, dbuser_t* user);
 void    server_rtusm_user_disconnect(server_thread_t* th, dbuser_t* user);
 
+const char* rtusm_get_status_str(enum rtusm_status status);
+
 #endif // _SERVER_CHAT_RTUSM_H_
