@@ -393,6 +393,27 @@ function rtusm(packet)
         user.update_pfp(packet.pfp_name, true);
 }
 
+function delete_group(packet)
+{
+    /**
+     * @type {Group}
+     */
+    let group = app.groups[packet.group_id];
+
+    if (!group)
+        return;
+
+    app.group_list.removeChild(group.div_list);
+
+    if (app.current_group.id === group.id)
+    {
+        app.stop_popup();
+        group.unselect();
+    }
+    
+    delete app.groups[packet.group_id];
+}
+
 export function init_packet_commads()
 {
     packet_commands.session = cmd_session;
@@ -410,4 +431,5 @@ export function init_packet_commads()
     packet_commands.group_codes = group_codes;
     packet_commands.delete_msg = delete_msg;
     packet_commands.rtusm = rtusm;
+    packet_commands.delete_group = delete_group;
 }

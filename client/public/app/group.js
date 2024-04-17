@@ -67,7 +67,7 @@ export class Group
             }
         }
 
-        group_list.appendChild(this.div_list);
+        app.group_list.appendChild(this.div_list);
     }
 
     add_member(member)
@@ -214,6 +214,20 @@ export class Group
         app.set_input_height(0);
 
         this.messages.push(msg);
+    }
+
+    unselect()
+    {
+        if (app.current_group !== this)
+            return;
+
+        this.div_list.classList.remove("active");
+
+        app.messages_container.removeChild(this.div_chat_messages);
+        app.group_member_container.removeChild(this.div_group_members);
+
+        app.current_group = null;
+        app.selected_group = null;
     }
 
     select()

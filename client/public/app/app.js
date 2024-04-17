@@ -77,6 +77,10 @@ export class App
         this.gen_group_code_checkbox = document.getElementById("group_invite_checkbox");
         this.gen_group_code_max_uses = document.getElementById("max-uses-input");
         this.join_group_viacode_button = document.getElementById("join_group_code_button");
+        this.popup_group_settings = document.getElementById("popup_group_settings");
+        this.popup_group_settings_header = document.getElementById("popup_group_settings_header");
+        this.delete_group_button = document.getElementById("delete_group_button");
+        this.group_list = document.getElementById("group_list");
 
         this.groups = {};
         this.current_group;
@@ -92,6 +96,21 @@ export class App
         this.popup_join = false;
 
         this.logged_in = false;
+
+        this.delete_group_button.addEventListener("click", () => {
+            const confirm_delete = window.confirm(
+                "You sure you wanna delete '" + this.current_group.name + "' ID:" + this.current_group.id + 
+                "\nThis cannot be undone.");
+
+            if (confirm_delete)
+            {
+                const packet = {
+                    cmd: "delete_group",
+                    group_id: Number(this.current_group.id)
+                };
+                this.server.ws_send(packet);
+            }
+        });
 
         this.join_group_viacode_button.addEventListener("click", () => {
             let input = document.getElementById("join_group_code_input");
@@ -344,7 +363,16 @@ export class App
 
     start_popup_group_settings()
     {
+        this.popup_container.style.display = "block";
+        this.popup.style.width = "700px";
+        this.popup.style.height = "600px";
+        this.popup_group_settings.style.display = "block";
+        this.popup_group_settings_header.innerHTML = this.current_group.name;
 
+        if (this.current_group.owner_id === this.client_user.id)
+            this.delete_group_button.style.display = "block";
+        else
+            this.delete_group_button.style.display = "none";
     }
 
     start_popup_settings()
@@ -576,6 +604,7 @@ export class App
         this.popup_settings.style.display = "none";
         this.popup_image.style.display = "none";
         this.popup_group_invite.style.display = "none";
+        this.popup_group_settings.style.display = "none";
         this.popup_image.innerHTML = "";
         this.popup_join = false;
     }

@@ -1019,3 +1019,31 @@ button{
 #popup_join_group_via_code input:focus{
     outline: 1px solid #3498db;
 }
+
+#popup_group_settings{
+    display: none;
+}
+
+#popup_group_settings_header{
+    color: yellow;
+}
+
+#delete_group_button{
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: #A00000;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px;
+    font-size: 15px;
+}
+
+#delete_group_button:hover{
+    background-color: #BB0000;
+}
+
+#delete_group_button:active{
+    background-color: #FF0000;
+}
