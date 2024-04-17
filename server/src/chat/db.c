@@ -66,6 +66,24 @@ db_exec_sql(server_db_t* db, const char* sql)
     return ret;
 }
 
+static bool 
+db_begin(server_db_t* db)
+{
+    return db_exec_sql(db, "BEGIN;");
+}
+
+static bool 
+db_commit(server_db_t* db)
+{
+    return db_exec_sql(db, "COMMIT;");
+}
+
+static bool 
+db_rollback(server_db_t* db)
+{
+    return db_exec_sql(db, "ROLLBACK;");
+}
+
 static void
 db_notice_processor(UNUSED void* arg, const char* msg)
 {
@@ -747,6 +765,69 @@ server_db_delete_group_code(server_db_t* db, const char* invite_code)
 
     PQclear(res);
     return ret;
+}
+
+/*
+ * This function is meant to be only used from server_db_delete_group()
+ */
+static bool 
+db_del_group_part(server_db_t* db, 
+                  const char* sql, 
+                  const char* vals[], 
+                  const i32 lens[],
+                  const i32 formats[])
+{
+    bool ret = true;
+    PGresult* res;
+
+    res = PQexecParams(db->conn, sql, 1, NULL,
+                       vals, lens, formats, 0);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        error("'%s' (group_id: %s) failed: %s\n",
+              sql, vals[0], PQresultErrorMessage(res));
+        ret = false;
+    }
+
+    PQclear(res);
+    return ret;
+}
+
+bool        
+server_db_delete_group(server_db_t* db, u32 group_id)
+{
+    const char* del_msgs  = "DELETE FROM Messages WHERE group_id = $1::int;";
+    const char* del_gm    = "DELETE FROM GroupMembers WHERE group_id = $1::int;";
+    const char* del_codes = "DELETE FROM GroupCodes WHERE group_id = $1::int;";
+    const char* del_group = "DELETE FROM Groups WHERE group_id = $1::int;";
+    bool ret = true;
+    char group_id_str[DB_INTSTR_MAX];
+    const i32 lens[1] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id)
+    };
+    const i32 formats[1] = {0};
+    const char* vals[1] = {group_id_str};
+
+    if ((ret = db_begin(db)) == false)
+        return false;
+
+    if ((ret = db_del_group_part(db, del_msgs, vals, lens, formats)) == false)
+        goto rollback;
+
+    if ((ret = db_del_group_part(db, del_gm, vals, lens, formats)) == false)
+        goto rollback;
+
+    if ((ret = db_del_group_part(db, del_codes, vals, lens, formats)) == false)
+        goto rollback;
+
+    if ((ret = db_del_group_part(db, del_group, vals, lens, formats)) == false)
+        goto rollback;
+    
+    ret = db_commit(db);
+    return ret;
+rollback:
+    db_rollback(db);
+    return false;
 }
 
 static dbgroup_t* 

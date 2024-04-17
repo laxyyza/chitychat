@@ -1,4 +1,5 @@
 #include "chat/group.h"
+#include "chat/db.h"
 #include "chat/ws_text_frame.h"
 #include "server_websocket.h"
 
@@ -776,4 +777,58 @@ cleanup:
     free(group);
 
     return errmsg;
+}
+
+const char* server_delete_group(server_thread_t* th,
+                                client_t* client, 
+                                json_object* payload,
+                                json_object* resp_json)
+{
+    json_object* group_id_json;
+    const dbuser_t* member;
+    const client_t* member_client;
+    dbuser_t* gmembers;
+    u32 n_members;
+    dbgroup_t* group;
+    u32 group_id;
+    u32 owner_id;
+
+
+    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+    group_id = json_object_get_int(group_id_json);
+
+    if ((group = server_db_get_group(&th->db, group_id)) == NULL)
+        return "Group not found";
+
+    owner_id = group->owner_id;
+    free(group);
+
+    if (owner_id != client->dbuser->user_id)
+        return "Permission denied";
+
+    gmembers = server_db_get_group_members(&th->db, group_id, &n_members);
+    
+    if (!server_db_delete_group(&th->db, group_id))
+    {
+        free(gmembers);
+        return "Failed to delete group";
+    }
+
+    json_object_object_add(resp_json, "cmd",
+                           json_object_new_string("delete_group"));
+    json_object_object_add(resp_json, "group_id",
+                           json_object_new_int(group_id));
+
+    for (u32 i = 0; i < n_members; i++)
+    {
+        member = gmembers + i;
+        member_client = server_get_client_user_id(th->server, member->user_id);
+
+        if (member_client)
+            ws_json_send(member_client, resp_json);
+    }
+
+    free(gmembers);
+
+    return NULL;
 }

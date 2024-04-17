@@ -29,6 +29,7 @@ bool        server_db_insert_group_member(server_db_t* db, u32 group_id, u32 use
 dbgroup_t*  server_db_insert_group_member_code(server_db_t* db, 
                                                const char* invite_code, u32 user_id);
 bool        server_db_delete_group_code(server_db_t* db, const char* invite_code);
+bool        server_db_delete_group(server_db_t* db, u32 group_id);
 
 dbgroup_t*  server_db_get_group(server_db_t* db, u32 group_id);
 dbgroup_t*  server_db_get_group_from_invite(server_db_t* db, const char* invite_code);

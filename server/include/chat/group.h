@@ -101,4 +101,9 @@ const char* server_delete_group_msg(server_thread_t* th,
                                     json_object* payload,
                                     json_object* respond_json);
 
+const char* server_delete_group(server_thread_t* th,
+                                client_t* client, 
+                                json_object* payload,
+                                json_object* resp_json);
+
 #endif // _SERVER_USER_GROUP_H_
