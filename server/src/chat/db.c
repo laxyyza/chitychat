@@ -1074,11 +1074,7 @@ server_db_insert_msg(server_db_t* db, dbmsg_t* msg)
     res = PQexecParams(db->conn, db->cmd->insert_msg, 4, NULL, vals, lens, formats, 0);
     status_type = PQresultStatus(res);
     if (status_type == PGRES_TUPLES_OK)
-    {
-        const char* msg_id_str = PQgetvalue(res, 0, 0);
-        char* endptr;
-        msg->msg_id = strtoul(msg_id_str, &endptr, 10);
-    }
+        db_row_to_msg(msg, res, 0);
     else if (status_type != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed for insert_msg: %s\n",

@@ -527,7 +527,10 @@ server_group_msg(server_thread_t* th, client_t* client,
         if (!server_db_insert_msg(&th->db, &new_msg))
             return "Failed to send message";
 
-        return server_get_send_group_msg(th, &new_msg, group_id);
+        errmsg = server_get_send_group_msg(th, &new_msg, group_id);
+        if (new_msg.attachments_inheap)
+            free(new_msg.attachments);
+        return errmsg;
     }
     else
     {
