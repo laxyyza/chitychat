@@ -74,6 +74,7 @@ export class Group
     {
         let div_member = document.createElement("div");
         div_member.className = "group_member";
+        div_member.setAttribute("group_member_id", member.id);
 
         let span_name = document.createElement("span");
         span_name.className = "member_name";
@@ -83,7 +84,12 @@ export class Group
         member_img.className = "member_img";
         member_img.src = member.pfp_url;
 
+        let member_status = document.createElement("div");
+        member_status.classList.add("member_status");
+        member_status.setAttribute("member_status", member.status);
+
         div_member.appendChild(member_img);
+        div_member.appendChild(member_status);
         div_member.appendChild(span_name);
 
         this.div_group_members.appendChild(div_member);

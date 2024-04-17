@@ -21,7 +21,7 @@ function cmd_session(packet)
 
 function client_user_info(packet)
 {
-    app.client_user = new User(packet.user_id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
+    app.client_user = new User(packet.user_id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name, packet.status);
     app.users[app.client_user.id] = this.client_user;
     let me_displayname = document.getElementById("me_displayname");
     me_displayname.innerHTML = app.client_user.displayname;
@@ -118,7 +118,10 @@ function get_user(packet)
 {
     if (app.users[packet.user_id])
         return;
-    let new_user = new User(packet.user_id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name);
+    let new_user = new User(packet.user_id, packet.username, 
+                            packet.displayname, packet.bio, 
+                            packet.created_at, packet.pfp_name, 
+                            packet.status);
     app.users[new_user.id] = new_user;
 
     for (let group_id in app.groups)
@@ -397,6 +400,16 @@ function delete_msg(packet)
         msg.remove();
 }
 
+function rtusm(packet)
+{
+    /**
+     * @type {User}
+     */
+    let user = app.users[packet.user_id];
+    if (packet.status)
+        user.set_status(packet.status);
+}
+
 export function init_packet_commads()
 {
     packet_commands.session = cmd_session;
@@ -413,4 +426,5 @@ export function init_packet_commads()
     packet_commands.send_attachments = send_attachments;
     packet_commands.group_codes = group_codes;
     packet_commands.delete_msg = delete_msg;
+    packet_commands.rtusm = rtusm;
 }
