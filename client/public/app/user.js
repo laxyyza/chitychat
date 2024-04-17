@@ -47,6 +47,12 @@ export class User
         if (!rtusm)
             return;
 
+        if (this.id === app.client_user.id)
+        {
+            let img_ele = document.getElementById("settings_img");
+            img_ele.src = this.pfp_url;
+        }
+
         for (let group_id in app.groups)
         {
             /**

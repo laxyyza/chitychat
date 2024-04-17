@@ -279,31 +279,12 @@ function edit_account(packet)
     reader.onload = (event) => {
         const data = event.target.result;
 
-        console.log("data", data);
-
-        // const headers = new Headers();
-        // headers.set("Upload-Token", upload_token);
-
         fetch("/img/" + file.name, {
             method: 'POST',
             headers: {
                 "Upload-Token": upload_token
             },
             body: data
-        })
-        .then(response => {
-            if (!response.ok)
-                throw new Error("Failed");
-
-            return response.blob();
-        })
-        .then(blob => {
-            console.log("BLOB", blob);
-            const image_url = URL.createObjectURL(blob);
-            const img_ele = document.getElementById("settings_img");
-            img_ele.src = image_url;
-
-            URL.revokeObjectURL(image_url);
         })
         .catch(error => {
             console.error("Failed to upload", error)
