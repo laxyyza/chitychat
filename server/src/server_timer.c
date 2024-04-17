@@ -56,6 +56,7 @@ server_timer_exp(server_t* server, server_timer_t* timer)
 enum se_status
 se_timer_read(server_thread_t* th, server_event_t* ev)
 {
+    enum se_status ret;
     server_timer_t* timer = ev->data;
     u64 exp;
 
@@ -66,7 +67,10 @@ se_timer_read(server_thread_t* th, server_event_t* ev)
     }
     timer->exp += exp;
 
-    return server_timer_exp(th->server, timer);
+    ret = server_timer_exp(th->server, timer);
+    if (ret == SE_CLOSE)
+        ev->keep_data = true;
+    return ret;
 }
 
 enum se_status
