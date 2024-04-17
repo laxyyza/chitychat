@@ -2,7 +2,8 @@
 #include "chat/user_login.h"
 #include "chat/user_req.h"
 
-bool json_bad(json_object* json, json_type type)
+bool 
+json_bad(json_object* json, json_type type)
 {
     if (json == NULL)
         return true;

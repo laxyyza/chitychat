@@ -74,8 +74,9 @@ server_client_user_info(server_thread_t* th,
     return NULL;
 }
 
-const char* server_user_edit_account(server_thread_t* th, client_t* client, 
-        json_object* payload, UNUSED json_object* respond_json)
+const char* 
+server_user_edit_account(server_thread_t* th, client_t* client, 
+                         json_object* payload, UNUSED json_object* respond_json)
 {
     json_object* new_username_json;
     json_object* new_displayname_json;

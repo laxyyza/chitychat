@@ -184,7 +184,8 @@ respond:
     }
 }
 
-void server_handle_user_upload(server_thread_t* th, client_t* client, const http_t* http)
+void 
+server_handle_user_upload(server_thread_t* th, client_t* client, const http_t* http)
 {
     server_t* server = th->server;
     http_t* resp = NULL;

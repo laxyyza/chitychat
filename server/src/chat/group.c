@@ -609,10 +609,9 @@ get_group_msgs(server_thread_t* th, client_t* client,
     return NULL;
 }
 
-const char* server_create_group_code(server_thread_t* th, 
-                                     client_t* client,
-                                     json_object* payload, 
-                                     json_object* respond_json)
+const char* 
+server_create_group_code(server_thread_t* th, client_t* client,
+                         json_object* payload, json_object* respond_json)
 {
     json_object* group_id_json;
     json_object* max_uses_json;
@@ -644,10 +643,9 @@ const char* server_create_group_code(server_thread_t* th,
     return NULL;
 }
 
-const char* server_join_group_code(server_thread_t* th,
-                                   client_t* client,
-                                   json_object* payload,
-                                   json_object* respond_json)
+const char* 
+server_join_group_code(server_thread_t* th, client_t* client,
+                       json_object* payload, json_object* respond_json)
 {
     json_object* code_json;
     const char* code;
@@ -670,10 +668,9 @@ const char* server_join_group_code(server_thread_t* th,
     return errmsg;
 }
 
-const char* server_get_group_codes(server_thread_t* th,
-                                   client_t* client,
-                                   json_object* payload,
-                                   json_object* respond_json)
+const char* 
+server_get_group_codes(server_thread_t* th, client_t* client,
+                       json_object* payload, json_object* respond_json)
 {
     json_object* group_id_json;
     u32 group_id;
@@ -695,9 +692,9 @@ const char* server_get_group_codes(server_thread_t* th,
     return NULL;
 }
 
-const char* server_delete_group_code(server_thread_t* th,
-                                     client_t* client, 
-                                     json_object* payload)
+const char* 
+server_delete_group_code(server_thread_t* th, client_t* client, 
+                         json_object* payload)
 {
     json_object* code_json;
     json_object* group_id_json;
@@ -720,10 +717,9 @@ const char* server_delete_group_code(server_thread_t* th,
     return NULL;
 }
 
-const char* server_delete_group_msg(server_thread_t* th,
-                                    client_t* client,
-                                    json_object* payload,
-                                    json_object* respond_json)
+const char* 
+server_delete_group_msg(server_thread_t* th, client_t* client,
+                        json_object* payload, json_object* respond_json)
 {
     json_object* msg_id_json;
     u32 msg_id;
@@ -779,10 +775,9 @@ cleanup:
     return errmsg;
 }
 
-const char* server_delete_group(server_thread_t* th,
-                                client_t* client, 
-                                json_object* payload,
-                                json_object* resp_json)
+const char* 
+server_delete_group(server_thread_t* th, client_t* client, 
+                    json_object* payload, json_object* resp_json)
 {
     json_object* group_id_json;
     const dbuser_t* member;
