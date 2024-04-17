@@ -25,6 +25,7 @@ typedef enum se_status (*se_close_callback_t)(server_t* server, server_event_t* 
 typedef struct server_event
 {
     i32 fd;
+    i32 err;
     u32 ep_events;
     u32 listen_events;
     void* data;

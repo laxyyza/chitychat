@@ -1,5 +1,6 @@
 #include "server_events.h"
 #include "server.h"
+#include "server_client.h"
 
 static i32
 server_ep_ctl(server_t* server, i32 op, i32 fd)
@@ -170,9 +171,14 @@ se_read_client(server_thread_t* th, server_event_t* ev)
 }
 
 enum se_status
-se_close_client(server_t* server, server_event_t *ev)
+se_close_client(server_t* server, server_event_t* ev)
 {
-    server_free_client(server, ev->data);
+    client_t* client = ev->data;
+
+    if (ev->err == EPIPE)
+        client->state |= CLIENT_STATE_BROKEN_PIPE;
+
+    server_free_client(server, client);
     return SE_OK;
 }
 

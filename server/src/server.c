@@ -2,7 +2,7 @@
 
 #define MAX_EP_EVENTS 10
 
-void
+i32
 server_print_sockerr(i32 fd)
 {
     i32 error;
@@ -11,6 +11,8 @@ server_print_sockerr(i32 fd)
         error("getsockopt(%d): %s\n", fd, ERRSTR);
     else
         error("socket (%d): %s\n", fd, strerror(error));
+
+    return error;
 }
 
 void 
@@ -32,7 +34,7 @@ server_ep_event(server_thread_t* th, const server_job_t* job)
 
     if (ev & EPOLLERR)
     {
-        server_print_sockerr(fd);
+        se->err = server_print_sockerr(fd);
         server_del_event(server, se);
     }
     else if (ev & (EPOLLRDHUP | EPOLLHUP))

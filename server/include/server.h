@@ -93,7 +93,7 @@ typedef struct server
 
 void server_run(server_t* server);
 void server_cleanup(server_t* server);
-void server_print_sockerr(i32 fd);
+i32  server_print_sockerr(i32 fd);
 void server_ep_event(server_thread_t* th, const server_job_t* job);
 
 ssize_t     server_send(const client_t* client, const void* buf, size_t len);

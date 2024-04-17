@@ -73,7 +73,10 @@ server_free_client(server_t* server, client_t* client)
 
     if (client->ssl)
     {
-        SSL_shutdown(client->ssl);
+        if (client->state & CLIENT_STATE_BROKEN_PIPE)
+            info("client->state BROKEN PIPE: Not calling SSL_shutdown().\n");
+        else
+            SSL_shutdown(client->ssl);
         SSL_free(client->ssl);
     }
 
