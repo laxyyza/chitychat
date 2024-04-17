@@ -26,6 +26,9 @@
 - [ ] **Mobile Compatibility:** Improve usability on mobile devices.
 - [X] **URL Parameters Support:** Support HTTP URL parameters.
 - [ ] **Real-Time User Status Management:** Online, Offline, Away, busy, typing, etc.
+   - [x] User Online/Offline
+   - [ ] Typing.
+   - [ ] User set status
 - [x] **Upload File Management:** Avoid duplication user files.
    - [x] Default profile pic
 - [ ] **Real-Time User Profile Updates:** Receive instant updates for user profile changes like usernames, display names, bio, and profile pictures.
