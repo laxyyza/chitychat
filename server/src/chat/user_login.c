@@ -1,12 +1,37 @@
 #include "chat/user_login.h"
 #include "chat/ws_text_frame.h"
 
+static void 
+notify_client_login_attempt(const client_t* client, const client_t* login_attempt_client)
+{
+    json_object* resp_json = json_object_new_object();
+
+    json_object_object_add(resp_json, "cmd", 
+                           json_object_new_string("warn_login_attempt"));
+    json_object_object_add(resp_json, "msg",
+                           json_object_new_string("Someone tried to login into your account"));
+    json_object_object_add(resp_json, "ip",
+                           json_object_new_string(login_attempt_client->addr.ip_str));
+    
+    ws_json_send(client, resp_json);
+
+    json_object_put(resp_json);
+}
+
 static const char* 
 server_set_client_logged_in(server_thread_t* th, client_t* client, 
                             session_t* session, json_object* respond_json)
 {
     dbuser_t* dbuser;
     server_event_t* session_timer_ev = NULL;
+    const client_t* client_already_logged_in;
+
+    client_already_logged_in = server_get_client_user_id(th->server, session->user_id);
+    if (client_already_logged_in)
+    {
+        notify_client_login_attempt(client_already_logged_in, client);
+        return "Someone else already logged in";
+    }
 
     dbuser = server_db_get_user_from_id(&th->db, session->user_id);
     if (!dbuser)
@@ -167,6 +192,6 @@ server_handle_not_logged_in_client(server_thread_t* th,
         return "Not logged in.";
 
     if (!errmsg)
-        server_create_user_session(th, client, username, respond_json);
+        errmsg = server_create_user_session(th, client, username, respond_json);
     return errmsg;
 }
