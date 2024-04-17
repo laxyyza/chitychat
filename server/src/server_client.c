@@ -82,7 +82,7 @@ server_free_client(server_thread_t* th, client_t* client)
         SSL_free(client->ssl);
     }
 
-    if (client->session && client->session->timerfd == 0)
+    if (client->session && client->session->timerfd == 0 && th->server->running)
     {
         union timer_data data = {
             .session = client->session
