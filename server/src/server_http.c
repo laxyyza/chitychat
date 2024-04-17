@@ -453,6 +453,8 @@ http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_le
     strncpy(http->resp.msg, status_msg, HTTP_STATUS_MSG_LEN);
     strncpy(http->resp.version, HTTP_VERSION, HTTP_VERSION_LEN);
 
+    http_add_header(http, "Server", SERVER_NAME);
+
     if (body)
         http_add_body(http, body, body_len);
 

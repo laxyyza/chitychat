@@ -17,6 +17,8 @@
 #include "chat/upload_token.h"
 #include "chat/user_session.h"
 
+#define SERVER_NAME "ChityChat"
+
 #define SERVER_CONFIG_PATH "server/config.json"
 
 #define CONFIG_PATH_LEN 512
