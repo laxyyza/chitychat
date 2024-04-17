@@ -34,6 +34,7 @@ target_sources(chitychat PRIVATE
     server/src/chat/upload_token.c
     server/src/chat/db.c
     server/src/chat/user_upload.c
+    server/src/chat/rtusm.c
 )
 
 target_include_directories(chitychat PRIVATE
