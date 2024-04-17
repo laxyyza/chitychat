@@ -179,7 +179,7 @@ se_close_client(server_thread_t* th, server_event_t* ev)
 
     if (ev->err == EPIPE)
         client->state |= CLIENT_STATE_BROKEN_PIPE;
-    else if (client->dbuser)
+    else if (client->dbuser && th->server->running)
         server_rtusm_user_disconnect(th, client->dbuser);
 
     server_free_client(th, client);
