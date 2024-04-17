@@ -40,6 +40,8 @@ bool        server_db_insert_group(server_db_t* db, dbgroup_t* group);
 dbmsg_t*    server_db_get_msg(server_db_t* db, u32 msg_id);
 dbmsg_t*    server_db_get_msgs_from_group(server_db_t* db, u32 group_id, 
                                           u32 limit, u32 offset, u32* n);
+dbmsg_t*    server_db_get_msgs_only_attachs(server_db_t* db, u32 group_id, u32* n);
+
 bool        server_db_insert_msg(server_db_t* db, dbmsg_t* msg);
 bool        server_db_delete_msg(server_db_t* db, u32 msg_id);
 

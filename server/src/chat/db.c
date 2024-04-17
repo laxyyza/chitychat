@@ -1044,6 +1044,51 @@ server_db_get_msgs_from_group(server_db_t* db, u32 group_id, u32 limit, u32 offs
     return server_db_get_msgs(db, -1, group_id, limit, offset, n);
 }
 
+dbmsg_t*    
+server_db_get_msgs_only_attachs(server_db_t* db, u32 group_id, u32* n)
+{
+    const char* sql = "SELECT attachments FROM Messages WHERE group_id = $1::int AND json_array_length(attachments) > 0;";
+    dbmsg_t* msgs = NULL;
+    u32 rows = 0;
+    PGresult* res;
+    ExecStatusType status_type;
+    char group_id_str[DB_INTSTR_MAX];
+
+    const i32 lens[1] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id)
+    };
+    const char* vals[1] = {group_id_str};
+    const i32 formats[1] = {0};
+
+    res = PQexecParams(db->conn, sql, 1, NULL,
+                       vals, lens, formats, 0);
+    status_type = PQresultStatus(res);
+    if (status_type != PGRES_COMMAND_OK && status_type != PGRES_TUPLES_OK)
+    {
+        error("PGexecParams() failed for SELECT attachments FROM Messages: %s\n", 
+              PQresultErrorMessage(res));
+        goto cleanup;
+    }
+
+    if ((rows = PQntuples(res)) == 0)
+        goto cleanup;
+
+    msgs = calloc(rows, sizeof(dbmsg_t));
+    for (u32 i = 0; i < rows; i++)
+    {
+        dbmsg_t* msg = msgs + i;
+        const char* attachments = PQgetvalue(res, i, 0);
+        msg->attachments_json = json_tokener_parse(attachments);
+        if (msg->attachments_json == NULL)
+            error("json parse failed for: '%s'\n", attachments);
+    }
+
+cleanup:
+    if (n)
+        *n = rows;
+    return msgs;
+}
+
 bool 
 server_db_insert_msg(server_db_t* db, dbmsg_t* msg)
 {

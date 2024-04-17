@@ -786,11 +786,12 @@ server_delete_group(server_thread_t* th, client_t* client,
     const dbuser_t* member;
     const client_t* member_client;
     dbuser_t* gmembers;
+    dbmsg_t* attach_msgs;
     u32 n_members;
+    u32 n_msgs;
     dbgroup_t* group;
     u32 group_id;
     u32 owner_id;
-
 
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     group_id = json_object_get_int(group_id_json);
@@ -805,12 +806,21 @@ server_delete_group(server_thread_t* th, client_t* client,
         return "Permission denied";
 
     gmembers = server_db_get_group_members(&th->db, group_id, &n_members);
+    attach_msgs = server_db_get_msgs_only_attachs(&th->db, group_id, &n_msgs);
     
     if (!server_db_delete_group(&th->db, group_id))
     {
         free(gmembers);
         return "Failed to delete group";
     }
+
+    for (u32 i = 0; i < n_msgs; i++)
+    {
+        dbmsg_t* msg = attach_msgs + i;
+        server_delete_msg_attachments(th, msg);
+        json_object_put(msg->attachments_json);
+    }
+    free(attach_msgs);
 
     json_object_object_add(resp_json, "cmd",
                            json_object_new_string("delete_group"));
