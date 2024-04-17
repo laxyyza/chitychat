@@ -99,7 +99,7 @@ respond:
             resp = http_new_resp(HTTP_CODE_INTERAL_ERROR, "Interal server error", NULL, 0);
         else
         {
-            resp = http_new_resp(HTTP_CODE_OK, "OK", http->body, http->body_len);
+            resp = http_new_resp(HTTP_CODE_OK, "OK", NULL, 0);
             strncpy(user->pfp_hash, file.hash, DB_PFP_HASH_MAX);
             server_rtusm_user_pfp_change(th, user);
         }
