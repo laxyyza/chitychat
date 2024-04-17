@@ -5,6 +5,7 @@
  * RTUSM - Real-Time User Status Management
  *
  * e.g. Online, Offline, Away, typing, etc.
+ * and other user updates like profile pic changes
  */
 
 #include "server_tm.h"
@@ -33,6 +34,7 @@ void    server_rtusm_set_user_status(server_thread_t* th, dbuser_t* user,
                                      enum rtusm_status status);
 void    server_rtusm_user_connect(server_thread_t* th, dbuser_t* user);
 void    server_rtusm_user_disconnect(server_thread_t* th, dbuser_t* user);
+void    server_rtusm_user_pfp_change(server_thread_t* th, dbuser_t* user);
 
 const char* rtusm_get_status_str(enum rtusm_status status);
 

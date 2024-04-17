@@ -51,7 +51,7 @@ static void
 server_handle_user_pfp_update(server_thread_t* th, client_t* client, const http_t* http, u32 user_id)
 {
     http_t* resp = NULL;
-    dbuser_t* user;
+    dbuser_t* user = NULL;
     bool failed = false;
     const char* post_img_cmd = "/img/";
     size_t post_img_cmd_len = strlen(post_img_cmd);
@@ -92,19 +92,22 @@ server_handle_user_pfp_update(server_thread_t* th, client_t* client, const http_
     else
         failed = true;
 
-    free(user);
-
 respond:
     if (!resp)
     {
         if (failed)
             resp = http_new_resp(HTTP_CODE_INTERAL_ERROR, "Interal server error", NULL, 0);
         else
+        {
             resp = http_new_resp(HTTP_CODE_OK, "OK", http->body, http->body_len);
+            strncpy(user->pfp_hash, file.hash, DB_PFP_HASH_MAX);
+            server_rtusm_user_pfp_change(th, user);
+        }
     }
 
     http_send(client, resp);
     http_free(resp);
+    free(user);
 }
 
 static void 

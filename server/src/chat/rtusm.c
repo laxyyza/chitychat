@@ -3,6 +3,13 @@
 #include "chat/db.h"
 #include "server_websocket.h"
 
+typedef struct 
+{
+    bool    status:1;
+    bool    typing:1;
+    bool    pfp:1;
+} rtusm_new_t;
+
 const char* const rtusm_status_str[RTUSM_STATUS_LEN] = {
     "offline",
     "online",
@@ -10,7 +17,8 @@ const char* const rtusm_status_str[RTUSM_STATUS_LEN] = {
     "dnd"
 };
 
-void rtusm_broadcast(server_thread_t* th, dbuser_t* user)
+static void 
+rtusm_broadcast(server_thread_t* th, dbuser_t* user, rtusm_new_t new)
 {
     json_object* packet;
     dbuser_t* connected_users;
@@ -25,14 +33,24 @@ void rtusm_broadcast(server_thread_t* th, dbuser_t* user)
                            json_object_new_string("rtusm"));
     json_object_object_add(packet, "user_id",
                            json_object_new_int(user->user_id));
-    json_object_object_add(packet, "status",
-                           json_object_new_string(status_str));
-    if (user_status->typing_group_id)
+    if (new.status)
+    {
+        json_object_object_add(packet, "status",
+                               json_object_new_string(status_str));
+    }
+
+    if (new.typing && user_status->typing_group_id)
     {
         json_object_object_add(packet, "typing",
                                json_object_new_boolean(user_status->typing));
         json_object_object_add(packet, "typing_group_id",
                                json_object_new_int(user_status->typing_group_id));
+    }
+
+    if (new.pfp)
+    {
+        json_object_object_add(packet, "pfp_name",
+                               json_object_new_string(user->pfp_hash));
     }
     
     connected_users = server_db_get_connected_users(&th->db, user->user_id, &n_users);
@@ -64,7 +82,13 @@ server_rtusm_user_disconnect(server_thread_t* th, dbuser_t* user)
     user->rtusm.typing_group_id = 0;
     user->rtusm.typing = 0;
 
-    rtusm_broadcast(th, user);
+    const rtusm_new_t new = {
+        .status = true,
+        .typing = false,
+        .pfp = false
+    };
+
+    rtusm_broadcast(th, user, new);
 }
 
 void    
@@ -72,10 +96,29 @@ server_rtusm_user_connect(server_thread_t* th, dbuser_t* user)
 {
     user->rtusm.status = USER_ONLINE;
 
-    rtusm_broadcast(th, user);
+    const rtusm_new_t new = {
+        .status = true,
+        .typing = false,
+        .pfp = false
+    };
+
+    rtusm_broadcast(th, user, new);
 }
 
-const char* rtusm_get_status_str(enum rtusm_status status)
+const char* 
+rtusm_get_status_str(enum rtusm_status status)
 {
     return rtusm_status_str[status];
+}
+
+void    
+server_rtusm_user_pfp_change(server_thread_t* th, dbuser_t* user)
+{
+    const rtusm_new_t new = {
+        .status = false,
+        .typing = false,
+        .pfp = true
+    };
+
+    rtusm_broadcast(th, user, new);
 }
