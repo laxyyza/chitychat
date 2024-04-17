@@ -7,15 +7,14 @@ server_new_user_session(server_t* server, client_t* client)
     session_t* new_sesion;
     session_t* head_next;
 
-    if (!server || !client || !client->dbuser)
+    if (!server || !client)
     {
-        warn("new_user_session(%p, %p) dbuser: %p: Something is NULL!\n", server, client, client->dbuser);
+        warn("new_user_session(%p, %p) dbuser: %p: Something is NULL!\n", server, client);
         return NULL;
     }
 
     new_sesion = calloc(1, sizeof(session_t));
     getrandom(&new_sesion->session_id, sizeof(u32), 0);
-    new_sesion->user_id = client->dbuser->user_id;
 
     client->session = new_sesion;
 

@@ -402,10 +402,7 @@ server_upgrade_client_to_websocket(client_t* client, http_t* req_http)
     }
 
     if (http_send(client, http) != -1)
-    {
         client->state |= CLIENT_STATE_WEBSOCKET;
-        client->dbuser = calloc(1, sizeof(dbuser_t));
-    }
     http_free(http);
     free(req_http->websocket_key);
 }

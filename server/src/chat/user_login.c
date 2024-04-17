@@ -20,10 +20,12 @@ notify_client_login_attempt(const client_t* client, const client_t* login_attemp
 }
 
 static const char* 
-server_set_client_logged_in(server_thread_t* th, client_t* client, 
-                            session_t* session, json_object* respond_json)
+server_set_client_logged_in(server_thread_t* th, 
+                            client_t* client, 
+                            dbuser_t* user,
+                            session_t* session, 
+                            json_object* respond_json)
 {
-    dbuser_t* dbuser;
     server_event_t* session_timer_ev = NULL;
     const client_t* client_already_logged_in;
 
@@ -34,14 +36,7 @@ server_set_client_logged_in(server_thread_t* th, client_t* client,
         return "Someone else already logged in";
     }
 
-    dbuser = server_db_get_user_from_id(&th->db, session->user_id);
-    if (!dbuser)
-    {
-        server_del_user_session(th->server, session);
-        return "Server could not find user in database";
-    }
-    memcpy(client->dbuser, dbuser, sizeof(dbuser_t));
-    free(dbuser);
+    client->dbuser = user;
 
     json_object_object_add(respond_json, "cmd", 
                         json_object_new_string("session"));
@@ -74,6 +69,7 @@ server_handle_user_session(server_thread_t* th, client_t* client,
 {
     json_object* session_id_json;
     session_t* session;
+    dbuser_t* user;
     u32 session_id;
     
     RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_int);
@@ -83,7 +79,14 @@ server_handle_user_session(server_thread_t* th, client_t* client,
     if (!session)
         return "Invalid session ID or session expired";
 
-    return server_set_client_logged_in(th, client, session, respond_json);
+    user = server_db_get_user_from_id(&th->db, session->user_id);
+    if (!user)
+    {
+        server_del_user_session(th->server, session);
+        return "Could not find user from session";
+    }
+
+    return server_set_client_logged_in(th, client, user, session, respond_json);
 }
 
 static const char* 
@@ -150,9 +153,8 @@ server_create_user_session(server_thread_t* th, client_t* client,
 
     session = server_new_user_session(th->server, client);
     session->user_id = user->user_id;
-    free(user);
 
-    return server_set_client_logged_in(th, client, session, respond_json);
+    return server_set_client_logged_in(th, client, user, session, respond_json);
 }
 
 const char* 
