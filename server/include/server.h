@@ -83,6 +83,7 @@ typedef struct server
     };
     socklen_t addr_len;
 
+    // TODO: Use Hash-Table instead of Linked-List.
     client_t* client_head;
     session_t* session_head;
     upload_token_t* upload_token_head;

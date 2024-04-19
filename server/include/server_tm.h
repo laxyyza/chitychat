@@ -17,6 +17,15 @@ typedef struct server_job
 
 typedef struct 
 {
+    /*
+     *  TODO: More efficent queue 
+     *    Something fast enqueue and dequeue
+     *    Currently its Linked-List-based, so it allocate (malloc()) new job for every enqueue
+     *    So something pre-allocated.
+     *  
+     *   array-based queue?
+     *   cirular buffer?
+     */
     server_job_t* front; 
     server_job_t* rear;
 } server_queue_t;
