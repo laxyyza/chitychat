@@ -11,7 +11,7 @@
 
 #define DB_USERNAME_MAX     50
 #define DB_DISPLAYNAME_MAX  50
-#define DB_MESSAGE_MAX      512
+#define DB_MESSAGE_MAX      4096
 #define DB_TIMESTAMP_MAX    64
 #define DB_BIO_MAX          256
 #define DB_DESC_MAX         256
