@@ -7,7 +7,7 @@ main(int argc, char* const* argv)
     i32 ret;
 
     /* 
-     * Server initializion: socket, epoll, OpenSSL, thread pool, etc. 
+     * Server Initialization: socket, epoll, OpenSSL, thread pool, etc. 
      */
     server = server_init(argc, argv);
     if (!server)
