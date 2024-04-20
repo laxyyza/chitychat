@@ -1,12 +1,12 @@
 # Chity Chat
-> Chity Chat is a simple Chat App with the purpose of learning. It includes a website code and a custom web server written in C.
+>### Chity Chat is a simple Chat App with the purpose of learning. It includes a website code and a custom web server written in C.
 
-### Chat App features
+## Chat App features
 * **Multiple Groups:** Users can join any group; everything is public.
 * **Real-time Communication:** Messages are sent and received instantly.
 * **User Profile Pictures:** Users can upload and change their profile pictures.
 
-### Planned Features
+## Planned Features
 - [x] **Private Groups:** Invitation-only groups.
    - [X] Mark group as private, only group members can get it.
    - [X] Implement Invite Codes
@@ -33,7 +33,7 @@
    - [x] Default profile pic
 - [ ] **Real-Time User Profile Updates:** Receive instant updates for user profile changes like usernames, display names, bio, and profile pictures.
 
-### Web Server Features
+## Web Server Features
 * **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
 * **Web Sockets Implementation:** Real-time communication support.
 * **SSL/TLS via OpenSSL:** Secure connections.
@@ -43,11 +43,11 @@
 * **Session Management:** Users receive session IDs for persistent login.
 * **Multi-Threaded:** Utilizes a thread pool to efficiently manage concurrent events.
 
-### Web Server limitations
+## Web Server limitations
 * **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
 * **Monolithic Architecture:** Combines web server and chat server functionalities within a single process, requiring recompilation for any server code modifications.
 
-### Learning experience
+## Learning experience
 > Through building Chity Chat, I learned:
 * Web Server Implementation:
     * HTTP
@@ -57,3 +57,6 @@
 * SQL Database Usage with SQLite3, later PostgreSQL.
 * Frontend Development with JavaScript, HTML, and CSS.
 * Password Security with SHA512 hashing.
+
+## Coding Style
+* https://github.com/laxyy69/stdcode
