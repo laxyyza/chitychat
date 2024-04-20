@@ -95,7 +95,7 @@ typedef struct server
     bool running;
 } server_t;
 
-void server_run(server_t* server);
+i32  server_run(server_t* server);
 void server_cleanup(server_t* server);
 i32  server_print_sockerr(i32 fd);
 void server_ep_event(server_thread_t* th, const server_job_t* job);

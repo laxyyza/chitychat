@@ -1,6 +1,10 @@
 #ifndef _SERVER_THREAD_MANAGER_H_
 #define _SERVER_THREAD_MANAGER_H_
 
+/*
+ * TM - "Thread Manager"
+ */
+
 #include "common.h"
 #include <pthread.h>
 #include "chat/db_def.h"

@@ -1,6 +1,9 @@
 #include "server_tm.h"
 #include "server.h"
-#include <pthread.h>
+
+/*
+ * TM - "Thread Manager"
+ */
 
 void* 
 tm_worker(void* arg)

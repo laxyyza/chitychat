@@ -83,9 +83,10 @@ server_init_signal_handlers(server_t* server)
         error("sigaction: %s\n", ERRSTR);
 }
 
-void 
+i32
 server_run(server_t* server)
 {
+    i32 ret = EXIT_SUCCESS;
     i32 nfds;
     struct epoll_event events[MAX_EP_EVENTS];
     const struct epoll_event* epev;
@@ -104,6 +105,7 @@ server_run(server_t* server)
 
             error("epoll_wait: %s\n", ERRSTR);
             server->running = false;
+            ret = EXIT_FAILURE;
         }
 
         for (i32 i = 0; i < nfds; i++)
@@ -112,6 +114,8 @@ server_run(server_t* server)
             server_tm_enq(&server->tm, epev->data.fd, epev->events);
         }
     }
+
+    return ret;
 }
 
 static void 
