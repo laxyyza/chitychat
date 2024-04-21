@@ -61,5 +61,50 @@
 * Frontend Development with JavaScript, HTML, and CSS.
 * Password Security with SHA512 hashing.
 
+## Build Web Server
+>### NOTE: Only supports Linux.
+### Dependencies
+* json-c
+* libmagic
+* postgresql
+* openssl
+* cmake
+> Dependencies Package Names
+>* Arch: `json-c file postgresql openssl cmake`
+>* Debian: `libjson-c-dev libmagic-dev postgresql postgresql-client libpq-dev libssl-dev cmake` 
+
+### Clone repo and cd into:
+```
+git clone https://github.com/laxyy69/chitychat.git && cd chitychat
+```
+### Make `build` directory, cd into, and configure cmake:
+```
+mkdir build && cd build && cmake ..
+```
+### Compile (inside `build/`):
+```
+make
+```
+Executable name: `chitychat` inside `build/`
+## After compilation: PostgreSQL and SSL certificates.
+### PostgreSQL:
+Read the [Arch Wiki](https://wiki.archlinux.org/title/PostgreSQL) (or your distro wiki) for setting up PostgreSQL.
+> After you setup PostgreSQL, create a PostgreSQL database called: `chitychat`
+```
+sudo -u postgres createdb chitychat
+```
+### SSL certificates:
+Generate self-signed SSL keys: (in project's root directory)
+```
+openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes
+```
+Now you _should_ be done, and execute `build/chitychat` server.
+
+Config file: `server/config.json`
+
+### In your browser: `https://localhost:8080` or `https://` + ip address + `:8080`
+
+Change port in config file or use `--port` arguments. See `build/chitychat --help`
+
 ## Coding Style
 * https://github.com/laxyy69/stdcode
