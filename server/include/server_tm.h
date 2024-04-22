@@ -8,31 +8,9 @@
 #include "common.h"
 #include <pthread.h>
 #include "chat/db_def.h"
+#include "server_evcb.h"
 
 #define THREAD_NAME_LEN 32
-
-typedef struct server_job
-{
-    i32 fd;
-    u32 ev;
-
-    struct server_job* next;
-} server_job_t;
-
-typedef struct 
-{
-    /*
-     *  TODO: More efficent queue 
-     *    Something fast enqueue and dequeue
-     *    Currently its Linked-List-based, so it allocate (malloc()) new job for every enqueue
-     *    So something pre-allocated.
-     *  
-     *   array-based queue?
-     *   cirular buffer?
-     */
-    server_job_t* front; 
-    server_job_t* rear;
-} server_queue_t;
 
 typedef struct 
 {
@@ -45,10 +23,10 @@ typedef struct
 
 typedef struct 
 {
-    server_queue_t  q;
     server_thread_t* threads;
     size_t          n_threads;
     u8              shutdown;
+    evcb_t          cb;
 
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
@@ -59,8 +37,8 @@ bool    server_tm_init_thread(server_t* server, server_thread_t* th, size_t i);
 void    server_tm_shutdown(server_t* server);
 i32     server_tm_system_threads(void);
 
-void            server_tm_enq(server_tm_t* tm, i32 fd, u32 ev);
-server_job_t*   server_tm_deq(server_tm_t* tm);
+void    server_tm_enq(server_tm_t* tm, i32 fd, u32 ev);
+i32     server_tm_deq(server_tm_t* tm, ev_t* ev);
 
 void tm_lock(server_tm_t* tm);
 void tm_unlock(server_tm_t* tm);

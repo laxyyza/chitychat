@@ -16,7 +16,7 @@ server_print_sockerr(i32 fd)
 }
 
 void 
-server_ep_event(server_thread_t* th, const server_job_t* job)
+server_ep_event(server_thread_t* th, const ev_t* job)
 {
     server_t* server = th->server;
     const i32 fd = job->fd;

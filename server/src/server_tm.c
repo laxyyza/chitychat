@@ -1,5 +1,8 @@
 #include "server_tm.h"
 #include "server.h"
+#include "server_evcb.h"
+
+#define EVCB_SIZE (n_threads * 2)
 
 /*
  * TM - "Thread Manager"
@@ -11,24 +14,19 @@ tm_worker(void* arg)
     server_thread_t* th = arg;
     server_t* server = th->server;
     server_tm_t* tm = &server->tm;
-    server_job_t* job;
+    ev_t ev;
+    i32  new_ev;
     th->tid = gettid();
 
     verbose("Worker %d up and running!\n", th->tid);
 
     while (1)
     {
-        job = server_tm_deq(tm);
-
+        new_ev = server_tm_deq(tm, &ev);
         if (tm->shutdown == 1)
             break;
-
-        if (job)
-        {
-            server_ep_event(th, job);
-            free(job);
-            job = NULL;
-        }
+        if (new_ev)
+            server_ep_event(th, &ev);
     }
 
     verbose("Worker %d shutting down...\n", th->tid);
@@ -54,6 +52,8 @@ server_init_tm(server_t* server, i32 n_threads)
 
     pthread_mutex_init(&tm->mutex, NULL);
     pthread_cond_init(&tm->cond, NULL);
+
+    server_init_evcb(server, EVCB_SIZE);
 
     if (server_db_open(&server->main_th.db, server->conf.database) == false)
         return false;
@@ -84,23 +84,19 @@ server_tm_init_thread(server_t* server, server_thread_t* th, size_t i)
 static void 
 server_tm_shutdown_threads(server_tm_t* tm)
 {
-    server_job_t* job;
-
     tm_lock(tm);
     tm->shutdown = 1;
 
-    // Clear all the jobs
-    while ((job = tm->q.front))
-    {
-        tm->q.front = job->next;
-        free(job);
-    }
+    // Clear all the events
+    server_evcb_clear(&tm->cb);
     
     pthread_cond_broadcast(&tm->cond);
     tm_unlock(tm);
 
     for (size_t i = 0; i < tm->n_threads; i++)
         pthread_join(tm->threads[i].pth, NULL);
+
+    server_evcb_free(&tm->cb);
 }
 
 void    
@@ -121,43 +117,31 @@ server_tm_shutdown(server_t* server)
 void            
 server_tm_enq(server_tm_t* tm, i32 fd, u32 ev)
 {
-    server_job_t* job = malloc(sizeof(server_job_t));
-
-    job->fd = fd;
-    job->ev = ev;
-    job->next = NULL;
+    i32 override_fd;
 
     tm_lock(tm);
-    if (tm->q.front)
+    if ((override_fd = server_evcb_enqueue(&tm->cb, fd, ev)) != -1)
     {
-        tm->q.rear->next = job;
-        tm->q.rear = job;
-    }
-    else
-    {
-        tm->q.front = job;
-        tm->q.rear = job;
+        // The very unlikly event that `override_fd` got 
+        // overridden by enqueue, rearm it in epoll.
+        info("rearming: %d\n", override_fd);
+        server_ep_rearm(tm->threads[0].server, override_fd);
     }
     pthread_cond_signal(&tm->cond);
     tm_unlock(tm);
 }
 
-server_job_t*   
-server_tm_deq(server_tm_t* tm)
+i32
+server_tm_deq(server_tm_t* tm, ev_t* ev)
 {
-    server_job_t* job = NULL;
+    i32 ret;
 
     tm_lock(tm);
     pthread_cond_wait(&tm->cond, &tm->mutex);
-
-    if (tm->q.front == NULL)
-        goto unlock;
-
-    job = tm->q.front;
-    tm->q.front = tm->q.front->next;
-unlock:
+    ret = server_evcb_dequeue(&tm->cb, ev);
     tm_unlock(tm);
-    return job;
+
+    return ret;
 }
 
 void    
