@@ -117,18 +117,17 @@ server_tm_shutdown(server_t* server)
 void            
 server_tm_enq(server_tm_t* tm, i32 fd, u32 ev)
 {
-    i32 override_fd;
-
-    tm_lock(tm);
-    if ((override_fd = server_evcb_enqueue(&tm->cb, fd, ev)) != -1)
-    {
-        // The very unlikly event that `override_fd` got 
-        // overridden by enqueue, rearm it in epoll.
-        info("rearming: %d\n", override_fd);
-        server_ep_rearm(tm->threads[0].server, override_fd);
-    }
-    pthread_cond_signal(&tm->cond);
-    tm_unlock(tm);
+    i32 is_full;
+    do {
+        tm_lock(tm);
+        is_full = server_evcb_enqueue(&tm->cb, fd, ev);
+        pthread_cond_signal(&tm->cond);
+        tm_unlock(tm);
+    } while (is_full);
+    /**
+     * If server_evcb_enqueue() returns -1, it means ring buffer is full.
+     * just try to enqueue until ring buffer is open.
+     **/
 }
 
 i32

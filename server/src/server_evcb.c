@@ -27,14 +27,15 @@ server_init_evcb(server_t* server, size_t size)
 i32
 server_evcb_enqueue(evcb_t* cb, i32 fd, u32 ev)
 {
-    i32 ret = cb->write->fd;
+    if (cb->write->fd != -1)
+        return -1;
 
     cb->write->fd = fd;
     cb->write->ev = ev;
 
     if ((cb->write++ >= cb->buf_end))
         cb->write = cb->buf_begin;
-    return ret;
+    return 0;
 }
 
 i32  
