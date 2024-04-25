@@ -16,4 +16,17 @@ const char* server_get_content_type(const char* path);
 // Copy n bytes swapped order
 void        swpcpy(u8* restrict dest, const u8* restrict src, size_t n);
 
+#define TIME_FUNC_NS(func)\
+    ({\
+        struct timespec __start;\
+        struct timespec __end;\
+        clock_gettime(CLOCK_MONOTONIC, &__start);\
+        __typeof__(func) __ret = func;\
+        clock_gettime(CLOCK_MONOTONIC, &__end);\
+        long long int __time_taken = (__end.tv_sec - __start.tv_sec) * 1000000000LL +\
+                               (__end.tv_nsec - __start.tv_nsec);\
+        info("%s: took %lldns.\n", #func, __time_taken);\
+        __ret;\
+    })
+
 #endif // _SERVER_UTIL_H_
