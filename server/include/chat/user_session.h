@@ -10,9 +10,6 @@ typedef struct session
     u32 session_id;
     u32 user_id;
     i32 timerfd;
-
-    struct session* next;
-    struct session* prev;
 } session_t;
 
 session_t*      server_new_user_session(server_t* server, client_t* client);

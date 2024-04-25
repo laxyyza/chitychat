@@ -4,13 +4,13 @@
 client_t*   
 server_get_client_fd(server_t* server, i32 fd)
 {
-    return server_ght_get(&server->clients_ht, fd);
+    return server_ght_get(&server->client_ht, fd);
 }
 
 client_t*   
 server_get_client_user_id(server_t* server, u64 id)
 {
-    server_ght_t* ht = &server->clients_ht;
+    server_ght_t* ht = &server->client_ht;
     // TODO: Use hash table to get client from user_id, not looping.
     server_ght_lock(ht);
     GHT_FOREACH(client_t* client, ht, {
@@ -70,7 +70,7 @@ server_free_client(server_thread_t* th, client_t* client)
         free(client->dbuser);
     close(client->addr.sock);
 
-    server_ght_del(&server->clients_ht, client->addr.sock);
+    server_ght_del(&server->client_ht, client->addr.sock);
 
     free(client);
 }

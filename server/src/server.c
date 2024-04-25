@@ -121,7 +121,7 @@ server_run(server_t* server)
 static void 
 server_del_all_clients(server_t* server)
 {
-    server_ght_t* ht = &server->clients_ht;
+    server_ght_t* ht = &server->client_ht;
     ht->ignore_resize = true;
 
     GHT_FOREACH(client_t* client, ht, {
@@ -133,46 +133,37 @@ server_del_all_clients(server_t* server)
 static void 
 server_del_all_sessions(server_t* server)
 {
-    session_t* node;
-    session_t* next;
+    server_ght_t* ht = &server->session_ht;
+    ht->ignore_resize = true;
 
-    node = server->session_head;
-
-    while (node)
-    {
-        next = node->next;
-        server_del_user_session(server, node);
-        node = next;
-    }
+    GHT_FOREACH(session_t* session, ht, {
+        server_del_user_session(server, session);
+    });
+    server_ght_destroy(ht);
 }
 
 static void 
 server_del_all_upload_tokens(server_t* server)
 {
-    upload_token_t* node;
-    upload_token_t* next;
+    server_ght_t* ht = &server->upload_token_ht;
+    ht->ignore_resize = true;
 
-    node = server->upload_token_head;
-
-    while (node)
-    {
-        next = node->next;
-        verbose("Deleting upload token: %u for user %u\n", node->token, node->user_id);
-        server_del_upload_token(&server->main_th, node);
-        node = next;
-    }
+    GHT_FOREACH(upload_token_t* ut, ht, {
+        server_del_upload_token(&server->main_th, ut);
+    });
+    server_ght_destroy(ht);
 }
 
 void
 server_del_all_events(server_t* server)
 {
-    server_ght_t* ht = &server->events_ht;
+    server_ght_t* ht = &server->event_ht;
     ht->ignore_resize = true;
 
     GHT_FOREACH(server_event_t* ev, ht, {
         server_del_event(&server->main_th, ev);
     });
-    server_ght_destroy(&server->events_ht);
+    server_ght_destroy(&server->event_ht);
 }
 
 void 

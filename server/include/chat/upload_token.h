@@ -29,9 +29,6 @@ typedef struct upload_token
     };
     i32 timerfd;
     i32 timer_seconds;
-
-    struct upload_token* next;
-    struct upload_token* prev;
 } upload_token_t;
 
 upload_token_t* server_new_upload_token(server_thread_t* th, u32 user_id);

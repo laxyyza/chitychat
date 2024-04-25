@@ -5,7 +5,6 @@ upload_token_t*
 server_new_upload_token(server_thread_t* th, u32 user_id)
 {
     upload_token_t* ut;
-    upload_token_t* head_next;
     server_timer_t* timer;
     union timer_data timer_data;
     server_t* server = th->server;
@@ -15,20 +14,8 @@ server_new_upload_token(server_thread_t* th, u32 user_id)
     ut->type = UT_USER_PFP;
     getrandom(&ut->token, sizeof(u32), 0);
 
-    if (server->upload_token_head == NULL)
-    {
-        server->upload_token_head = ut;
-        goto add_timer;
-    }
+    server_ght_insert(&server->upload_token_ht, ut->token, ut);
 
-    head_next = server->upload_token_head->next;
-    server->upload_token_head->next = ut;
-    ut->next = head_next;
-    ut->prev = server->upload_token_head;
-    if (head_next)
-        head_next->prev = ut;
-
-add_timer:
     timer_data.ut = ut;
     // TODO: Make seconds configurable
     timer = server_addtimer(th, 10, 
@@ -58,21 +45,10 @@ server_new_upload_token_attach(server_thread_t* th, dbmsg_t* msg)
 upload_token_t* 
 server_get_upload_token(server_t* server, u32 token)
 {
-    upload_token_t* node;
-
-    node = server->upload_token_head;
-
-    while (node) 
-    {
-        if (node->token == token)
-            return node;
-        node = node->next;
-    }
-
-    return NULL;
+    return server_ght_get(&server->upload_token_ht, token);
 }
 
-ssize_t         
+ssize_t 
 server_send_upload_token(client_t* client, const char* packet_type, upload_token_t* ut)
 {
     json_object* respond_json;
@@ -96,8 +72,6 @@ void
 server_del_upload_token(server_thread_t* th, upload_token_t* upload_token)
 {
     server_t* server = th->server;
-    upload_token_t* next;
-    upload_token_t* prev;
     server_event_t* se_timer;
     dbmsg_t* msg;
 
@@ -122,14 +96,7 @@ server_del_upload_token(server_thread_t* th, upload_token_t* upload_token)
             json_object_put(msg->attachments_json);
     }
 
-    next = upload_token->next;
-    prev = upload_token->prev;
-    if (next)
-        next->prev = prev;
-    if (prev)
-        prev->next = next;
-    if (upload_token == server->upload_token_head)
-        server->upload_token_head = next;
+    server_ght_del(&server->upload_token_ht, upload_token->token);
 
     free(upload_token);
 }

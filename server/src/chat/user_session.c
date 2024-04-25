@@ -5,7 +5,6 @@ session_t*
 server_new_user_session(server_t* server, client_t* client)
 {
     session_t* new_sesion;
-    session_t* head_next;
 
     if (!server || !client)
     {
@@ -18,18 +17,7 @@ server_new_user_session(server_t* server, client_t* client)
 
     client->session = new_sesion;
 
-    if (server->session_head == NULL)
-    {
-        server->session_head = new_sesion;
-        return new_sesion;
-    }
-
-    head_next = server->session_head->next;
-    server->session_head->next = new_sesion;
-    new_sesion->next = head_next;
-    if (head_next)
-        head_next->prev = new_sesion;
-    new_sesion->prev = server->session_head;
+    server_ght_insert(&server->session_ht, new_sesion->session_id, new_sesion);
 
     return new_sesion;
 }
@@ -37,43 +25,29 @@ server_new_user_session(server_t* server, client_t* client)
 session_t* 
 server_get_user_session(server_t* server, u32 session_id)
 {
-    session_t* node;
-
-    node = server->session_head;
-
-    while (node)
-    {
-        if (node->session_id == session_id)
-            return node;
-        node = node->next;
-    }
-
-    return NULL;
+    return server_ght_get(&server->session_ht, session_id);
 }
 
 session_t* 
 server_get_client_session_uid(server_t* server, u32 user_id)
 {
-    session_t* node;
+    server_ght_t* ht = &server->session_ht;
 
-    node = server->session_head;
-
-    while (node)
-    {
-        if (node->user_id == user_id)
-            return node;
-        node = node->next;
-    }
-
+    server_ght_lock(ht);
+    GHT_FOREACH(session_t* session, ht, {
+        if (session->user_id == user_id)
+        {
+            server_ght_unlock(ht);
+            return session;
+        }
+    });
+    server_ght_unlock(ht);
     return NULL;
 }
 
 void 
 server_del_user_session(server_t* server, session_t* session)
 {
-    session_t* next;
-    session_t* prev;
-
     if (!server || !session)
     {
         warn("del_user_session(%p, %p): Something is NULL!\n", server, session);
@@ -82,15 +56,7 @@ server_del_user_session(server_t* server, session_t* session)
 
     verbose("Deleting session: %u for user %u\n", session->session_id, session->user_id);
 
-    next = session->next;
-    prev = session->prev;
-
-    if (next)
-        next->prev = prev;
-    if (prev)
-        prev->next = next;
-    if (session == server->session_head)
-        server->session_head = next;
+    server_ght_del(&server->session_ht, session->session_id);
 
     free(session);
 }

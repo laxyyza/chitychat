@@ -452,10 +452,16 @@ server_init_ht(server_t* server)
 {
     const size_t ht_size = 10;
 
-    if (server_ght_init(&server->events_ht, ht_size, NULL) == false)
+    if (server_ght_init(&server->event_ht, ht_size, NULL) == false)
         return false;
 
-    if (server_ght_init(&server->clients_ht, ht_size, NULL) == false)
+    if (server_ght_init(&server->client_ht, ht_size, NULL) == false)
+        return false;
+
+    if (server_ght_init(&server->session_ht, ht_size, NULL) == false)
+        return false;
+
+    if (server_ght_init(&server->upload_token_ht, ht_size, NULL) == false)
         return false;
 
     return true;

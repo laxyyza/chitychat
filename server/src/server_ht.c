@@ -290,6 +290,9 @@ server_ght_clear(server_ght_t* ht)
 void
 server_ght_destroy(server_ght_t* ht)
 {
+    if (ht->table == NULL)
+        return;
+
     server_ght_clear(ht);
     pthread_mutex_destroy(&ht->mutex);
     free(ht->table);

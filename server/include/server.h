@@ -84,11 +84,10 @@ typedef struct server
     };
     socklen_t addr_len;
 
-    server_ght_t events_ht;
-    server_ght_t clients_ht;
-
-    session_t*      session_head;
-    upload_token_t* upload_token_head;
+    server_ght_t event_ht;
+    server_ght_t client_ht;
+    server_ght_t session_ht;
+    server_ght_t upload_token_ht;
 
     bool running;
 } server_t;

@@ -65,7 +65,7 @@ se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
         error("accept: %s\n", ERRSTR);
         return SE_ERROR;
     }
-    server_ght_insert(&th->server->clients_ht, client->addr.sock, client);
+    server_ght_insert(&th->server->client_ht, client->addr.sock, client);
 
     ret = server_client_ssl_handsake(server, client);
 
@@ -208,7 +208,7 @@ server_new_event(server_t* server, i32 fd, void* data,
     se->close = close_callback;
     se->listen_events = DEFAULT_EPEV;
 
-    if (server_ght_insert(&server->events_ht, fd, se) == false)
+    if (server_ght_insert(&server->event_ht, fd, se) == false)
         error("new_event(): Failed to insert.\n");
 
     return se;
@@ -234,7 +234,7 @@ server_del_event(server_thread_t* th, server_event_t* se)
             error("del_event: close(%d): %s\n", se->fd, ERRSTR);
 
     if (server->running)
-        server_ght_del(&server->events_ht, se->fd);
+        server_ght_del(&server->event_ht, se->fd);
 
     free(se);
 }
@@ -242,5 +242,5 @@ server_del_event(server_thread_t* th, server_event_t* se)
 server_event_t* 
 server_get_event(server_t* server, i32 fd)
 {
-    return server_ght_get(&server->events_ht, fd);
+    return server_ght_get(&server->event_ht, fd);
 }
