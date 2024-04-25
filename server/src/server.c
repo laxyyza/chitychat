@@ -1,7 +1,5 @@
 #include "server.h"
 
-#define MAX_EP_EVENTS 64
-
 i32
 server_print_sockerr(i32 fd)
 {
@@ -88,7 +86,6 @@ server_run(server_t* server)
 {
     i32 ret = EXIT_SUCCESS;
     i32 nfds;
-    struct epoll_event events[MAX_EP_EVENTS];
     const struct epoll_event* epev;
 
     server_init_signal_handlers(server);
@@ -98,7 +95,7 @@ server_run(server_t* server)
 
     while (server->running)
     {
-        if ((nfds = epoll_wait(server->epfd, events, MAX_EP_EVENTS, -1)) == -1)
+        if ((nfds = epoll_wait(server->epfd, server->ep_events, MAX_EP_EVENTS, -1)) == -1)
         {
             if (errno == EINTR)
                 continue;
@@ -110,7 +107,7 @@ server_run(server_t* server)
 
         for (i32 i = 0; i < nfds; i++)
         {
-            epev = events + i;
+            epev = server->ep_events + i;
             server_tm_enq(&server->tm, epev->data.fd, epev->events);
         }
     }

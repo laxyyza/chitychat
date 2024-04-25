@@ -26,6 +26,7 @@
 #define CONFIG_ADDR_VRESION_LEN 10
 
 #define MAX_SESSIONS 10
+#define MAX_EP_EVENTS 64
 
 enum client_recv_status
 {
@@ -88,6 +89,8 @@ typedef struct server
     server_ght_t client_ht;
     server_ght_t session_ht;
     server_ght_t upload_token_ht;
+
+    struct epoll_event ep_events[MAX_EP_EVENTS];
 
     bool running;
 } server_t;
