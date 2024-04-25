@@ -19,8 +19,6 @@ server_init_evcb(server_t* server, size_t size)
     cb->read = cb->buf_begin;
     cb->write = cb->buf_begin;
 
-    debug("EVCB size: %zu\n", size);
-
     return true;
 }
 

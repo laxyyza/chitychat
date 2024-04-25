@@ -2,7 +2,7 @@
 #include "server.h"
 #include "server_evcb.h"
 
-#define EVCB_SIZE (n_threads * 2)
+#define EVCB_SIZE 128
 
 /*
  * TM - "Thread Manager"

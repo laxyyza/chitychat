@@ -1,6 +1,6 @@
 #include "server.h"
 
-#define MAX_EP_EVENTS 10
+#define MAX_EP_EVENTS 64
 
 i32
 server_print_sockerr(i32 fd)
