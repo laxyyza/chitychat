@@ -146,6 +146,7 @@ server_create_user_session(server_thread_t* th, client_t* client,
                              const char* username, json_object* respond_json)
 {
     session_t* session;
+    const char* errmsg;
 
     dbuser_t* user = server_db_get_user_from_name(&th->db, username);
     if (!user)
@@ -154,7 +155,14 @@ server_create_user_session(server_thread_t* th, client_t* client,
     session = server_new_user_session(th->server, client);
     session->user_id = user->user_id;
 
-    return server_set_client_logged_in(th, client, user, session, respond_json);
+    errmsg = server_set_client_logged_in(th, client, user, session, respond_json);
+    if (errmsg)
+    {
+        server_del_user_session(th->server, session);
+        client->session = NULL;
+    }
+
+    return errmsg;
 }
 
 const char* 
