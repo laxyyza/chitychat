@@ -69,10 +69,10 @@
 * libmagic
 * postgresql
 * openssl
-* cmake or meson
+* meson or cmake
 > Dependencies Package Names
->* Arch: `json-c file postgresql openssl cmake`
->* Debian: `libjson-c-dev libmagic-dev postgresql postgresql-client libpq-dev libssl-dev cmake` 
+>* Arch: `json-c file postgresql openssl meson`
+>* Debian: `libjson-c-dev libmagic-dev postgresql postgresql-client libpq-dev libssl-dev meson` 
 
 ### Clone repo and cd into:
 ```
