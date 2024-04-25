@@ -1,6 +1,7 @@
 #include "server_init.h"
 #include "server.h"
-#include <json-c/json_object.h>
+
+#define LISTEN_BACKLOG 100
 
 static json_object* 
 server_default_config(void)
@@ -390,7 +391,7 @@ server_init_socket(server_t* server)
         return false;
     }
 
-    if (listen(server->sock, 10) == -1)
+    if (listen(server->sock, LISTEN_BACKLOG) == -1)
     {
         fatal("listen: %s\n", strerror(errno)); 
         return false;
