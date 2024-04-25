@@ -53,8 +53,9 @@ se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
 {
     i32 ret;
     server_t* server = th->server;
-    client_t* client = server_new_client(server);
+    client_t* client;
 
+    client = calloc(1, sizeof(client_t));
     client->addr.len = server->addr_len;
     client->addr.version = server->conf.addr_version;
     client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
@@ -64,6 +65,7 @@ se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
         error("accept: %s\n", ERRSTR);
         return SE_ERROR;
     }
+    server_ght_insert(&th->server->clients_ht, client->addr.sock, client);
 
     ret = server_client_ssl_handsake(server, client);
 
@@ -160,12 +162,6 @@ se_read_client(server_thread_t* th, server_event_t* ev)
         client->recv.offset = 0;
     }
 
-    if (recv_status == RECV_OK && client->recv.overflow_check != CLIENT_OVERFLOW_CHECK_MAGIC)
-    {
-        error("Client fd: %d recv overflow check failed! %X != %X\n", 
-              client->addr.sock, client->recv.overflow_check, CLIENT_OVERFLOW_CHECK_MAGIC);
-    }
-
     if (recv_status == RECV_DISCONNECT || recv_status == RECV_ERROR)
         return SE_CLOSE;
 
@@ -237,7 +233,8 @@ server_del_event(server_thread_t* th, server_event_t* se)
         if (close(se->fd) == -1)
             error("del_event: close(%d): %s\n", se->fd, ERRSTR);
 
-    server_ght_del(&server->events_ht, se->fd);
+    if (server->running)
+        server_ght_del(&server->events_ht, se->fd);
 
     free(se);
 }

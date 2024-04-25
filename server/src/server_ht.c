@@ -37,18 +37,6 @@ ght_dec(server_ght_t* ht)
     ght_calc_load(ht);
 }
 
-static void 
-ght_lock(server_ght_t* ht)
-{
-    pthread_mutex_lock(&ht->mutex);
-}
-
-static void 
-ght_unlock(server_ght_t* ht)
-{
-    pthread_mutex_unlock(&ht->mutex);
-}
-
 static bool 
 ght_insert(server_ght_t* ht, u64 key, void* data)
 {
@@ -93,7 +81,7 @@ ght_resize(server_ght_t* ht, size_t new_size)
 
     if (new_size < ht->min_size)
         new_size = ht->min_size;
-    if (new_size == ht->size)
+    if (new_size == ht->size || ht->ignore_resize)
         return;
 
     debug("Resizing GHT: %zu -> %zu\n", ht->size, new_size);
@@ -179,10 +167,23 @@ server_ght_init(server_ght_t* ht,
     ht->load = 0.0;
     ht->max_load = GHT_MAX_LOAD;
     ht->min_load = GHT_MIN_LOAD;
+    ht->ignore_resize = false;
 
     pthread_mutex_init(&ht->mutex, NULL);
 
     return true;
+}
+
+void 
+server_ght_lock(server_ght_t* ht)
+{
+    pthread_mutex_lock(&ht->mutex);
+}
+
+void 
+server_ght_unlock(server_ght_t* ht)
+{
+    pthread_mutex_unlock(&ht->mutex);
 }
 
 u64     
@@ -202,10 +203,10 @@ server_ght_insert(server_ght_t* ht, u64 key, void* data)
     if (!data)
         return false;
 
-    ght_lock(ht);
+    server_ght_lock(ht);
     if ((ret = ght_insert(ht, key, data)))
         ght_check_load(ht);
-    ght_unlock(ht);
+    server_ght_unlock(ht);
     return ret;
 }
 
@@ -216,7 +217,7 @@ server_ght_get(server_ght_t* ht, u64 key)
     size_t idx;
     ght_bucket_t* bucket;
 
-    ght_lock(ht);
+    server_ght_lock(ht);
     idx = ght_hash(ht, key);
     bucket = ht->table + idx;
     if (bucket->data == NULL)
@@ -231,7 +232,7 @@ server_ght_get(server_ght_t* ht, u64 key)
     if (bucket)
         ret = bucket->data;
 unlock:
-    ght_unlock(ht);
+    server_ght_unlock(ht);
     return ret;
 }
 
@@ -243,7 +244,7 @@ server_ght_del(server_ght_t* ht, u64 key)
     size_t idx;
     bool ret = true;
 
-    ght_lock(ht);
+    server_ght_lock(ht);
     idx = ght_hash(ht, key);
     bucket = ht->table + idx;
     if (bucket->key == key)
@@ -264,14 +265,14 @@ server_ght_del(server_ght_t* ht, u64 key)
     }
     ret = false;
 unlock:
-    ght_unlock(ht);
+    server_ght_unlock(ht);
     return ret;
 }
 
 void
 server_ght_clear(server_ght_t* ht)
 {
-    ght_lock(ht);
+    server_ght_lock(ht);
     GHT_FOREACH(void* data, ht, {
         if (ht->free)
             ht->free(data);
@@ -283,7 +284,7 @@ server_ght_clear(server_ght_t* ht)
     });
     ht->count = 0;
     ht->load = 0.0;
-    ght_unlock(ht);
+    server_ght_unlock(ht);
 }
 
 void

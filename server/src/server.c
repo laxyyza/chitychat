@@ -121,15 +121,13 @@ server_run(server_t* server)
 static void 
 server_del_all_clients(server_t* server)
 {
-    client_t* node = server->client_head;
-    client_t* next = NULL;
+    server_ght_t* ht = &server->clients_ht;
+    ht->ignore_resize = true;
 
-    while (node)
-    {
-        next = node->next;
-        server_free_client(&server->main_th, node);
-        node = next;
-    }
+    GHT_FOREACH(client_t* client, ht, {
+        server_free_client(&server->main_th, client);
+    });
+    server_ght_destroy(ht);
 }
 
 static void 
@@ -169,11 +167,11 @@ void
 server_del_all_events(server_t* server)
 {
     server_ght_t* ht = &server->events_ht;
+    ht->ignore_resize = true;
 
     GHT_FOREACH(server_event_t* ev, ht, {
         server_del_event(&server->main_th, ev);
     });
-
     server_ght_destroy(&server->events_ht);
 }
 

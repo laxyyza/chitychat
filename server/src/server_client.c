@@ -2,62 +2,31 @@
 #include "server.h"
 
 client_t*   
-server_new_client(server_t* server)
-{
-    client_t* client;
-    
-    client = calloc(1, sizeof(client_t));
-    client->recv.overflow_check = CLIENT_OVERFLOW_CHECK_MAGIC;
-    if (!server->client_head)
-    {
-        server->client_head = client;
-        return client;
-    }
-
-    client->next = server->client_head->next;
-    if (client->next)
-        client->next->prev = client;
-    server->client_head->next = client;
-    client->prev = server->client_head;
-
-    return client;
-}
-
-client_t*   
 server_get_client_fd(server_t* server, i32 fd)
 {
-    client_t* node = server->client_head;
-
-    while (node)
-    {
-        if (node->addr.sock == fd)
-            return node;
-        node = node->next;
-    }
-
-    return NULL;
+    return server_ght_get(&server->clients_ht, fd);
 }
 
 client_t*   
 server_get_client_user_id(server_t* server, u64 id)
 {
-    client_t* node = server->client_head;
-
-    while (node)
-    {
-        if (node->state & CLIENT_STATE_LOGGED_IN && node->dbuser->user_id == id)
-            return node;
-        node = node->next;
-    }
-
+    server_ght_t* ht = &server->clients_ht;
+    // TODO: Use hash table to get client from user_id, not looping.
+    server_ght_lock(ht);
+    GHT_FOREACH(client_t* client, ht, {
+        if (client->state & CLIENT_STATE_LOGGED_IN && client->dbuser->user_id == id)
+        {
+            server_ght_unlock(ht);
+            return client;
+        }
+    });
+    server_ght_unlock(ht);
     return NULL;
 }
 
 void 
 server_free_client(server_thread_t* th, client_t* client)
 {
-    client_t* next;
-    client_t* prev;
     server_t* server = th->server;
 
     if (!client)
@@ -101,15 +70,8 @@ server_free_client(server_thread_t* th, client_t* client)
         free(client->dbuser);
     close(client->addr.sock);
 
-    prev = client->prev;
-    next = client->next;
-    if (prev)
-        prev->next = next;
-    if (next)
-        next->prev = prev;
+    server_ght_del(&server->clients_ht, client->addr.sock);
 
-    if (client == server->client_head)
-        server->client_head = next;
     free(client);
 }
 

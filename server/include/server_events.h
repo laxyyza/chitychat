@@ -21,7 +21,7 @@ typedef struct server_event server_event_t;
 
 typedef enum se_status (*se_read_callback_t)(server_thread_t* th, server_event_t* ev);
 typedef enum se_status (*se_close_callback_t)(server_thread_t* th, server_event_t* ev);
-// TODO: Use server_event_t
+
 typedef struct server_event
 {
     i32 fd;

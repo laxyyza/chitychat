@@ -450,7 +450,12 @@ server_init_ssl(server_t* server)
 static bool 
 server_init_ht(server_t* server)
 {
-    if (server_ght_init(&server->events_ht, 10, NULL) == false)
+    const size_t ht_size = 10;
+
+    if (server_ght_init(&server->events_ht, ht_size, NULL) == false)
+        return false;
+
+    if (server_ght_init(&server->clients_ht, ht_size, NULL) == false)
         return false;
 
     return true;

@@ -84,11 +84,11 @@ typedef struct server
     };
     socklen_t addr_len;
 
-    // TODO: Use Hash-Table instead of Linked-List.
-    client_t* client_head;
+    server_ght_t events_ht;
+    server_ght_t clients_ht;
+
     session_t* session_head;
     upload_token_t* upload_token_head;
-    server_ght_t events_ht;
     tmp_msg_t tmp_msg[MAX_TMP_MSGS];
 
     SSL_CTX* ssl_ctx;

@@ -38,6 +38,7 @@ typedef struct
     size_t          size;
     size_t          min_size;
     size_t          count;
+    bool            ignore_resize;
 
     pthread_mutex_t mutex;
     ght_free_t      free;
@@ -83,5 +84,8 @@ void    server_ght_destroy(server_ght_t* ht);
             _bucket = _bucket->next;\
         }\
     }
+
+void server_ght_lock(server_ght_t* ht);
+void server_ght_unlock(server_ght_t* ht);
 
 #endif // _SERVER_HT_H_

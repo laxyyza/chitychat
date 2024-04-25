@@ -17,14 +17,11 @@
 #define CLIENT_STATE_BROKEN_PIPE     0x8000
 
 #define CLIENT_RECV_PAGE             4096
-#define CLIENT_OVERFLOW_CHECK_MAGIC  0x694206969420420
-                                //   1 2 3 4 5 6 7 8
 #define CLIENT_MAX_ERRORS 3
 
 typedef struct 
 {
     u8* data;
-    size_t overflow_check;
     size_t data_size;
     size_t offset;
     bool busy;
@@ -42,12 +39,8 @@ typedef struct client
     session_t* session;
     recv_buf_t recv;
     bool secure;
-
-    struct client* _Atomic next;
-    struct client* _Atomic prev;
 } client_t;
 
-client_t*   server_new_client(server_t* server);
 int         server_client_ssl_handsake(server_t* server, client_t* client);
 client_t*   server_get_client_fd(server_t* server, i32 fd);
 client_t*   server_get_client_user_id(server_t* server, u64 id);
