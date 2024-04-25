@@ -33,6 +33,9 @@ typedef int16_t     i16;
 typedef int32_t     i32;
 typedef int64_t     i64;
 
+typedef float       f32;
+typedef double      f64;
+
 typedef struct server   server_t;
 typedef struct http     http_t;
 
