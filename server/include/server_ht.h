@@ -71,4 +71,17 @@ void    server_ght_clear(server_ght_t* ht);
 /* Delete all elements, mutex and table array. */
 void    server_ght_destroy(server_ght_t* ht);
 
+/* Loop each element in hash table. */
+#define GHT_FOREACH(item, ht, code_block)\
+    for (size_t i = 0; i < ht->size; i++)\
+    {\
+        ght_bucket_t* _bucket = ht->table + i;\
+        while (_bucket && _bucket->data)\
+        {\
+            item = _bucket->data;\
+            code_block\
+            _bucket = _bucket->next;\
+        }\
+    }
+
 #endif // _SERVER_HT_H_

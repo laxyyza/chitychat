@@ -168,7 +168,12 @@ server_del_all_upload_tokens(server_t* server)
 void
 server_del_all_events(server_t* server)
 {
-    // TODO: Free event inside events_ht
+    server_ght_t* ht = &server->events_ht;
+
+    GHT_FOREACH(server_event_t* ev, ht, {
+        server_del_event(&server->main_th, ev);
+    });
+
     server_ght_destroy(&server->events_ht);
 }
 

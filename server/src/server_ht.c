@@ -271,25 +271,16 @@ unlock:
 void
 server_ght_clear(server_ght_t* ht)
 {
-    ght_bucket_t* bucket;
-    ght_bucket_t* next;
-
     ght_lock(ht);
-    for (size_t i = 0; i < ht->size; i++)
-    {
-        bucket = ht->table + i;
-        do {
-            next = bucket->next;
-            if (bucket->data)
-            {
-                if (ht->free)
-                    ht->free(bucket->data);
-                bucket->data = NULL;
-                if (bucket->inheap == GHT_BUCKET_INHEAP)
-                    free(bucket);
-            }
-        } while ((bucket = next));
-    }
+    GHT_FOREACH(void* data, ht, {
+        if (ht->free)
+            ht->free(data);
+
+        // `_bucket` is define in GHT_FOREACH
+        _bucket->data = NULL;
+        if (_bucket->inheap == GHT_BUCKET_INHEAP)
+            free(_bucket);
+    });
     ht->count = 0;
     ht->load = 0.0;
     ght_unlock(ht);
