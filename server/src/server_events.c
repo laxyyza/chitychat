@@ -191,7 +191,6 @@ server_new_event(server_t* server, i32 fd, void* data,
             se_read_callback_t read_callback, se_close_callback_t close_callback)
 {
     server_event_t* se;
-    server_event_t* head_next;
 
     if (!server || !read_callback || (data && !close_callback))
     {
@@ -213,18 +212,8 @@ server_new_event(server_t* server, i32 fd, void* data,
     se->close = close_callback;
     se->listen_events = DEFAULT_EPEV;
 
-    if (server->se_head == NULL)
-    {
-        server->se_head = se;
-        return se;
-    }
-
-    head_next = server->se_head->next;
-    if (head_next)
-        head_next->prev = se;
-    server->se_head->next = se;
-    se->next = head_next;
-    se->prev = server->se_head;
+    if (server_ght_insert(&server->events_ht, fd, se) == false)
+        error("new_event(): Failed to insert.\n");
 
     return se;
 }
@@ -233,8 +222,6 @@ void
 server_del_event(server_thread_t* th, server_event_t* se)
 {
     server_t* server = th->server;
-    server_event_t* next;
-    server_event_t* prev;
 
     if (!server || !se)
     {
@@ -250,14 +237,7 @@ server_del_event(server_thread_t* th, server_event_t* se)
         if (close(se->fd) == -1)
             error("del_event: close(%d): %s\n", se->fd, ERRSTR);
 
-    prev = se->prev;
-    next = se->next;
-    if (prev)
-        prev->next = next;
-    if (next)
-        next->prev = prev;
-    if (se == server->se_head)
-        server->se_head = next;
+    server_ght_del(&server->events_ht, se->fd);
 
     free(se);
 }
@@ -265,16 +245,5 @@ server_del_event(server_thread_t* th, server_event_t* se)
 server_event_t* 
 server_get_event(server_t* server, i32 fd)
 {
-    server_event_t* node;
-
-    node = server->se_head;
-
-    while (node)
-    {
-        if (node->fd == fd)
-            return node;
-        node = node->next;
-    }
-
-    return NULL;
+    return server_ght_get(&server->events_ht, fd);
 }

@@ -1,5 +1,6 @@
 #include "server_init.h"
 #include "server.h"
+#include "server_ht.h"
 
 #define LISTEN_BACKLOG 100
 
@@ -446,6 +447,15 @@ server_init_ssl(server_t* server)
     return true;
 }
 
+static bool 
+server_init_ht(server_t* server)
+{
+    if (server_ght_init(&server->events_ht, 10, NULL) == false)
+        return false;
+
+    return true;
+}
+
 server_t*   
 server_init(int argc, char* const* argv)
 {
@@ -475,6 +485,10 @@ server_init(int argc, char* const* argv)
 
     // Self-Explanatory
     if (!server_init_socket(server))
+        goto error;
+
+    // Init Hash Tables
+    if (!server_init_ht(server))
         goto error;
 
     // Init Linux's Event Poll

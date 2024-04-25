@@ -32,9 +32,6 @@ typedef struct server_event
     bool  keep_data;
     se_read_callback_t read;
     se_close_callback_t close;
-
-    struct server_event* _Atomic next;
-    struct server_event* _Atomic prev;
 } server_event_t;
 
 server_event_t* server_new_event(server_t* server, i32 fd, void* data, 

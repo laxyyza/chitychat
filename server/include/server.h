@@ -12,6 +12,7 @@
 #include "server_util.h"
 #include "server_http.h"
 #include "server_websocket.h"
+#include "server_ht.h"
 #include "chat/user_file.h"
 #include "chat/db.h"
 #include "chat/upload_token.h"
@@ -87,7 +88,7 @@ typedef struct server
     client_t* client_head;
     session_t* session_head;
     upload_token_t* upload_token_head;
-    server_event_t* se_head;
+    server_ght_t events_ht;
     tmp_msg_t tmp_msg[MAX_TMP_MSGS];
 
     SSL_CTX* ssl_ctx;

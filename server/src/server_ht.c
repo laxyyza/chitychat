@@ -1,7 +1,8 @@
 #include "server_ht.h"
-#include "server_log.h"
-#include <pthread.h>
-#include <stdlib.h>
+
+/*
+ * ght_* (without server_ prefix) will be only used here.
+ */
 
 #define GHT_MAX_LOAD 0.7
 #define GHT_MIN_LOAD 0.2
@@ -48,6 +49,39 @@ ght_unlock(server_ght_t* ht)
     pthread_mutex_unlock(&ht->mutex);
 }
 
+static bool 
+ght_insert(server_ght_t* ht, u64 key, void* data)
+{
+    size_t idx;
+    ght_bucket_t* bucket;
+    ght_bucket_t* parent;
+    ght_bucket_t** next;
+
+    idx = ght_hash(ht, key);
+    bucket = ht->table + idx;
+
+    if (bucket->key == key)
+        return false;
+    if (bucket->data)
+    {
+        parent = bucket;
+        next = &parent->next;
+        while (*next)
+        {
+            if (next[0]->key == key)
+                return false;
+            next = &next[0]->next;
+        }
+        bucket = calloc(1, sizeof(ght_bucket_t));
+        bucket->inheap = GHT_BUCKET_INHEAP;
+        *next = bucket;
+    }
+    bucket->key = key;
+    bucket->data = data;
+    ght_inc(ht);
+    return true;
+}
+
 static void 
 ght_resize(server_ght_t* ht, size_t new_size)
 {
@@ -77,7 +111,7 @@ ght_resize(server_ght_t* ht, size_t new_size)
         old_bucket = old_table + i;
         do {
             if (old_bucket->data)
-                server_ght_insert(ht, old_bucket->key, old_bucket->data);
+                ght_insert(ht, old_bucket->key, old_bucket->data);
 
             old_bucket_tmp = old_bucket->next;
             if (old_bucket->inheap)
@@ -163,43 +197,16 @@ server_ght_hashstr(const char* str)
 bool    
 server_ght_insert(server_ght_t* ht, u64 key, void* data)
 {
-    size_t idx;
-    ght_bucket_t* bucket;
-    ght_bucket_t* parent;
-    ght_bucket_t** next;
+    bool ret;
 
     if (!data)
         return false;
 
     ght_lock(ht);
-    idx = ght_hash(ht, key);
-    bucket = ht->table + idx;
-    if (bucket->key == key)
-        goto failed;
-    if (bucket->data)
-    {
-        parent = bucket;
-        next = &parent->next;
-        while (*next)
-        {
-            if (next[0]->key == key)
-                goto failed;
-            next = &next[0]->next;
-        }
-        bucket = calloc(1, sizeof(ght_bucket_t));
-        bucket->inheap = GHT_BUCKET_INHEAP;
-        *next = bucket;
-    }
-    bucket->key = key;
-    bucket->data = data;
-    ght_inc(ht);
-    ght_check_load(ht);
-
+    if ((ret = ght_insert(ht, key, data)))
+        ght_check_load(ht);
     ght_unlock(ht);
-    return true;
-failed:
-    ght_unlock(ht);
-    return false;
+    return ret;
 }
 
 void*   

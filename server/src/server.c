@@ -168,17 +168,8 @@ server_del_all_upload_tokens(server_t* server)
 void
 server_del_all_events(server_t* server)
 {
-    server_event_t* node;
-    server_event_t* next;
-
-    node = server->se_head;
-
-    while (node)
-    {
-        next = node->next;
-        server_del_event(&server->main_th, node);
-        node = next;
-    }
+    // TODO: Free event inside events_ht
+    server_ght_destroy(&server->events_ht);
 }
 
 void 
