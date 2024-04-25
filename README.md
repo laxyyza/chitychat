@@ -64,11 +64,12 @@
 ## Build Web Server
 >### NOTE: Only supports Linux.
 ### Dependencies
+* clang
 * json-c
 * libmagic
 * postgresql
 * openssl
-* cmake
+* cmake or meson
 > Dependencies Package Names
 >* Arch: `json-c file postgresql openssl cmake`
 >* Debian: `libjson-c-dev libmagic-dev postgresql postgresql-client libpq-dev libssl-dev cmake` 
@@ -77,13 +78,13 @@
 ```
 git clone https://github.com/laxyy69/chitychat.git && cd chitychat
 ```
-### Make `build` directory, cd into, and configure cmake:
+### Setup build directory:
 ```
-mkdir build && cd build && cmake ..
+CC=clang meson setup build/
 ```
-### Compile (inside `build/`):
+### Compile:
 ```
-make
+ninja -C build/
 ```
 Executable name: `chitychat` inside `build/`
 ## After compilation: PostgreSQL and SSL certificates.
