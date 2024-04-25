@@ -3,6 +3,7 @@ project("Chity Chat" LANGUAGES C)
 
 set(CMAKE_C_FLAGS "-Werror -Wall -Wextra -Wshadow -Wstrict-prototypes -Wstrict-overflow=5 -Wunreachable-code -Winit-self -Wuninitialized -Wno-deprecated-declarations")
 set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_FLAGS_RELEASE "-O2")
 
 find_package(PostgreSQL REQUIRED)
 find_package(OpenSSL REQUIRED)
