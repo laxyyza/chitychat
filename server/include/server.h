@@ -89,6 +89,7 @@ typedef struct server
     server_ght_t client_ht;
     server_ght_t session_ht;
     server_ght_t upload_token_ht;
+    server_ght_t chat_cmd_ht;
 
     struct epoll_event ep_events[MAX_EP_EVENTS];
 

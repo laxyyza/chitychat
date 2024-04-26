@@ -23,10 +23,17 @@ typedef struct dbuser
 
 const char* server_client_user_info(server_thread_t* th, 
                                     client_t* client, 
+                                    json_object* payload,
                                     json_object* respond_json);
-const char* server_get_user(server_thread_t* th, client_t* client, 
-        json_object* payload, json_object* respond_json);
-const char* server_user_edit_account(server_thread_t* th, client_t* client, 
-        json_object* payload, json_object* respond_json);
+
+const char* server_get_user(server_thread_t* th, 
+                            client_t* client, 
+                            json_object* payload, 
+                            json_object* respond_json);
+
+const char* server_user_edit_account(server_thread_t* th, 
+                                     client_t* client, 
+                                     json_object* payload, 
+                                     json_object* respond_json);
 
 #endif // _SERVER_CHAT_USER_H_

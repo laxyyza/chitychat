@@ -51,7 +51,8 @@ server_src = files(
     'server/src/chat/upload_token.c',
     'server/src/chat/db.c',
     'server/src/chat/user_upload.c',
-    'server/src/chat/rtusm.c'
+    'server/src/chat/rtusm.c',
+    'server/src/chat/cmd.c',
 )
 include_dirs = include_directories('server/include')
 

@@ -1,6 +1,7 @@
 #include "server_init.h"
 #include "server.h"
 #include "server_ht.h"
+#include "chat/cmd.h"
 
 #define LISTEN_BACKLOG 100
 
@@ -462,6 +463,9 @@ server_init_ht(server_t* server)
         return false;
 
     if (server_ght_init(&server->upload_token_ht, ht_size, NULL) == false)
+        return false;
+
+    if (server_init_chatcmd(server) == false)
         return false;
 
     return true;

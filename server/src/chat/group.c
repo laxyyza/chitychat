@@ -211,7 +211,8 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
 }
 
 const char* 
-server_client_groups(server_thread_t* th, client_t* client, json_object* respond_json) 
+server_client_groups(server_thread_t* th, client_t* client, 
+                     UNUSED json_object* payload, json_object* respond_json) 
 {
     dbgroup_t* groups;
     u32 n_groups;
@@ -276,7 +277,8 @@ server_client_in_group(server_thread_t* th, const client_t* client, const dbgrou
 }
 
 const char* 
-server_get_all_groups(server_thread_t* th, client_t* client, json_object* respond_json)
+server_get_all_groups(server_thread_t* th, client_t* client, 
+                      UNUSED json_object* payload, json_object* respond_json)
 {
     u32 n_groups;
     dbgroup_t* groups = server_db_get_all_groups(&th->db, &n_groups);
@@ -528,7 +530,7 @@ server_group_msg(server_thread_t* th, client_t* client,
 }
 
 const char* 
-get_group_msgs(server_thread_t* th, client_t* client, 
+server_get_group_msgs(server_thread_t* th, client_t* client, 
                json_object* payload, json_object* respond_json)
 {
     json_object* limit_json;
@@ -670,7 +672,7 @@ server_get_group_codes(server_thread_t* th, client_t* client,
 
 const char* 
 server_delete_group_code(server_thread_t* th, client_t* client, 
-                         json_object* payload)
+                         json_object* payload, UNUSED json_object* resp)
 {
     json_object* code_json;
     json_object* group_id_json;

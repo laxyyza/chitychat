@@ -61,6 +61,7 @@ server_get_user(server_thread_t* th, client_t* client,
 const char* 
 server_client_user_info(server_thread_t* th, 
                         client_t* client, 
+                        UNUSED json_object* payload,
                         json_object* respond_json)
 {
     json_object_object_add(respond_json, "cmd", 
