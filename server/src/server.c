@@ -170,6 +170,7 @@ server_cleanup(server_t* server)
         return;
 
     server_tm_shutdown(server);
+    server_ght_destroy(&server->chat_cmd_ht);
     server_del_all_events(server);
     server_del_all_clients(server);
     server_del_all_sessions(server);

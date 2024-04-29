@@ -4,10 +4,13 @@
 #include "server_ht.h"
 #include "server.h"
 
+#define CMD_HT_SIZE 30
+
 bool    
 server_init_chatcmd(server_t* server)
 {
-    if (server_ght_init(&server->chat_cmd_ht, 10, free) == false) 
+    if (server_ght_init(&server->chat_cmd_ht, CMD_HT_SIZE, 
+                        free /* libc free() */) == false) 
         return false;
 
     if (!server_new_chatcmd(server, "client_user_info",
