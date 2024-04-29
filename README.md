@@ -1,5 +1,5 @@
 # Chity Chat
->### Chity Chat is a simple Chat App with the purpose of learning.
+### This is a simple Chat App with the purpose of learning.
 * Fullstack Project
    * Frontend: In JavaScript, HTML and CSS. (My first time)
    * Backend: Custom web server written in C.
@@ -65,7 +65,8 @@
 * Password Security with SHA512 hashing.
 
 ## Build Web Server
->### NOTE: Only supports Linux.
+> [!NOTE]
+> Exclusively for Linux.
 ### Dependencies
 * clang
 * json-c
