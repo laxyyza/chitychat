@@ -21,8 +21,9 @@
 * **Multi-Threaded:** Utilizes a thread pool to efficiently manage concurrent events.
 
 ## Web Server limitations
+* Exclusively designed for this Chat App.
 * **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
-* **Monolithic Architecture:** Combines web server and chat server functionalities within a single process, requiring recompilation for any server code modifications.
+* **Monolithic Architecture:** Combines web server and chat server functionalities within a single process.
 
 ## Planned Features
 - [x] **Private Groups:** Invitation-only groups.
