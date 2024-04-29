@@ -169,10 +169,10 @@ h1, h2, h3 {
 }
 
 .msg{
-    position: relative;
     padding: 5px;
     margin: 10px;
     border-radius: 13px;
+    max-width: 100%;
 }
 
 .del_msg_button{
@@ -182,8 +182,7 @@ h1, h2, h3 {
     padding: 5px;
     font-size: 14px;
     background-color: inherit;
-    border-top-right-radius: inherit;
-    border-bottom-left-radius: 5px;
+    border-radius: 5px;
     border: none;
     display: none;
 }
@@ -204,6 +203,12 @@ h1, h2, h3 {
     display: block;
 }
 
+.msg_top{
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .msg_displayname{
     font-size: 20px;
     color: yellow;
@@ -218,9 +223,11 @@ h1, h2, h3 {
 .msg_content_con{
     padding: 5px;
     margin: 5px;
+    max-width: 700px;
 }
 
 .msg_content{
+    word-wrap: break-word;
     white-space: pre-wrap;
     font-weight: 400; /* Use Roboto Bold for headings */
     margin-left: 10px;

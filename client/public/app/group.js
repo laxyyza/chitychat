@@ -106,20 +106,24 @@ export class Group
         div_msg.setAttribute("msg_user_id", user.id);
         div_msg.setAttribute("msg_id", msg.msg_id);
 
+        let div_msg_top = document.createElement("div");
+        div_msg_top.className = "msg_top";
+        div_msg.appendChild(div_msg_top);
+
         let div_img = document.createElement("img");
         div_img.className = "msg_img";
         div_img.src = user.pfp_url;
-        div_msg.appendChild(div_img);
+        div_msg_top.appendChild(div_img);
 
         let span_displayname = document.createElement("span");
         span_displayname.className = "msg_displayname";
         span_displayname.innerHTML = user.displayname;
-        div_msg.appendChild(span_displayname);
+        div_msg_top.appendChild(span_displayname);
 
         let span_timestamp = document.createElement("span");
         span_timestamp.className = "msg_timestamp";
         span_timestamp.innerHTML = msg.timestamp;
-        div_msg.appendChild(span_timestamp);
+        div_msg_top.appendChild(span_timestamp);
 
         let div_content = document.createElement("div");
         div_content.className = "msg_content_con";
@@ -140,7 +144,7 @@ export class Group
                 app.server.ws_send(packet);
             });
 
-            div_msg.appendChild(delete_button);
+            div_msg_top.appendChild(delete_button);
         }
 
         // let img = document.createElement("img");
@@ -150,7 +154,7 @@ export class Group
         // new column in Users, called pfp_path, default "/img/default.png"
         // Add user settings to upload pfp
 
-        let span_msg_content = document.createElement("span");
+        let span_msg_content = document.createElement("div");
         span_msg_content.className = "msg_content";
         span_msg_content.innerHTML = content;
         div_content.appendChild(span_msg_content);
