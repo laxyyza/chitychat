@@ -75,8 +75,8 @@
 * openssl
 * meson
 > Dependencies Package Names
->* Arch: `json-c file postgresql openssl meson`
->* Debian: `libjson-c-dev libmagic-dev postgresql postgresql-client libpq-dev libssl-dev meson` 
+>* Arch: `json-c file postgresql openssl meson clang`
+>* Debian: `libjson-c-dev libmagic-dev postgresql postgresql-client libpq-dev libssl-dev meson clang` 
 
 ### Clone repo and cd into:
 ```
