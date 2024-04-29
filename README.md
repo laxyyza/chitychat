@@ -10,6 +10,20 @@
 * **Real-time Communication:** Messages are sent and received instantly.
 * **Real-time User Staus Updates:** Instantly see if users comes online and offline.
 
+## Web Server Features
+* **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
+* **Web Sockets Implementation:** Real-time communication support.
+* **SSL/TLS via OpenSSL:** Secure connections.
+* **Password Security:** Salting and hashing using SHA512.
+* **I/O Multiplexing:** Utilizes [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) for efficient I/O.
+* **Database Management:** Uses PostgreSQL for SQL database.
+* **Session Management:** Users receive session IDs for persistent login.
+* **Multi-Threaded:** Utilizes a thread pool to efficiently manage concurrent events.
+
+## Web Server limitations
+* **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
+* **Monolithic Architecture:** Combines web server and chat server functionalities within a single process, requiring recompilation for any server code modifications.
+
 ## Planned Features
 - [x] **Private Groups:** Invitation-only groups.
    - [X] Mark group as private, only group members can get it.
@@ -38,20 +52,6 @@
    - [x] Profile pictures.
    - [ ] Username / Displayname
    - [ ] Bio 
-
-## Web Server Features
-* **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
-* **Web Sockets Implementation:** Real-time communication support.
-* **SSL/TLS via OpenSSL:** Secure connections.
-* **Password Security:** Salting and hashing using SHA512.
-* **I/O Multiplexing:** Utilizes [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) for efficient I/O.
-* **Database Management:** Uses PostgreSQL for SQL database.
-* **Session Management:** Users receive session IDs for persistent login.
-* **Multi-Threaded:** Utilizes a thread pool to efficiently manage concurrent events.
-
-## Web Server limitations
-* **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
-* **Monolithic Architecture:** Combines web server and chat server functionalities within a single process, requiring recompilation for any server code modifications.
 
 ## Learning experience
 > Through building Chity Chat, I learned:
