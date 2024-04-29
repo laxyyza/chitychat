@@ -246,22 +246,7 @@ export class App
         });
 
         this.input_msg.addEventListener('input', () => {
-            // const value = input_msg.value;
-            // const new_line_count = (value.match(/\n/g) || []).length;
-            // if (old_new_line_count != new_line_count)
-            // {
-            //     set_input_height(new_line_count);
-            //     old_new_line_count = new_line_count;
-            // }
-
-            if (this.input_msg.scrollHeight > this.input_msg.clientHeight)
-            {
-                this.increate_input_lines();
-            }
-            else if (this.input_msg.scrollHeight < this.input_msg.clientHeight)
-            {
-                this.decrease_input_lines();
-            }
+            this.set_input_height();
         });
 
         document.addEventListener("paste", (ev) => {
@@ -288,6 +273,12 @@ export class App
 
         init_packet_commads();
         this.server = new Server(this);
+    }
+
+    set_input_height()
+    {
+        this.input_msg.style.height = "1px";
+        this.input_msg.style.height = this.input_msg.scrollHeight + "px";
     }
 
     add_group_invite_list(code, uses, max_uses, group_id)
@@ -609,36 +600,6 @@ export class App
         this.popup_join = false;
     }
 
-    set_input_height(lines)
-    {
-        this.input_pixels = this.input_pixels_default + (this.input_add_pixels * lines);
-
-        if (this.input_pixels > this.input_max_height)
-            this.input_pixels = this.input_max_height;
-
-        this.main_element.style.gridTemplateRows = "auto " + this.input_pixels + "px";
-    }
-
-    increate_input_lines()
-    {
-        this.input_pixels += this.input_add_pixels;
-
-        if (this.input_pixels > this.input_max_height)
-            this.input_pixels = this.input_max_height;
-
-        this.main_element.style.gridTemplateRows = "auto " + this.input_pixels + "px";
-    }
-
-    decrease_input_lines()
-    {
-        this.input_pixels -= this.input_add_pixels;
-
-        if (this.input_pixels > this.input_max_height)
-            this.input_pixels = this.input_max_height;
-
-        this.main_element.style.gridTemplateRows = "auto " + this.input_pixels + "px";
-    }
-
     send_message()
     {
         const msg = this.input_msg.value;
@@ -669,11 +630,8 @@ export class App
 
         this.server.ws_send(packet);
 
-        // create_msg_box(user, msg);
-        
-        // console.log("Sending msg:", msg);
-
         this.input_msg.value = "";
+        this.set_input_height();
     }
 
 } // class App
