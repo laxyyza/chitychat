@@ -1,6 +1,7 @@
 let error_msg = document.getElementById("error_msg");
 
 error_msg.innerHTML = "Not connected to server, yet";
+let keep_logged_in = true;
 
 function init()
 {
@@ -46,7 +47,8 @@ function init()
         let login_details = {
             cmd: "login",
             username: username,
-            password: password
+            password: password,
+            session: keep_logged_in
         };
 
         socket.send(JSON.stringify(login_details));
@@ -64,7 +66,8 @@ function init()
             cmd: "register",
             username: username,
             displayname: displayname,
-            password: password
+            password: password,
+            session: keep_logged_in
         };
 
         socket.send(JSON.stringify(login_details));
