@@ -5,4 +5,5 @@ VALUES(
     $3::text, 
     $4::bytea, 
     $5::bytea
-);
+)
+RETURNING user_id;

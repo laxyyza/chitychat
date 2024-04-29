@@ -1,6 +1,6 @@
 #include "chat/ws_text_frame.h"
 #include "chat/user_login.h"
-#include "chat/user_req.h"
+#include "chat/cmd.h"
 
 bool 
 json_bad(json_object* json, json_type type)
@@ -44,13 +44,7 @@ server_ws_handle_text_frame(server_thread_t* th,
 
     cmd = json_object_get_string(cmd_json);
 
-    if (client->state & CLIENT_STATE_LOGGED_IN)
-        error_msg = server_handle_logged_in_client(th, client, payload, 
-                                                    respond_json, cmd);
-    else
-        error_msg = server_handle_not_logged_in_client(th, client, payload, 
-                                                       respond_json, cmd);
-
+    error_msg = server_exec_chatcmd(cmd, th, client, payload, respond_json);
 send_error:
     if (error_msg)
     {

@@ -456,6 +456,8 @@ server_db_insert_user(server_db_t* db, dbuser_t* user)
 {
     bool ret = true;
     PGresult* res;
+    i32 rows;
+    const char* user_id_str;
     const char* vals[5] = {
         user->username,
         user->displayname,
@@ -463,38 +465,49 @@ server_db_insert_user(server_db_t* db, dbuser_t* user)
         (const char*)user->hash,
         (const char*)user->salt
     };
-    int formats[5] = {
+    i32 formats[5] = {
         0,
         0,
         0,
         1,
         1
     };
-    int lens[5] = {
+    i32 lens[5] = {
         strnlen(user->username, DB_USERNAME_MAX),
         strnlen(user->displayname, DB_DISPLAYNAME_MAX),
         strnlen(user->bio, DB_BIO_MAX),
         SERVER_HASH_SIZE,
         SERVER_SALT_SIZE
     };
+    char* endptr;
 
     res = PQexecParams(db->conn, db->cmd->insert_user, 5, NULL, vals, lens, formats, 0);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PQexecParams() failed insert_user: %s\n", 
                     PQresultErrorMessage(res));
         ret = false;
     }
 
+    rows = PQntuples(res);
+    if (rows == 0)
+    {
+        error("insert_user returned nothing.\n");
+        goto cleanup;
+    }
+    user_id_str = PQgetvalue(res, 0, 0);
+    user->user_id = strtoul(user_id_str, &endptr, 10);
+cleanup:
     PQclear(res);
-
     return ret;
 }
 
 bool 
-server_db_update_user(server_db_t* db, const char* new_username,
-                           const char* new_displayname,
-                           const char* new_hash_name, const u32 user_id) 
+server_db_update_user(server_db_t* db, 
+                      const char* new_username, 
+                      const char* new_displayname, 
+                      const char* new_hash_name, 
+                      const u32 user_id) 
 {
     PGresult* res;
     bool ret = true;
@@ -560,10 +573,7 @@ server_db_get_connected_users(server_db_t* db, u32 user_id, u32* n)
     }
     
     if ((rows = PQntuples(res)) == 0)
-    {
-        error("db no connected_users for user_id:%u ?\n", user_id);
         goto cleanup;
-    }
 
     users = calloc(rows, sizeof(dbuser_t));
     for (i32 i = 0; i < rows; i++)
