@@ -1,27 +1,26 @@
 # Chity Chat
 >### Chity Chat is a simple Chat App with the purpose of learning.
 * Fullstack Project
-   * Frontend: In JavaScript, html and css. (My first time)
+   * Frontend: In JavaScript, HTML and CSS. (My first time)
    * Backend: Custom web server written in C.
 
 ## Chat App features
-* **Multiple Groups:** Users can join any group; everything is public.
+* **Private/Public Groups:** Users have the option to join public groups or enter private ones using specific codes.
 * **Real-time Communication:** Messages are sent and received instantly.
-* **User Profile Pictures:** Users can upload and change their profile pictures.
+* **Real-time User Staus Updates:** Instantly see if users comes online and offline.
 
 ## Planned Features
 - [x] **Private Groups:** Invitation-only groups.
    - [X] Mark group as private, only group members can get it.
    - [X] Implement Invite Codes
-   - [ ] Implement Invite Links  
-      - [ ] Link management (e.g. https://localhost:8080/invites/6141611) - how would I implement this? 
+   - [ ] Implement Invite Links
 - [ ] **Group Member Roles:** Admins, mods, etc.
 - [ ] **User Account Management:** Change username, display name, bio, and password.
 - [ ] **Deletion:** Ability to delete accounts, messages, and groups.
    - [x] Delete messages.
    - [ ] Delete accounts.
-   - [ ] Detete groups. 
-- [ ] **Direct Messaging (DM):** Private messaging between users.
+   - [x] Detete groups. 
+- [x] **Direct Messaging (DM):** Private messaging between users (Create Private Group with only 2 users).
 - [ ] **Enhanced Messaging:** Send photos, videos, files, reply to messages, and edit messages.
    - [X] Front-end implementation (images)
       - [X] Add images and paste image from clipboard.
@@ -35,6 +34,9 @@
 - [x] **Upload File Management:** Avoid duplication user files.
    - [x] Default profile pic
 - [ ] **Real-Time User Profile Updates:** Receive instant updates for user profile changes like usernames, display names, bio, and profile pictures.
+   - [x] Profile pictures.
+   - [ ] Username / Displayname
+   - [ ] Bio 
 
 ## Web Server Features
 * **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
