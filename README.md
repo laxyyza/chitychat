@@ -101,6 +101,8 @@ sudo -u postgres createdb chitychat
 ```
 ### SSL certificates:
 Generate self-signed SSL keys: (in project's root directory)
+> [!NOTE]
+> Your browser will display a warning when using self-signed SSL keys.
 ```
 openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes
 ```
