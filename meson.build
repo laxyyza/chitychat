@@ -43,7 +43,6 @@ server_src = files(
 
     'server/src/chat/user_file.c',
     'server/src/chat/user_login.c',
-    'server/src/chat/user_req.c',
     'server/src/chat/group.c',
     'server/src/chat/user.c',
     'server/src/chat/ws_text_frame.c',
