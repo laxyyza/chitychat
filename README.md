@@ -1,7 +1,7 @@
 # Chity Chat
 >### Chity Chat is a simple Chat App with the purpose of learning.
 * Fullstack Project
-   * Frontend: In JavaScript/html/css
+   * Frontend: In JavaScript, html and css. (My first time)
    * Backend: Custom web server written in C.
 
 ## Chat App features
