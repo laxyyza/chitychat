@@ -19,6 +19,7 @@
 * **Database Management:** Uses PostgreSQL for SQL database.
 * **Session Management:** Users receive session IDs for persistent login.
 * **Multi-Threaded:** Utilizes a thread pool to efficiently manage concurrent events.
+* **IP Versions:** Supports both IPv4 and IPv6.
 
 ## Web Server limitations
 * Exclusively designed for this Chat App.
