@@ -3,7 +3,7 @@
 * Fullstack Project
    * Frontend: In JavaScript, HTML and CSS. (My first time)
    * Backend: Custom web server written in C.
-> Though the front-end is my initial venture into web development, the standout feature lies in the C-written backend, entirely my own creation, whitch truly shines.
+> Though the front-end is my initial venture into web development, the standout feature lies in the C-written backend.
 
 ## Chat App features
 * **Private/Public Groups:** Users have the option to join public groups or enter private ones using specific codes.
