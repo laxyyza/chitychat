@@ -269,6 +269,7 @@ h1, h2, h3 {
 }
 
 .input_box{
+    position: relative;
     background-color: rgb(34, 34, 34);
     width: 100%;
     padding: 0px;
@@ -376,12 +377,17 @@ h1, h2, h3 {
 }
 
 #msg_input_button{
-    background-color: rgb(17, 17, 17);
+    position: absolute;
+    background-color: inherit;
     border: none;
     border-top-right-radius: 10px;
     border-bottom-right-radius: 10px;
     color: white;
+    height: inherit;
+    width: 100px;
     font-size: 25px;
+    bottom: 0;
+    right: 0;
 }
 
 #msg_input_button:hover{
