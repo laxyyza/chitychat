@@ -3,10 +3,12 @@
 #include "chat/ws_text_frame.h"
 
 ssize_t 
-server_ws_pong(client_t* client)
+server_ws_pong(client_t* client, const void* payload, size_t len)
 {
     ssize_t bytes_sent = ws_send_adv(client, 
-            WS_PONG_FRAME, NULL, 0, NULL);
+                                     WS_PONG_FRAME, 
+                                     payload, len, 
+                                     NULL);
 
     return bytes_sent;
 }
@@ -106,11 +108,8 @@ server_ws_parse(server_thread_t* th, client_t* client,
         case WS_CLOSE_FRAME:
             return RECV_DISCONNECT;
         case WS_PING_FRAME:
-        {
-            verbose("PING FRAME: %s\n", ws.payload);
-            server_ws_pong(client);
+            server_ws_pong(client, ws.payload, ws.payload_len);
             break;
-        }
         case WS_PONG_FRAME:
             warn("Not handled pong frame: %s\n", ws.payload);
             break;
