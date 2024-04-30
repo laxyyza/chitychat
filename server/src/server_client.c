@@ -98,8 +98,6 @@ server_client_ssl_handsake(server_t* server, client_t* client)
             debug("SSL/TLS error: %s\n", buffer);
             return -1;
         }
-        else
-            return 0;
     }
 
     client->secure = true;
