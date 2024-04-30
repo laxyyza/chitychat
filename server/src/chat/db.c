@@ -844,7 +844,7 @@ static dbgroup_t*
 server_db_get_groups(server_db_t* db, u32 user_id, u32 group_id, u32* n_ptr)
 {
     PGresult* res;
-    i32 rows;
+    i32 rows = 0;
     dbgroup_t* groups = NULL;
 
     char user_id_str[DB_INTSTR_MAX];
@@ -884,10 +884,9 @@ server_db_get_groups(server_db_t* db, u32 user_id, u32 group_id, u32* n_ptr)
         db_row_to_group(group, res, i);
     }
 
+cleanup:
     if (n_ptr)
         *n_ptr = rows;
-
-cleanup:
     PQclear(res);
     return groups;
 }

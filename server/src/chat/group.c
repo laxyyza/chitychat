@@ -218,10 +218,7 @@ server_client_groups(server_thread_t* th, client_t* client,
     u32 n_groups;
 
     groups = server_db_get_user_groups(&th->db, client->dbuser->user_id, 
-            &n_groups);
-
-    if (!groups)
-        return "Server failed to get user groups";
+                                       &n_groups);
 
     json_object_object_add(respond_json, "cmd", 
             json_object_new_string("client_groups"));
