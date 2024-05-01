@@ -26,6 +26,10 @@
 * **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
 * **Monolithic Architecture:** Combines web server and chat server functionalities within a single process.
 
+## Current Web Server Challenges
+* Experiences significant slowdowns with only approximately 100 concurrent users.
+* Encounters unexpected errors when multiple clients disconnect simultaneously.
+
 ## Planned Features
 - [x] **Private Groups:** Invitation-only groups.
    - [X] Mark group as private, only group members can get it.
