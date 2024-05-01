@@ -246,31 +246,10 @@ server_client_groups(server_thread_t* th, client_t* client,
 static bool
 server_client_in_group(server_thread_t* th, const client_t* client, const dbgroup_t* group)
 {
-    bool ret = false;
-    dbuser_t* gmembers;
-    u32     n_members;
-
     if (!client || !client->dbuser || !group || !th)
         return false;
 
-    gmembers = server_db_get_group_members(&th->db, group->group_id, &n_members);
-    if (gmembers)
-    {
-        for (u32 i = 0; i < n_members; i++)
-        {
-            dbuser_t* member = gmembers + i;
-            if (member->user_id == client->dbuser->user_id)
-            {
-                ret = true;
-                break;
-            }
-        }
-
-        free(gmembers);
-    }
-
-    return ret;
-
+    return server_db_user_in_group(&th->db, group->group_id, client->dbuser->user_id);
 }
 
 const char* 
