@@ -27,8 +27,9 @@
 * **Monolithic Architecture:** Combines web server and chat server functionalities within a single process.
 
 ## Current Web Server Challenges
-* Experiences significant slowdowns with only approximately 100 concurrent users.
-* Encounters unexpected errors when multiple clients disconnect simultaneously.
+* ~~Experiences significant slowdowns with only approximately 100 concurrent users.~~ Fixed.
+* ~~Encounters unexpected errors when multiple clients disconnect simultaneously.~~ Fixed.
+* Faces potential deadlock issues with event queue during high load, resulting in server unresponsiveness.
 
 ## Planned Features
 - [x] **Private Groups:** Invitation-only groups.
