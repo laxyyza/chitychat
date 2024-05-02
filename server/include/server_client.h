@@ -38,7 +38,6 @@ typedef struct client
     dbuser_t* dbuser;
     session_t* session;
     recv_buf_t recv;
-    bool secure;
 } client_t;
 
 int         server_client_ssl_handsake(server_t* server, client_t* client);

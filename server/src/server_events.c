@@ -68,15 +68,9 @@ se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
     server_ght_insert(&th->server->client_ht, client->addr.sock, client);
 
     ret = server_client_ssl_handsake(server, client);
-
-    server_get_client_info(client);
-
-    if (ret == -1 || (ret == 0 && server->conf.secure_only))
-    {
-        verbose("Client (fd:%d, IP: %s:%s) SSL handsake failed.\n",
-            client->addr.sock, client->addr.ip_str, client->addr.serv);
+    if (ret == -1)
         goto error;
-    }
+    server_get_client_info(client);
 
     //server_ep_addfd(server, client->addr.sock);
     if (server_new_event(server, client->addr.sock, client, se_read_client, se_close_client) == NULL)

@@ -195,10 +195,7 @@ server_send(const client_t* client, const void* buf, size_t len)
 {
     ssize_t bytes_sent;
 
-    if (client->secure)
-        bytes_sent = SSL_write(client->ssl, buf, len);
-    else
-        bytes_sent = send(client->addr.sock, buf, len, MSG_NOSIGNAL);
+    bytes_sent = SSL_write(client->ssl, buf, len);
 
     return bytes_sent;
 }
@@ -208,10 +205,7 @@ server_recv(const client_t* client, void* buf, size_t len)
 {
     ssize_t bytes_recv;
 
-    if (client->secure)
-        bytes_recv = SSL_read(client->ssl, buf, len);
-    else
-        bytes_recv = recv(client->addr.sock, buf, len, 0);
+    bytes_recv = SSL_read(client->ssl, buf, len);
 
     return bytes_recv;
 }

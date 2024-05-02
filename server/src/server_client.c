@@ -79,7 +79,6 @@ int
 server_client_ssl_handsake(server_t* server, client_t* client)
 {
     i32 ret;
-    client->secure = false;
     client->ssl = SSL_new(server->ssl_ctx);
     if (!client->ssl)
     {
@@ -100,7 +99,6 @@ server_client_ssl_handsake(server_t* server, client_t* client)
         }
     }
 
-    client->secure = true;
     return 1;
 }
 

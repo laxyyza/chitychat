@@ -27,8 +27,6 @@ server_default_config(void)
                            json_object_new_string("debug"));
     json_object_object_add(config, "database_name", 
                            json_object_new_string("chitychat"));
-    json_object_object_add(config, "secure_only", 
-                           json_object_new_boolean(true));
     json_object_object_add(config, "thread_pool",
                            json_object_new_int(-1));
 
@@ -58,7 +56,6 @@ print_help(const char* exe_path)
         "  -h, --help\t\t\tShow this message\n"\
         "  -v, --verbose\t\t\tSet log level to verbose\n"\
         "  -p, --port=PORT\t\tPort number to bind\n"\
-        "  -s, --secure-only\t\tOnly use SSL/TLS, if client handshake fails server will close them\n"\
         "  -d, --database-name=NAME\tPostgreSQL database name\n"\
         "  -T, --thread-pool=N\t\tSet the number of threads for the thread pool,\n"\
         "\t\t\t\tUse -1 (default) to automatically determine the number based on system threads.\n"\
@@ -76,7 +73,6 @@ server_argv(server_t* server, int argc, char* const* argv)
 
     struct option long_opts[] = {
         {"port", required_argument, NULL, 'p'},
-        {"secure-only", 0, NULL, 's'},
         {"verbose", 0, NULL, 'v'},
         {"database-name", required_argument, NULL, 'd'},
         {"ipv6", 0, NULL, '6'},
@@ -87,7 +83,7 @@ server_argv(server_t* server, int argc, char* const* argv)
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "T:p:d:sv46hf", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "T:p:d:v46hf", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
@@ -107,9 +103,6 @@ server_argv(server_t* server, int argc, char* const* argv)
                 server->conf.addr_port = port;
                 break;
             }
-            case 's':
-                server->conf.secure_only = true;
-                break;
             case 'v':
                 server_set_loglevel(SERVER_VERBOSE);
                 break;
@@ -156,7 +149,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     json_object* addr_version;
     json_object* database;
     json_object* log_level_json;
-    json_object* secure_only_json;
     json_object* thread_pool_json;
     const char* root_dir_str;
     const char* img_dir_str;
@@ -291,15 +283,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
         }
     }
 
-    secure_only_json = JSON_GET("secure_only");
-    if (secure_only_json)
-        server->conf.secure_only = json_object_get_boolean(secure_only_json);
-    else
-    {
-        warn("No \"secure_only\" in %s, defaulting to true.\n", config_path);
-        server->conf.secure_only = true;
-    }
-
     server_set_loglevel(log_level);
     json_object_put(config);
 
@@ -423,6 +406,7 @@ server_init_ssl(server_t* server)
 {
     SSL_library_init();
     SSL_load_error_strings();
+    ERR_load_SSL_strings();
     OpenSSL_add_all_algorithms();
 
     server->ssl_ctx = SSL_CTX_new(TLS_server_method());
@@ -519,7 +503,7 @@ server_init(int argc, char* const* argv)
         goto error;
 
     // Init OpenSSL
-    if (!server_init_ssl(server) && server->conf.secure_only)
+    if (!server_init_ssl(server))
         goto error;
 
     // Init Thread Manager

@@ -189,11 +189,7 @@ ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len,
     size_t buffer_size;
     void* buffer = combine_buffers(iov, i, &buffer_size);
 
-    if ((bytes_sent = server_send(client, buffer, buffer_size)) == -1)
-    {
-        error("WS Send to (fd:%d, IP: %s:%s): %s\n",
-            client->addr.sock, client->addr.ip_str, client->addr.serv, ERRSTR);
-    }
+    bytes_sent = server_send(client, buffer, buffer_size);
     free(buffer);
 
     return bytes_sent;

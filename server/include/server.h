@@ -45,7 +45,6 @@ typedef struct
     uint16_t addr_port;
     enum ip_version addr_version;
     char database[CONFIG_PATH_LEN];
-    bool secure_only;
     bool fork;
     i32  thread_pool;
 
