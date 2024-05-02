@@ -121,7 +121,7 @@ server_tm_enq(server_tm_t* tm, i32 fd, u32 ev)
     do {
         tm_lock(tm);
         is_full = server_evcb_enqueue(&tm->cb, fd, ev);
-        pthread_cond_signal(&tm->cond);
+        pthread_cond_broadcast(&tm->cond);
         tm_unlock(tm);
     } while (is_full);
     /**
@@ -133,12 +133,15 @@ server_tm_enq(server_tm_t* tm, i32 fd, u32 ev)
 i32
 server_tm_deq(server_tm_t* tm, ev_t* ev)
 {
-    i32 ret;
+    i32 ret = -1;
 
-    tm_lock(tm);
-    pthread_cond_wait(&tm->cond, &tm->mutex);
-    ret = server_evcb_dequeue(&tm->cb, ev);
-    tm_unlock(tm);
+    do {
+        tm_lock(tm);
+        if (ret == 0)
+            pthread_cond_wait(&tm->cond, &tm->mutex);
+        ret = server_evcb_dequeue(&tm->cb, ev);
+        tm_unlock(tm);
+    } while (ret == 0 && tm->shutdown == 0);
 
     return ret;
 }
