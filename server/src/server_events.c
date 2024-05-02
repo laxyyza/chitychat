@@ -59,6 +59,7 @@ se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
     client->addr.len = server->addr_len;
     client->addr.version = server->conf.addr_version;
     client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
+    pthread_mutex_init(&client->ssl_mutex, NULL);
     client->addr.sock = accept(server->sock, client->addr.addr_ptr, &client->addr.len);
     if (client->addr.sock == -1)
     {

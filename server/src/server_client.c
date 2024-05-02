@@ -68,7 +68,7 @@ server_free_client(server_thread_t* th, client_t* client)
     close(client->addr.sock);
 
     server_ght_del(&server->client_ht, client->addr.sock);
-
+    pthread_mutex_destroy(&client->ssl_mutex);
     free(client);
 }
 

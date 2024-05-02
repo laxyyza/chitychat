@@ -32,13 +32,14 @@ typedef struct
 
 typedef struct client
 {
-    net_addr_t addr;
-    u16 state;
-    u16 err;
-    SSL* ssl;
-    dbuser_t* dbuser;
-    session_t* session;
-    recv_buf_t recv;
+    net_addr_t  addr;
+    u16         state;
+    u16         err;
+    SSL*        ssl;
+    dbuser_t*   dbuser;
+    session_t*  session;
+    recv_buf_t  recv;
+    pthread_mutex_t ssl_mutex;
 } client_t;
 
 int         server_client_ssl_handsake(server_t* server, client_t* client);

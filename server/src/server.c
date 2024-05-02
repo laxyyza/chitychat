@@ -203,35 +203,37 @@ server_print_ssl_error(client_t* client, i32 ret, const char* from)
 ssize_t 
 server_send(client_t* client, const void* buf, size_t len)
 {
-    ssize_t bytes_sent;
+    ssize_t bytes_sent = -1;
 
-    if (client->err == CLIENT_ERR_SSL)
-        return -1;
-
-    bytes_sent = SSL_write(client->ssl, buf, len);
-    if (bytes_sent <= 0)
+    pthread_mutex_lock(&client->ssl_mutex);
+    if (client->err != CLIENT_ERR_SSL)
     {
-        server_print_ssl_error(client, bytes_sent, "write");
-        server_set_client_err(client, CLIENT_ERR_SSL);
+        bytes_sent = SSL_write(client->ssl, buf, len);
+        if (bytes_sent <= 0)
+        {
+            server_print_ssl_error(client, bytes_sent, "write");
+            server_set_client_err(client, CLIENT_ERR_SSL);
+        }
     }
-
+    pthread_mutex_unlock(&client->ssl_mutex);
     return bytes_sent;
 }
 
 ssize_t 
 server_recv(client_t* client, void* buf, size_t len)
 {
-    ssize_t bytes_recv;
+    ssize_t bytes_recv = -1;
 
-    if (client->err == CLIENT_ERR_SSL)
-        return -1;
-
-    bytes_recv = SSL_read(client->ssl, buf, len);
-    if (bytes_recv <= 0)
+    pthread_mutex_lock(&client->ssl_mutex);
+    if (client->err != CLIENT_ERR_SSL)
     {
-        server_print_ssl_error(client, bytes_recv, "read");
-        server_set_client_err(client, CLIENT_ERR_SSL);
+        bytes_recv = SSL_read(client->ssl, buf, len);
+        if (bytes_recv <= 0)
+        {
+            server_print_ssl_error(client, bytes_recv, "read");
+            server_set_client_err(client, CLIENT_ERR_SSL);
+        }
     }
-
+    pthread_mutex_unlock(&client->ssl_mutex);
     return bytes_recv;
 }
