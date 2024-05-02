@@ -42,9 +42,9 @@ random_tasks = [
     create_group
 ]
 tasks_weight = [
-    200,
-    30,
-    20,
+    500,
+    40,
+    40,
     1
 ]
 
