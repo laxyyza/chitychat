@@ -30,6 +30,7 @@ server_evcb_enqueue(evcb_t* cb, i32 fd, u32 ev)
 
     cb->write->fd = fd;
     cb->write->ev = ev;
+    cb->count++;
 
     if ((cb->write++ >= cb->buf_end))
         cb->write = cb->buf_begin;
@@ -44,6 +45,7 @@ server_evcb_dequeue(evcb_t* cb, ev_t* ev)
 
     ev->fd = cb->read->fd;
     ev->ev = cb->read->ev;
+    cb->count--;
 
     cb->read->fd = -1;
     if ((cb->read++ >= cb->buf_end))

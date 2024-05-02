@@ -19,6 +19,7 @@ typedef struct
     ev_t*   buf_begin;
     ev_t*   buf_end;
     size_t  size;
+    size_t  count;
     ev_t*   read;
     ev_t*   write;
 } evcb_t;
