@@ -23,7 +23,7 @@ rtusm_broadcast(server_thread_t* th, dbuser_t* user, rtusm_new_t new)
     json_object* packet;
     dbuser_t* connected_users;
     u32     n_users;
-    const client_t* connected_client;
+    client_t* connected_client;
     const rtusm_t* user_status = &user->rtusm;
     const char* const status_str = rtusm_status_str[user_status->status];
 

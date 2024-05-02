@@ -7,7 +7,7 @@ static void
 server_group_broadcast(server_thread_t* th, u32 group_id, json_object* json)
 {
     const dbuser_t* member;
-    const client_t* member_client;
+    client_t* member_client;
     dbuser_t* gmembers;
     u32 n_members;
 
@@ -297,7 +297,7 @@ on_user_group_join(server_thread_t* th, client_t* client,
     json_object* other_clients_respond;
     dbuser_t* gmembers;
     const dbuser_t* member;
-    const client_t* member_client;
+    client_t* member_client;
     u32 n_members;
 
     /*
@@ -735,7 +735,7 @@ server_delete_group(server_thread_t* th, client_t* client,
 {
     json_object* group_id_json;
     const dbuser_t* member;
-    const client_t* member_client;
+    client_t* member_client;
     dbuser_t* gmembers;
     dbmsg_t* attach_msgs;
     u32 n_members;

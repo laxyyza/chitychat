@@ -96,8 +96,8 @@ typedef struct
 } ws_t;
 
 enum client_recv_status server_ws_parse(server_thread_t* th, client_t* client, u8* buf, size_t buf_len);
-ssize_t ws_send(const client_t* client, const char* buf, size_t len);
-ssize_t ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey);
-ssize_t ws_json_send(const client_t* client, json_object* json);
+ssize_t ws_send(client_t* client, const char* buf, size_t len);
+ssize_t ws_send_adv(client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey);
+ssize_t ws_json_send(client_t* client, json_object* json);
 
 #endif // _SERVER_WEBSOCKET_H_

@@ -118,18 +118,8 @@ se_read_client(server_thread_t* th, server_event_t* ev)
     }
 
     bytes_recv = server_recv(client, buf + offset, buf_size - offset);
-    if (bytes_recv == -1)
-    {
-        error("Client (fd:%d, IP: %s:%s) recv #%d error: %s\n", 
-            client->addr.sock, client->addr.ip_str, client->recv.n_errors, client->addr.serv);
-        return SE_ERROR;
-    }
-    else if (bytes_recv == 0)
-    {
-        verbose("Client recv 0 bytes, disconnecting...\n");
-        //server_del_client(server, client);
+    if (bytes_recv <= 0)
         return SE_CLOSE;
-    }
     else if (http)
     {
         http->buf.total_recv += bytes_recv;
@@ -168,7 +158,7 @@ se_close_client(server_thread_t* th, server_event_t* ev)
     client_t* client = ev->data;
 
     if (ev->err == EPIPE)
-        client->state |= CLIENT_STATE_BROKEN_PIPE;
+        server_set_client_err(client, CLIENT_ERR_SSL);
     else if (client->dbuser && th->server->running)
         server_rtusm_user_disconnect(th, client->dbuser);
 

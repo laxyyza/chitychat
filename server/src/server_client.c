@@ -32,7 +32,6 @@ server_free_client(server_thread_t* th, client_t* client)
     if (!client)
         return;
 
-
     info("Client (fd:%d, IP: %s:%s, host: %s) disconnected.\n", 
             client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
     if (client->dbuser)
@@ -44,9 +43,7 @@ server_free_client(server_thread_t* th, client_t* client)
 
     if (client->ssl)
     {
-        if (client->state & CLIENT_STATE_BROKEN_PIPE)
-            info("client->state BROKEN PIPE: Not calling SSL_shutdown().\n");
-        else
+        if (client->err == CLIENT_ERR_NONE)
             SSL_shutdown(client->ssl);
         SSL_free(client->ssl);
     }
@@ -82,24 +79,15 @@ server_client_ssl_handsake(server_t* server, client_t* client)
     client->ssl = SSL_new(server->ssl_ctx);
     if (!client->ssl)
     {
-        debug("client ssl is NULL!\n");
-        return 0;
+        error("SSL_new() failed.\n");
+        return -1;
     }
     SSL_set_fd(client->ssl, client->addr.sock);
     ret = SSL_accept(client->ssl);
-    if (ret <= 0) 
-    {
-        ret = SSL_get_error(client->ssl, ret);
-        if (ERR_GET_LIB(ret) == ERR_LIB_SSL && ERR_GET_REASON(ret) == SSL_R_SSL_HANDSHAKE_FAILURE)
-        {
-            char buffer[1024];
-            ERR_error_string_n(ret, buffer, 1024);
-            debug("SSL/TLS error: %s\n", buffer);
-            return -1;
-        }
-    }
-
-    return 1;
+    if (ret == 1)
+        return 0;
+    server_set_client_err(client, CLIENT_ERR_SSL);
+    return 0;
 }
 
 void 
@@ -124,4 +112,10 @@ server_get_client_info(client_t* client)
         domain = AF_INET6;
         inet_ntop(domain, &client->addr.ipv6.sin6_addr, client->addr.ip_str, INET6_ADDRSTRLEN);
     }
+}
+
+void        
+server_set_client_err(client_t* client, u16 err)
+{
+    client->err = err;
 }

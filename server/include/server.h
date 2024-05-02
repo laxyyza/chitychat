@@ -100,7 +100,7 @@ void server_cleanup(server_t* server);
 i32  server_print_sockerr(i32 fd);
 void server_ep_event(server_thread_t* th, const ev_t* ev);
 
-ssize_t     server_send(const client_t* client, const void* buf, size_t len);
-ssize_t     server_recv(const client_t* client, void* buf, size_t len);
+ssize_t     server_send(client_t* client, const void* buf, size_t len);
+ssize_t     server_recv(client_t* client, void* buf, size_t len);
 
 #endif // _SERVER_H_

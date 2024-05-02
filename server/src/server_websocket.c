@@ -127,7 +127,7 @@ server_ws_parse(server_thread_t* th, client_t* client,
 }
 
 ssize_t 
-ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len, 
+ws_send_adv(client_t* client, u8 opcode, const char* buf, size_t len, 
                     const u8* maskkey) 
 {
     ssize_t bytes_sent = 0;
@@ -196,13 +196,13 @@ ws_send_adv(const client_t* client, u8 opcode, const char* buf, size_t len,
 }
 
 ssize_t 
-ws_send(const client_t* client, const char* buf, size_t len)
+ws_send(client_t* client, const char* buf, size_t len)
 {
     return ws_send_adv(client, WS_TEXT_FRAME, buf, len, NULL);
 }
 
 ssize_t 
-ws_json_send(const client_t* client, json_object* json)
+ws_json_send(client_t* client, json_object* json)
 {
     size_t len;
     const char* string = json_object_to_json_string_length(json, 0, &len);
