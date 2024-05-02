@@ -132,6 +132,8 @@ ght_del_bucket(server_ght_t* ht, ght_bucket_t* bucket)
         ht->free(bucket->data);
     if ((next = bucket->next))
     {
+        if (bucket->inheap == GHT_BUDKET_INARRAY)
+            next->inheap = GHT_BUDKET_INARRAY;
         memcpy(bucket, next, sizeof(ght_bucket_t));
         free(next);
     }
