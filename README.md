@@ -71,6 +71,22 @@
 * Frontend Development with JavaScript, HTML, and CSS.
 * Password Security with SHA512 hashing.
 
+## Project Directory Structure
+```
+# chitychat's root
+/
+├── server/        # Server/Backend 
+│   ├── src/       # Server C source code
+│   ├── include/   # Server Header Files
+│   └── sql/       # SQL schema and queries
+│
+├── client/        # Client/Frontend
+│   ├── public/    # Default Public Directory & Website source code
+│   └── headless/  # Headless client; bot source code
+│
+└── tests/         # Currently only have load_balance_bots.sh
+```
+
 ## Build Web Server
 > [!NOTE]
 > Exclusively for Linux.
