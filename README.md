@@ -1,3 +1,15 @@
+### Table of Contents
+1. [Chity Chat](#chity-chat)
+2. [Chat App Features](#chat-app-features)
+3. [Web Server Features](#web-server-features)
+4. [Web Server Limitations](#web-server-limitations)
+5. [Current Web Server Challenges](#current-web-server-challenges)
+6. [Planned Features](#planned-features)
+7. [Learning Experience](#learning-experience)
+8. [Project Directory Structure](#project-directory-structure)
+9. [Build Web Server](#build-web-server)
+10. [Coding Style](#coding-style)
+
 # Chity Chat
 ### This is a simple Chat App with the purpose of learning.
 * Fullstack Project
@@ -5,7 +17,7 @@
    * Backend: Custom web server written in C.
 > Though the front-end is my initial venture into web development, the standout feature lies in the C-written backend.
 
-## Chat App features
+## Chat App Features
 * **Private/Public Groups:** Users have the option to join public groups or enter private ones using specific codes.
 * **Real-time Communication:** Messages are sent and received instantly.
 * **Real-time User Staus Updates:** Instantly see if users comes online and offline.
