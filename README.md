@@ -41,6 +41,7 @@
 ## Current Web Server Challenges
 * ~~Experiences significant slowdowns with only approximately 100 concurrent users.~~ Fixed.
 * ~~Encounters unexpected errors when multiple clients disconnect simultaneously.~~ Fixed.
+* Worker threads are heavly I/O bound to PostgreSQL. Non-blocking postgres connection maybe? 
 * Faces potential deadlock issues with event queue during high load, resulting in server unresponsiveness.
 
 ## Planned Features
