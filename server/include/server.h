@@ -13,6 +13,7 @@
 #include "server_http.h"
 #include "server_websocket.h"
 #include "server_ht.h"
+#include "server_signal.h"
 #include "chat/user_file.h"
 #include "chat/db.h"
 #include "chat/upload_token.h"
@@ -70,6 +71,7 @@ typedef struct server
 {
     i32 sock;
     i32 epfd;
+    pid_t pid;
     server_config_t conf;
     server_db_commands_t db_commands;
     server_tm_t tm;
@@ -91,6 +93,8 @@ typedef struct server
     server_ght_t chat_cmd_ht;
 
     struct epoll_event ep_events[MAX_EP_EVENTS];
+    
+    server_signal_t sig_hlr;
 
     bool running;
 } server_t;

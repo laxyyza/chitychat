@@ -506,10 +506,14 @@ server_init(int argc, char* const* argv)
     if (!server_init_ssl(server))
         goto error;
 
+    if (!server_init_signal(server))
+        goto error;
+
     // Init Thread Manager
     if (!server_init_tm(server, server->conf.thread_pool))
         goto error;
 
+    server->pid = getpid();
     server->running = true;
 
     return server;

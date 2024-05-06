@@ -53,43 +53,12 @@ server_ep_event(server_thread_t* th, const ev_t* job)
         warn("Not handled fd: %d, ev: 0x%x\n", fd, ev);
 }
 
-// Should ONLY be used in server_sig_handler()
-server_t* __server_sig = NULL;
-
-static void 
-server_sig_handler(i32 signum)
-{
-    debug("signal: %d\n", signum);
-
-    if (signum == SIGINT || signum == SIGTERM)
-        __server_sig->running = false;
-}
-
-static void 
-server_init_signal_handlers(server_t* server)
-{
-    struct sigaction sa;
-    sa.sa_handler = server_sig_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    __server_sig = server;
-
-    if (sigaction(SIGINT, &sa, NULL) == -1)
-        error("sigaction: %s\n", ERRSTR);
-    if (sigaction(SIGPIPE, &sa, NULL) == -1)
-        error("sigaction: %s\n", ERRSTR);
-    if (sigaction(SIGTERM, &sa, NULL) == -1)
-        error("sigaction: %s\n", ERRSTR);
-}
-
 i32
 server_run(server_t* server)
 {
     i32 ret = EXIT_SUCCESS;
     i32 nfds;
     const struct epoll_event* epev;
-
-    server_init_signal_handlers(server);
 
     info("Server listening on IP: %s, port: %u, thread pool: %zu\n", 
          server->conf.addr_ip, server->conf.addr_port, server->tm.n_threads);
