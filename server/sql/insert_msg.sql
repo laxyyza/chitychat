@@ -5,4 +5,4 @@ VALUES (
     $3::text, 
     $4::json
 )
-RETURNING *;
+RETURNING msg_id, timestamp;

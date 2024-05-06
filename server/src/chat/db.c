@@ -1128,7 +1128,13 @@ server_db_insert_msg(server_db_t* db, dbmsg_t* msg)
     res = PQexecParams(db->conn, db->cmd->insert_msg, 4, NULL, vals, lens, formats, 0);
     status_type = PQresultStatus(res);
     if (status_type == PGRES_TUPLES_OK)
-        db_row_to_msg(msg, res, 0);
+    {
+        char* endptr;
+        const char* msg_id_str = PQgetvalue(res, 0, 0);
+        msg->msg_id = strtoul(msg_id_str, &endptr, 10);
+        const char* timestamp = PQgetvalue(res, 0, 1);
+        strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
+    }
     else if (status_type != PGRES_COMMAND_OK)
     {
         error("PQexecParams() failed for insert_msg: %s\n",
