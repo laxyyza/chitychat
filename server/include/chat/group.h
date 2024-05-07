@@ -11,7 +11,7 @@ typedef struct
     u32     owner_id;
     char    displayname[DB_DISPLAYNAME_MAX];
     char    desc[DB_DESC_MAX];
-    i32     flags;
+    bool    public;
     char    created_at[DB_TIMESTAMP_MAX];
 } dbgroup_t;
 

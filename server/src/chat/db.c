@@ -123,6 +123,8 @@ server_init_db(server_t* server)
 
     cmd->insert_group = server_db_load_sql(server->conf.sql_insert_group, &cmd->insert_group_len);
     cmd->select_group = server_db_load_sql(server->conf.sql_select_group, &cmd->select_group_len);
+    cmd->select_pub_group = server_db_load_sql("server/sql/select_public_group.sql",
+                                               &cmd->select_pub_group_len);
 
     cmd->insert_groupmember_code = server_db_load_sql(server->conf.sql_insert_groupmember_code, &cmd->insert_groupmember_code_len);
     cmd->select_groupmember = server_db_load_sql(server->conf.sql_select_groupmember, &cmd->select_groupmember_len);
@@ -288,11 +290,11 @@ db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
     else
         warn("group desc is NULL!\n");
 
-    const char* flags_str = PQgetvalue(res, row, 4);
-    if (flags_str)
-        group->flags = strtoul(flags_str, &endptr, 10);
+    const char* public_str = PQgetvalue(res, row, 4);
+    if (public_str && *public_str == 't')
+        group->public = true;
     else
-        warn("group flags_str is NULL\n");
+        group->public = false;
 
     const char* created_at = PQgetvalue(res, row, 5);
     if (created_at)
@@ -898,14 +900,22 @@ server_db_get_group(server_db_t* db, u32 group_id)
 }
 
 dbgroup_t*  
-server_db_get_all_groups(server_db_t* db, u32* n_ptr)
+server_db_get_public_groups(server_db_t* db, u32 user_id, u32* n_ptr)
 {
-    const char* sql = "SELECT * FROM Groups;";
     PGresult* res;
     i32 rows;
     dbgroup_t* groups = NULL;
 
-    res = PQexecParams(db->conn, sql, 0, NULL, NULL, NULL, NULL, 0);
+    char user_id_str[DB_INTSTR_MAX];
+    const i32 lens[1] = {
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id)
+    };
+    const char* vals[1] = {
+        user_id_str
+    };
+    const i32 formats[1] = {0};
+
+    res = PQexecParams(db->conn, db->cmd->select_pub_group, 1, NULL, vals, lens, formats, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         error("PGexecParams() failed for get all groups: %s\n", 
@@ -947,7 +957,7 @@ server_db_insert_group(server_db_t* db, dbgroup_t* group)
     char owner_id_str[DB_INTSTR_MAX];
     snprintf(owner_id_str, DB_INTSTR_MAX, "%u", group->owner_id);
     char flags_id_str[DB_INTSTR_MAX];
-    snprintf(flags_id_str, DB_INTSTR_MAX, "%u", group->flags);
+    snprintf(flags_id_str, DB_INTSTR_MAX, "%u", group->public);
 
     const char* vals[4] = {
         group->displayname,

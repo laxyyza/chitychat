@@ -23,8 +23,6 @@
 
 #define DB_CONNINTO_LEN     256
 
-#define DB_GROUP_PUBLIC     0x01
-
 #define DB_INTSTR_MAX       30
 
 typedef struct 
@@ -45,6 +43,8 @@ typedef struct
     size_t  insert_group_len;
     char*   select_group;
     size_t  select_group_len;
+    char*   select_pub_group;
+    size_t  select_pub_group_len;
     char*   delete_group;
     size_t  delete_group_len;
 

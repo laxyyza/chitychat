@@ -44,4 +44,6 @@ typedef struct http     http_t;
 
 #define SYSTEM_USERNAME_LEN 64
 
+#define KIB 1024
+
 #endif //_COMMON_H_

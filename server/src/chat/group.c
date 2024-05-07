@@ -109,7 +109,7 @@ server_group_to_json(server_thread_t* th, const dbgroup_t* dbgroup, json_object*
     json_object_object_add(json, "desc",
                            json_object_new_string(dbgroup->desc));
     json_object_object_add(json, "public",
-                           json_object_new_boolean(dbgroup->flags & DB_GROUP_PUBLIC));
+                           json_object_new_boolean(dbgroup->public));
 
     if (th)
     {
@@ -185,8 +185,7 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
 
     memset(&new_group, 0, sizeof(dbgroup_t));
     new_group.owner_id = client->dbuser->user_id;
-    if (public_group)
-        new_group.flags |= DB_GROUP_PUBLIC;
+    new_group.public = public_group;
     strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
 
     if (!server_db_insert_group(&th->db, &new_group))
@@ -243,41 +242,29 @@ server_client_groups(server_thread_t* th, client_t* client,
     return NULL;
 }
 
-static bool
-server_client_in_group(server_thread_t* th, const client_t* client, const dbgroup_t* group)
-{
-    if (!client || !client->dbuser || !group || !th)
-        return false;
-
-    return server_db_user_in_group(&th->db, group->group_id, client->dbuser->user_id);
-}
-
 const char* 
 server_get_all_groups(server_thread_t* th, client_t* client, 
                       UNUSED json_object* payload, json_object* respond_json)
 {
+    // TODO: Limit getting public groups.
     u32 n_groups;
-    dbgroup_t* groups = server_db_get_all_groups(&th->db, &n_groups);
+    dbgroup_t* groups = server_db_get_public_groups(&th->db, client->dbuser->user_id, &n_groups);
     if (!groups)
         return "Failed to get groups";
 
     json_object_object_add(respond_json, "cmd", 
-            json_object_new_string("get_all_groups"));
-    json_object_object_add(respond_json, "groups", 
-            json_object_new_array_ext(n_groups));
-    json_object* groups_json = json_object_object_get(respond_json, 
-            "groups");
+                           json_object_new_string("get_all_groups"));
+    json_object_object_add(respond_json, "groups",
+                           json_object_new_array_ext(n_groups));
+    json_object* groups_json = json_object_object_get(respond_json, "groups");
 
     for (size_t i = 0; i < n_groups; i++)
     {
         dbgroup_t* g = groups + i;
-        if (g->flags & DB_GROUP_PUBLIC && !server_client_in_group(th, client, g))
-        {
-            json_object* group_json = json_object_new_object();
+        json_object* group_json = json_object_new_object();
 
-            server_group_to_json(NULL, g, group_json);
-            json_object_array_add(groups_json, group_json);
-        }
+        server_group_to_json(NULL, g, group_json);
+        json_object_array_add(groups_json, group_json);
     }
 
     ws_json_send(client, respond_json);

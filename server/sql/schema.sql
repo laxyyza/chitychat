@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS Groups(
     owner_id        int,
     name            varchar(50) NOT null,
     "desc"          text,
-    flags           int DEFAULT 0,
+    public          boolean DEFAULT false,
     created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES Users(user_id)
 );
