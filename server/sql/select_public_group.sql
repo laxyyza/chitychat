@@ -1,5 +1,5 @@
 SELECT g.*
 FROM Groups g
-JOIN GroupMembers gm ON gm.group_id = g.group_id
-WHERE g.public = true AND gm.user_id != $1::int;
+LEFT JOIN GroupMembers gm ON g.group_id = gm.group_id AND gm.user_id = $1::int
+WHERE g.public = true AND gm.group_id IS NULL;
 -- LIMIT $2::int OFFSET $3::int;
