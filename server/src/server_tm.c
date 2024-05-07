@@ -54,6 +54,7 @@ server_init_tm(server_t* server, i32 n_threads)
     pthread_cond_init(&tm->cond, NULL);
 
     server_init_evcb(server, EVCB_SIZE);
+    tm->init = true;
 
     if (server_db_open(&server->main_th.db, server->conf.database) == false)
         return false;
@@ -103,6 +104,8 @@ void
 server_tm_shutdown(server_t* server)
 {
     server_tm_t* tm = &server->tm;
+    if (tm->init == false)
+        return;
 
     server_tm_shutdown_threads(tm);
 

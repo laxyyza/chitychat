@@ -27,6 +27,7 @@ typedef struct
     size_t          n_threads;
     u8              shutdown;
     evcb_t          cb;
+    bool            init;
 
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
