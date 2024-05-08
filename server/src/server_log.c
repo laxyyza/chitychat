@@ -20,12 +20,12 @@
 #define C_FATAL (BG_RED FG_BLACK)
 
 static const char* wa_log_str[SERVER_LOG_LEVEL_LEN] = {
-    "SERVER [" FG_RED "FATAL" FG_DEFAULT "]",
-    "SERVER [" FG_RED "ERROR" FG_DEFAULT "]",
-    "SERVER [" FG_ORANGE "WARN" FG_DEFAULT "]",
-    "SERVER [" FG_GREEN "INFO" FG_DEFAULT "]",
-    "SERVER [DEBUG]",
-    "SERVER [VBOSE]",
+    "[" FG_RED "FF" FG_DEFAULT "]",
+    "[" FG_RED "EE" FG_DEFAULT "]",
+    "[" FG_ORANGE "WW" FG_DEFAULT"]",
+    "[" FG_GREEN "II" FG_DEFAULT "]",
+    "[DD]",
+    "[VV]",
 };
 
 static const char* wa_log_color[SERVER_LOG_LEVEL_LEN] = {
@@ -67,9 +67,9 @@ void server_log(enum server_log_level level, const char* filename, int line, con
     va_end(args);
 
     if (filename)
-        fprintf(file, "%s [%s:%d]:\t%s", wa_log_str[level], filename, line, wa_log_color[level]);
+        fprintf(file, "%s [%s:%d]: %s", wa_log_str[level], filename, line, wa_log_color[level]);
     else
-        fprintf(file, "%s:\t%s", wa_log_str[level], wa_log_color[level]);
+        fprintf(file, "%s: %s", wa_log_str[level], wa_log_color[level]);
 
     fprintf(file, "%s%s%s", wa_log_color[level], output, C_DEFAULT);
 
