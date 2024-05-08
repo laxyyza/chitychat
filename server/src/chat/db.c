@@ -178,6 +178,7 @@ server_db_free(server_t* server)
 
     free(cmd->insert_group);
     free(cmd->select_group);
+    free(cmd->select_pub_group);
     free(cmd->delete_group);
 
     free(cmd->insert_groupmember_code);
