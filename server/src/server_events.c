@@ -181,12 +181,6 @@ server_new_event(server_t* server, i32 fd, void* data,
     }
     
     se = calloc(1, sizeof(server_event_t));
-    if (server_ep_addfd(server, fd) == -1)
-    {
-        free(se);
-        error("ep_addfd %d failed\n", fd);
-        return NULL;
-    }
     se->fd = fd;
     se->data = data;
     se->read = read_callback;
@@ -195,6 +189,12 @@ server_new_event(server_t* server, i32 fd, void* data,
 
     if (server_ght_insert(&server->event_ht, fd, se) == false)
         error("new_event(): Failed to insert.\n");
+    if (server_ep_addfd(server, fd) == -1)
+    {
+        free(se);
+        error("ep_addfd %d failed\n", fd);
+        return NULL;
+    }
 
     return se;
 }
