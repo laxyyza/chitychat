@@ -31,6 +31,7 @@ server_free_client(server_thread_t* th, client_t* client)
 
     if (!client)
         return;
+    server_ght_del(&server->client_ht, client->addr.sock);
 
     info("Client (fd:%d, IP: %s:%s, host: %s) disconnected.\n", 
             client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
@@ -67,7 +68,6 @@ server_free_client(server_thread_t* th, client_t* client)
         free(client->dbuser);
     close(client->addr.sock);
 
-    server_ght_del(&server->client_ht, client->addr.sock);
     pthread_mutex_destroy(&client->ssl_mutex);
     free(client);
 }
