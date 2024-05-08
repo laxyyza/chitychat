@@ -4,14 +4,13 @@
 i32
 server_print_sockerr(i32 fd)
 {
-    i32 error;
+    i32 err;
     socklen_t len = sizeof(i32);
-    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) == -1)
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) == -1)
         error("getsockopt(%d): %s\n", fd, ERRSTR);
-    else if (errno != 0)
-        error("socket (%d): %s\n", fd, strerror(error));
-
-    return error;
+    else if ((err = errno))
+        error("socket fd:%d err:%d (%s)\n", fd, err, strerror(err));
+    return err;
 }
 
 void 
