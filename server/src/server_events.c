@@ -168,8 +168,11 @@ se_close_client(server_thread_t* th, server_event_t* ev)
 }
 
 server_event_t* 
-server_new_event(server_t* server, i32 fd, void* data, 
-            se_read_callback_t read_callback, se_close_callback_t close_callback)
+server_new_event(server_t* server, 
+                 i32 fd, 
+                 void* data, 
+                 se_read_callback_t read_callback, 
+                 se_close_callback_t close_callback)
 {
     server_event_t* se;
 
@@ -188,15 +191,21 @@ server_new_event(server_t* server, i32 fd, void* data,
     se->listen_events = DEFAULT_EPEV;
 
     if (server_ght_insert(&server->event_ht, fd, se) == false)
+    {
         error("new_event(): Failed to insert.\n");
+        goto err;
+    }
     if (server_ep_addfd(server, fd) == -1)
     {
-        free(se);
         error("ep_addfd %d failed\n", fd);
-        return NULL;
+        goto err;
     }
-
     return se;
+err:
+    server_ep_delfd(server, fd);
+    server_ght_del(&server->event_ht, fd);
+    free(se);
+    return NULL;
 }
 
 void 
