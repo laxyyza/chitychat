@@ -8,7 +8,7 @@ server_print_sockerr(i32 fd)
     socklen_t len = sizeof(i32);
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &error, &len) == -1)
         error("getsockopt(%d): %s\n", fd, ERRSTR);
-    else
+    else if (errno != 0)
         error("socket (%d): %s\n", fd, strerror(error));
 
     return error;
