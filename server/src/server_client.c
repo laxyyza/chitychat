@@ -24,6 +24,37 @@ server_get_client_user_id(server_t* server, u64 id)
     return NULL;
 }
 
+client_t*
+server_accept_client(server_thread_t* th)
+{
+    client_t* client;
+    server_t* server = th->server;
+
+    client = calloc(1, sizeof(client_t));
+    client->addr.len = server->addr_len;
+    client->addr.version = server->conf.addr_version;
+    client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
+    client->addr.sock = accept(server->sock, client->addr.addr_ptr, &client->addr.len);
+    if (client->addr.sock == -1)
+    {
+        error("accept: %s", ERRSTR);
+        goto err;
+    }
+    if (server_client_ssl_handsake(server, client) == -1)
+        goto err;
+    server_get_client_info(client);
+    pthread_mutex_init(&client->ssl_mutex, NULL);
+    server_ght_insert(&server->client_ht, client->addr.sock, client);
+    if (server_new_event(server, client->addr.sock, client, 
+                         se_read_client, se_close_client) == NULL)
+        goto err;
+
+    return client;
+err:
+    server_free_client(th, client);
+    return NULL;
+}
+
 void 
 server_free_client(server_thread_t* th, client_t* client)
 {

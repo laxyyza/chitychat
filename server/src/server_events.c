@@ -51,39 +51,15 @@ server_ep_delfd(server_t* server, i32 fd)
 enum se_status
 se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
 {
-    i32 ret;
-    server_t* server = th->server;
     client_t* client;
 
-    client = calloc(1, sizeof(client_t));
-    client->addr.len = server->addr_len;
-    client->addr.version = server->conf.addr_version;
-    client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
-    pthread_mutex_init(&client->ssl_mutex, NULL);
-    client->addr.sock = accept(server->sock, client->addr.addr_ptr, &client->addr.len);
-    if (client->addr.sock == -1)
-    {
-        error("accept: %s\n", ERRSTR);
+    if ((client = server_accept_client(th)) == NULL)
         return SE_ERROR;
-    }
-    server_ght_insert(&th->server->client_ht, client->addr.sock, client);
-
-    ret = server_client_ssl_handsake(server, client);
-    if (ret == -1)
-        goto error;
-    server_get_client_info(client);
-
-    //server_ep_addfd(server, client->addr.sock);
-    if (server_new_event(server, client->addr.sock, client, se_read_client, se_close_client) == NULL)
-        goto error;
 
     info("Client (fd:%d, IP: %s:%s) connected.\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv);
 
     return SE_OK;
-error:
-    server_free_client(th, client);
-    return SE_ERROR;
 }
 
 enum se_status

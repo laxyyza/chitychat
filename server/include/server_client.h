@@ -42,6 +42,7 @@ typedef struct client
     pthread_mutex_t ssl_mutex;
 } client_t;
 
+client_t*   server_accept_client(server_thread_t* th);
 int         server_client_ssl_handsake(server_t* server, client_t* client);
 client_t*   server_get_client_fd(server_t* server, i32 fd);
 client_t*   server_get_client_user_id(server_t* server, u64 id);
