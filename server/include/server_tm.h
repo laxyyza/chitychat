@@ -26,7 +26,6 @@ typedef struct
 } server_tm_t;
 
 bool    server_init_tm(server_t* server, i32 n_threads);
-bool    server_tm_init_thread(server_t* server, eworker_t* ew, size_t i);
 void    server_tm_shutdown(server_t* server);
 i32     server_tm_system_threads(void);
 

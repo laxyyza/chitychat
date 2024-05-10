@@ -20,6 +20,7 @@ typedef struct
     server_t*   server;
 } server_eworker_t, eworker_t;
 
+bool server_create_eworker(server_t* server, eworker_t* ew, size_t i);
 bool server_eworker_init(eworker_t* ew);
 void server_eworker_async_run(eworker_t* ew);
 void server_eworker_cleanup(eworker_t* ew);

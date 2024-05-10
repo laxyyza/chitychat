@@ -41,19 +41,18 @@ tm_worker(void* arg)
 }
 
 bool    
-server_init_tm(server_t* server, i32 n_threads)
+server_init_tm(server_t* server, i32 n_workers)
 {
     server_tm_t* tm = &server->tm;
 
-    if (n_threads <= 0)
+    if (n_workers <= 0)
     {
-        fatal("n_threads (%d) <= 0\n", n_threads);
+        fatal("n_threads (%d) <= 0\n", n_workers);
         return false;
     }
 
-    tm->n_workers = n_threads;
-    tm->workers = calloc(n_threads, sizeof(eworker_t));
-    tm->state = 0;
+    tm->n_workers = n_workers;
+    tm->workers = calloc(n_workers, sizeof(eworker_t));
 
     pthread_mutex_init(&tm->mutex, NULL);
     pthread_cond_init(&tm->cond, NULL);
@@ -62,29 +61,17 @@ server_init_tm(server_t* server, i32 n_threads)
     tm->state |= TM_STATE_INIT;
 
     if (server_db_open(&server->main_ew.db, server->conf.database) == false)
-        return false;
+        goto err;
     snprintf(server->main_ew.name, THREAD_NAME_LEN, "main_thread");
     server->main_ew.server = server;
 
-    for (i32 i = 0; i < n_threads; i++)
-        if (server_tm_init_thread(server, tm->workers + i, i) == false)
-            return false;
-
+    for (i32 i = 0; i < n_workers; i++)
+        if (server_create_eworker(server, tm->workers + i, i) == false)
+            goto err;
     return true;
-}
-
-bool
-server_tm_init_thread(server_t* server, eworker_t* th, size_t i)
-{
-    if (server_db_open(&th->db, server->conf.database) == false)
-        return false;
-    th->db.cmd = &server->db_commands;
-    th->server = server;
-
-    snprintf(th->name, THREAD_NAME_LEN, "worker%zu", i);
-    pthread_create(&th->pth, NULL, tm_worker, th);
-    pthread_setname_np(th->pth, th->name);
-    return true;
+err:
+    tm->state |= TM_STATE_SHUTDOWN;
+    return false;
 }
 
 static void 
