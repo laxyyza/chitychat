@@ -3,6 +3,7 @@ import ssl
 import asyncio
 import json
 
+do_session = False
 commands = {}
 
 def cmd(func):
@@ -162,7 +163,7 @@ class Bot:
             username = self.username,
             displayname = self.displayname,
             password = self.secret,
-            session = True 
+            session = do_session
         )
 
         packet = await self.recv()
@@ -177,7 +178,7 @@ class Bot:
         await self.send("login",
             username = self.username,
             password = self.secret,
-            session = True 
+            session = do_session 
         )
         packet = await self.recv()
         if packet["cmd"] == "error":
