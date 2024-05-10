@@ -231,33 +231,6 @@ server_db_free(server_t* server)
     free(cmd->insert_userfiles);
 }
 
-i32 
-server_db_async_params(server_db_t* db, 
-                       const char* query,
-                       size_t n,
-                       const char* const vals[], 
-                       const i32* lens, 
-                       const i32* formats)
-{
-    i32 ret;
-
-    if ((ret = PQsendQueryParams(db->conn, query, n, NULL, vals, lens, formats, 0)) != 1)
-    {
-        error("Async query send: %s\n",
-              PQerrorMessage(db->conn));
-        goto err;
-    }
-    // TODO: Sync/Flush
-err:
-    return ret;
-}
-
-i32 
-server_db_async_exec(server_db_t* db, const char* query)
-{
-    return server_db_async_params(db, query, 0, NULL, NULL, NULL);
-}
-
 void 
 server_db_close(server_db_t* db)
 {
