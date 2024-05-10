@@ -1,6 +1,20 @@
 #include "server_eworker.h"
 #include "server.h"
 #include "chat/db.h"
+#include "server_tm.h"
+#include <poll.h>
+
+static void
+eworker_process_results(eworker_t* ew)
+{
+    // TODO
+}
+
+static bool
+eworker_init_pipeline(eworker_t* ew)
+{
+    // TODO
+}
 
 static void*
 eworker_main(void* arg)
@@ -29,19 +43,65 @@ server_create_eworker(server_t* server, eworker_t* ew, size_t i)
 }
 
 bool 
-server_eworker_init(UNUSED eworker_t* ew)
+server_eworker_init(eworker_t* ew)
 {
+    ew->tid = gettid();
+    if (!server_db_open(&ew->db, ew->server->conf.database))
+        return false;
+    if (!eworker_init_pipeline(ew))
+        goto err;
+
+    debug("%s up & running!\n", ew->name);
+    return true;
+err:
+    server_eworker_cleanup(ew);
     return false;
 }
 
 void 
-server_eworker_async_run(UNUSED eworker_t* ew)
+server_eworker_async_run(eworker_t* ew)
 {
+    server_t* server = ew->server;
+    server_tm_t* tm = &server->tm;
+    struct pollfd pfd = {
+        .fd = ew->db.fd,
+        .events = POLLIN
+    };
+    i32 ret;
+    i32 deq_flag;
+    ev_t ev;
 
+    while ((tm->state & TM_STATE_SHUTDOWN) == 0)
+    {
+        if ((ret = poll(&pfd, 1, 0)) == -1) 
+        {
+            error("poll");
+            continue;
+        }
+
+        if (ret > 0)
+            eworker_process_results(ew);
+
+        /*
+         * Block if no async jobs
+         * Don't Block if async jobs in queue
+         */
+        deq_flag = (ew->queue.count == 0) ? TM_DEQ_BLOCK : TM_DEQ_NONBLOCK;
+        
+        if (server_tm_deq(tm, &ev, deq_flag))
+        {
+            // Set ew current job 
+            // Handle event
+            server_ep_event(ew, &ev);
+            // After event check if any sql queries
+            // if so enqueue it to ew->queue
+        }
+    }
 }
 
 void 
 server_eworker_cleanup(eworker_t* ew)
 {
     server_db_close(&ew->db);
+    debug("%s shutdown.\n", ew->name);
 }

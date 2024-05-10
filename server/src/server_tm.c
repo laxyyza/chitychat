@@ -126,16 +126,18 @@ server_tm_enq(server_tm_t* tm, i32 fd, u32 ev)
 }
 
 i32
-server_tm_deq(server_tm_t* tm, ev_t* ev)
+server_tm_deq(server_tm_t* tm, ev_t* ev, i32 flags)
 {
     i32 ret = -1;
 
     do {
-        tm_lock(tm);
-        if (ret == 0)
-            pthread_cond_wait(&tm->cond, &tm->mutex);
+        if (flags == TM_DEQ_BLOCK)
+            pthread_mutex_lock(&tm->mutex);
+        else if (pthread_mutex_trylock(&tm->mutex) != 0)
+            return 0;
+        pthread_cond_wait(&tm->cond, &tm->mutex);
         ret = server_evcb_dequeue(&tm->eq, ev);
-        tm_unlock(tm);
+        pthread_mutex_unlock(&tm->mutex);
     } while (ret == 0 && !(tm->state & TM_STATE_SHUTDOWN));
 
     return ret;
