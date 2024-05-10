@@ -12,7 +12,7 @@ json_bad(json_object* json, json_type type)
 }
 
 enum client_recv_status 
-server_ws_handle_text_frame(server_thread_t* th, 
+server_ws_handle_text_frame(eworker_t* ew, 
                             client_t* client, 
                             char* buf, 
                             size_t buf_len) 
@@ -44,7 +44,7 @@ server_ws_handle_text_frame(server_thread_t* th,
 
     cmd = json_object_get_string(cmd_json);
 
-    error_msg = server_exec_chatcmd(cmd, th, client, payload, respond_json);
+    error_msg = server_exec_chatcmd(cmd, ew, client, payload, respond_json);
 send_error:
     if (error_msg)
     {

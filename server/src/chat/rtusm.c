@@ -18,7 +18,7 @@ const char* const rtusm_status_str[RTUSM_STATUS_LEN] = {
 };
 
 static void 
-rtusm_broadcast(server_thread_t* th, dbuser_t* user, rtusm_new_t new)
+rtusm_broadcast(eworker_t* ew, dbuser_t* user, rtusm_new_t new)
 {
     json_object* packet;
     dbuser_t* connected_users;
@@ -53,11 +53,11 @@ rtusm_broadcast(server_thread_t* th, dbuser_t* user, rtusm_new_t new)
                                json_object_new_string(user->pfp_hash));
     }
     
-    connected_users = server_db_get_connected_users(&th->db, user->user_id, &n_users);
+    connected_users = server_db_get_connected_users(&ew->db, user->user_id, &n_users);
 
     for (u32 i = 0; i < n_users; i++)
     {
-        connected_client = server_get_client_user_id(th->server, connected_users[i].user_id); 
+        connected_client = server_get_client_user_id(ew->server, connected_users[i].user_id); 
         if (connected_client)
             ws_json_send(connected_client, packet);
     }
@@ -67,16 +67,16 @@ rtusm_broadcast(server_thread_t* th, dbuser_t* user, rtusm_new_t new)
 }
 
 void    
-server_rtusm_set_user_status(server_thread_t* th, dbuser_t* user, enum rtusm_status status)
+server_rtusm_set_user_status(eworker_t* ew, dbuser_t* user, enum rtusm_status status)
 {
-    if (!th || !user)
+    if (!ew || !user)
         return;
 
     user->rtusm.status = status;
 }
 
 void    
-server_rtusm_user_disconnect(server_thread_t* th, dbuser_t* user)
+server_rtusm_user_disconnect(eworker_t* ew, dbuser_t* user)
 {
     user->rtusm.status = USER_OFFLINE;
     user->rtusm.typing_group_id = 0;
@@ -88,11 +88,11 @@ server_rtusm_user_disconnect(server_thread_t* th, dbuser_t* user)
         .pfp = false
     };
 
-    rtusm_broadcast(th, user, new);
+    rtusm_broadcast(ew, user, new);
 }
 
 void    
-server_rtusm_user_connect(server_thread_t* th, dbuser_t* user)
+server_rtusm_user_connect(eworker_t* ew, dbuser_t* user)
 {
     user->rtusm.status = USER_ONLINE;
 
@@ -102,7 +102,7 @@ server_rtusm_user_connect(server_thread_t* th, dbuser_t* user)
         .pfp = false
     };
 
-    rtusm_broadcast(th, user, new);
+    rtusm_broadcast(ew, user, new);
 }
 
 const char* 
@@ -112,7 +112,7 @@ rtusm_get_status_str(enum rtusm_status status)
 }
 
 void    
-server_rtusm_user_pfp_change(server_thread_t* th, dbuser_t* user)
+server_rtusm_user_pfp_change(eworker_t* ew, dbuser_t* user)
 {
     const rtusm_new_t new = {
         .status = false,
@@ -120,5 +120,5 @@ server_rtusm_user_pfp_change(server_thread_t* th, dbuser_t* user)
         .pfp = true
     };
 
-    rtusm_broadcast(th, user, new);
+    rtusm_broadcast(ew, user, new);
 }

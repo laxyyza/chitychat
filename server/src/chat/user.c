@@ -23,7 +23,7 @@ server_add_user_in_json(dbuser_t* dbuser, json_object* json)
 }
 
 const char* 
-server_get_user(server_thread_t* th, client_t* client, 
+server_get_user(eworker_t* ew, client_t* client, 
                 json_object* payload, json_object* respond_json)
 {
     json_object* user_id_json; 
@@ -35,11 +35,11 @@ server_get_user(server_thread_t* th, client_t* client,
     RET_IF_JSON_BAD(user_id_json, payload, "user_id", json_type_int);
     user_id = json_object_get_int(user_id_json);
 
-    if ((connected_user = server_get_client_user_id(th->server, user_id)))
+    if ((connected_user = server_get_client_user_id(ew->server, user_id)))
         dbuser = connected_user->dbuser;
     else
     {
-        dbuser = server_db_get_user_from_id(&th->db, user_id);
+        dbuser = server_db_get_user_from_id(&ew->db, user_id);
         free_user = true;
     }
 
@@ -59,7 +59,7 @@ server_get_user(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_client_user_info(server_thread_t* th, 
+server_client_user_info(eworker_t* ew, 
                         client_t* client, 
                         UNUSED json_object* payload,
                         json_object* respond_json)
@@ -70,13 +70,13 @@ server_client_user_info(server_thread_t* th,
 
     ws_json_send(client, respond_json);
 
-    server_rtusm_user_connect(th, client->dbuser);
+    server_rtusm_user_connect(ew, client->dbuser);
 
     return NULL;
 }
 
 const char* 
-server_user_edit_account(server_thread_t* th, client_t* client, 
+server_user_edit_account(eworker_t* ew, client_t* client, 
                          json_object* payload, UNUSED json_object* respond_json)
 {
     json_object* new_username_json;
@@ -108,14 +108,14 @@ server_user_edit_account(server_thread_t* th, client_t* client,
     else if (new_pfp_json != NULL)
         return "\"new_pfp\" is invalid";
 
-    if (!server_db_update_user(&th->db, new_username, new_displayname, 
+    if (!server_db_update_user(&ew->db, new_username, new_displayname, 
             NULL, client->dbuser->user_id))
         return "Failed to update user"; 
 
     if (new_pfp)
     {
         // Create new upload token
-        upload_token_t* upload_token = server_new_upload_token(th, 
+        upload_token_t* upload_token = server_new_upload_token(ew, 
                                                     client->dbuser->user_id);
 
         if (upload_token == NULL)

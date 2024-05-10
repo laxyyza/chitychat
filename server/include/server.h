@@ -75,7 +75,7 @@ typedef struct server
     server_config_t conf;
     server_db_commands_t db_commands;
     server_tm_t tm;
-    server_thread_t main_th;
+    eworker_t main_ew;
     magic_t magic_cookie;
     SSL_CTX* ssl_ctx;
 
@@ -102,7 +102,7 @@ typedef struct server
 i32  server_run(server_t* server);
 void server_cleanup(server_t* server);
 i32  server_print_sockerr(i32 fd);
-void server_ep_event(server_thread_t* th, const ev_t* ev);
+void server_ep_event(eworker_t* ew, const ev_t* ev);
 
 ssize_t     server_send(client_t* client, const void* buf, size_t len);
 ssize_t     server_recv(client_t* client, void* buf, size_t len);

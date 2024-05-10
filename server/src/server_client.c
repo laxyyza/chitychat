@@ -25,7 +25,7 @@ server_get_client_user_id(server_t* server, u64 id)
 }
 
 client_t*
-server_accept_client(server_thread_t* th)
+server_accept_client(eworker_t* th)
 {
     client_t* client;
     server_t* server = th->server;
@@ -56,7 +56,7 @@ err:
 }
 
 void 
-server_free_client(server_thread_t* th, client_t* client)
+server_free_client(eworker_t* th, client_t* client)
 {
     server_t* server = th->server;
 

@@ -4,19 +4,19 @@
 #include "server_websocket.h"
 
 static void 
-server_group_broadcast(server_thread_t* th, u32 group_id, json_object* json)
+server_group_broadcast(eworker_t* ew, u32 group_id, json_object* json)
 {
     const dbuser_t* member;
     client_t* member_client;
     dbuser_t* gmembers;
     u32 n_members;
 
-    gmembers = server_db_get_group_members(&th->db, group_id, &n_members);
+    gmembers = server_db_get_group_members(&ew->db, group_id, &n_members);
 
     for (u32 i = 0; i < n_members; i++)
     {
         member = gmembers + i;
-        member_client = server_get_client_user_id(th->server, member->user_id);
+        member_client = server_get_client_user_id(ew->server, member->user_id);
 
         if (member_client)
             ws_json_send(member_client, json);
@@ -26,7 +26,7 @@ server_group_broadcast(server_thread_t* th, u32 group_id, json_object* json)
 }
 
 static void 
-server_delete_msg_attachments(server_thread_t* th, dbmsg_t* msg)
+server_delete_msg_attachments(eworker_t* ew, dbmsg_t* msg)
 {
     json_object* attach_json;
     json_object* hash_json;
@@ -64,7 +64,7 @@ server_delete_msg_attachments(server_thread_t* th, dbmsg_t* msg)
         name = json_object_get_string(name_json);
         strncpy(file.name, name, DB_PFP_NAME_MAX);
 
-        server_delete_file(th, &file);
+        server_delete_file(ew, &file);
     }
 
     if (put_json)
@@ -94,7 +94,7 @@ server_msg_to_json(const dbmsg_t* dbmsg, json_object* json)
 }
 
 static void 
-server_group_to_json(server_thread_t* th, const dbgroup_t* dbgroup, json_object* json)
+server_group_to_json(eworker_t* ew, const dbgroup_t* dbgroup, json_object* json)
 {
     u32 n_members;
     dbuser_t* gmembers;
@@ -111,9 +111,9 @@ server_group_to_json(server_thread_t* th, const dbgroup_t* dbgroup, json_object*
     json_object_object_add(json, "public",
                            json_object_new_boolean(dbgroup->public));
 
-    if (th)
+    if (ew)
     {
-        gmembers = server_db_get_group_members(&th->db, dbgroup->group_id, &n_members);
+        gmembers = server_db_get_group_members(&ew->db, dbgroup->group_id, &n_members);
         
         json_object_object_add(json, "members_id", 
                                json_object_new_array_ext(n_members));
@@ -166,7 +166,7 @@ server_send_group_codes(client_t* client, dbgroup_code_t* codes,
 }
 
 const char* 
-server_group_create(server_thread_t* th, client_t* client, json_object* payload, 
+server_group_create(eworker_t* ew, client_t* client, json_object* payload, 
                     json_object* respond_json)
 {
     json_object* name_json;
@@ -188,7 +188,7 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
     new_group.public = public_group;
     strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
 
-    if (!server_db_insert_group(&th->db, &new_group))
+    if (!server_db_insert_group(&ew->db, &new_group))
         return "Failed to create group";
 
     info("Creating new group, id: %u, name: '%s', owner_id: %u\n", 
@@ -201,7 +201,7 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
     group_array_json = json_object_object_get(respond_json, "groups");
 
     group_json = json_object_new_object();
-    server_group_to_json(th, &new_group, group_json);
+    server_group_to_json(ew, &new_group, group_json);
     json_object_array_add(group_array_json, group_json);
 
     ws_json_send(client, respond_json);
@@ -210,13 +210,13 @@ server_group_create(server_thread_t* th, client_t* client, json_object* payload,
 }
 
 const char* 
-server_client_groups(server_thread_t* th, client_t* client, 
+server_client_groups(eworker_t* ew, client_t* client, 
                      UNUSED json_object* payload, json_object* respond_json) 
 {
     dbgroup_t* groups;
     u32 n_groups;
 
-    groups = server_db_get_user_groups(&th->db, client->dbuser->user_id, 
+    groups = server_db_get_user_groups(&ew->db, client->dbuser->user_id, 
                                        &n_groups);
 
     json_object_object_add(respond_json, "cmd", 
@@ -231,7 +231,7 @@ server_client_groups(server_thread_t* th, client_t* client,
         const dbgroup_t* g = groups + i;
         json_object* group_json = json_object_new_object();
 
-        server_group_to_json(th, g, group_json);
+        server_group_to_json(ew, g, group_json);
         json_object_array_add(group_array_json, group_json);
     }
 
@@ -243,12 +243,12 @@ server_client_groups(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_get_all_groups(server_thread_t* th, client_t* client, 
+server_get_all_groups(eworker_t* ew, client_t* client, 
                       UNUSED json_object* payload, json_object* respond_json)
 {
     // TODO: Limit getting public groups.
     u32 n_groups;
-    dbgroup_t* groups = server_db_get_public_groups(&th->db, client->dbuser->user_id, &n_groups);
+    dbgroup_t* groups = server_db_get_public_groups(&ew->db, client->dbuser->user_id, &n_groups);
     if (!groups)
         return "Failed to get groups";
 
@@ -275,13 +275,13 @@ server_get_all_groups(server_thread_t* th, client_t* client,
 }
 
 static void
-on_user_group_join(server_thread_t* th, client_t* client,
+on_user_group_join(eworker_t* ew, client_t* client,
                    dbgroup_t* group, json_object* respond_json)
 {
     json_object* group_json;
     json_object* array_json;
     json_object* members_array_json;
-    json_object* other_clients_respond;
+    json_object* oewer_clients_respond;
     dbuser_t* gmembers;
     const dbuser_t* member;
     client_t* member_client;
@@ -313,14 +313,14 @@ on_user_group_join(server_thread_t* th, client_t* client,
 
     server_group_to_json(NULL, group, group_json);
 
-    gmembers = server_db_get_group_members(&th->db, group->group_id, &n_members);
+    gmembers = server_db_get_group_members(&ew->db, group->group_id, &n_members);
 
     json_object_object_add(group_json, "members_id", 
                            json_object_new_array_ext(n_members));
     members_array_json = json_object_object_get(group_json, "members_id");
 
     /*
-     * To other clients who are in the group.
+     * To oewer clients who are in the group.
      * {
      *      "cmd":      "join_group",
      *      "user_id":  <type:int>,
@@ -328,27 +328,27 @@ on_user_group_join(server_thread_t* th, client_t* client,
      * }
      */
 
-    other_clients_respond = json_object_new_object();
-    json_object_object_add(other_clients_respond, "cmd",
+    oewer_clients_respond = json_object_new_object();
+    json_object_object_add(oewer_clients_respond, "cmd",
                            json_object_new_string("join_group"));
-    json_object_object_add(other_clients_respond, "user_id", 
+    json_object_object_add(oewer_clients_respond, "user_id", 
                            json_object_new_int(client->dbuser->user_id));
-    json_object_object_add(other_clients_respond, "group_id", 
+    json_object_object_add(oewer_clients_respond, "group_id", 
                            json_object_new_int(group->group_id));
 
     for (u32 m = 0; m < n_members; m++)
     {
         member = gmembers + m;
-        member_client = server_get_client_user_id(th->server, member->user_id);
+        member_client = server_get_client_user_id(ew->server, member->user_id);
 
         if (member_client && member_client != client)
-            ws_json_send(member_client, other_clients_respond);
+            ws_json_send(member_client, oewer_clients_respond);
 
         json_object_array_add(members_array_json, 
                 json_object_new_int(member->user_id));
     }
 
-    json_object_put(other_clients_respond);
+    json_object_put(oewer_clients_respond);
     json_object_array_add(array_json, group_json);
 
     ws_json_send(client, respond_json);
@@ -357,7 +357,7 @@ on_user_group_join(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_join_group(server_thread_t* th, client_t* client, 
+server_join_group(eworker_t* ew, client_t* client, 
                   json_object* payload, json_object* respond_json)
 {
     json_object* group_id_json;
@@ -367,18 +367,18 @@ server_join_group(server_thread_t* th, client_t* client,
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     group_id = json_object_get_int(group_id_json);
 
-    group = server_db_get_group(&th->db, group_id);
+    group = server_db_get_group(&ew->db, group_id);
     if (!group)
         return "Group not found";
 
-    if (!server_db_insert_group_member(&th->db, group->group_id, 
+    if (!server_db_insert_group_member(&ew->db, group->group_id, 
                                        client->dbuser->user_id))
     {
         free(group);
         return "Failed to join";
     }
 
-    on_user_group_join(th, client, group, respond_json);
+    on_user_group_join(ew, client, group, respond_json);
 
     free(group);
 
@@ -386,7 +386,7 @@ server_join_group(server_thread_t* th, client_t* client,
 }
 
 const char*
-server_get_send_group_msg(server_thread_t* th, 
+server_get_send_group_msg(eworker_t* ew, 
                           const dbmsg_t* dbmsg, 
                           const u32 group_id)
 {
@@ -396,8 +396,8 @@ server_get_send_group_msg(server_thread_t* th,
 
     server_msg_to_json(dbmsg, respond_json);
 
-    // Update all other online group members
-    server_group_broadcast(th, group_id, respond_json);
+    // Update all oewer online group members
+    server_group_broadcast(ew, group_id, respond_json);
 
     json_object_put(respond_json);
 
@@ -428,7 +428,7 @@ server_verify_msg_attachments(json_object* attachments_json, size_t n)
 }
 
 const char* 
-server_group_msg(server_thread_t* th, client_t* client, 
+server_group_msg(eworker_t* ew, client_t* client, 
                  json_object* payload, UNUSED json_object* respond_json)
 {
     json_object* group_id_json;
@@ -462,10 +462,10 @@ server_group_msg(server_thread_t* th, client_t* client,
          *  and send message to all clients in group.
          */
 
-        if (!server_db_insert_msg(&th->db, &new_msg))
+        if (!server_db_insert_msg(&ew->db, &new_msg))
             return "Failed to send message";
 
-        errmsg = server_get_send_group_msg(th, &new_msg, group_id);
+        errmsg = server_get_send_group_msg(ew, &new_msg, group_id);
         if (new_msg.attachments_inheap)
             free(new_msg.attachments);
         return errmsg;
@@ -477,12 +477,12 @@ server_group_msg(server_thread_t* th, client_t* client,
 
         /*
          * If message has attachments, create upload token (session), 
-         * save the message temporarily, send the upload token to client,
-         * and wait for client to send the attachments via HTTP POST,
-         * then insert the message into database.
+         * save ewe message temporarily, send the upload token to client,
+         * and wait for client to send ewe attachments via HTTP POST,
+         * ewen insert the message into database.
          */
 
-        upload_token_t* ut = server_new_upload_token_attach(th, &new_msg);
+        upload_token_t* ut = server_new_upload_token_attach(ew, &new_msg);
         ut->msg_state.msg.attachments_json = json_object_get(attachments_json);
         ut->msg_state.total = n_attachments;
 
@@ -493,7 +493,7 @@ server_group_msg(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_get_group_msgs(server_thread_t* th, client_t* client, 
+server_get_group_msgs(eworker_t* ew, client_t* client, 
                json_object* payload, json_object* respond_json)
 {
     json_object* limit_json;
@@ -516,7 +516,7 @@ server_get_group_msgs(server_thread_t* th, client_t* client,
     limit = json_object_get_int(limit_json);
     offset = json_object_get_int(offset_json);
 
-    group_msgs = server_db_get_msgs_from_group(&th->db, group_id, limit, 
+    group_msgs = server_db_get_msgs_from_group(&ew->db, group_id, limit, 
                                                offset, &n_msgs);
 
     json_object_object_add(respond_json, "cmd", 
@@ -551,7 +551,7 @@ server_get_group_msgs(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_create_group_code(server_thread_t* th, client_t* client,
+server_create_group_code(eworker_t* ew, client_t* client,
                          json_object* payload, json_object* respond_json)
 {
     json_object* group_id_json;
@@ -568,7 +568,7 @@ server_create_group_code(server_thread_t* th, client_t* client,
     if (max_uses == 0)
         max_uses = 1;
 
-    if (!client->dbuser || !server_db_user_in_group(&th->db, group_id, 
+    if (!client->dbuser || !server_db_user_in_group(&ew->db, group_id, 
                                                     client->dbuser->user_id))
         return "Not a group member";
 
@@ -576,7 +576,7 @@ server_create_group_code(server_thread_t* th, client_t* client,
     group_code.max_uses = max_uses;
     group_code.uses = 0;
 
-    if (!server_db_insert_group_code(&th->db, &group_code))
+    if (!server_db_insert_group_code(&ew->db, &group_code))
         return "Failed to create group code";
 
     server_send_group_codes(client, &group_code, 1, group_id, respond_json);
@@ -585,7 +585,7 @@ server_create_group_code(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_join_group_code(server_thread_t* th, client_t* client,
+server_join_group_code(eworker_t* ew, client_t* client,
                        json_object* payload, json_object* respond_json)
 {
     json_object* code_json;
@@ -597,20 +597,20 @@ server_join_group_code(server_thread_t* th, client_t* client,
     RET_IF_JSON_BAD(code_json, payload, "code", json_type_string);
     code = json_object_get_string(code_json);
 
-    group_joined = server_db_insert_group_member_code(&th->db,
+    group_joined = server_db_insert_group_member_code(&ew->db,
                                                       code,
                                                       user_id);
     if (!group_joined)
         return "Failed to join or already joined";
 
-    on_user_group_join(th, client, group_joined, respond_json);
+    on_user_group_join(ew, client, group_joined, respond_json);
         
     free(group_joined);
     return errmsg;
 }
 
 const char* 
-server_get_group_codes(server_thread_t* th, client_t* client,
+server_get_group_codes(eworker_t* ew, client_t* client,
                        json_object* payload, json_object* respond_json)
 {
     json_object* group_id_json;
@@ -621,10 +621,10 @@ server_get_group_codes(server_thread_t* th, client_t* client,
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     group_id = json_object_get_int(group_id_json);
 
-    if (!server_db_user_in_group(&th->db, group_id, client->dbuser->user_id))
+    if (!server_db_user_in_group(&ew->db, group_id, client->dbuser->user_id))
         return "Not a group member";
 
-    codes = server_db_get_all_group_codes(&th->db, group_id, &n_codes);
+    codes = server_db_get_all_group_codes(&ew->db, group_id, &n_codes);
 
     server_send_group_codes(client, codes, n_codes, group_id, respond_json);
 
@@ -634,7 +634,7 @@ server_get_group_codes(server_thread_t* th, client_t* client,
 }
 
 const char* 
-server_delete_group_code(server_thread_t* th, client_t* client, 
+server_delete_group_code(eworker_t* ew, client_t* client, 
                          json_object* payload, UNUSED json_object* resp)
 {
     json_object* code_json;
@@ -649,17 +649,17 @@ server_delete_group_code(server_thread_t* th, client_t* client,
     code = json_object_get_string(code_json);
     group_id = json_object_get_int(group_id_json);
 
-    if (!server_db_user_in_group(&th->db, group_id, user_id)) 
+    if (!server_db_user_in_group(&ew->db, group_id, user_id)) 
         return "Not a group owner";
 
-    if (!server_db_delete_group_code(&th->db, code))
+    if (!server_db_delete_group_code(&ew->db, code))
         return "Failed to delete group code";
 
     return NULL;
 }
 
 const char* 
-server_delete_group_msg(server_thread_t* th, client_t* client,
+server_delete_group_msg(eworker_t* ew, client_t* client,
                         json_object* payload, json_object* respond_json)
 {
     json_object* msg_id_json;
@@ -671,11 +671,11 @@ server_delete_group_msg(server_thread_t* th, client_t* client,
     RET_IF_JSON_BAD(msg_id_json, payload, "msg_id", json_type_int);
     msg_id = json_object_get_int(msg_id_json);
 
-    msg_to_delete = server_db_get_msg(&th->db, msg_id);
+    msg_to_delete = server_db_get_msg(&ew->db, msg_id);
     if (!msg_to_delete)
         return "Message not found";
 
-    group = server_db_get_group(&th->db, msg_to_delete->group_id);
+    group = server_db_get_group(&ew->db, msg_to_delete->group_id);
     if (!group)
     {
         errmsg = "Group not found";
@@ -693,7 +693,7 @@ server_delete_group_msg(server_thread_t* th, client_t* client,
         goto cleanup;
     } 
 
-    if (!server_db_delete_msg(&th->db, msg_to_delete->msg_id))
+    if (!server_db_delete_msg(&ew->db, msg_to_delete->msg_id))
     {
         errmsg = "Failed to delete message";
         goto cleanup;
@@ -706,8 +706,8 @@ server_delete_group_msg(server_thread_t* th, client_t* client,
     json_object_object_add(respond_json, "msg_id",
                            json_object_new_int(msg_to_delete->msg_id));
 
-    server_group_broadcast(th, group->group_id, respond_json);
-    server_delete_msg_attachments(th, msg_to_delete);
+    server_group_broadcast(ew, group->group_id, respond_json);
+    server_delete_msg_attachments(ew, msg_to_delete);
 
 cleanup:
     free(msg_to_delete);
@@ -717,7 +717,7 @@ cleanup:
 }
 
 const char* 
-server_delete_group(server_thread_t* th, client_t* client, 
+server_delete_group(eworker_t* ew, client_t* client, 
                     json_object* payload, json_object* resp_json)
 {
     json_object* group_id_json;
@@ -734,7 +734,7 @@ server_delete_group(server_thread_t* th, client_t* client,
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     group_id = json_object_get_int(group_id_json);
 
-    if ((group = server_db_get_group(&th->db, group_id)) == NULL)
+    if ((group = server_db_get_group(&ew->db, group_id)) == NULL)
         return "Group not found";
 
     owner_id = group->owner_id;
@@ -743,10 +743,10 @@ server_delete_group(server_thread_t* th, client_t* client,
     if (owner_id != client->dbuser->user_id)
         return "Permission denied";
 
-    gmembers = server_db_get_group_members(&th->db, group_id, &n_members);
-    attach_msgs = server_db_get_msgs_only_attachs(&th->db, group_id, &n_msgs);
+    gmembers = server_db_get_group_members(&ew->db, group_id, &n_members);
+    attach_msgs = server_db_get_msgs_only_attachs(&ew->db, group_id, &n_msgs);
     
-    if (!server_db_delete_group(&th->db, group_id))
+    if (!server_db_delete_group(&ew->db, group_id))
     {
         free(gmembers);
         return "Failed to delete group";
@@ -755,7 +755,7 @@ server_delete_group(server_thread_t* th, client_t* client,
     for (u32 i = 0; i < n_msgs; i++)
     {
         dbmsg_t* msg = attach_msgs + i;
-        server_delete_msg_attachments(th, msg);
+        server_delete_msg_attachments(ew, msg);
         json_object_put(msg->attachments_json);
     }
     free(attach_msgs);
@@ -768,7 +768,7 @@ server_delete_group(server_thread_t* th, client_t* client,
     for (u32 i = 0; i < n_members; i++)
     {
         member = gmembers + i;
-        member_client = server_get_client_user_id(th->server, member->user_id);
+        member_client = server_get_client_user_id(ew->server, member->user_id);
 
         if (member_client)
             ws_json_send(member_client, resp_json);

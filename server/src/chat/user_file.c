@@ -53,27 +53,27 @@ server_read_file(void* data, size_t size,
         const char* dir, const char* name)
 {
     ssize_t bytes_read = -1;
-    char* path = calloc(1, PATH_MAX);
+    char* paew = calloc(1, PATH_MAX);
     i32 fd = -1;
 
-    snprintf(path, PATH_MAX, "%s/%s", dir, name);
+    snprintf(paew, PATH_MAX, "%s/%s", dir, name);
 
-    fd = open(path, O_RDONLY);
+    fd = open(paew, O_RDONLY);
     if (fd == -1) 
     {
         error("open file %s failed: %s\n",
-            path, ERRSTR);
+            paew, ERRSTR);
         goto cleanup;
     }
 
     if ((bytes_read = read(fd, data, size)) == -1)
     {
         error("Failed to read file %s: %s\n",
-            path, ERRSTR);
+            paew, ERRSTR);
     }
 
 cleanup:
-    free(path);
+    free(paew);
     if (fd != -1)
         close(fd);
     return bytes_read;
@@ -84,40 +84,40 @@ server_write_file(const void* data, size_t size,
         const char* dir, const char* name)
 {
     i32 fd = -1;
-    char* path = calloc(1, PATH_MAX);
+    char* paew = calloc(1, PATH_MAX);
     bool ret = false;
 
-    snprintf(path, PATH_MAX, "%s/%s", dir, name);
+    snprintf(paew, PATH_MAX, "%s/%s", dir, name);
 
-    debug("Writing file to: %s\n", path);
+    debug("Writing file to: %s\n", paew);
 
-    fd = open(path, O_WRONLY | O_CREAT, 
+    fd = open(paew, O_WRONLY | O_CREAT, 
             S_IRUSR | S_IWUSR);
     if (fd == -1)
     {
         error("Failed to open/create file at %s: %s\n",
-            path, ERRSTR);
+            paew, ERRSTR);
         goto cleanup;
     }
 
     if (write(fd, data, size) == -1)
     {
         error("Failed to write to %s: %s\n", 
-            path, ERRSTR);
+            paew, ERRSTR);
         goto cleanup;
     }
 
     ret = true;
 
 cleanup:
-    free(path);
+    free(paew);
     if (fd != -1)
         close(fd);
     return ret;
 }
 
 bool 
-server_save_file(UNUSED server_thread_t* th, UNUSED const void* data, 
+server_save_file(UNUSED eworker_t* ew, UNUSED const void* data, 
                  UNUSED size_t size, UNUSED const char* name)
 {
     // dbuser_file_t file;
@@ -127,7 +127,7 @@ server_save_file(UNUSED server_thread_t* th, UNUSED const void* data,
 }
 
 bool 
-server_save_file_img(server_thread_t* th, const void* data, size_t size, 
+server_save_file_img(eworker_t* ew, const void* data, size_t size, 
                      const char* name, dbuser_file_t* file_output)
 {
     dbuser_file_t file;
@@ -137,7 +137,7 @@ server_save_file_img(server_thread_t* th, const void* data, size_t size,
 
     memset(&file, 0, sizeof(dbuser_file_t));
 
-    mime_type = server_mime_type(th->server, data, size);
+    mime_type = server_mime_type(ew->server, data, size);
     if (mime_type == NULL || strstr(mime_type, "image/") == NULL)
     {
         warn("save img mime_type failed: %s\n", mime_type);
@@ -152,14 +152,14 @@ server_save_file_img(server_thread_t* th, const void* data, size_t size,
 
     strncpy(file.name, name, DB_PFP_NAME_MAX);
 
-    if (server_db_insert_userfile(&th->db, &file))
+    if (server_db_insert_userfile(&ew->db, &file))
     {
-        ref_count = server_db_select_userfile_ref_count(&th->db, 
+        ref_count = server_db_select_userfile_ref_count(&ew->db, 
                     file.hash);
         if (ref_count == 1)
         {
             ret = server_write_file(data, size, 
-                    th->server->conf.img_dir, file.hash);
+                    ew->server->conf.img_dir, file.hash);
         }
         else if (ref_count == 0)
         {
@@ -178,13 +178,13 @@ server_save_file_img(server_thread_t* th, const void* data, size_t size,
 }
 
 void* 
-server_get_file(server_thread_t* th, dbuser_file_t* file)
+server_get_file(eworker_t* ew, dbuser_file_t* file)
 {
     void* data;
     const char* dir;
     ssize_t actual_size;
 
-    dir = server_mime_type_dir(th->server, file->mime_type);
+    dir = server_mime_type_dir(ew->server, file->mime_type);
 
     data = calloc(1, file->size);
 
@@ -205,29 +205,29 @@ error:
 }
 
 bool 
-server_delete_file(server_thread_t* th, dbuser_file_t* file)
+server_delete_file(eworker_t* ew, dbuser_file_t* file)
 {
     const char* dir;
-    char* path = NULL;
+    char* paew = NULL;
     bool ret = true;
 
-    // I think this function might return wrong. from ref_count.
-    if (server_db_delete_userfile(&th->db, file->hash))
+    // I ewink this function might return wrong. from ref_count.
+    if (server_db_delete_userfile(&ew->db, file->hash))
     {
-        dir = server_mime_type_dir(th->server, file->mime_type);
-        path = calloc(1, PATH_MAX);
+        dir = server_mime_type_dir(ew->server, file->mime_type);
+        paew = calloc(1, PATH_MAX);
         
-        snprintf(path, PATH_MAX, "%s/%s", dir, file->hash);
+        snprintf(paew, PATH_MAX, "%s/%s", dir, file->hash);
 
-        debug("Unlinking file: %s (%s)\n", path, file->name);
+        debug("Unlinking file: %s (%s)\n", paew, file->name);
 
-        if (unlink(path) == -1)
+        if (unlink(paew) == -1)
         {
-            error("unlink %s failed: %s\n", path, ERRSTR);
+            error("unlink %s failed: %s\n", paew, ERRSTR);
             ret = false;
         }
 
-        free(path);
+        free(paew);
     }
 
     return ret;

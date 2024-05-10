@@ -154,7 +154,7 @@ server_new_chatcmd(server_t* server,
 
 const char* 
 server_exec_chatcmd(const char* cmd, 
-                    server_thread_t* th, 
+                    eworker_t* ew, 
                     client_t* client, 
                     json_object* payload, 
                     json_object* resp)
@@ -162,7 +162,7 @@ server_exec_chatcmd(const char* cmd,
     u64 hash_key;
     const char* ret;
     server_chatcmd_t* chatcmd;
-    server_ght_t* ht = &th->server->chat_cmd_ht;
+    server_ght_t* ht = &ew->server->chat_cmd_ht;
 
     hash_key = server_ght_hashstr(cmd);
 
@@ -175,7 +175,7 @@ server_exec_chatcmd(const char* cmd,
     verbose("Executing '%s' (hash: %zu)...\n", 
             chatcmd->cmd, chatcmd->cmd_hash);
 
-    ret = chatcmd->callback(th, client, payload, resp);
+    ret = chatcmd->callback(ew, client, payload, resp);
 
     return ret;
 }

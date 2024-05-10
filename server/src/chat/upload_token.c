@@ -2,12 +2,12 @@
 #include "server.h"
 
 upload_token_t* 
-server_new_upload_token(server_thread_t* th, u32 user_id)
+server_new_upload_token(eworker_t* ew, u32 user_id)
 {
     upload_token_t* ut;
     server_timer_t* timer;
     union timer_data timer_data;
-    server_t* server = th->server;
+    server_t* server = ew->server;
 
     ut = calloc(1, sizeof(upload_token_t));
     ut->user_id = user_id;
@@ -18,7 +18,7 @@ server_new_upload_token(server_thread_t* th, u32 user_id)
 
     timer_data.ut = ut;
     // TODO: Make seconds configurable
-    timer = server_addtimer(th, 10, 
+    timer = server_addtimer(ew, 10, 
                             TIMER_ONCE, TIMER_UPLOAD_TOKEN, 
                             &timer_data, sizeof(void*));
     if (timer)
@@ -31,11 +31,11 @@ server_new_upload_token(server_thread_t* th, u32 user_id)
 }
 
 upload_token_t* 
-server_new_upload_token_attach(server_thread_t* th, dbmsg_t* msg)
+server_new_upload_token_attach(eworker_t* ew, dbmsg_t* msg)
 {
     upload_token_t* ut;
 
-    ut = server_new_upload_token(th, 0);
+    ut = server_new_upload_token(ew, 0);
     ut->type = UT_MSG_ATTACHMENT;
     memcpy(&ut->msg_state.msg, msg, sizeof(dbmsg_t));
 
@@ -69,22 +69,22 @@ server_send_upload_token(client_t* client, const char* packet_type, upload_token
 }
 
 void 
-server_del_upload_token(server_thread_t* th, upload_token_t* upload_token)
+server_del_upload_token(eworker_t* ew, upload_token_t* upload_token)
 {
-    server_t* server = th->server;
+    server_t* server = ew->server;
     server_event_t* se_timer;
     dbmsg_t* msg;
 
     if (!server || !upload_token)
     {
-        warn("del_upload_token(%p, %p): Something is NULL!\n", server, upload_token);
+        warn("del_upload_token(%p, %p): Someewing is NULL!\n", server, upload_token);
         return;
     }
 
     if (upload_token->timerfd)
     {
         se_timer = server_get_event(server, upload_token->timerfd);
-        server_del_event(th, se_timer);
+        server_del_event(ew, se_timer);
     }
 
     if (upload_token->type == UT_MSG_ATTACHMENT)

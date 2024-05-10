@@ -2,6 +2,7 @@
 #define _SERVER_WEBSOCKET_H_
 
 #include "common.h"
+#include "server_eworker.h"
 #include "server_tm.h"
 #include "server_client.h"
                                     //      Opcode
@@ -95,7 +96,7 @@ typedef struct
     char* payload;
 } ws_t;
 
-enum client_recv_status server_ws_parse(server_thread_t* th, client_t* client, u8* buf, size_t buf_len);
+enum client_recv_status server_ws_parse(eworker_t* ew, client_t* client, u8* buf, size_t buf_len);
 ssize_t ws_send(client_t* client, const char* buf, size_t len);
 ssize_t ws_send_adv(client_t* client, u8 opcode, const char* buf, size_t len, const u8* maskkey);
 ssize_t ws_json_send(client_t* client, json_object* json);

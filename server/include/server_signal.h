@@ -13,6 +13,6 @@ typedef struct
 } server_signal_t;
 
 bool    server_init_signal(server_t* server);
-enum se_status server_close_signal(server_thread_t* th, server_event_t* ev);
+enum se_status server_close_signal(eworker_t* ew, server_event_t* ev);
 
 #endif // _SERVER_SIGNAL_H_

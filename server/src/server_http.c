@@ -510,7 +510,7 @@ server_http_url_checks(http_t* http)
 }
 
 static enum client_recv_status 
-server_handle_http_req(server_thread_t* th, client_t* client, http_t* http)
+server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
 #define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
     enum client_recv_status ret = RECV_OK;
@@ -536,7 +536,7 @@ server_handle_http_resp(UNUSED server_t* server, UNUSED client_t* client, UNUSED
 }
 
 enum client_recv_status
-server_handle_http(server_thread_t* th, client_t* client, http_t* http)
+server_handle_http(eworker_t* th, client_t* client, http_t* http)
 {
     enum client_recv_status ret = RECV_OK;
 
@@ -561,7 +561,7 @@ server_handle_http(server_thread_t* th, client_t* client, http_t* http)
 }
 
 enum client_recv_status 
-server_http_parse(server_thread_t* th, client_t* client, u8* buf, size_t buf_len)
+server_http_parse(eworker_t* th, client_t* client, u8* buf, size_t buf_len)
 {
     http_t* http;
     enum client_recv_status ret = RECV_OK;

@@ -3,7 +3,7 @@
 #include "server_signal.h"
 
 enum se_status
-server_handle_signal(server_thread_t* th, server_event_t* ev)
+server_handle_signal(eworker_t* th, server_event_t* ev)
 {
     struct signalfd_siginfo siginfo;
     server_signal_t* sig_hlr = ev->data;
@@ -61,7 +61,7 @@ server_init_signal(server_t* server)
 }
 
 enum se_status
-server_close_signal(UNUSED server_thread_t* th, server_event_t* ev)
+server_close_signal(UNUSED eworker_t* th, server_event_t* ev)
 {
     server_signal_t* sig = ev->data;
     close(sig->fd);

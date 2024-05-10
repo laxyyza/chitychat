@@ -4,7 +4,7 @@
 bool 
 server_init_evcb(server_t* server, size_t size)
 {
-    evcb_t* cb = &server->tm.cb;
+    evcb_t* cb = &server->tm.eq;
     cb->buf_begin = malloc(size * sizeof(ev_t));
     if (cb->buf_begin == NULL)
     {

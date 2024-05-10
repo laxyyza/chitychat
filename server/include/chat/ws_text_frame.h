@@ -11,7 +11,7 @@
 
 bool json_bad(json_object* json, json_type type);
 
-enum client_recv_status server_ws_handle_text_frame(server_thread_t* th, client_t* client, 
+enum client_recv_status server_ws_handle_text_frame(eworker_t* th, client_t* client, 
                                                     char* buf, size_t buf_len);
 
 #endif // _SERVER_WS_PLD_HDLR_H_

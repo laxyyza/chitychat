@@ -49,7 +49,7 @@ server_ep_delfd(server_t* server, i32 fd)
 }
 
 enum se_status
-se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
+se_accept_conn(eworker_t* th, UNUSED server_event_t* ev)
 {
     client_t* client;
 
@@ -63,7 +63,7 @@ se_accept_conn(server_thread_t* th, UNUSED server_event_t* ev)
 }
 
 enum se_status
-se_read_client(server_thread_t* th, server_event_t* ev)
+se_read_client(eworker_t* th, server_event_t* ev)
 {
     ssize_t bytes_recv;
     u8* buf;
@@ -130,7 +130,7 @@ se_read_client(server_thread_t* th, server_event_t* ev)
 }
 
 enum se_status
-se_close_client(server_thread_t* th, server_event_t* ev)
+se_close_client(eworker_t* th, server_event_t* ev)
 {
     client_t* client = ev->data;
 
@@ -185,7 +185,7 @@ err:
 }
 
 void 
-server_del_event(server_thread_t* th, server_event_t* se)
+server_del_event(eworker_t* th, server_event_t* se)
 {
     server_t* server = th->server;
 

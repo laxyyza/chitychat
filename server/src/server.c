@@ -14,9 +14,9 @@ server_print_sockerr(i32 fd)
 }
 
 void 
-server_ep_event(server_thread_t* th, const ev_t* job)
+server_ep_event(eworker_t* ew, const ev_t* job)
 {
-    server_t* server = th->server;
+    server_t* server = ew->server;
     const i32 fd = job->fd;
     const u32 ev = job->ev;
     enum se_status ret;
@@ -33,18 +33,18 @@ server_ep_event(server_thread_t* th, const ev_t* job)
     if (ev & EPOLLERR)
     {
         se->err = server_print_sockerr(fd);
-        server_del_event(th, se);
+        server_del_event(ew, se);
     }
     else if (ev & (EPOLLRDHUP | EPOLLHUP))
     {
         verbose("fd: %d hang up.\n", fd);
-        server_del_event(th, se);
+        server_del_event(ew, se);
     }
     else if (ev & EPOLLIN)
     {
-        ret = se->read(th, se);
+        ret = se->read(ew, se);
         if (ret == SE_CLOSE || ret == SE_ERROR)
-            server_del_event(th, se);
+            server_del_event(ew, se);
         else if (se->listen_events & EPOLLONESHOT)
             server_ep_rearm(server, fd);
     }
@@ -60,7 +60,7 @@ server_run(server_t* server)
     const struct epoll_event* epev;
 
     info("Server listening on IP: %s, port: %u, thread pool: %zu\n", 
-         server->conf.addr_ip, server->conf.addr_port, server->tm.n_threads);
+         server->conf.addr_ip, server->conf.addr_port, server->tm.n_workers);
 
     while (server->running)
     {
@@ -91,7 +91,7 @@ server_del_all_clients(server_t* server)
     ht->ignore_resize = true;
 
     GHT_FOREACH(client_t* client, ht, {
-        server_free_client(&server->main_th, client);
+        server_free_client(&server->main_ew, client);
     });
     server_ght_destroy(ht);
 }
@@ -115,7 +115,7 @@ server_del_all_upload_tokens(server_t* server)
     ht->ignore_resize = true;
 
     GHT_FOREACH(upload_token_t* ut, ht, {
-        server_del_upload_token(&server->main_th, ut);
+        server_del_upload_token(&server->main_ew, ut);
     });
     server_ght_destroy(ht);
 }
@@ -127,7 +127,7 @@ server_del_all_events(server_t* server)
     ht->ignore_resize = true;
 
     GHT_FOREACH(server_event_t* ev, ht, {
-        server_del_event(&server->main_th, ev);
+        server_del_event(&server->main_ew, ev);
     });
     server_ght_destroy(&server->event_ht);
 }

@@ -72,7 +72,13 @@ typedef struct
 
 typedef struct 
 {
-    PGconn*                     conn;
+    
+} async_job_t;
+
+typedef struct 
+{
+    PGconn* conn;
+    i32     fd;
     const server_db_commands_t* cmd;
 } server_db_t;
 

@@ -45,66 +45,66 @@ typedef struct
     i32     max_uses;
 } dbgroup_code_t;
 
-const char* server_group_create(server_thread_t* th, 
+const char* server_group_create(eworker_t* ew, 
                                 client_t* client, 
                                 json_object* payload, 
                                 json_object* respond_json);
 
-const char* server_client_groups(server_thread_t* th, 
+const char* server_client_groups(eworker_t* ew, 
                                  client_t* client, 
                                  json_object* payload,
                                  json_object* respond_json);
 
-const char* server_get_all_groups(server_thread_t* th, 
+const char* server_get_all_groups(eworker_t* ew, 
                                   client_t* client, 
                                   json_object* payload,
                                   json_object* respond_json);
 
-const char* server_join_group(server_thread_t* th, 
+const char* server_join_group(eworker_t* ew, 
                               client_t* client, 
                               json_object* payload, 
                               json_object* respond_json);
 
-const char* server_get_send_group_msg(server_thread_t* th,
+const char* server_get_send_group_msg(eworker_t* ew,
                                       const dbmsg_t* msg, 
                                       const u32 group_id);
 
-const char* server_group_msg(server_thread_t* th, 
+const char* server_group_msg(eworker_t* ew, 
                              client_t* client, 
                              json_object* payload, 
                              json_object* respond_json);
 
-const char* server_get_group_msgs(server_thread_t* th, 
+const char* server_get_group_msgs(eworker_t* ew, 
                            client_t* client, 
                            json_object* payload, 
                            json_object* respond_json);
 
-const char* server_create_group_code(server_thread_t* th, 
+const char* server_create_group_code(eworker_t* ew, 
                                      client_t* client,
                                      json_object* payload, 
                                      json_object* respond_json);
 
-const char* server_join_group_code(server_thread_t* th,
+const char* server_join_group_code(eworker_t* ew,
                                    client_t* client,
                                    json_object* payload,
                                    json_object* respond_json);
 
-const char* server_get_group_codes(server_thread_t* th,
+const char* server_get_group_codes(eworker_t* ew,
                                    client_t* client,
                                    json_object* payload,
                                    json_object* respond_json);
 
-const char* server_delete_group_code(server_thread_t* th,
+const char* server_delete_group_code(eworker_t* ew,
                                      client_t* client, 
                                      json_object* payload,
                                      json_object* resp);
 
-const char* server_delete_group_msg(server_thread_t* th,
+const char* server_delete_group_msg(eworker_t* ew,
                                     client_t* client,
                                     json_object* payload,
                                     json_object* respond_json);
 
-const char* server_delete_group(server_thread_t* th,
+const char* server_delete_group(eworker_t* ew,
                                 client_t* client, 
                                 json_object* payload,
                                 json_object* resp_json);

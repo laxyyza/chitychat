@@ -9,32 +9,24 @@
 #include <pthread.h>
 #include "chat/db_def.h"
 #include "server_evcb.h"
+#include "server_eworker.h"
 
-#define THREAD_NAME_LEN 32
-
-typedef struct 
-{
-    pthread_t   pth;
-    pid_t       tid;
-    server_db_t db;
-    server_t*   server;
-    char name[THREAD_NAME_LEN];
-} server_thread_t;
+#define TM_STATE_INIT       0x01 /* Thread Manager initialized */
+#define TM_STATE_SHUTDOWN   0x80 /* Thread Manager shutting down */
 
 typedef struct 
 {
-    server_thread_t* threads;
-    size_t          n_threads;
-    u8              shutdown;
-    evcb_t          cb;
-    bool            init;
+    eworker_t*      workers;    /* Event Workers; Threads */
+    size_t          n_workers;
+    evcb_t          eq;         /* Event Queue */
+    u8              state;
 
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
 } server_tm_t;
 
 bool    server_init_tm(server_t* server, i32 n_threads);
-bool    server_tm_init_thread(server_t* server, server_thread_t* th, size_t i);
+bool    server_tm_init_thread(server_t* server, eworker_t* ew, size_t i);
 void    server_tm_shutdown(server_t* server);
 i32     server_tm_system_threads(void);
 

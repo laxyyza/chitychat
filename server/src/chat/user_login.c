@@ -6,7 +6,7 @@
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
 
 static const char* 
-server_set_client_logged_in(server_thread_t* th, 
+server_set_client_logged_in(eworker_t* ew, 
                             client_t* client, 
                             dbuser_t* user,
                             session_t* session, 
@@ -16,7 +16,7 @@ server_set_client_logged_in(server_thread_t* th,
     const client_t* client_already_logged_in;
     const u64 session_id = (session) ? session->session_id : 0;
 
-    client_already_logged_in = server_get_client_user_id(th->server, user->user_id);
+    client_already_logged_in = server_get_client_user_id(ew->server, user->user_id);
     if (client_already_logged_in)
         return "Someone else already logged in";
 
@@ -39,11 +39,11 @@ server_set_client_logged_in(server_thread_t* th,
 
     if (session && session->timerfd)
     {
-        session_timer_ev = server_get_event(th->server, session->timerfd);
+        session_timer_ev = server_get_event(ew->server, session->timerfd);
         if (session_timer_ev)
         {
             session_timer_ev->keep_data = true;
-            server_del_event(th, session_timer_ev);
+            server_del_event(ew, session_timer_ev);
         }
         session->timerfd = 0;
     }
@@ -52,7 +52,7 @@ server_set_client_logged_in(server_thread_t* th,
 }
 
 const char* 
-server_client_login_session(server_thread_t* th, 
+server_client_login_session(eworker_t* ew, 
                             client_t* client, 
                             json_object* payload, 
                             json_object* respond_json)
@@ -65,22 +65,22 @@ server_client_login_session(server_thread_t* th,
     RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_int);
     session_id = json_object_get_uint64(session_id_json);
 
-    session = server_get_user_session(th->server, session_id);
+    session = server_get_user_session(ew->server, session_id);
     if (!session)
         return "Invalid session ID or session expired";
 
-    user = server_db_get_user_from_id(&th->db, session->user_id);
+    user = server_db_get_user_from_id(&ew->db, session->user_id);
     if (!user)
     {
-        server_del_user_session(th->server, session);
+        server_del_user_session(ew->server, session);
         return "Could not find user from session";
     }
 
-    return server_set_client_logged_in(th, client, user, session, respond_json);
+    return server_set_client_logged_in(ew, client, user, session, respond_json);
 }
 
 const char* 
-server_client_login(server_thread_t* th, 
+server_client_login(eworker_t* ew, 
                     client_t* client, 
                     json_object* payload, 
                     json_object* respond_json)
@@ -105,7 +105,7 @@ server_client_login(server_thread_t* th,
     password = json_object_get_string(password_json);
     do_session = json_object_get_boolean(do_session_json);
 
-    user = server_db_get_user_from_name(&th->db, username);
+    user = server_db_get_user_from_name(&ew->db, username);
     if (!user)
         return INCORRECT_LOGIN_STR;
 
@@ -116,13 +116,13 @@ server_client_login(server_thread_t* th,
     {
         if (do_session)
         {
-            session = server_new_user_session(th->server, client);
+            session = server_new_user_session(ew->server, client);
             session->user_id = user->user_id;
         }
         else 
             session = NULL;
 
-        errmsg = server_set_client_logged_in(th, client, user, session, respond_json);
+        errmsg = server_set_client_logged_in(ew, client, user, session, respond_json);
     }
     else
         errmsg = INCORRECT_LOGIN_STR;
@@ -133,7 +133,7 @@ server_client_login(server_thread_t* th,
 }
 
 const char* 
-server_client_register(server_thread_t* th, 
+server_client_register(eworker_t* ew, 
                        client_t* client, 
                        json_object* payload,
                        json_object* resp)
@@ -167,7 +167,7 @@ server_client_register(server_thread_t* th,
     getrandom(new_user->salt, SERVER_SALT_SIZE, 0);
     server_sha512(password, new_user->salt, new_user->hash);
 
-    if (!server_db_insert_user(&th->db, new_user))
+    if (!server_db_insert_user(&ew->db, new_user))
     {
         free(new_user);
         return "Username already taken";
@@ -178,11 +178,11 @@ server_client_register(server_thread_t* th,
 
     if (do_session)
     {
-        session = server_new_user_session(th->server, client);
+        session = server_new_user_session(ew->server, client);
         session->user_id = new_user->user_id;
     }
 
-    if ((errmsg = server_set_client_logged_in(th, client, new_user, session, resp)))
+    if ((errmsg = server_set_client_logged_in(ew, client, new_user, session, resp)))
         free(new_user);
 
     return errmsg;

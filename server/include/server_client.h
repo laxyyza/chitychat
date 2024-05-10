@@ -42,11 +42,11 @@ typedef struct client
     pthread_mutex_t ssl_mutex;
 } client_t;
 
-client_t*   server_accept_client(server_thread_t* th);
+client_t*   server_accept_client(eworker_t* ew);
 int         server_client_ssl_handsake(server_t* server, client_t* client);
 client_t*   server_get_client_fd(server_t* server, i32 fd);
 client_t*   server_get_client_user_id(server_t* server, u64 id);
-void        server_free_client(server_thread_t* th, client_t* client);
+void        server_free_client(eworker_t* ew, client_t* client);
 void        server_get_client_info(client_t* client);
 void        server_set_client_err(client_t* client, u16 err);
 

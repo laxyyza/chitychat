@@ -11,7 +11,7 @@
 
 #define CMD_STR_MAX 32
 
-typedef const char* (*chatcmd_callback_t)(server_thread_t* th, client_t* client, 
+typedef const char* (*chatcmd_callback_t)(eworker_t* th, client_t* client, 
                                           json_object* payload, json_object* resp);
 
 typedef struct 
@@ -28,7 +28,7 @@ bool    server_new_chatcmd(server_t* server,
                            chatcmd_callback_t callback, 
                            i32 perms);
 const char* server_exec_chatcmd(const char* cmd, 
-                                server_thread_t* th, 
+                                eworker_t* th, 
                                 client_t* client, 
                                 json_object* payload, 
                                 json_object* resp);

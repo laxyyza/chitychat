@@ -14,7 +14,7 @@ timer_user_session(server_t* server, server_timer_t* timer)
 }
 
 static enum se_status
-timer_ut(server_thread_t* th, server_timer_t* timer)
+timer_ut(eworker_t* th, server_timer_t* timer)
 {
     upload_token_t* ut = timer->data.ut;
 
@@ -30,7 +30,7 @@ timer_ut(server_thread_t* th, server_timer_t* timer)
 }
 
 static enum se_status
-server_timer_exp(server_thread_t* th, server_timer_t* timer)
+server_timer_exp(eworker_t* th, server_timer_t* timer)
 {
     enum se_status ret;
 
@@ -54,7 +54,7 @@ server_timer_exp(server_thread_t* th, server_timer_t* timer)
 }
 
 enum se_status
-se_timer_read(server_thread_t* th, server_event_t* ev)
+se_timer_read(eworker_t* th, server_event_t* ev)
 {
     enum se_status ret;
     server_timer_t* timer = ev->data;
@@ -74,14 +74,14 @@ se_timer_read(server_thread_t* th, server_event_t* ev)
 }
 
 enum se_status
-se_timer_close(server_thread_t* th, server_event_t* ev)
+se_timer_close(eworker_t* th, server_event_t* ev)
 {
     server_close_timer(th, ev->data, ev->keep_data);
     return SE_OK;
 }
 
 server_timer_t*     
-server_addtimer(server_thread_t* th, i32 seconds, i32 flags, 
+server_addtimer(eworker_t* th, i32 seconds, i32 flags, 
                 enum timer_type type, union timer_data* data,
                 size_t size)
 {
@@ -181,7 +181,7 @@ server_timer_get(server_timer_t* timer)
 }
 
 void
-server_close_timer(server_thread_t* th, server_timer_t* timer, bool keep_data)
+server_close_timer(eworker_t* th, server_timer_t* timer, bool keep_data)
 {
     if (!timer)
         return;

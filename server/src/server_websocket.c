@@ -26,7 +26,7 @@ server_ws_parse_check_offset(const ws_t* ws, size_t* offset)
 }
 
 enum client_recv_status 
-server_ws_parse(server_thread_t* th, client_t* client, 
+server_ws_parse(eworker_t* th, client_t* client, 
                 u8* buf, size_t buf_len)
 {
     ws_t ws;

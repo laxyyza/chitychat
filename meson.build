@@ -41,6 +41,7 @@ server_src = files(
     'server/src/server_evcb.c',
     'server/src/server_ht.c',
     'server/src/server_signal.c',
+    'server/src/server_eworker.c',
 
     'server/src/chat/user_file.c',
     'server/src/chat/user_login.c',

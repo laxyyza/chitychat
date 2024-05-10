@@ -21,17 +21,17 @@ typedef struct dbuser
     rtusm_t rtusm;
 } dbuser_t;
 
-const char* server_client_user_info(server_thread_t* th, 
+const char* server_client_user_info(eworker_t* ew, 
                                     client_t* client, 
                                     json_object* payload,
                                     json_object* respond_json);
 
-const char* server_get_user(server_thread_t* th, 
+const char* server_get_user(eworker_t* ew, 
                             client_t* client, 
                             json_object* payload, 
                             json_object* respond_json);
 
-const char* server_user_edit_account(server_thread_t* th, 
+const char* server_user_edit_account(eworker_t* ew, 
                                      client_t* client, 
                                      json_object* payload, 
                                      json_object* respond_json);
