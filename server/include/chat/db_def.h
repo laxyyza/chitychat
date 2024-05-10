@@ -6,7 +6,6 @@
  */
 
 #include "server_crypt.h"
-
 #include <libpq-fe.h>
 
 #define DB_USERNAME_MAX     50
@@ -70,15 +69,46 @@ typedef struct
     size_t  insert_groupmember_code_len;
 } server_db_commands_t;
 
-typedef struct 
+typedef struct eworker eworker_t;
+typedef struct client client_t;
+struct dbasync_cmd;
+
+typedef void (*dbexec_t)(eworker_t* ew, struct dbasync_cmd* cmd);
+
+#define DB_ASYNC_OK     0
+#define DB_ASYNC_ERROR -1
+
+struct dbasync_cmd
 {
-    
-} async_job_t;
+    i32       ret;
+    client_t* client;
+    PGresult* res;
+    void*     data;
+    dbexec_t  exec;
+
+    struct dbasync_cmd* next;
+};
 
 typedef struct 
 {
-    PGconn* conn;
+    struct dbasync_cmd* begin;
+    struct dbasync_cmd* end;
+    struct dbasync_cmd* read;
+    struct dbasync_cmd* write;
+    size_t size;
+    size_t count;
+} pipeline_queue_t, plq_t;
+
+typedef struct 
+{
     i32     fd;
+    i32     flags;
+    PGconn* conn;
+    plq_t   queue;
+    struct {
+        struct dbasync_cmd* head;
+        struct dbasync_cmd* tail;
+    } current;
     const server_db_commands_t* cmd;
 } server_db_t;
 

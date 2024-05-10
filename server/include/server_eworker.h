@@ -16,23 +16,6 @@ typedef struct eworker eworker_t;
 
 typedef void (*ew_callback_t)(eworker_t* ew, client_t* client, PGresult* res, void* data);
 
-struct ew_job
-{
-    client_t*      client;
-    void*          data;
-    struct ew_job* next;
-};
-
-struct ew_queue
-{
-    struct ew_job* begin; 
-    struct ew_job* end; 
-    struct ew_job* read; 
-    struct ew_job* write; 
-    size_t size;
-    size_t count;
-};
-
 typedef struct eworker
 {
     pthread_t   pth;
@@ -40,9 +23,6 @@ typedef struct eworker
     server_db_t db;
     char        name[THREAD_NAME_LEN];
     server_t*   server;
-
-    struct ew_queue    queue;
-    struct ew_job      current;
 } server_eworker_t, eworker_t;
 
 bool server_create_eworker(server_t* server, eworker_t* ew, size_t i);

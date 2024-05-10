@@ -1,6 +1,96 @@
+#include "chat/db.h"
 #include "chat/db_def.h"
 #include "server.h"
 #include <libpq-fe.h>
+
+#define DB_PIPELINE_QUEUE_SIZE 16
+
+static void
+db_init_queue(server_db_t* db, size_t size)
+{
+    plq_t* q = &db->queue;
+
+    q->begin = calloc(size, sizeof(struct dbasync_cmd));
+    q->end = q->begin + size - 1;
+    q->read = q->begin;
+    q->write = q->begin;
+    q->size = size;
+    q->count = 0;
+}
+
+i32
+db_pipeline_enqueue(server_db_t* db, const struct dbasync_cmd* cmd)
+{
+    plq_t* q = &db->queue;
+    if (q->write->client != NULL)
+        return -1;
+    memcpy(q->write, cmd, sizeof(struct dbasync_cmd));
+    if ((q->write++ >= q->end))
+        q->write = q->begin;
+    q->count++;
+    return 0;
+}
+
+i32
+db_pipeline_enqueue_current(server_db_t* db, const struct dbasync_cmd* cmd)
+{
+    if (!cmd || !cmd->client || !cmd->data)
+        return -1;
+
+    struct dbasync_cmd* next_cmd = malloc(sizeof(struct dbasync_cmd));
+    memcpy(next_cmd, cmd, sizeof(struct dbasync_cmd));
+    next_cmd->next = NULL;
+
+    if (db->current.head == NULL)
+    {
+        db->current.head = next_cmd;
+        db->current.tail = next_cmd;
+        return 0;
+    }
+    db->current.tail->next = next_cmd;
+    db->current.tail = next_cmd;
+    return 0;
+}
+
+const struct dbasync_cmd* 
+db_pipeline_peek(const server_db_t* db)
+{
+    const plq_t* q = &db->queue;
+    if (q->read->client == NULL)
+        return NULL;
+    return q->read;
+}
+
+i32
+db_pipeline_dequeue(server_db_t* db, struct dbasync_cmd* cmd)
+{
+    plq_t* q = &db->queue;
+    if (q->read->client == NULL)
+        return 0;
+    memcpy(cmd, q->read, sizeof(struct dbasync_cmd));
+    memset(q->read, 0, sizeof(struct dbasync_cmd));
+    if ((q->read++ >= q->end))
+        q->read = q->begin;
+    q->count--;
+    return 1;
+}
+
+void
+db_pipeline_reset_current(server_db_t* db)
+{
+    db->current.head = NULL;
+    db->current.tail = NULL;
+}
+
+void
+db_pipeline_current_done(server_db_t* db)
+{
+    if (db->current.head == NULL)
+        return;
+
+    db_pipeline_enqueue(db, db->current.head);
+    db_pipeline_reset_current(db);
+}
 
 static char* 
 server_db_load_sql(const char* path, size_t* size)
@@ -96,7 +186,7 @@ db_exec_schema(server_t* server)
     bool ret = true;
     server_db_t db;
 
-    if (!server_db_open(&db, server->conf.database))
+    if (!server_db_open(&db, server->conf.database, DB_DEFAULT))
         ret = false;
 
     if (ret && !db_exec_sql(&db, server->db_commands.schema))
@@ -139,7 +229,7 @@ server_init_db(server_t* server)
 }
 
 bool
-server_db_open(server_db_t* db, const char* dbname)
+server_db_open(server_db_t* db, const char* dbname, i32 flags)
 {
     char user[SYSTEM_USERNAME_LEN];
     char conninfo[DB_CONNINTO_LEN];
@@ -157,8 +247,30 @@ server_db_open(server_db_t* db, const char* dbname)
     }
 
     PQsetNoticeProcessor(db->conn, db_notice_processor, NULL);
+    db->flags = flags;
+
+    if (flags & DB_PIPELINE)
+    {
+        if (PQenterPipelineMode(db->conn) != 1)
+        {
+            error("Enter pipeline mode: %s\n",
+                  PQerrorMessage(db->conn));
+            goto err;
+        }
+        db_init_queue(db, DB_PIPELINE_QUEUE_SIZE);
+    }
+    if (flags & DB_NONBLOCK && 
+        PQsetnonblocking(db->conn, 1) != 0)
+    {
+        error("Set non-blocking: %s\n",
+              PQerrorMessage(db->conn));
+        goto err;
+    }
 
     return true;
+err:
+    server_db_close(db);
+    return false;
 }
 
 void 
@@ -193,12 +305,41 @@ server_db_free(server_t* server)
     free(cmd->insert_userfiles);
 }
 
+i32 
+server_db_async_params(server_db_t* db, 
+                       const char* query,
+                       size_t n,
+                       const char* const vals[], 
+                       const i32* lens, 
+                       const i32* formats)
+{
+    i32 ret;
+
+    if ((ret = PQsendQueryParams(db->conn, query, n, NULL, vals, lens, formats, 0)) != 1)
+    {
+        error("Async query send: %s\n",
+              PQerrorMessage(db->conn));
+        goto err;
+    }
+    // TODO: Sync/Flush
+err:
+    return ret;
+}
+
+i32 
+server_db_async_exec(server_db_t* db, const char* query)
+{
+    return server_db_async_params(db, query, 0, NULL, NULL, NULL);
+}
+
 void 
 server_db_close(server_db_t* db)
 {
     if (!db)
         return;
 
+    if (db->flags & DB_PIPELINE)
+        free(db->queue.begin);
     PQfinish(db->conn);
 }
 
