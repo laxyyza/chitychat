@@ -1,17 +1,12 @@
 #include "server_eworker.h"
 #include "server.h"
 #include "chat/db.h"
+#include "chat/db_pipeline.h"
 #include "server_tm.h"
 #include <poll.h>
 
 static void
 eworker_process_results(eworker_t* ew)
-{
-    // TODO
-}
-
-static bool
-eworker_init_pipeline(eworker_t* ew)
 {
     // TODO
 }
@@ -46,16 +41,12 @@ bool
 server_eworker_init(eworker_t* ew)
 {
     ew->tid = gettid();
-    if (!server_db_open(&ew->db, ew->server->conf.database))
+    if (!server_db_open(&ew->db, ew->server->conf.database, 
+                        DB_PIPELINE | DB_NONBLOCK))
         return false;
-    if (!eworker_init_pipeline(ew))
-        goto err;
 
     debug("%s up & running!\n", ew->name);
     return true;
-err:
-    server_eworker_cleanup(ew);
-    return false;
 }
 
 void 
@@ -63,6 +54,7 @@ server_eworker_async_run(eworker_t* ew)
 {
     server_t* server = ew->server;
     server_tm_t* tm = &server->tm;
+    server_db_t* db = &ew->db;
     struct pollfd pfd = {
         .fd = ew->db.fd,
         .events = POLLIN
@@ -86,15 +78,18 @@ server_eworker_async_run(eworker_t* ew)
          * Block if no async jobs
          * Don't Block if async jobs in queue
          */
-        deq_flag = (ew->queue.count == 0) ? TM_DEQ_BLOCK : TM_DEQ_NONBLOCK;
+        deq_flag = (db->queue.count == 0) ? TM_DEQ_BLOCK : TM_DEQ_NONBLOCK;
         
+        /* Dequeue Event */
         if (server_tm_deq(tm, &ev, deq_flag))
         {
             // Set ew current job 
             // Handle event
             server_ep_event(ew, &ev);
+
             // After event check if any sql queries
             // if so enqueue it to ew->queue
+            db_pipeline_current_done(db);
         }
     }
 }
