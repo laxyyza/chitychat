@@ -1,4 +1,5 @@
 #include "chat/user_login.h"
+#include "chat/db.h"
 #include "chat/db_pipeline.h"
 #include "chat/rtusm.h"
 #include "chat/user_session.h"
@@ -193,11 +194,41 @@ server_client_login(eworker_t* ew,
     // return errmsg;
 }
 
+static const char* 
+do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    const char* errmsg = NULL;
+    dbuser_t* user = ctx->data;
+    session_t* session;
+    const bool do_session = ctx->param.user_login.do_session;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Username already taken";
+
+    if (do_session)
+    {
+        session = server_new_user_session(ew->server, ctx->client);
+        session->user_id = user->user_id;
+    }
+    else 
+        session = NULL;
+
+    json_object* resp = json_object_new_object();
+    errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
+    json_object_put(resp);
+
+    /* See user_login.c:do_client_login() why setting ctx->data to NULL */
+    if (errmsg == NULL)
+        ctx->data = NULL;
+
+    return errmsg;
+}
+
 const char* 
 server_client_register(eworker_t* ew, 
                        client_t* client, 
                        json_object* payload,
-                       json_object* resp)
+                       UNUSED json_object* resp)
 {
     json_object* username_json;
     json_object* displayname_json;
@@ -209,7 +240,6 @@ server_client_register(eworker_t* ew,
     bool do_session;
     dbuser_t* new_user;
     const char* errmsg = NULL;
-    session_t* session = NULL;
 
     RET_IF_JSON_BAD(username_json,      payload, "username",    json_type_string);
     RET_IF_JSON_BAD(displayname_json,   payload, "displayname", json_type_string);
@@ -228,23 +258,34 @@ server_client_register(eworker_t* ew,
     getrandom(new_user->salt, SERVER_SALT_SIZE, 0);
     server_sha512(password, new_user->salt, new_user->hash);
 
-    if (!server_db_insert_user(&ew->db, new_user))
+    dbcmd_ctx_t ctx = {
+        .param.user_login.do_session = do_session,
+        .exec = do_client_register,
+        .client = client
+    };
+    if (db_async_insert_user(&ew->db, new_user, &ctx) == false)
     {
+        errmsg = "Internal error: async-insert-user";
         free(new_user);
-        return "Username already taken";
     }
 
-    info("\tUser created: { id: %u, username: '%s', displayname: '%s'}\n", 
-         new_user->user_id, new_user->displayname, new_user->username);
-
-    if (do_session)
-    {
-        session = server_new_user_session(ew->server, client);
-        session->user_id = new_user->user_id;
-    }
-
-    if ((errmsg = server_set_client_logged_in(ew, client, new_user, session, resp)))
-        free(new_user);
-
+    // if (!server_db_insert_user(&ew->db, new_user))
+    // {
+    //     free(new_user);
+    //     return "Username already taken";
+    // }
+    //
+    // info("\tUser created: { id: %u, username: '%s', displayname: '%s'}\n", 
+    //      new_user->user_id, new_user->displayname, new_user->username);
+    //
+    // if (do_session)
+    // {
+    //     session = server_new_user_session(ew->server, client);
+    //     session->user_id = new_user->user_id;
+    // }
+    //
+    // if ((errmsg = server_set_client_logged_in(ew, client, new_user, session, resp)))
+    //     free(new_user);
+    //
     return errmsg;
 }

@@ -2,6 +2,7 @@
 #define _SERVER_DB_PIPELINE_H_
 
 #include "chat/db_def.h"
+#include "chat/user.h"
 
 /* Async operations */
 i32 db_async_params(server_db_t* db, 
@@ -29,6 +30,7 @@ void db_pipeline_current_done(server_db_t* db);     /* Enqueue current cmd to pi
 /* Users */
 bool db_async_get_user(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx);
 bool db_async_get_user_username(server_db_t* db, const char* username, dbcmd_ctx_t* ctx);
+bool db_async_insert_user(server_db_t* db, const dbuser_t* user, dbcmd_ctx_t* ctx);
 
 /* Groups */
 i32 db_async_get_group(server_db_t* db, u32 group_id, dbexec_t callback);
