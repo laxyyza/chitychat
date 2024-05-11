@@ -71,45 +71,10 @@ typedef struct
 
 typedef struct eworker eworker_t;
 typedef struct client client_t;
-struct dbasync_cmd;
+typedef struct dbcmd_ctx dbcmd_ctx_t;
+typedef struct server_db server_db_t;
 
-typedef void (*dbexec_t)(eworker_t* ew, struct dbasync_cmd* cmd);
-
-#define DB_ASYNC_OK     0
-#define DB_ASYNC_ERROR -1
-
-struct dbasync_cmd
-{
-    i32       ret;
-    client_t* client;
-    PGresult* res;
-    void*     data;
-    dbexec_t  exec;
-
-    struct dbasync_cmd* next;
-};
-
-typedef struct 
-{
-    struct dbasync_cmd* begin;
-    struct dbasync_cmd* end;
-    struct dbasync_cmd* read;
-    struct dbasync_cmd* write;
-    size_t size;
-    size_t count;
-} pipeline_queue_t, plq_t;
-
-typedef struct 
-{
-    i32     fd;
-    i32     flags;
-    PGconn* conn;
-    plq_t   queue;
-    struct {
-        struct dbasync_cmd* head;
-        struct dbasync_cmd* tail;
-    } current;
-    const server_db_commands_t* cmd;
-} server_db_t;
+typedef const char* (*dbexec_t)(eworker_t* ew, dbcmd_ctx_t* cmd);
+typedef void (*dbexec_res_t)(eworker_t* ew, PGresult* res, ExecStatusType res_status, dbcmd_ctx_t* ctx);
 
 #endif // _SERVER_CHAT_DB_DEF_H_

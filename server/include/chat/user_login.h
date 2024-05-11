@@ -1,7 +1,13 @@
 #ifndef _SERVER_USER_LOGIN_H_
 #define _SERVER_USER_LOGIN_H_
 
-#include "server_websocket.h"
+#include "chat/db_def.h"
+
+typedef struct 
+{
+    char password[DB_PASSWORD_MAX];
+    bool do_session;
+} user_login_param_t;
 
 const char* 
 server_client_register(eworker_t* th, 

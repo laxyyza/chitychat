@@ -9,7 +9,6 @@
 #include <pthread.h>
 #include "chat/db_def.h"
 #include "server_evcb.h"
-#include "server_eworker.h"
 
 #define TM_STATE_INIT       0x01 /* Thread Manager initialized */
 #define TM_STATE_SHUTDOWN   0x80 /* Thread Manager shutting down */

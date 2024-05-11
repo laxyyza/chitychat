@@ -7,7 +7,7 @@
 #ifndef _SERVER_EVENT_WORKER_H_
 #define _SERVER_EVENT_WORKER_H_
 
-#include "chat/db_def.h"
+#include "chat/db.h"
 
 typedef struct client client_t;
 typedef struct eworker eworker_t;

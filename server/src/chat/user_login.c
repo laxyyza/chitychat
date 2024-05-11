@@ -1,4 +1,5 @@
 #include "chat/user_login.h"
+#include "chat/db_pipeline.h"
 #include "chat/rtusm.h"
 #include "chat/user_session.h"
 #include "chat/ws_text_frame.h"
@@ -79,23 +80,63 @@ server_client_login_session(eworker_t* ew,
     return server_set_client_logged_in(ew, client, user, session, respond_json);
 }
 
+static const char*
+do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    const char* errmsg = NULL;
+    dbuser_t* user = ctx->data;
+    const char* password = ctx->param.user_login.password;
+    const bool do_session = ctx->param.user_login.do_session;
+    session_t* session;
+    u8 hash_login[SERVER_HASH_SIZE];
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return INCORRECT_LOGIN_STR;
+    if (user == NULL)
+    {
+        error("db_client_login: ctx->data is NULL!\n");
+        return "Internal error: ctx->data";
+    }
+
+    server_sha512(password, user->salt, hash_login);
+
+    if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
+    {
+        if (do_session)
+        {
+            session = server_new_user_session(ew->server, ctx->client);
+            session->user_id = user->user_id;
+        }
+        else
+            session = NULL;
+
+        json_object* resp = json_object_new_object();
+        errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
+        json_object_put(resp);
+    }
+    else
+        errmsg = INCORRECT_LOGIN_STR;
+
+    return errmsg;
+}
+
 const char* 
 server_client_login(eworker_t* ew, 
                     client_t* client, 
                     json_object* payload, 
-                    json_object* respond_json)
+                    UNUSED json_object* respond_json)
 {
     json_object* username_json;
     json_object* password_json;
     json_object* do_session_json;
     const char* username;
     const char* password;
-    dbuser_t* user;
-    session_t* session;
+    // dbuser_t* user;
+    // session_t* session;
     bool do_session;
-    u8 hash_login[SERVER_HASH_SIZE];
-    u8* salt;
-    const char* errmsg = NULL;
+    // u8 hash_login[SERVER_HASH_SIZE];
+    // u8* salt;
+    // const char* errmsg = NULL;
 
     RET_IF_JSON_BAD(username_json, payload, "username", json_type_string);
     RET_IF_JSON_BAD(password_json, payload, "password", json_type_string);
@@ -105,31 +146,43 @@ server_client_login(eworker_t* ew,
     password = json_object_get_string(password_json);
     do_session = json_object_get_boolean(do_session_json);
 
-    user = server_db_get_user_from_name(&ew->db, username);
-    if (!user)
-        return INCORRECT_LOGIN_STR;
+    dbcmd_ctx_t ctx;
+    memset(&ctx, 0, sizeof(dbcmd_ctx_t));
 
-    salt = user->salt;
-    server_sha512(password, salt, hash_login);
+    ctx.exec = do_client_login;
+    ctx.client = client;
+    ctx.param.user_login.do_session = do_session;
+    strncpy(ctx.param.user_login.password, password, DB_PASSWORD_MAX);
 
-    if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
-    {
-        if (do_session)
-        {
-            session = server_new_user_session(ew->server, client);
-            session->user_id = user->user_id;
-        }
-        else 
-            session = NULL;
+    if (!db_async_get_user_username(&ew->db, username, &ctx))
+        return "Failed to do async sql.\n";
+    return NULL;
 
-        errmsg = server_set_client_logged_in(ew, client, user, session, respond_json);
-    }
-    else
-        errmsg = INCORRECT_LOGIN_STR;
-
-    if (errmsg)
-        free(user);
-    return errmsg;
+    // user = server_db_get_user_from_name(&ew->db, username);
+    // if (!user)
+    //     return INCORRECT_LOGIN_STR;
+    //
+    // salt = user->salt;
+    // server_sha512(password, salt, hash_login);
+    //
+    // if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
+    // {
+    //     if (do_session)
+    //     {
+    //         session = server_new_user_session(ew->server, client);
+    //         session->user_id = user->user_id;
+    //     }
+    //     else 
+    //         session = NULL;
+    //
+    //     errmsg = server_set_client_logged_in(ew, client, user, session, respond_json);
+    // }
+    // else
+    //     errmsg = INCORRECT_LOGIN_STR;
+    //
+    // if (errmsg)
+    //     free(user);
+    // return errmsg;
 }
 
 const char* 

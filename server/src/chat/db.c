@@ -10,7 +10,7 @@ db_init_queue(server_db_t* db, size_t size)
 {
     plq_t* q = &db->queue;
 
-    q->begin = calloc(size, sizeof(struct dbasync_cmd));
+    q->begin = calloc(size, sizeof(dbcmd_ctx_t));
     q->end = q->begin + size - 1;
     q->read = q->begin;
     q->write = q->begin;
@@ -192,6 +192,7 @@ server_db_open(server_db_t* db, const char* dbname, i32 flags)
               PQerrorMessage(db->conn));
         goto err;
     }
+    db->fd = PQsocket(db->conn);
 
     return true;
 err:
@@ -241,6 +242,52 @@ server_db_close(server_db_t* db)
         free(db->queue.begin);
     PQfinish(db->conn);
 }
+
+PGresult*   
+server_db_params(server_db_t* db, 
+                 const char* cmd, 
+                 size_t n, 
+                 const char* const vals[], 
+                 const i32* lens, 
+                 const i32* formats)
+{
+    PGresult* res = NULL;
+
+    if (db->flags & DB_PIPELINE)
+    {
+        if (PQexitPipelineMode(db->conn) != 1)
+            error("Failed to exit pipeline mode: %s\n",
+                  PQerrorMessage(db->conn));
+    }
+    if (db->flags & DB_NONBLOCK)
+    {
+        if (PQsetnonblocking(db->conn, 0) != 0)
+            error("Failed to set blocking: %s\n",
+                  PQerrorMessage(db->conn));
+    }
+
+    res = PQexecParams(db->conn, cmd, n, NULL, vals, lens, formats, 0);
+
+    if (db->flags & DB_PIPELINE)
+    {
+        if (PQenterPipelineMode(db->conn) != 1)
+            error("Failed to enter pipeline mode after exit.\n");
+    }
+    if (db->flags & DB_NONBLOCK)
+    {
+        if (PQsetnonblocking(db->conn, 1) != 0)
+            error("Failed to set non-blocking to 1: %s\n",
+                  PQerrorMessage(db->conn));
+    }
+    return res;
+}
+
+PGresult*   
+server_db_exec(server_db_t* db, const char* cmd)
+{
+    return server_db_params(db, cmd, 0, NULL, NULL, NULL);
+}
+
 
 static void
 db_row_to_userfile(dbuser_file_t* file, PGresult* res, i32 row)
@@ -378,7 +425,7 @@ db_row_to_groupcode(dbgroup_code_t* groupcode, PGresult* res, i32 row)
         warn("max_uses_str is NULL!\n");
 }
 
-static void 
+void 
 db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
 {
     char* endptr;

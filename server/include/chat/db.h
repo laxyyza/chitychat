@@ -6,15 +6,73 @@
 #include "chat/user.h"
 #include "chat/group.h"
 #include "chat/user_file.h"
+#include "chat/user_login.h"
 
 #define DB_DEFAULT      0x00
 #define DB_PIPELINE     0x01
 #define DB_NONBLOCK     0x02
 
+#define DB_ASYNC_BUSY   0
+#define DB_ASYNC_OK     1
+#define DB_ASYNC_ERROR -1
+
+union cmd_param 
+{
+    user_login_param_t user_login;
+};
+
+typedef struct dbcmd_ctx
+{
+    i32       ret;
+    client_t* client;
+    void*     data;
+    size_t    data_size;
+    dbexec_t     exec;
+    dbexec_res_t exec_res;
+    union cmd_param param;
+    struct dbcmd_ctx* next;
+} dbcmd_ctx_t;
+
+typedef struct 
+{
+    dbcmd_ctx_t* begin;
+    dbcmd_ctx_t* end;
+    dbcmd_ctx_t* read;
+    dbcmd_ctx_t* write;
+    size_t size;
+    size_t count;
+} pipeline_queue_t, plq_t;
+
+typedef struct 
+{
+    i32           ret;
+    client_t*     client;
+    dbcmd_ctx_t*  head;
+    dbcmd_ctx_t*  tail;
+} dbctx_t;
+
+typedef struct server_db
+{
+    i32     fd;
+    i32     flags;
+    PGconn* conn;
+    plq_t   queue;
+    dbctx_t ctx;
+    const server_db_commands_t* cmd;
+} server_db_t;
+
 bool        server_init_db(server_t* server);
 bool        server_db_open(server_db_t* db, const char* dbname, i32 flags);
 void        server_db_free(server_t* server);
 void        server_db_close(server_db_t* db);
+
+PGresult*   server_db_params(server_db_t* db, 
+                             const char* cmd, 
+                             size_t n,
+                             const char* const vals[],
+                             const i32* lens,
+                             const i32* formats);
+PGresult*   server_db_exec(server_db_t* db, const char* cmd);
 
 /* Users */
 dbuser_t*   server_db_get_user_from_id(server_db_t* db, u32 user_id);
@@ -62,6 +120,9 @@ dbuser_file_t*      server_db_select_userfile(server_db_t* db, const char* hash)
 i32                 server_db_select_userfile_ref_count(server_db_t* db, const char* hash);
 bool                server_db_insert_userfile(server_db_t* db, dbuser_file_t* file);
 bool                server_db_delete_userfile(server_db_t* db, const char* hash);
+
+/* Result to structure */
+void db_row_to_user(dbuser_t* user, PGresult* res, i32 row);
 
 /* Frees */
 void dbmsg_free(dbmsg_t* msg);

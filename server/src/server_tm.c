@@ -87,7 +87,10 @@ server_tm_shutdown_threads(server_tm_t* tm)
     tm_unlock(tm);
 
     for (size_t i = 0; i < tm->n_workers; i++)
+    {
+        pthread_cond_broadcast(&tm->cond);
         pthread_join(tm->workers[i].pth, NULL);
+    }
 
     server_evcb_free(&tm->eq);
 }
@@ -133,8 +136,11 @@ server_tm_deq(server_tm_t* tm, ev_t* ev, i32 flags)
     do {
         if (flags == TM_DEQ_BLOCK)
             pthread_mutex_lock(&tm->mutex);
-        else if (pthread_mutex_trylock(&tm->mutex) != 0)
-            return 0;
+        else 
+        {
+            if (pthread_mutex_trylock(&tm->mutex))
+                return 0;
+        }
         pthread_cond_wait(&tm->cond, &tm->mutex);
         ret = server_evcb_dequeue(&tm->eq, ev);
         pthread_mutex_unlock(&tm->mutex);

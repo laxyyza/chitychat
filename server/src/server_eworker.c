@@ -3,13 +3,8 @@
 #include "chat/db.h"
 #include "chat/db_pipeline.h"
 #include "server_tm.h"
+#include <libpq-fe.h>
 #include <poll.h>
-
-static void
-eworker_process_results(eworker_t* ew)
-{
-    // TODO
-}
 
 static void*
 eworker_main(void* arg)
@@ -45,8 +40,23 @@ server_eworker_init(eworker_t* ew)
                         DB_PIPELINE | DB_NONBLOCK))
         return false;
 
+    PQpipelineSync(ew->db.conn);
+    db_process_results(ew);
+
     debug("%s up & running!\n", ew->name);
     return true;
+}
+
+static void
+eworker_handle_event(eworker_t* ew, ev_t* ev)
+{
+    // Set ew current job 
+    // Handle event
+    server_ep_event(ew, ev);
+
+    // After event check if any sql queries
+    // if so enqueue it to ew->queue
+    db_pipeline_current_done(&ew->db);
 }
 
 void 
@@ -71,26 +81,24 @@ server_eworker_async_run(eworker_t* ew)
             continue;
         }
 
+        debug("tid: %d\n\tret: %d\n\tdb->queue: %d\n", 
+              ew->tid, ret, db->queue.count);
+
         if (ret > 0)
-            eworker_process_results(ew);
+            db_process_results(ew);
 
         /*
          * Block if no async jobs
          * Don't Block if async jobs in queue
          */
         deq_flag = (db->queue.count == 0) ? TM_DEQ_BLOCK : TM_DEQ_NONBLOCK;
+
+        debug("tid: %d, deq_flag: %d\n",
+              ew->tid, deq_flag);
         
         /* Dequeue Event */
         if (server_tm_deq(tm, &ev, deq_flag))
-        {
-            // Set ew current job 
-            // Handle event
-            server_ep_event(ew, &ev);
-
-            // After event check if any sql queries
-            // if so enqueue it to ew->queue
-            db_pipeline_current_done(db);
-        }
+            eworker_handle_event(ew, &ev);
     }
 }
 
