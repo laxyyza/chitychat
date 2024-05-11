@@ -69,9 +69,12 @@ typedef struct
  
 typedef struct server
 {
-    i32 sock;
-    i32 epfd;
-    pid_t pid;
+    struct {
+        i32 sock;       /* Server socket fd */
+        i32 epfd;       /* epoll fd */
+        i32 eventfd;    /* eventfd (used to wake up threads from epoll_wait()) */
+        i32 sigfd;      /* signalfd */
+    };
     server_config_t conf;
     server_db_commands_t db_commands;
     server_tm_t tm;
@@ -91,18 +94,12 @@ typedef struct server
     server_ght_t session_ht;
     server_ght_t upload_token_ht;
     server_ght_t chat_cmd_ht;
-
-    struct epoll_event ep_events[MAX_EP_EVENTS];
-    
-    server_signal_t sig_hlr;
-
     bool running;
 } server_t;
 
-i32  server_run(server_t* server);
+void server_run(server_t* server);
 void server_cleanup(server_t* server);
 i32  server_print_sockerr(i32 fd);
-void server_ep_event(eworker_t* ew, const ev_t* ev);
 
 ssize_t     server_send(client_t* client, const void* buf, size_t len);
 ssize_t     server_recv(client_t* client, void* buf, size_t len);

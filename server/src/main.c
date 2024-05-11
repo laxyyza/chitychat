@@ -4,7 +4,6 @@ i32
 main(int argc, char* const* argv)
 {
     server_t* server;
-    i32 ret;
 
     /* 
      * Server Initialization: socket, epoll, OpenSSL, thread pool, etc. 
@@ -14,11 +13,9 @@ main(int argc, char* const* argv)
         return EXIT_FAILURE;
     
     /* 
-     * Main Thread Loop: Gets events and
-     * enqueus it to the thread pool.
-     * `worker` main loop: server_tm.c: tm_worker()
+     * Main thread only handle signals.
      */
-    ret = server_run(server);
+    server_run(server);
 
     /* 
      * Cleanup: disconnecting connected clients, 
@@ -28,5 +25,5 @@ main(int argc, char* const* argv)
      */
     server_cleanup(server);
 
-    return ret;
+    return EXIT_SUCCESS;
 }

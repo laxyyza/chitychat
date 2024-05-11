@@ -2,48 +2,53 @@
 #include "chat/rtusm.h"
 #include "server.h"
 #include "server_client.h"
+#include "server_eworker.h"
 #include "server_tm.h"
 
-static i32
-server_ep_ctl(server_t* server, i32 op, i32 fd)
+i32
+server_event_add(const server_t* server, server_event_t* se)
 {
     i32 ret;
 
+    if (se->listen_events == 0)
+        se->listen_events = DEFAULT_EPEV;
+
     struct epoll_event ev = {
-        .data.fd = fd,
-        .events = DEFAULT_EPEV
+        .data.ptr = se,
+        .events = se->listen_events
     };
 
-    ret = epoll_ctl(server->epfd, op, fd, &ev);
+    ret = epoll_ctl(server->epfd, EPOLL_CTL_ADD, se->fd, &ev);
     if (ret == -1)
-        error("epoll_ctl op:%d, fd:%d\n", op, fd);
+        error("server_event_add on fd: %d\n", se->fd);
+    return ret;
+}
+
+i32
+server_event_remove(const server_t* server, const server_event_t* se)
+{
+    i32 ret;
+
+    ret = epoll_ctl(server->epfd, EPOLL_CTL_DEL, se->fd, NULL);
+    if (ret == -1)
+        error("server_event_remove on fd: %d\n", se->fd);
 
     return ret;
 }
 
 i32 
-server_ep_rearm(server_t* server, i32 fd)
-{
-    return server_ep_ctl(server, EPOLL_CTL_MOD, fd);
-}
-
-i32 
-server_ep_addfd(server_t* server, i32 fd)
-{
-    return server_ep_ctl(server, EPOLL_CTL_ADD, fd);
-}
-
-i32 
-server_ep_delfd(server_t* server, i32 fd)
+server_event_rearm(const server_t* server, const server_event_t* se)
 {
     i32 ret;
 
-    if (!server || !fd)
-        return -1;
+    struct epoll_event ev = {
+        .data.ptr = (void*)se,
+        .events = se->listen_events
+    };
 
-    ret = epoll_ctl(server->epfd, EPOLL_CTL_DEL, fd, NULL);
-    if (ret == -1 && errno != ENOENT)
-        error("epoll_ctl DEL fd:%d: %s\n", fd, ERRSTR);
+    ret = epoll_ctl(server->epfd, EPOLL_CTL_MOD, se->fd, &ev);
+    if (ret == -1)
+        error("server_event_rearm() on fd: %d\n", se->fd);
 
     return ret;
 }
@@ -171,14 +176,14 @@ server_new_event(server_t* server,
         error("new_event(): Failed to insert.\n");
         goto err;
     }
-    if (server_ep_addfd(server, fd) == -1)
+    if (server_event_add(server, se) == -1)
     {
         error("ep_addfd %d failed\n", fd);
         goto err;
     }
     return se;
 err:
-    server_ep_delfd(server, fd);
+    server_event_remove(server, se);
     server_ght_del(&server->event_ht, fd);
     free(se);
     return NULL;
@@ -196,7 +201,7 @@ server_del_event(eworker_t* th, server_event_t* se)
         return;
     }
 
-    server_ep_delfd(server, se->fd);
+    server_event_remove(server, se);
     if (se->close)
         se->close(th, se);
     else
@@ -213,4 +218,34 @@ server_event_t*
 server_get_event(server_t* server, i32 fd)
 {
     return server_ght_get(&server->event_ht, fd);
+}
+
+void 
+server_process_event(eworker_t* ew, server_event_t* se)
+{
+    enum se_status ret;
+    server_t* server = ew->server;
+    const u32 ev = se->ep_events;
+    const i32 fd = se->fd;
+
+    if (ev & EPOLLERR)
+    {
+        se->err = server_print_sockerr(fd);
+        server_del_event(ew, se);
+    }
+    else if (ev & (EPOLLRDHUP | EPOLLHUP))
+    {
+        verbose("fd: %d hang up.\n", fd);
+        server_del_event(ew, se);
+    }
+    else if (ev & EPOLLIN)
+    {
+        ret = se->read(ew, se);
+        if (ret == SE_CLOSE || ret == SE_ERROR)
+            server_del_event(ew, se);
+        else if (se->listen_events & EPOLLONESHOT)
+            server_event_rearm(server, se);
+    }
+    else
+        warn("Not handled fd: %d, ev: 0x%x\n", fd, ev);
 }

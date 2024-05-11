@@ -13,75 +13,13 @@ server_print_sockerr(i32 fd)
     return err;
 }
 
-void 
-server_ep_event(eworker_t* ew, const ev_t* job)
-{
-    server_t* server = ew->server;
-    const i32 fd = job->fd;
-    const u32 ev = job->ev;
-    enum se_status ret;
-    server_event_t* se = server_get_event(server, fd);
-
-    if (!se)
-    {
-        error("server_get_event(%d) failed!\n", fd);
-        server_ep_delfd(server, fd);
-        return;
-    }
-    se->ep_events = ev;
-
-    if (ev & EPOLLERR)
-    {
-        se->err = server_print_sockerr(fd);
-        server_del_event(ew, se);
-    }
-    else if (ev & (EPOLLRDHUP | EPOLLHUP))
-    {
-        verbose("fd: %d hang up.\n", fd);
-        server_del_event(ew, se);
-    }
-    else if (ev & EPOLLIN)
-    {
-        ret = se->read(ew, se);
-        if (ret == SE_CLOSE || ret == SE_ERROR)
-            server_del_event(ew, se);
-        else if (se->listen_events & EPOLLONESHOT)
-            server_ep_rearm(server, fd);
-    }
-    else
-        warn("Not handled fd: %d, ev: 0x%x\n", fd, ev);
-}
-
-i32
+void
 server_run(server_t* server)
 {
-    i32 ret = EXIT_SUCCESS;
-    i32 nfds;
-    const struct epoll_event* epev;
-
     info("Server listening on IP: %s, port: %u, thread pool: %zu\n", 
          server->conf.addr_ip, server->conf.addr_port, server->tm.n_workers);
 
-    while (server->running)
-    {
-        if ((nfds = epoll_wait(server->epfd, server->ep_events, MAX_EP_EVENTS, -1)) == -1)
-        {
-            if (errno == EINTR)
-                continue;
-
-            error("epoll_wait: %s\n", ERRSTR);
-            server->running = false;
-            ret = EXIT_FAILURE;
-        }
-
-        for (i32 i = 0; i < nfds; i++)
-        {
-            epev = server->ep_events + i;
-            server_tm_enq(&server->tm, epev->data.fd, epev->events);
-        }
-    }
-
-    return ret;
+    server_wait_for_signals(server);
 }
 
 static void 
@@ -149,6 +87,8 @@ server_cleanup(server_t* server)
 
     SSL_CTX_free(server->ssl_ctx);
 
+    if (server->sigfd)
+        close(server->sigfd);
     if (server->epfd)
         close(server->epfd);
     if (server->sock)

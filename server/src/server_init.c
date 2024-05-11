@@ -1,7 +1,10 @@
 #include "server_init.h"
+#include "chat/db_def.h"
 #include "server.h"
+#include "server_events.h"
 #include "server_ht.h"
 #include "chat/cmd.h"
+#include <sys/eventfd.h>
 
 #define LISTEN_BACKLOG 100
 
@@ -455,6 +458,44 @@ server_init_ht(server_t* server)
     return true;
 }
 
+static enum se_status
+eventfd_dummy_read(eworker_t* ew, UNUSED server_event_t* ev)
+{
+    /*
+     * Won't read eventfd.
+     * Make all threads wake up from epoll_wait().
+     */
+    debug("eventfd_dummy_read() from %d\n", ew->tid);
+    return SE_OK;
+}
+
+static bool
+server_init_eventfd(server_t* server)
+{
+    server_event_t* se;
+
+    server->eventfd = eventfd(0, 0);
+    if (server->eventfd == -1)
+    {
+        fatal("eventfd: %s\n", ERRSTR);
+        return false;
+    }
+
+    se = server_new_event(server, server->eventfd, NULL, eventfd_dummy_read, NULL);
+    if (se == NULL)
+        return false;
+
+    /*
+     * Default server_new_event() will use EPOLLONESHOT,
+     * in this case we don't, we want all threads get this event.
+     */
+    se->listen_events = EPOLLIN;
+    if (server_event_rearm(server, se) == -1)
+        return false;
+
+    return true;
+}
+
 server_t*   
 server_init(int argc, char* const* argv)
 {
@@ -506,6 +547,10 @@ server_init(int argc, char* const* argv)
     if (!server_init_ssl(server))
         goto error;
 
+    // Init EventFD (to wake up threads from epoll_wait())
+    if (!server_init_eventfd(server))
+        goto error;
+
     if (!server_init_signal(server))
         goto error;
 
@@ -513,7 +558,6 @@ server_init(int argc, char* const* argv)
     if (!server_init_tm(server, server->conf.thread_pool))
         goto error;
 
-    server->pid = getpid();
     server->running = true;
 
     return server;

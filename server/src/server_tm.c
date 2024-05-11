@@ -1,6 +1,7 @@
 #include "server_tm.h"
+#include "chat/db_def.h"
 #include "server.h"
-#include "server_evcb.h"
+#include <sys/eventfd.h>
 
 #define EVCB_SIZE 128
 
@@ -57,7 +58,6 @@ server_init_tm(server_t* server, i32 n_workers)
     pthread_mutex_init(&tm->mutex, NULL);
     pthread_cond_init(&tm->cond, NULL);
 
-    server_init_evcb(server, EVCB_SIZE);
     tm->state |= TM_STATE_INIT;
 
     if (server_db_open(&server->main_ew.db, server->conf.database, 0) == false)
@@ -75,24 +75,22 @@ err:
 }
 
 static void 
-server_tm_shutdown_threads(server_tm_t* tm)
+server_tm_shutdown_threads(server_t* server)
 {
-    tm_lock(tm);
+    server_tm_t* tm = &server->tm;
     tm->state |= TM_STATE_SHUTDOWN;
 
-    // Clear all the events
-    server_evcb_clear(&tm->eq);
+    /*
+     * If workers are not busy, they will block in epoll_wait()
+     * to wake them up from that, write something to eventfd.
+     */
+    eventfd_write(server->eventfd, 1);
     
-    pthread_cond_broadcast(&tm->cond);
-    tm_unlock(tm);
-
     for (size_t i = 0; i < tm->n_workers; i++)
     {
-        pthread_cond_broadcast(&tm->cond);
-        pthread_join(tm->workers[i].pth, NULL);
+        eworker_t* ew = tm->workers + i;
+        pthread_join(ew->pth, NULL);
     }
-
-    server_evcb_free(&tm->eq);
 }
 
 void    
@@ -102,7 +100,10 @@ server_tm_shutdown(server_t* server)
     if (!(tm->state & TM_STATE_INIT))
         return;
 
-    server_tm_shutdown_threads(tm);
+    if (server->eventfd == 0)
+        return;
+
+    server_tm_shutdown_threads(server);
 
     pthread_cond_destroy(&tm->cond);
     pthread_mutex_destroy(&tm->mutex);
@@ -112,54 +113,17 @@ server_tm_shutdown(server_t* server)
     free(tm->workers);
 }
 
-void            
-server_tm_enq(server_tm_t* tm, i32 fd, u32 ev)
-{
-    i32 is_full;
-    do {
-        tm_lock(tm);
-        is_full = server_evcb_enqueue(&tm->eq, fd, ev);
-        pthread_cond_broadcast(&tm->cond);
-        tm_unlock(tm);
-    } while (is_full);
-    /**
-     * If server_evcb_enqueue() returns -1, it means ring buffer is full.
-     * just try to enqueue until ring buffer is open.
-     **/
-}
-
-i32
-server_tm_deq(server_tm_t* tm, ev_t* ev, i32 flags)
-{
-    i32 ret = -1;
-
-    do {
-        if (flags == TM_DEQ_BLOCK)
-            pthread_mutex_lock(&tm->mutex);
-        else 
-        {
-            if (pthread_mutex_trylock(&tm->mutex))
-                return 0;
-        }
-        pthread_cond_wait(&tm->cond, &tm->mutex);
-        ret = server_evcb_dequeue(&tm->eq, ev);
-        pthread_mutex_unlock(&tm->mutex);
-    } while (ret == 0 && !(tm->state & TM_STATE_SHUTDOWN));
-
-    return ret;
-}
-
-void    
-tm_lock(server_tm_t* tm)
-{
-    pthread_mutex_lock(&tm->mutex);
-}
-
-void    
-tm_unlock(server_tm_t* tm)
-{
-    pthread_mutex_unlock(&tm->mutex);
-}
+// void    
+// tm_lock(server_tm_t* tm)
+// {
+//     pthread_mutex_lock(&tm->mutex);
+// }
+//
+// void    
+// tm_unlock(server_tm_t* tm)
+// {
+//     pthread_mutex_unlock(&tm->mutex);
+// }
 
 i32     
 server_tm_system_threads(void)

@@ -13,6 +13,7 @@ typedef struct client client_t;
 typedef struct eworker eworker_t;
 
 #define THREAD_NAME_LEN 32
+#define EWORKER_MAX_EVENTS 16
 
 typedef void (*ew_callback_t)(eworker_t* ew, client_t* client, PGresult* res, void* data);
 
@@ -23,6 +24,7 @@ typedef struct eworker
     server_db_t db;
     char        name[THREAD_NAME_LEN];
     server_t*   server;
+    struct epoll_event ep_events[EWORKER_MAX_EVENTS];
 } server_eworker_t, eworker_t;
 
 bool server_create_eworker(server_t* server, eworker_t* ew, size_t i);

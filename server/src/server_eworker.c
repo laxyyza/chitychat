@@ -1,8 +1,10 @@
 #include "server_eworker.h"
-#include "server.h"
 #include "chat/db.h"
+#include "chat/db_def.h"
 #include "chat/db_pipeline.h"
+#include "server_events.h"
 #include "server_tm.h"
+#include "server.h"
 #include <libpq-fe.h>
 #include <poll.h>
 
@@ -14,6 +16,43 @@ eworker_main(void* arg)
     server_eworker_async_run(arg);
     server_eworker_cleanup(arg);
     return NULL;
+}
+
+static void
+eworker_prep_event(eworker_t* ew, server_event_t* se)
+{
+    server_process_event(ew, se);
+    db_pipeline_current_done(&ew->db);
+}
+
+static void 
+eworker_wait_for_events(eworker_t* ew)
+{
+    const server_t* server = ew->server;
+    const struct epoll_event* event;
+    server_event_t* se;
+    i32 nfds;
+    i32 timeout;
+
+    /* Block if pipeline is empty, else return immediately. */
+    timeout = (ew->db.queue.count == 0) ? -1 : 0;
+
+    nfds = epoll_wait(server->epfd, ew->ep_events, EWORKER_MAX_EVENTS, timeout);
+    if (nfds == -1)
+    {
+        error("%s: epoll_wait: %s",
+              ew->name, ERRSTR);
+        return;
+    }
+
+    for (i32 i = 0; i < nfds; i++)
+    {
+        event = ew->ep_events + i;
+        se = event->data.ptr;
+        se->ep_events = event->events;
+
+        eworker_prep_event(ew, se);
+    }
 }
 
 bool 
@@ -47,18 +86,6 @@ server_eworker_init(eworker_t* ew)
     return true;
 }
 
-static void
-eworker_handle_event(eworker_t* ew, ev_t* ev)
-{
-    // Set ew current job 
-    // Handle event
-    server_ep_event(ew, ev);
-
-    // After event check if any sql queries
-    // if so enqueue it to ew->queue
-    db_pipeline_current_done(&ew->db);
-}
-
 void 
 server_eworker_async_run(eworker_t* ew)
 {
@@ -70,15 +97,14 @@ server_eworker_async_run(eworker_t* ew)
         .events = POLLIN
     };
     i32 ret;
-    i32 deq_flag;
-    ev_t ev;
 
     while ((tm->state & TM_STATE_SHUTDOWN) == 0)
     {
         if ((ret = poll(&pfd, 1, 0)) == -1) 
         {
-            error("poll");
-            continue;
+            error("poll: %s\n", ERRSTR);
+            tm->state |= TM_STATE_SHUTDOWN;
+            break;
         }
 
         debug("tid: %d\n\tret: %d\n\tdb->queue: %d\n", 
@@ -87,18 +113,7 @@ server_eworker_async_run(eworker_t* ew)
         if (ret > 0)
             db_process_results(ew);
 
-        /*
-         * Block if no async jobs
-         * Don't Block if async jobs in queue
-         */
-        deq_flag = (db->queue.count == 0) ? TM_DEQ_BLOCK : TM_DEQ_NONBLOCK;
-
-        debug("tid: %d, deq_flag: %d\n",
-              ew->tid, deq_flag);
-        
-        /* Dequeue Event */
-        if (server_tm_deq(tm, &ev, deq_flag))
-            eworker_handle_event(ew, &ev);
+        eworker_wait_for_events(ew);
     }
 }
 
@@ -108,3 +123,4 @@ server_eworker_cleanup(eworker_t* ew)
     server_db_close(&ew->db);
     debug("%s shutdown.\n", ew->name);
 }
+

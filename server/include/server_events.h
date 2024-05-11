@@ -39,10 +39,12 @@ server_event_t* server_new_event(server_t* server, i32 fd, void* data,
                                 se_close_callback_t close_callback);
 server_event_t* server_get_event(server_t* server, i32 fd);
 void            server_del_event(eworker_t* ew, server_event_t* se);
+void            server_process_event(eworker_t* ew, server_event_t* se);
+void            server_wait_for_events(eworker_t* ew);
 
-i32 server_ep_addfd(server_t* server, i32 fd);
-i32 server_ep_delfd(server_t* server, i32 fd);
-i32 server_ep_rearm(server_t* server, i32 fd);
+i32 server_event_add(const server_t* server, server_event_t* ev);
+i32 server_event_remove(const server_t* server, const server_event_t* ev);
+i32 server_event_rearm(const server_t* server, const server_event_t* ev);
 
 // Handlers 
 enum se_status se_accept_conn(eworker_t* ew, server_event_t* ev);
