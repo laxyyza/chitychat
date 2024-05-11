@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Simple test to see if logging in as user works or not.
+# Simple test to see if creating a new user works or not.
 
 import sys
 import asyncio
