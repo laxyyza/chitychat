@@ -38,7 +38,6 @@ server_src = files(
     'server/src/server_http_get.c',
     'server/src/server_http_post.c',
     'server/src/server_tm.c',
-    'server/src/server_evcb.c',
     'server/src/server_ht.c',
     'server/src/server_signal.c',
     'server/src/server_eworker.c',
