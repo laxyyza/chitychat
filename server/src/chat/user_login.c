@@ -117,6 +117,14 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
     else
         errmsg = INCORRECT_LOGIN_STR;
 
+    /*
+     * Set ctx->data to NULL if client logged-in.
+     * If client logged-in: client->dbuser = ctx->data.
+     * After this function ctx->data will be freed.
+     */
+    if (errmsg == NULL)
+        ctx->data = NULL;
+
     return errmsg;
 }
 

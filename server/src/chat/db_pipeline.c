@@ -2,7 +2,9 @@
 #include "chat/db.h"
 #include "chat/db_def.h"
 #include <libpq-fe.h>
+#include "json_object.h"
 #include "server_eworker.h"
+#include "server_websocket.h"
 
 i32 
 db_async_params(server_db_t* db, 
@@ -44,6 +46,42 @@ db_async_exec(server_db_t* db, const char* query,
     return db_async_params(db, query, 0, NULL, NULL, NULL, cmd);
 }
 
+static void
+db_exec_cmd(eworker_t* ew, dbcmd_ctx_t* cmd)
+{
+    const char* errmsg;
+    json_object* resp;
+
+    errmsg = cmd->exec(ew, cmd);
+    if (errmsg && cmd->client)
+    {
+        resp = json_object_new_object();
+        json_object_object_add(resp, "cmd",
+                               json_object_new_string("error"));
+        json_object_object_add(resp, "error_msg",
+                               json_object_new_string(errmsg));
+        ws_json_send(cmd->client, resp);
+        json_object_put(resp);
+    }
+}
+
+static void
+db_cmd_free(dbcmd_ctx_t* cmd)
+{
+    if (cmd == NULL)
+        return;
+
+    dbcmd_ctx_t* next;
+
+    while (cmd)
+    {
+        next = cmd->next;
+        free(cmd->data);
+        free(cmd);
+        cmd = next;
+    }
+}
+
 void 
 db_process_results(eworker_t* ew)
 {
@@ -76,10 +114,9 @@ db_process_results(eworker_t* ew)
         if (ctx_peek->next == NULL)
         {
             db_pipeline_dequeue(db, &cmd);
-
-            const char* errmsg = cmd.exec(ew, &cmd);
-            warn("Error for client: %d\n\t%s\n", 
-                 cmd.client->addr.sock, errmsg);
+            db_exec_cmd(ew, &cmd);
+            db_cmd_free(cmd.next);
+            free(cmd.data);
         }
     clear:
         count++;
@@ -161,6 +198,7 @@ db_pipeline_current_done(server_db_t* db)
         return;
 
     db_pipeline_enqueue(db, db->ctx.head);
+    free(db->ctx.head);
     db_pipeline_reset_current(db);
 }
 
