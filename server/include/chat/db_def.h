@@ -35,6 +35,8 @@ typedef struct
     size_t  select_user_len;
     char*   select_connected_users;
     size_t  select_connected_users_len;
+    char*   select_user_json;
+    size_t  select_user_json_len;
     char*   delete_user;
     size_t  delete_user_len;
 

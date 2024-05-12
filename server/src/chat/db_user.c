@@ -1,5 +1,6 @@
 #include "chat/db.h"
 #include "chat/db_pipeline.h"
+#include <libpq-fe.h>
 
 static void 
 db_get_user_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
@@ -76,6 +77,45 @@ db_async_get_user_username(server_db_t* db, const char* username, dbcmd_ctx_t* c
     ctx->exec_res = db_get_user_result;
 
     ret = db_async_params(db, sql, 1, vals, lens, formats, ctx);
+    return ret == 1;
+}
+
+static void
+db_get_user_json_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* user_array_json;
+
+    if (status == PGRES_TUPLES_OK)    
+    {
+        user_array_json = PQgetvalue(res, 0, 0);
+        if (user_array_json)
+        {
+            ctx->param.str = user_array_json;
+            ctx->ret = DB_ASYNC_OK;
+            return;
+        }
+    }
+    else if (status == PGRES_FATAL_ERROR)
+        error("get_user_json_array: %s\n",
+              PQresultErrorMessage(res));
+
+    ctx->ret = DB_ASYNC_ERROR;
+}
+
+bool 
+db_async_get_user_array(server_db_t* db, const char* json_array, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    const char* vals[1] = {
+        json_array
+    };
+    const i32 lens[1] = {
+        strlen(json_array)
+    };
+    const i32 formats[1] = {0};
+    ctx->exec_res = db_get_user_json_result;
+
+    ret = db_async_params(db, db->cmd->select_user_json, 1, vals, lens, formats, ctx);
     return ret == 1;
 }
 

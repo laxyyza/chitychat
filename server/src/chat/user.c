@@ -1,7 +1,10 @@
 #include "chat/user.h"
+#include "chat/db_def.h"
 #include "chat/rtusm.h"
 #include "chat/ws_text_frame.h"
+#include "chat/db_user.h"
 #include "server_client.h"
+#include "server_websocket.h"
 
 static void 
 server_add_user_in_json(dbuser_t* dbuser, json_object* json)
@@ -22,38 +25,87 @@ server_add_user_in_json(dbuser_t* dbuser, json_object* json)
                            json_object_new_string(rtusm_get_status_str(dbuser->rtusm.status)));
 }
 
-const char* 
-server_get_user(eworker_t* ew, client_t* client, 
-                json_object* payload, json_object* respond_json)
+static bool
+verify_json_array_type(json_object* array_json, json_type type)
 {
-    json_object* user_id_json; 
-    dbuser_t* dbuser;
-    u64 user_id; 
-    const client_t* connected_user;
-    bool free_user = false;
+    size_t size = json_object_array_length(array_json);
+    json_object* element;
 
-    RET_IF_JSON_BAD(user_id_json, payload, "user_id", json_type_int);
-    user_id = json_object_get_int(user_id_json);
+    if (size == 0)
+        return false;
 
-    if ((connected_user = server_get_client_user_id(ew->server, user_id)))
-        dbuser = connected_user->dbuser;
-    else
+    for (size_t i = 0; i < size; i++)
     {
-        dbuser = server_db_get_user_from_id(&ew->db, user_id);
-        free_user = true;
+        element = json_object_array_get_idx(array_json, i);
+        if (!json_object_is_type(element, type))
+            return false;
     }
+    return true;
+}
 
-    if (!dbuser)
-        return "User not found";
+static const char*
+do_get_users(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get users";
 
-    json_object_object_add(respond_json, "cmd", 
+    json_object* resp = json_object_new_object();
+    
+    json_object_object_add(resp, "cmd", 
                            json_object_new_string("get_user"));
-    server_add_user_in_json(dbuser, respond_json);
+    json_object_object_add(resp, "users",
+                           json_tokener_parse(ctx->param.str));
 
-    ws_json_send(client, respond_json);
+    ws_json_send(ctx->client, resp);
 
-    if (free_user)
-        free(dbuser);
+    json_object_put(resp);
+
+    return NULL;
+}
+
+const char* 
+server_get_user(eworker_t* ew, 
+                UNUSED client_t* client, 
+                UNUSED json_object* payload, 
+                UNUSED json_object* respond_json)
+{
+    json_object* user_ids_array_json; 
+    const char* user_ids_array_str;
+
+    RET_IF_JSON_BAD(user_ids_array_json, payload, "user_ids", json_type_array);
+    if (verify_json_array_type(user_ids_array_json, json_type_int) == false)
+        return "Invalid array";
+
+    user_ids_array_str = json_object_to_json_string(user_ids_array_json);
+
+    dbcmd_ctx_t ctx = {
+        .exec = do_get_users
+    };
+
+    if (!db_async_get_user_array(&ew->db, user_ids_array_str, &ctx))
+        return "Internal error: async-get-user-array";
+
+    // user_id = json_object_get_int(user_id_json);
+    //
+    // if ((connected_user = server_get_client_user_id(ew->server, user_id)))
+    //     dbuser = connected_user->dbuser;
+    // else
+    // {
+    //     dbuser = server_db_get_user_from_id(&ew->db, user_id);
+    //     free_user = true;
+    // }
+    //
+    // if (!dbuser)
+    //     return "User not found";
+    //
+    // json_object_object_add(respond_json, "cmd", 
+    //                        json_object_new_string("get_user"));
+    // server_add_user_in_json(dbuser, respond_json);
+    //
+    // ws_json_send(client, respond_json);
+    //
+    // if (free_user)
+    //     free(dbuser);
 
     return NULL;
 }

@@ -136,6 +136,8 @@ server_init_db(server_t* server)
     cmd->select_user = server_db_load_sql(server->conf.sql_select_user, &cmd->select_user_len);
     cmd->select_connected_users = server_db_load_sql("server/sql/select_connected_users.sql",
                                                      &cmd->select_connected_users_len);
+    cmd->select_user_json = server_db_load_sql("server/sql/select_user_json.sql",
+                                               &cmd->select_user_json_len);
 
     cmd->insert_group = server_db_load_sql(server->conf.sql_insert_group, &cmd->insert_group_len);
     cmd->select_user_groups = server_db_load_sql("server/sql/select_user_groups.sql", 
@@ -213,6 +215,7 @@ server_db_free(server_t* server)
 
     free(cmd->insert_user);
     free(cmd->select_user);
+    free(cmd->select_user_json);
     free(cmd->select_connected_users);
     free(cmd->delete_user);
 

@@ -27,6 +27,7 @@ union cmd_param
     user_login_param_t user_login;
     member_ids_param_t member_ids;
     session_t*  session;
+    const char* str;
     u32         group_id;
     u32         user_id;
 };
