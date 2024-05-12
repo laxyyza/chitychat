@@ -50,6 +50,7 @@ server_src = files(
     'server/src/chat/user_session.c',
     'server/src/chat/upload_token.c',
     'server/src/chat/db.c',
+    'server/src/chat/db_user.c',
     'server/src/chat/db_pipeline.c',
     'server/src/chat/user_upload.c',
     'server/src/chat/rtusm.c',
