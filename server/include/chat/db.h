@@ -16,10 +16,19 @@
 #define DB_ASYNC_OK     1
 #define DB_ASYNC_ERROR -1
 
+typedef struct 
+{
+    u32 group_id;
+    const char* ids_json;
+} member_ids_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
-    session_t* session;
+    member_ids_param_t member_ids;
+    session_t*  session;
+    u32         group_id;
+    u32         user_id;
 };
 
 typedef struct dbcmd_ctx

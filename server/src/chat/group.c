@@ -1,5 +1,6 @@
 #include "chat/group.h"
 #include "chat/db.h"
+#include "chat/db_def.h"
 #include "chat/db_group.h"
 #include "chat/ws_text_frame.h"
 #include "server_websocket.h"
@@ -778,4 +779,53 @@ server_delete_group(UNUSED eworker_t* ew,
     // free(gmembers);
     //
     // return NULL;
+}
+
+static const char*
+do_get_group_member_ids(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    u32 group_id;
+    const char* member_ids_str;
+    json_object* resp;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get group member IDs";
+
+    group_id = ctx->param.member_ids.group_id;
+    member_ids_str = ctx->param.member_ids.ids_json;
+    resp = json_object_new_object();
+    json_object_object_add(resp, "cmd",
+                           json_object_new_string("get_member_ids"));
+    json_object_object_add(resp, "group_id",
+                           json_object_new_int(group_id));
+    json_object_object_add(resp, "member_ids",
+                           json_tokener_parse(member_ids_str));
+
+    ws_json_send(ctx->client, resp);
+
+    json_object_put(resp);
+
+    return NULL;
+}
+
+const char* 
+server_get_group_member_ids(eworker_t* ew,
+                            UNUSED client_t* client, 
+                            json_object* payload, 
+                            UNUSED json_object* resp_json)
+{
+    json_object* group_id_json;
+    u32 group_id;
+
+    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+
+    group_id = json_object_get_int(group_id_json);
+    dbcmd_ctx_t ctx = {
+        .exec = do_get_group_member_ids,
+        .param.member_ids.group_id = group_id
+    };
+
+    if (db_async_get_group_member_ids(&ew->db, group_id, &ctx) == false) 
+        return "internal error: async-get-group-member-ids";
+    return NULL;
 }

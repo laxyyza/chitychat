@@ -66,3 +66,43 @@ db_async_get_user_groups(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx)
     ret = db_async_params(db, db->cmd->select_user_groups, 1, vals, lens, formats, ctx);
     return ret == 1;
 }
+
+static void
+db_get_group_member_ids_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* member_ids_str;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        member_ids_str = PQgetvalue(res, 0, 0);
+        if (member_ids_str == NULL)
+            member_ids_str = "[]";
+        ctx->param.member_ids.ids_json = member_ids_str;
+        ctx->ret = DB_ASYNC_OK;
+    }
+    else
+    {
+        ctx->ret = DB_ASYNC_ERROR;
+        error("get_group_member_ids: %s\n",
+              PQresultErrorMessage(res));
+    }
+}
+
+bool 
+db_async_get_group_member_ids(server_db_t* db, u32 group_id, dbcmd_ctx_t* ctx)
+{
+    const char* sql = "SELECT json_agg(user_id) FROM GroupMembers WHERE group_id = $1::int;";
+    i32 ret;
+    char group_id_str[DB_INTSTR_MAX];
+    const char* vals[1] = {
+        group_id_str
+    };
+    const i32 lens[1] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id)
+    };
+    const i32 formats[1] = {0};
+    ctx->exec_res = db_get_group_member_ids_result;
+    ret = db_async_params(db, sql, 1, vals, lens, formats, ctx);
+
+    return ret == 1;
+}

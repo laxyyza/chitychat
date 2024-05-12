@@ -109,4 +109,9 @@ const char* server_delete_group(eworker_t* ew,
                                 json_object* payload,
                                 json_object* resp_json);
 
+const char* server_get_group_member_ids(eworker_t* ew,
+                                  client_t* client, 
+                                  json_object* payload, 
+                                  json_object* resp_json);
+
 #endif // _SERVER_USER_GROUP_H_

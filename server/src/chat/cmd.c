@@ -20,6 +20,11 @@ server_init_chatcmd_logged_in(server_t* server)
                             CHATCMD_PERM_LOGGED_IN))
         return false;
 
+    if (!server_new_chatcmd(server, "get_member_ids",
+                            server_get_group_member_ids,
+                            CHATCMD_PERM_LOGGED_IN))
+        return false;
+
     if (!server_new_chatcmd(server, "group_create",
                             server_group_create,
                             CHATCMD_PERM_LOGGED_IN))
