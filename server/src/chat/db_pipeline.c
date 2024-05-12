@@ -140,9 +140,9 @@ db_pipeline_enqueue(server_db_t* db, const dbcmd_ctx_t* cmd)
 i32
 db_pipeline_enqueue_current(server_db_t* db, const dbcmd_ctx_t* cmd)
 {
-    if (!cmd || !cmd->client)
+    if (!cmd)
     {
-        warn("enqueue_current: cmd or client is null!\n");
+        warn("enqueue_current: cmd is null!\n");
         return -1;
     }
 
@@ -152,6 +152,7 @@ db_pipeline_enqueue_current(server_db_t* db, const dbcmd_ctx_t* cmd)
 
     if (db->ctx.head == NULL)
     {
+        next_cmd->client = db->ctx.client;
         db->ctx.head = next_cmd;
         db->ctx.tail = next_cmd;
         return 0;
@@ -200,4 +201,10 @@ db_pipeline_current_done(server_db_t* db)
     db_pipeline_enqueue(db, db->ctx.head);
     free(db->ctx.head);
     db_pipeline_reset_current(db);
+}
+
+void 
+db_pipeline_set_ctx(server_db_t* db, client_t* client)
+{
+    db->ctx.client = client;
 }

@@ -3,6 +3,7 @@
 #include "server.h"
 #include "server_client.h"
 #include "server_eworker.h"
+#include "chat/db_pipeline.h"
 #include "server_tm.h"
 
 i32
@@ -80,6 +81,8 @@ se_read_client(eworker_t* th, server_event_t* ev)
 
     client = ev->data;
     http = client->recv.http;
+
+    db_pipeline_set_ctx(&th->db, client);
 
     if (http)
     {

@@ -131,7 +131,7 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
 
 const char* 
 server_client_login(eworker_t* ew, 
-                    client_t* client, 
+                    UNUSED client_t* client, 
                     json_object* payload, 
                     UNUSED json_object* respond_json)
 {
@@ -159,7 +159,6 @@ server_client_login(eworker_t* ew,
     memset(&ctx, 0, sizeof(dbcmd_ctx_t));
 
     ctx.exec = do_client_login;
-    ctx.client = client;
     ctx.param.user_login.do_session = do_session;
     strncpy(ctx.param.user_login.password, password, DB_PASSWORD_MAX);
 
@@ -226,7 +225,7 @@ do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
 
 const char* 
 server_client_register(eworker_t* ew, 
-                       client_t* client, 
+                       UNUSED client_t* client, 
                        json_object* payload,
                        UNUSED json_object* resp)
 {
@@ -261,7 +260,6 @@ server_client_register(eworker_t* ew,
     dbcmd_ctx_t ctx = {
         .param.user_login.do_session = do_session,
         .exec = do_client_register,
-        .client = client
     };
     if (db_async_insert_user(&ew->db, new_user, &ctx) == false)
     {
