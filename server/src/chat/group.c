@@ -95,12 +95,8 @@ server_msg_to_json(const dbmsg_t* dbmsg, json_object* json)
 }
 
 static void 
-server_group_to_json(eworker_t* ew, const dbgroup_t* dbgroup, json_object* json)
+server_group_to_json(const dbgroup_t* dbgroup, json_object* json)
 {
-    u32 n_members;
-    dbuser_t* gmembers;
-    json_object* members_array_json;
-
     json_object_object_add(json, "group_id", 
                            json_object_new_int(dbgroup->group_id));
     json_object_object_add(json, "owner_id",
@@ -111,26 +107,6 @@ server_group_to_json(eworker_t* ew, const dbgroup_t* dbgroup, json_object* json)
                            json_object_new_string(dbgroup->desc));
     json_object_object_add(json, "public",
                            json_object_new_boolean(dbgroup->public));
-
-    if (ew)
-    {
-        gmembers = server_db_get_group_members(&ew->db, dbgroup->group_id, &n_members);
-        
-        json_object_object_add(json, "members_id", 
-                               json_object_new_array_ext(n_members));
-        members_array_json = json_object_object_get(json, "members_id");
-
-        // TODO: Add full user info in packet
-        for (u32 m = 0; m < n_members; m++)
-        {
-            const dbuser_t* member = gmembers + m;
-            json_object_array_add(members_array_json, 
-                    json_object_new_int(member->user_id));
-        }
-
-        if (gmembers)
-            free(gmembers);
-    }
 }
 
 static void 
@@ -202,7 +178,7 @@ server_group_create(eworker_t* ew, client_t* client, json_object* payload,
     group_array_json = json_object_object_get(respond_json, "groups");
 
     group_json = json_object_new_object();
-    server_group_to_json(ew, &new_group, group_json);
+    server_group_to_json(&new_group, group_json);
     json_object_array_add(group_array_json, group_json);
 
     ws_json_send(client, respond_json);
@@ -211,7 +187,7 @@ server_group_create(eworker_t* ew, client_t* client, json_object* payload,
 }
 
 static const char* 
-do_client_groups(eworker_t* ew, dbcmd_ctx_t* ctx)
+do_client_groups(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 {
     dbgroup_t* groups = ctx->data;
     size_t n_groups = ctx->data_size;
@@ -234,7 +210,7 @@ do_client_groups(eworker_t* ew, dbcmd_ctx_t* ctx)
         const dbgroup_t* g = groups + i;
         json_object* group_json = json_object_new_object();
 
-        server_group_to_json(ew, g, group_json);
+        server_group_to_json(g, group_json);
         json_object_array_add(group_array_json, group_json);
     }
 
@@ -279,7 +255,7 @@ server_get_all_groups(eworker_t* ew, client_t* client,
         dbgroup_t* g = groups + i;
         json_object* group_json = json_object_new_object();
 
-        server_group_to_json(NULL, g, group_json);
+        server_group_to_json(g, group_json);
         json_object_array_add(groups_json, group_json);
     }
 
@@ -327,7 +303,7 @@ on_user_group_join(eworker_t* ew, client_t* client,
     array_json = json_object_object_get(respond_json, "groups");
     group_json = json_object_new_object();
 
-    server_group_to_json(NULL, group, group_json);
+    server_group_to_json(group, group_json);
 
     gmembers = server_db_get_group_members(&ew->db, group->group_id, &n_members);
 
