@@ -27,11 +27,6 @@ i32 db_pipeline_dequeue(server_db_t* db, dbcmd_ctx_t* cmd); /* Dequeue Pipeline 
 void db_pipeline_reset_current(server_db_t* db);    /* Set current to null */
 void db_pipeline_current_done(server_db_t* db);     /* Enqueue current cmd to pipeline and reset current */
 
-/* Users */
-bool db_async_get_user(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx);
-bool db_async_get_user_username(server_db_t* db, const char* username, dbcmd_ctx_t* ctx);
-bool db_async_insert_user(server_db_t* db, const dbuser_t* user, dbcmd_ctx_t* ctx);
-
 /* Groups */
 i32 db_async_get_group(server_db_t* db, u32 group_id, dbexec_t callback);
 

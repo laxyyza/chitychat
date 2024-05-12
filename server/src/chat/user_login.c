@@ -1,6 +1,6 @@
 #include "chat/user_login.h"
 #include "chat/db.h"
-#include "chat/db_pipeline.h"
+#include "chat/db_user.h"
 #include "chat/rtusm.h"
 #include "chat/user_session.h"
 #include "chat/ws_text_frame.h"
