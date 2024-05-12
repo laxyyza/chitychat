@@ -19,6 +19,7 @@
 union cmd_param 
 {
     user_login_param_t user_login;
+    session_t* session;
 };
 
 typedef struct dbcmd_ctx

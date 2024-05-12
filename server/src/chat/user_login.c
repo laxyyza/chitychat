@@ -1,5 +1,6 @@
 #include "chat/user_login.h"
 #include "chat/db.h"
+#include "chat/db_def.h"
 #include "chat/db_user.h"
 #include "chat/rtusm.h"
 #include "chat/user_session.h"
@@ -53,15 +54,37 @@ server_set_client_logged_in(eworker_t* ew,
     return NULL;
 }
 
+static const char*
+do_client_login_session(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    session_t* session = ctx->param.session;
+    dbuser_t* user = ctx->data;
+    const char* errmsg;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+    {
+        server_del_user_session(ew->server, ctx->param.session);
+        return "Could not find user from session";
+    }
+
+    json_object* resp = json_object_new_object();
+    errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
+    json_object_put(resp);
+
+    if (errmsg == NULL)
+        ctx->data = NULL;
+
+    return errmsg;
+}
+
 const char* 
 server_client_login_session(eworker_t* ew, 
-                            client_t* client, 
+                            UNUSED client_t* client, 
                             json_object* payload, 
-                            json_object* respond_json)
+                            UNUSED json_object* respond_json)
 {
     json_object* session_id_json;
     session_t* session;
-    dbuser_t* user;
     u32 session_id;
     
     RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_int);
@@ -71,14 +94,13 @@ server_client_login_session(eworker_t* ew,
     if (!session)
         return "Invalid session ID or session expired";
 
-    user = server_db_get_user_from_id(&ew->db, session->user_id);
-    if (!user)
-    {
-        server_del_user_session(ew->server, session);
-        return "Could not find user from session";
-    }
-
-    return server_set_client_logged_in(ew, client, user, session, respond_json);
+    dbcmd_ctx_t ctx = {
+        .exec = do_client_login_session,
+        .param.session = session
+    };
+    if (db_async_get_user(&ew->db, session->user_id, &ctx) == false)
+        return "Internal error: async-get-user";
+    return NULL;
 }
 
 static const char*
