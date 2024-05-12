@@ -3,15 +3,12 @@ import {app} from './app.js';
 
 export class Group
 {
-    constructor(id, owner_id, name, desc, members_id)
+    constructor(id, owner_id, name, desc)
     {
         this.name = name;
         this.id = Number(id);
         this.owner_id = Number(owner_id);
-        if (members_id)
-            this.members_id = members_id;
-        else 
-            this.members_id = [];
+        this.members_id = [];
         this.desc = desc;
 
         this.div_chat_messages = document.createElement("div");
@@ -42,7 +39,6 @@ export class Group
         this.div_list.addEventListener("click", () => {
             this.select();
         });
-
 
         this.members = [];
         this.messages = [];
@@ -234,12 +230,24 @@ export class Group
         app.selected_group = null;
     }
 
+    get_member_ids()
+    {
+        const packet = {
+            cmd: "get_member_ids",
+            group_id: this.id
+        };
+        app.server.ws_send(packet)
+    }
+
     select()
     {
         if (app.selected_group)
         {
             app.selected_group.classList.remove("active");
         }
+
+        if (this.members_id.length == 0)
+            this.get_member_ids()
 
         this.div_list.classList.add("active");
 

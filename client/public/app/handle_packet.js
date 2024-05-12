@@ -46,7 +46,6 @@ function client_groups(packet)
             group.owner_id, 
             group.name, 
             group.desc, 
-            group.members_id
         );
         app.groups[group.group_id] = new_group;
 
@@ -84,88 +83,88 @@ function client_groups(packet)
         localStorage.removeItem("group_id");
 }
 
-function group_members(packet)
+// function group_members(packet)
+// {
+//     let group = app.groups[packet.group_id];
+//     if (!group)
+//     {
+//         console.warn("no group", packet.group_id);
+//         return;
+//     }
+//     
+//     for (let i = 0; i < packet.members.length; i++)
+//     {
+//         const user_id = packet.members[i];
+//         group.members_id.push(user_id);
+//         const user = app.users[user_id];
+//         // const user = check_have_user(user_id);
+//         if (user)
+//         {
+//             group.add_member(user);
+//             continue;
+//         }
+//
+//         const new_packet = {
+//             cmd: "get_user",
+//             user_id: user_id
+//         };
+//
+//         app.server.ws_send(new_packet);
+//     }
+// }
+
+function get_user(users_packet)
 {
-    let group = app.groups[packet.group_id];
-    if (!group)
-    {
-        console.warn("no group", packet.group_id);
-        return;
-    }
-    
-    for (let i = 0; i < packet.members.length; i++)
-    {
-        const user_id = packet.members[i];
-        group.members_id.push(user_id);
-        const user = app.users[user_id];
-        // const user = check_have_user(user_id);
-        if (user)
+    users_packet.users.forEach(user => {
+        let new_user = new User(user.user_id, user.username, 
+                                user.displayname, user.bio,
+                                user.created_at, user.pfp_name,
+                                user.status);
+        app.users[new_user.id] = new_user;
+
+        for (let group_id in app.groups)
         {
-            group.add_member(user);
-            continue;
-        }
-
-        const new_packet = {
-            cmd: "get_user",
-            user_id: user_id
-        };
-
-        app.server.ws_send(new_packet);
-    }
-}
-
-function get_user(packet)
-{
-    if (app.users[packet.user_id])
-        return;
-    let new_user = new User(packet.user_id, packet.username, 
-                            packet.displayname, packet.bio, 
-                            packet.created_at, packet.pfp_name, 
-                            packet.status);
-    app.users[new_user.id] = new_user;
-
-    for (let group_id in app.groups)
-    {
-        let group = app.groups[group_id];
-        for (let m = 0; m < group.members_id.length; m++)
-        {
-            let member_id = group.members_id[m];
-            if (member_id === new_user.id)
+            let group = app.groups[group_id];
+            for (let m = 0; m < group.members_id.length; m++)
             {
-                group.add_member(new_user);
-
-                let user_msgs = group.div_chat_messages.querySelectorAll("[msg_user_id=\"" + new_user.id + "\"]");
-                for (let i = 0; i < user_msgs.length; i++)
+                let member_id = group.members_id[m];
+                if (member_id === new_user.id)
                 {
-                    const msg = user_msgs[i];
-                    let msg_displayname = msg.querySelector(".msg_displayname");
-                    msg_displayname.innerHTML = new_user.displayname;
-                    let msg_img = msg.querySelector(".msg_img");
-                    msg_img.src = new_user.pfp_url;
-                }
+                    group.add_member(new_user);
 
-                break;
+                    let user_msgs = group.div_chat_messages.querySelectorAll("[msg_user_id=\"" + new_user.id + "\"]");
+                    for (let i = 0; i < user_msgs.length; i++)
+                    {
+                        const msg = user_msgs[i];
+                        let msg_displayname = msg.querySelector(".msg_displayname");
+                        msg_displayname.innerHTML = new_user.displayname;
+                        let msg_img = msg.querySelector(".msg_img");
+                        msg_img.src = new_user.pfp_url;
+                    }
+
+                    break;
+                }
             }
         }
-    }
 
-    if (app.popup_join)
-    {
-        let owner_lists = document.querySelectorAll("#popup_group_owner" + new_user.id);
-        let owner_username_lists = document.querySelectorAll("#popup_group_owner_username" + new_user.id);
-
-        for (let i = 0; i < owner_lists.length; i++)
+        if (app.popup_join)
         {
-            let span_owner = owner_lists[i];
-            span_owner.innerHTML = new_user.displayname;
-        }
+            let owner_lists = document.querySelectorAll("#popup_group_owner" + new_user.id);
+            let owner_username_lists = document.querySelectorAll("#popup_group_owner_username" + new_user.id);
 
-        for (let i = 0; i < owner_username_lists.length; i++)
-        {
-            let span_owner_username = owner_username_lists[i];
-            span_owner_username.innerHTML = new_user.username;
+            for (let i = 0; i < owner_lists.length; i++)
+            {
+                let span_owner = owner_lists[i];
+                span_owner.innerHTML = new_user.displayname;
+            }
+
+            for (let i = 0; i < owner_username_lists.length; i++)
+            {
+                let span_owner_username = owner_username_lists[i];
+                span_owner_username.innerHTML = new_user.username;
+            }
         }
-    }
+    });
 }
 
 function get_all_groups(packet)
@@ -414,13 +413,38 @@ function delete_group(packet)
     delete app.groups[packet.group_id];
 }
 
+function get_member_ids(packet)
+{
+    const group_id = packet.group_id;
+    let group = app.groups[group_id];
+    let member_ids = packet.member_ids;
+
+    group.members_id = member_ids;
+    member_ids = member_ids.filter(user_id => {
+        const ret = !app.users[user_id];
+        if (ret === false)
+            group.add_member(app.users[user_id]);
+        return ret;
+    });
+
+    if (member_ids.length === 0)
+        return;
+
+    const get_user_packet = {
+        cmd: "get_user",
+        user_ids: member_ids
+    }
+    app.server.ws_send(get_user_packet)
+}
+
 export function init_packet_commads()
 {
     packet_commands.session = cmd_session;
 
     packet_commands.client_user_info = client_user_info;
     packet_commands.client_groups = client_groups;
-    packet_commands.group_members = group_members;
+    packet_commands.get_member_ids = get_member_ids;
+    // packet_commands.group_members = group_members;
     packet_commands.get_user = get_user;
     packet_commands.get_all_groups = get_all_groups;
     packet_commands.group_msg = group_msg;
