@@ -138,7 +138,8 @@ server_init_db(server_t* server)
                                                      &cmd->select_connected_users_len);
 
     cmd->insert_group = server_db_load_sql(server->conf.sql_insert_group, &cmd->insert_group_len);
-    cmd->select_group = server_db_load_sql(server->conf.sql_select_group, &cmd->select_group_len);
+    cmd->select_user_groups = server_db_load_sql("server/sql/select_user_groups.sql", 
+                                                 &cmd->select_user_groups_len);
     cmd->select_pub_group = server_db_load_sql("server/sql/select_public_group.sql",
                                                &cmd->select_pub_group_len);
 
@@ -216,7 +217,7 @@ server_db_free(server_t* server)
     free(cmd->delete_user);
 
     free(cmd->insert_group);
-    free(cmd->select_group);
+    free(cmd->select_user_groups);
     free(cmd->select_pub_group);
     free(cmd->delete_group);
 
@@ -349,7 +350,7 @@ db_row_to_msg(dbmsg_t* msg, PGresult* res, i32 row)
         msg->parent_msg_id = strtoul(parent_msg_id_str, &endptr, 10);
 }
 
-static void 
+void 
 db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
 {
     char* endptr;
@@ -930,63 +931,6 @@ rollback:
     return false;
 }
 
-static dbgroup_t* 
-server_db_get_groups(server_db_t* db, u32 user_id, u32 group_id, u32* n_ptr)
-{
-    PGresult* res;
-    i32 rows = 0;
-    dbgroup_t* groups = NULL;
-
-    char user_id_str[DB_INTSTR_MAX];
-    char group_id_str[DB_INTSTR_MAX];
-
-    snprintf(user_id_str, DB_INTSTR_MAX, "%d", user_id);
-    snprintf(group_id_str, DB_INTSTR_MAX, "%d", group_id);
-
-    const char* vals[2] = {
-        group_id_str,
-        user_id_str
-    };
-    const int formats[2] = {0, 0};
-    const int lens[2] = {
-        strlen(group_id_str),
-        strlen(user_id_str)
-    };
-
-    res = PQexecParams(db->conn, db->cmd->select_group, 2, NULL, vals, lens, formats, 0);
-    if (PQresultStatus(res) != PGRES_TUPLES_OK)
-    {
-        error("PGexecParams() failed for select_group: %s\n", 
-                    PQresultErrorMessage(res));
-        goto cleanup;
-    }
-
-    rows = PQntuples(res);
-    if (rows == 0)
-        goto cleanup;
-
-    groups = calloc(rows, sizeof(dbgroup_t));
-
-    for (i32 i = 0; i < rows; i++)
-    {
-        dbgroup_t* group = groups + i;
-
-        db_row_to_group(group, res, i);
-    }
-
-cleanup:
-    if (n_ptr)
-        *n_ptr = rows;
-    PQclear(res);
-    return groups;
-}
-
-dbgroup_t* 
-server_db_get_group(server_db_t* db, u32 group_id)
-{
-    return server_db_get_groups(db, -1, group_id, NULL);
-}
-
 dbgroup_t*  
 server_db_get_public_groups(server_db_t* db, u32 user_id, u32* n_ptr)
 {
@@ -1027,12 +971,6 @@ server_db_get_public_groups(server_db_t* db, u32 user_id, u32* n_ptr)
 cleanup:
     PQclear(res);
     return groups;
-}
-
-dbgroup_t* 
-server_db_get_user_groups(server_db_t* db, u32 user_id, u32* n_ptr)
-{
-    return server_db_get_groups(db, user_id, -1, n_ptr);
 }
 
 bool 

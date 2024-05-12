@@ -28,7 +28,4 @@ void db_pipeline_reset_current(server_db_t* db);    /* Set current to null */
 void db_pipeline_current_done(server_db_t* db);     /* Enqueue current cmd to pipeline and reset current */
 void db_pipeline_set_ctx(server_db_t* db, client_t* client);
 
-/* Groups */
-i32 db_async_get_group(server_db_t* db, u32 group_id, dbexec_t callback);
-
 #endif // _SERVER_DB_PIPELINE_H_

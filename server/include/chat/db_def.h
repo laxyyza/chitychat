@@ -40,8 +40,8 @@ typedef struct
 
     char*   insert_group;
     size_t  insert_group_len;
-    char*   select_group;
-    size_t  select_group_len;
+    char*   select_user_groups;
+    size_t  select_user_groups_len;
     char*   select_pub_group;
     size_t  select_pub_group_len;
     char*   delete_group;

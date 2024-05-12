@@ -1,5 +1,6 @@
 #include "chat/group.h"
 #include "chat/db.h"
+#include "chat/db_group.h"
 #include "chat/ws_text_frame.h"
 #include "server_websocket.h"
 
@@ -25,7 +26,7 @@ server_group_broadcast(eworker_t* ew, u32 group_id, json_object* json)
     free(gmembers);
 }
 
-static void 
+UNUSED static void 
 server_delete_msg_attachments(eworker_t* ew, dbmsg_t* msg)
 {
     json_object* attach_json;
@@ -209,21 +210,23 @@ server_group_create(eworker_t* ew, client_t* client, json_object* payload,
     return NULL;
 }
 
-const char* 
-server_client_groups(eworker_t* ew, client_t* client, 
-                     UNUSED json_object* payload, json_object* respond_json) 
+static const char* 
+do_client_groups(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
-    dbgroup_t* groups;
-    u32 n_groups;
+    dbgroup_t* groups = ctx->data;
+    size_t n_groups = ctx->data_size;
+    json_object* resp;
 
-    groups = server_db_get_user_groups(&ew->db, client->dbuser->user_id, 
-                                       &n_groups);
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get groups";
 
-    json_object_object_add(respond_json, "cmd", 
+    resp = json_object_new_object();
+
+    json_object_object_add(resp, "cmd", 
             json_object_new_string("client_groups"));
-    json_object_object_add(respond_json, "groups", 
+    json_object_object_add(resp, "groups", 
                 json_object_new_array_ext(n_groups));
-    json_object* group_array_json = json_object_object_get(respond_json, 
+    json_object* group_array_json = json_object_object_get(resp, 
                 "groups");
 
     for (size_t i = 0; i < n_groups; i++)
@@ -235,10 +238,23 @@ server_client_groups(eworker_t* ew, client_t* client,
         json_object_array_add(group_array_json, group_json);
     }
 
-    ws_json_send(client, respond_json);
+    ws_json_send(ctx->client, resp);
 
-    free(groups);
+    json_object_put(resp);
 
+    return NULL;
+}
+
+const char* 
+server_client_groups(eworker_t* ew, client_t* client, 
+                     UNUSED json_object* payload, 
+                     UNUSED json_object* respond_json) 
+{
+    dbcmd_ctx_t ctx = {
+        .exec = do_client_groups,
+    };
+    if (db_async_get_user_groups(&ew->db, client->dbuser->user_id, &ctx) == false)
+        return "Internal error: async-get-user-groups";
     return NULL;
 }
 
@@ -357,32 +373,35 @@ on_user_group_join(eworker_t* ew, client_t* client,
 }
 
 const char* 
-server_join_group(eworker_t* ew, client_t* client, 
-                  json_object* payload, json_object* respond_json)
+server_join_group(UNUSED eworker_t* ew, 
+                  UNUSED client_t* client, 
+                  UNUSED json_object* payload, 
+                  UNUSED json_object* respond_json)
 {
-    json_object* group_id_json;
-    u32 group_id;
-    dbgroup_t* group;
-
-    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
-    group_id = json_object_get_int(group_id_json);
-
-    group = server_db_get_group(&ew->db, group_id);
-    if (!group)
-        return "Group not found";
-
-    if (!server_db_insert_group_member(&ew->db, group->group_id, 
-                                       client->dbuser->user_id))
-    {
-        free(group);
-        return "Failed to join";
-    }
-
-    on_user_group_join(ew, client, group, respond_json);
-
-    free(group);
-
-    return NULL;
+    return "server_join_group not implemented!";
+    // json_object* group_id_json;
+    // u32 group_id;
+    // dbgroup_t* group;
+    //
+    // RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+    // group_id = json_object_get_int(group_id_json);
+    //
+    // group = server_db_get_group(&ew->db, group_id);
+    // if (!group)
+    //     return "Group not found";
+    //
+    // if (!server_db_insert_group_member(&ew->db, group->group_id, 
+    //                                    client->dbuser->user_id))
+    // {
+    //     free(group);
+    //     return "Failed to join";
+    // }
+    //
+    // on_user_group_join(ew, client, group, respond_json);
+    //
+    // free(group);
+    //
+    // return NULL;
 }
 
 const char*
@@ -659,122 +678,128 @@ server_delete_group_code(eworker_t* ew, client_t* client,
 }
 
 const char* 
-server_delete_group_msg(eworker_t* ew, client_t* client,
-                        json_object* payload, json_object* respond_json)
+server_delete_group_msg(UNUSED eworker_t* ew, 
+                        UNUSED client_t* client,
+                        UNUSED json_object* payload, 
+                        UNUSED json_object* respond_json)
 {
-    json_object* msg_id_json;
-    u32 msg_id;
-    dbmsg_t* msg_to_delete;
-    dbgroup_t* group;
-    const char* errmsg = NULL;
-
-    RET_IF_JSON_BAD(msg_id_json, payload, "msg_id", json_type_int);
-    msg_id = json_object_get_int(msg_id_json);
-
-    msg_to_delete = server_db_get_msg(&ew->db, msg_id);
-    if (!msg_to_delete)
-        return "Message not found";
-
-    group = server_db_get_group(&ew->db, msg_to_delete->group_id);
-    if (!group)
-    {
-        errmsg = "Group not found";
-        goto cleanup;
-    }
-
-    /*
-     * Currently only group owner and user's own can delete messages.
-     * Will change, when member roles (admin) are implemented.
-     */
-    if (client->dbuser->user_id != group->owner_id &&
-        client->dbuser->user_id != msg_to_delete->user_id)
-    {
-        errmsg = "Permission denied";
-        goto cleanup;
-    } 
-
-    if (!server_db_delete_msg(&ew->db, msg_to_delete->msg_id))
-    {
-        errmsg = "Failed to delete message";
-        goto cleanup;
-    }
-
-    json_object_object_add(respond_json, "cmd", 
-                           json_object_new_string("delete_msg"));
-    json_object_object_add(respond_json, "group_id",
-                           json_object_new_int(msg_to_delete->group_id));
-    json_object_object_add(respond_json, "msg_id",
-                           json_object_new_int(msg_to_delete->msg_id));
-
-    server_group_broadcast(ew, group->group_id, respond_json);
-    server_delete_msg_attachments(ew, msg_to_delete);
-
-cleanup:
-    free(msg_to_delete);
-    free(group);
-
-    return errmsg;
+    return "delete_group_msg not implemented!";
+//     json_object* msg_id_json;
+//     u32 msg_id;
+//     dbmsg_t* msg_to_delete;
+//     dbgroup_t* group;
+//     const char* errmsg = NULL;
+//
+//     RET_IF_JSON_BAD(msg_id_json, payload, "msg_id", json_type_int);
+//     msg_id = json_object_get_int(msg_id_json);
+//
+//     msg_to_delete = server_db_get_msg(&ew->db, msg_id);
+//     if (!msg_to_delete)
+//         return "Message not found";
+//
+//     group = server_db_get_group(&ew->db, msg_to_delete->group_id);
+//     if (!group)
+//     {
+//         errmsg = "Group not found";
+//         goto cleanup;
+//     }
+//
+//     /*
+//      * Currently only group owner and user's own can delete messages.
+//      * Will change, when member roles (admin) are implemented.
+//      */
+//     if (client->dbuser->user_id != group->owner_id &&
+//         client->dbuser->user_id != msg_to_delete->user_id)
+//     {
+//         errmsg = "Permission denied";
+//         goto cleanup;
+//     } 
+//
+//     if (!server_db_delete_msg(&ew->db, msg_to_delete->msg_id))
+//     {
+//         errmsg = "Failed to delete message";
+//         goto cleanup;
+//     }
+//
+//     json_object_object_add(respond_json, "cmd", 
+//                            json_object_new_string("delete_msg"));
+//     json_object_object_add(respond_json, "group_id",
+//                            json_object_new_int(msg_to_delete->group_id));
+//     json_object_object_add(respond_json, "msg_id",
+//                            json_object_new_int(msg_to_delete->msg_id));
+//
+//     server_group_broadcast(ew, group->group_id, respond_json);
+//     server_delete_msg_attachments(ew, msg_to_delete);
+//
+// cleanup:
+//     free(msg_to_delete);
+//     free(group);
+//
+//     return errmsg;
 }
 
 const char* 
-server_delete_group(eworker_t* ew, client_t* client, 
-                    json_object* payload, json_object* resp_json)
+server_delete_group(UNUSED eworker_t* ew, 
+                    UNUSED client_t* client, 
+                    UNUSED json_object* payload, 
+                    UNUSED json_object* resp_json)
 {
-    json_object* group_id_json;
-    const dbuser_t* member;
-    client_t* member_client;
-    dbuser_t* gmembers;
-    dbmsg_t* attach_msgs;
-    u32 n_members;
-    u32 n_msgs;
-    dbgroup_t* group;
-    u32 group_id;
-    u32 owner_id;
-
-    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
-    group_id = json_object_get_int(group_id_json);
-
-    if ((group = server_db_get_group(&ew->db, group_id)) == NULL)
-        return "Group not found";
-
-    owner_id = group->owner_id;
-    free(group);
-
-    if (owner_id != client->dbuser->user_id)
-        return "Permission denied";
-
-    gmembers = server_db_get_group_members(&ew->db, group_id, &n_members);
-    attach_msgs = server_db_get_msgs_only_attachs(&ew->db, group_id, &n_msgs);
-    
-    if (!server_db_delete_group(&ew->db, group_id))
-    {
-        free(gmembers);
-        return "Failed to delete group";
-    }
-
-    for (u32 i = 0; i < n_msgs; i++)
-    {
-        dbmsg_t* msg = attach_msgs + i;
-        server_delete_msg_attachments(ew, msg);
-        json_object_put(msg->attachments_json);
-    }
-    free(attach_msgs);
-
-    json_object_object_add(resp_json, "cmd",
-                           json_object_new_string("delete_group"));
-    json_object_object_add(resp_json, "group_id",
-                           json_object_new_int(group_id));
-
-    for (u32 i = 0; i < n_members; i++)
-    {
-        member = gmembers + i;
-        member_client = server_get_client_user_id(ew->server, member->user_id);
-
-        if (member_client)
-            ws_json_send(member_client, resp_json);
-    }
-
-    free(gmembers);
-
-    return NULL;
+    return "server_delete_group not implemented!";
+    // json_object* group_id_json;
+    // const dbuser_t* member;
+    // client_t* member_client;
+    // dbuser_t* gmembers;
+    // dbmsg_t* attach_msgs;
+    // u32 n_members;
+    // u32 n_msgs;
+    // dbgroup_t* group;
+    // u32 group_id;
+    // u32 owner_id;
+    //
+    // RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+    // group_id = json_object_get_int(group_id_json);
+    //
+    // if ((group = server_db_get_group(&ew->db, group_id)) == NULL)
+    //     return "Group not found";
+    //
+    // owner_id = group->owner_id;
+    // free(group);
+    //
+    // if (owner_id != client->dbuser->user_id)
+    //     return "Permission denied";
+    //
+    // gmembers = server_db_get_group_members(&ew->db, group_id, &n_members);
+    // attach_msgs = server_db_get_msgs_only_attachs(&ew->db, group_id, &n_msgs);
+    // 
+    // if (!server_db_delete_group(&ew->db, group_id))
+    // {
+    //     free(gmembers);
+    //     return "Failed to delete group";
+    // }
+    //
+    // for (u32 i = 0; i < n_msgs; i++)
+    // {
+    //     dbmsg_t* msg = attach_msgs + i;
+    //     server_delete_msg_attachments(ew, msg);
+    //     json_object_put(msg->attachments_json);
+    // }
+    // free(attach_msgs);
+    //
+    // json_object_object_add(resp_json, "cmd",
+    //                        json_object_new_string("delete_group"));
+    // json_object_object_add(resp_json, "group_id",
+    //                        json_object_new_int(group_id));
+    //
+    // for (u32 i = 0; i < n_members; i++)
+    // {
+    //     member = gmembers + i;
+    //     member_client = server_get_client_user_id(ew->server, member->user_id);
+    //
+    //     if (member_client)
+    //         ws_json_send(member_client, resp_json);
+    // }
+    //
+    // free(gmembers);
+    //
+    // return NULL;
 }

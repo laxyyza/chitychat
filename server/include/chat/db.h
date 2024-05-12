@@ -97,10 +97,8 @@ bool        server_db_delete_group_code(server_db_t* db, const char* invite_code
 bool        server_db_delete_group(server_db_t* db, u32 group_id);
 
 /* Groups */
-dbgroup_t*  server_db_get_group(server_db_t* db, u32 group_id);
 dbgroup_t*  server_db_get_group_from_invite(server_db_t* db, const char* invite_code);
 dbgroup_t*  server_db_get_public_groups(server_db_t* db, u32 user_id, u32* n);
-dbgroup_t*  server_db_get_user_groups(server_db_t* db, u32 user_id, u32* n);
 bool        server_db_insert_group(server_db_t* db, dbgroup_t* group);
 
 /* Messages */
@@ -124,6 +122,7 @@ bool                server_db_delete_userfile(server_db_t* db, const char* hash)
 
 /* Result to structure */
 void db_row_to_user(dbuser_t* user, PGresult* res, i32 row);
+void db_row_to_group(dbgroup_t* group, PGresult* res, i32 row);
 
 /* Frees */
 void dbmsg_free(dbmsg_t* msg);
