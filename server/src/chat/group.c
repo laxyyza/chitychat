@@ -489,61 +489,64 @@ server_group_msg(eworker_t* ew, client_t* client,
 }
 
 const char* 
-server_get_group_msgs(eworker_t* ew, client_t* client, 
-               json_object* payload, json_object* respond_json)
+server_get_group_msgs(UNUSED eworker_t* ew, 
+                      UNUSED client_t* client, 
+                      UNUSED json_object* payload, 
+                      UNUSED json_object* respond_json)
 {
-    json_object* limit_json;
-    json_object* group_id_json;
-    json_object* offset_json;
-    json_object* msgs_json;
-    u64 group_id;
-    u32 limit;
-    u32 offset;
-    u32 n_msgs;
-    dbmsg_t* group_msgs;
-    dbmsg_t* msg;
-    json_object* msg_in_array;
-
-    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
-    RET_IF_JSON_BAD(limit_json, payload, "limit", json_type_int);
-    RET_IF_JSON_BAD(offset_json, payload, "offset", json_type_int);
-
-    group_id = json_object_get_int(group_id_json);
-    limit = json_object_get_int(limit_json);
-    offset = json_object_get_int(offset_json);
-
-    group_msgs = server_db_get_msgs_from_group(&ew->db, group_id, limit, 
-                                               offset, &n_msgs);
-
-    json_object_object_add(respond_json, "cmd", 
-                           json_object_new_string("get_group_msgs"));
-    json_object_object_add(respond_json, "group_id", 
-                           json_object_new_int(group_id));
-    json_object_object_add(respond_json, "messages", 
-                           json_object_new_array_ext(n_msgs));
-    msgs_json = json_object_object_get(respond_json, "messages");
-
-    for (u32 i = 0; i < n_msgs; i++)
-    {
-        msg = group_msgs + i;
-
-        msg_in_array = json_object_new_object();
-
-        server_msg_to_json(msg, msg_in_array);
-
-        json_object_array_add(msgs_json, msg_in_array);
-
-        if (msg->attachments_inheap && msg->attachments)
-        {
-            free(msg->attachments);
-            msg->attachments_inheap = false;
-        }
-    }
-
-    ws_json_send(client, respond_json);
-
-    free(group_msgs);
-    return NULL;
+    return "server_get_group_msgs not implemented!";
+    // json_object* limit_json;
+    // json_object* group_id_json;
+    // json_object* offset_json;
+    // json_object* msgs_json;
+    // u64 group_id;
+    // u32 limit;
+    // u32 offset;
+    // u32 n_msgs;
+    // dbmsg_t* group_msgs;
+    // dbmsg_t* msg;
+    // json_object* msg_in_array;
+    //
+    // RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+    // RET_IF_JSON_BAD(limit_json, payload, "limit", json_type_int);
+    // RET_IF_JSON_BAD(offset_json, payload, "offset", json_type_int);
+    //
+    // group_id = json_object_get_int(group_id_json);
+    // limit = json_object_get_int(limit_json);
+    // offset = json_object_get_int(offset_json);
+    //
+    // group_msgs = server_db_get_msgs_from_group(&ew->db, group_id, limit, 
+    //                                            offset, &n_msgs);
+    //
+    // json_object_object_add(respond_json, "cmd", 
+    //                        json_object_new_string("get_group_msgs"));
+    // json_object_object_add(respond_json, "group_id", 
+    //                        json_object_new_int(group_id));
+    // json_object_object_add(respond_json, "messages", 
+    //                        json_object_new_array_ext(n_msgs));
+    // msgs_json = json_object_object_get(respond_json, "messages");
+    //
+    // for (u32 i = 0; i < n_msgs; i++)
+    // {
+    //     msg = group_msgs + i;
+    //
+    //     msg_in_array = json_object_new_object();
+    //
+    //     server_msg_to_json(msg, msg_in_array);
+    //
+    //     json_object_array_add(msgs_json, msg_in_array);
+    //
+    //     if (msg->attachments_inheap && msg->attachments)
+    //     {
+    //         free(msg->attachments);
+    //         msg->attachments_inheap = false;
+    //     }
+    // }
+    //
+    // ws_json_send(client, respond_json);
+    //
+    // free(group_msgs);
+    // return NULL;
 }
 
 const char* 
