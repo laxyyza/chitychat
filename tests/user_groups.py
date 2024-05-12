@@ -7,6 +7,7 @@ import asyncio
 import websockets
 import json
 import ssl
+import re
 
 do_session = True
 host = "127.0.0.1"
@@ -16,6 +17,9 @@ uri = f"wss://{host}:{port}"
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE;
+
+def repl_func(match: re.Match):
+    return " ".join(match.group().split())
 
 async def main(username: str, password: str) -> int:
     login_packet = {
@@ -31,9 +35,12 @@ async def main(username: str, password: str) -> int:
         "cmd": "client_groups"
     }
     async with websockets.connect(uri, ssl=ssl_context) as ws:
-        async def recv_print() -> dict:
+        async def recv_print(oneline_array=False) -> dict:
             packet = json.loads(await ws.recv())
-            print(f"Recv from server {uri}:\n{json.dumps(packet, indent=4)}\n")
+            json_str = json.dumps(packet, indent=4)
+            if oneline_array:
+                json_str = re.sub(r"(?<=\[)[^\[\]]+(?=])", repl_func, json_str)
+            print(f"Recv from server {uri}:\n{json_str}\n")
             return packet
 
         # Send login command
@@ -53,6 +60,18 @@ async def main(username: str, password: str) -> int:
         recv_packet = await recv_print()
         if recv_packet["cmd"] == "error":
             return -1
+
+        for group in recv_packet["groups"]:
+            group_id: int = group["group_id"]
+            get_member_ids_packet = {
+                "cmd": "get_member_ids",
+                "group_id": group_id
+            }
+            await ws.send(str(get_member_ids_packet))
+            recv_packet = await recv_print(oneline_array=True)
+            if recv_packet["cmd"] == "error":
+                return -1
+
     return 0
 
 if __name__ == '__main__':
