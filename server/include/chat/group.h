@@ -23,7 +23,7 @@ typedef struct
     i32     flags;
 } dbgroup_member_t;
 
-typedef struct 
+typedef struct dbmsg
 {
     u32     msg_id;
     u32     user_id;
@@ -66,8 +66,7 @@ const char* server_join_group(eworker_t* ew,
                               json_object* respond_json);
 
 const char* server_get_send_group_msg(eworker_t* ew,
-                                      const dbmsg_t* msg, 
-                                      const u32 group_id);
+                                      const dbmsg_t* msg);
 
 const char* server_group_msg(eworker_t* ew, 
                              client_t* client, 

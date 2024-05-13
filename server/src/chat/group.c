@@ -5,26 +5,38 @@
 #include "chat/ws_text_frame.h"
 #include "server_websocket.h"
 
-static void 
-server_group_broadcast(eworker_t* ew, u32 group_id, json_object* json)
+static const char*
+do_group_broadcast(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
-    const dbuser_t* member;
+    json_object* json = ctx->param.json;
+    const i32* member_ids = ctx->data;
     client_t* member_client;
-    dbuser_t* gmembers;
-    u32 n_members;
+    size_t n_members = ctx->data_size;
 
-    gmembers = server_db_get_group_members(&ew->db, group_id, &n_members);
-
-    for (u32 i = 0; i < n_members; i++)
+    for (size_t i = 0; i < n_members; i++)
     {
-        member = gmembers + i;
-        member_client = server_get_client_user_id(ew->server, member->user_id);
-
+        member_client = server_get_client_user_id(ew->server, member_ids[i]);
         if (member_client)
             ws_json_send(member_client, json);
     }
 
-    free(gmembers);
+    json_object_put(json);
+
+    return NULL;
+}
+
+static void 
+server_group_broadcast(eworker_t* ew, u32 group_id, json_object* json)
+{
+    dbcmd_ctx_t ctx = {
+        .exec = do_group_broadcast,
+        .client = NULL,
+        .flags = DB_CTX_NO_JSON,
+        .param.json = json
+    };
+
+    if (!db_async_get_group_member_ids(&ew->db, group_id, &ctx))
+        json_object_put(json);
 }
 
 UNUSED static void 
@@ -383,8 +395,7 @@ server_join_group(UNUSED eworker_t* ew,
 
 const char*
 server_get_send_group_msg(eworker_t* ew, 
-                          const dbmsg_t* dbmsg, 
-                          const u32 group_id)
+                          const dbmsg_t* dbmsg)
 {
     json_object* respond_json;
 
@@ -392,10 +403,8 @@ server_get_send_group_msg(eworker_t* ew,
 
     server_msg_to_json(dbmsg, respond_json);
 
-    // Update all oewer online group members
-    server_group_broadcast(ew, group_id, respond_json);
-
-    json_object_put(respond_json);
+    // Update all online group members
+    server_group_broadcast(ew, dbmsg->group_id, respond_json);
 
     return NULL;
 }
@@ -423,6 +432,32 @@ server_verify_msg_attachments(json_object* attachments_json, size_t n)
     return NULL;
 }
 
+static void
+set_msg(dbmsg_t* msg, u32 user_id, u32 group_id, const char* content)
+{
+    if (!msg)
+        return;
+
+    msg->user_id = user_id;
+    msg->group_id = group_id;
+    strncpy(msg->content, content, DB_MESSAGE_MAX);
+}
+
+static const char*
+do_group_msg(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    dbmsg_t* msg;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to insert message";
+
+    msg = ctx->data;
+
+    server_get_send_group_msg(ew, msg);
+
+    return NULL;
+}
+
 const char* 
 server_group_msg(eworker_t* ew, client_t* client, 
                  json_object* payload, UNUSED json_object* respond_json)
@@ -434,8 +469,9 @@ server_group_msg(eworker_t* ew, client_t* client,
     const char* content;
     u32 user_id;
     size_t n_attachments;
-    dbmsg_t new_msg;
-    const char* errmsg;
+    const char* errmsg = NULL;
+    dbmsg_t* msg;
+    upload_token_t* ut;
 
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     RET_IF_JSON_BAD(content_json, payload, "content", json_type_string);
@@ -446,25 +482,24 @@ server_group_msg(eworker_t* ew, client_t* client,
     user_id = client->dbuser->user_id;
     n_attachments = json_object_array_length(attachments_json);
 
-    memset(&new_msg, 0, sizeof(dbmsg_t));
-    new_msg.user_id = user_id;
-    new_msg.group_id = group_id;
-    strncpy(new_msg.content, content, DB_MESSAGE_MAX);
-
     if (n_attachments == 0)
     {
         /*
          *  If Message has no attachments insert message into database,
          *  and send message to all clients in group.
          */
+        msg = calloc(1, sizeof(dbmsg_t));
+        set_msg(msg, user_id, group_id, content);
 
-        if (!server_db_insert_msg(&ew->db, &new_msg))
-            return "Failed to send message";
+        dbcmd_ctx_t ctx = {
+            .exec = do_group_msg
+        };
 
-        errmsg = server_get_send_group_msg(ew, &new_msg, group_id);
-        if (new_msg.attachments_inheap)
-            free(new_msg.attachments);
-        return errmsg;
+        if (!db_async_insert_group_msg(&ew->db, msg, &ctx))
+        {
+            free(msg);
+            errmsg = "Internal error: async-group-msg-insert";
+        }
     }
     else
     {
@@ -474,18 +509,18 @@ server_group_msg(eworker_t* ew, client_t* client,
         /*
          * If message has attachments, create upload token (session), 
          * save ewe message temporarily, send the upload token to client,
-         * and wait for client to send ewe attachments via HTTP POST,
+         * and wait for client to send attachments via HTTP POST,
          * ewen insert the message into database.
          */
-
-        upload_token_t* ut = server_new_upload_token_attach(ew, &new_msg);
-        ut->msg_state.msg.attachments_json = json_object_get(attachments_json);
+        ut = server_new_upload_token_attach(ew);
+        msg = &ut->msg_state.msg;
+        set_msg(msg, user_id, group_id, content);
+        msg->attachments_json = json_object_get(attachments_json);
         ut->msg_state.total = n_attachments;
 
         server_send_upload_token(client, "send_attachments", ut);
-
-        return NULL;
     }
+    return errmsg;
 }
 
 static const char*

@@ -2,7 +2,9 @@
 #include "chat/db_group.h"
 #include "chat/db_def.h"
 #include "chat/db.h"
+#include "chat/group.h"
 #include <libpq-fe.h>
+#include <openssl/conf.h>
 
 static void
 db_get_groups_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
@@ -71,13 +73,33 @@ static void
 db_get_group_member_ids_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
 {
     const char* member_ids_str;
+    u32* user_ids;
+    size_t rows;
 
     if (status == PGRES_TUPLES_OK)
     {
-        member_ids_str = PQgetvalue(res, 0, 0);
-        if (member_ids_str == NULL)
-            member_ids_str = "[]";
-        ctx->param.member_ids.ids_json = member_ids_str;
+        if (ctx->flags == DB_CTX_NO_JSON)
+        {
+            rows = PQntuples(res);
+            user_ids = calloc(rows, sizeof(u32));
+
+            for (size_t i = 0; i < rows; i++)
+            {
+                char* endptr;
+                const char* user_id_str = PQgetvalue(res, i, 0);
+                u32 user_id = strtoul(user_id_str, &endptr, 10);
+                user_ids[i] = user_id;
+            }
+            ctx->data = user_ids;
+            ctx->data_size = rows;
+        }
+        else
+        {
+            member_ids_str = PQgetvalue(res, 0, 0);
+            if (member_ids_str == NULL)
+                member_ids_str = "[]";
+            ctx->param.member_ids.ids_json = member_ids_str;
+        }
         ctx->ret = DB_ASYNC_OK;
     }
     else
@@ -91,7 +113,12 @@ db_get_group_member_ids_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusTy
 bool 
 db_async_get_group_member_ids(server_db_t* db, u32 group_id, dbcmd_ctx_t* ctx)
 {
-    const char* sql = "SELECT json_agg(user_id) FROM GroupMembers WHERE group_id = $1::int;";
+    const char* sql;
+    if (ctx->flags == DB_CTX_NO_JSON)
+        sql = "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;";
+    else
+        sql = "SELECT json_agg(user_id) FROM GroupMembers WHERE group_id = $1::int;";
+
     i32 ret;
     char group_id_str[DB_INTSTR_MAX];
     const char* vals[1] = {
@@ -152,5 +179,60 @@ db_async_get_group_msgs(server_db_t* db, u32 group_id, u32 limit, u32 offset, db
     ctx->exec_res = do_get_group_msgs;
     ret = db_async_params(db, db->cmd->select_group_msgs_json, 3, vals, lens, formats, ctx);
 
+    return ret == 1;
+}
+
+static void 
+insert_group_msg_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* msg_id_str;
+    const char* timestamp;
+    char* endptr;
+    dbmsg_t* msg;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        msg = ctx->data;
+        msg_id_str = PQgetvalue(res, 0, 0);
+        msg->msg_id = strtoul(msg_id_str, &endptr, 10);
+
+        timestamp = PQgetvalue(res, 0, 1);
+        strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
+        ctx->ret = DB_ASYNC_OK;
+    }
+    else
+    {
+        error("insert_group_msg not tuples ok: %s\n",
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+bool 
+db_async_insert_group_msg(server_db_t* db, dbmsg_t* msg, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char user_id_str[DB_INTSTR_MAX];
+    char group_id_str[DB_INTSTR_MAX];
+    if (!msg->attachments)
+        msg->attachments = "[]";
+
+    const char* vals[4] = {
+        user_id_str,
+        group_id_str,
+        msg->content,
+        msg->attachments
+    };
+    const i32 lens[4] = {
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", msg->user_id),
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", msg->group_id),
+        strnlen(msg->content, DB_MESSAGE_MAX),
+        strlen(msg->attachments)
+    };
+    const i32 formats[4] = {0};
+
+    ctx->exec_res = insert_group_msg_result;
+    ctx->data = msg;
+    ret = db_async_params(db, db->cmd->insert_msg, 4, vals, lens, formats, ctx);
     return ret == 1;
 }

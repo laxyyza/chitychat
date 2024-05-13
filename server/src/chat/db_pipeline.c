@@ -25,7 +25,8 @@ db_async_params(server_db_t* db,
               PQerrorMessage(db->conn));
         goto err;
     }
-    debug("Used SQL: %s\n", query);
+    debug("Used SQL (curr: %p): %s\n", 
+          db->ctx.head, query);
     if (db->queue.count == 0)
     {
         PQpipelineSync(db->conn);
@@ -63,6 +64,7 @@ db_exec_cmd(eworker_t* ew, dbcmd_ctx_t* cmd)
         ws_json_send(cmd->client, resp);
         json_object_put(resp);
     }
+    db_pipeline_current_done(&ew->db);
 }
 
 static void
@@ -166,7 +168,7 @@ dbcmd_ctx_t*
 db_pipeline_peek(const server_db_t* db)
 {
     const plq_t* q = &db->queue;
-    if (q->read->client == NULL)
+    if (q->read->exec == NULL)
         return NULL;
     return q->read;
 }
@@ -175,7 +177,7 @@ i32
 db_pipeline_dequeue(server_db_t* db, dbcmd_ctx_t* cmd)
 {
     plq_t* q = &db->queue;
-    if (q->read->client == NULL)
+    if (q->read->exec == NULL)
         return 0;
     memcpy(cmd, q->read, sizeof(dbcmd_ctx_t));
     memset(q->read, 0, sizeof(dbcmd_ctx_t));

@@ -163,7 +163,7 @@ server_handle_msg_attach(eworker_t* ew, client_t* client,
                 msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
 
                 if (server_db_insert_msg(&ew->db, msg))
-                    server_get_send_group_msg(ew, msg, msg->group_id);
+                    server_get_send_group_msg(ew, msg);
 
                 server_event_t* se = server_get_event(ew->server, ut->timerfd);
                 if (se)

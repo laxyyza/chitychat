@@ -31,13 +31,12 @@ server_new_upload_token(eworker_t* ew, u32 user_id)
 }
 
 upload_token_t* 
-server_new_upload_token_attach(eworker_t* ew, dbmsg_t* msg)
+server_new_upload_token_attach(eworker_t* ew)
 {
     upload_token_t* ut;
 
     ut = server_new_upload_token(ew, 0);
     ut->type = UT_MSG_ATTACHMENT;
-    memcpy(&ut->msg_state.msg, msg, sizeof(dbmsg_t));
 
     return ut;
 }

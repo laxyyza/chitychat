@@ -32,7 +32,7 @@ typedef struct upload_token
 } upload_token_t;
 
 upload_token_t* server_new_upload_token(eworker_t* th, u32 user_id);
-upload_token_t* server_new_upload_token_attach(eworker_t* th, dbmsg_t* msg);
+upload_token_t* server_new_upload_token_attach(eworker_t* th);
 upload_token_t* server_get_upload_token(server_t* server, u32 token);
 ssize_t         server_send_upload_token(client_t* client, const char* packet_type, upload_token_t* ut);
 void            server_del_upload_token(eworker_t* th, upload_token_t* upload_token);

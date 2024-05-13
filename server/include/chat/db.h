@@ -16,6 +16,8 @@
 #define DB_ASYNC_OK     1
 #define DB_ASYNC_ERROR -1
 
+#define DB_CTX_NO_JSON  0x01
+
 typedef struct 
 {
     u32 group_id;
@@ -34,6 +36,7 @@ union cmd_param
     member_ids_param_t member_ids;
     group_msgs_param_t group_msgs;
     session_t*  session;
+    json_object* json;
     const char* str;
     u32         group_id;
     u32         user_id;
@@ -42,6 +45,7 @@ union cmd_param
 typedef struct dbcmd_ctx
 {
     i32       ret;
+    i32       flags;
     client_t* client;
     void*     data;
     size_t    data_size;
