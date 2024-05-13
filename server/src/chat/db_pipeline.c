@@ -141,8 +141,12 @@ db_process_results(eworker_t* ew)
                 cmd_next = cmd_next->next;
             }
             if (cmd.next)
+            {
                 if (cmd.data != cmd.next->data)
                     free(cmd.data);
+            }
+            else
+                free(cmd.data);
             db_cmd_free(cmd.next);
         }
     clear:
