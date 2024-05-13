@@ -247,36 +247,68 @@ server_client_groups(eworker_t* ew, client_t* client,
     return NULL;
 }
 
-const char* 
-server_get_all_groups(eworker_t* ew, client_t* client, 
-                      UNUSED json_object* payload, json_object* respond_json)
+static const char* 
+get_all_groups_result(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 {
-    // TODO: Limit getting public groups.
-    u32 n_groups;
-    dbgroup_t* groups = server_db_get_public_groups(&ew->db, client->dbuser->user_id, &n_groups);
-    if (!groups)
-        return "Failed to get groups";
+    const char* group_array_json;
+    json_object* resp;
 
-    json_object_object_add(respond_json, "cmd", 
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get public groups";
+
+    group_array_json = ctx->param.str;
+    resp = json_object_new_object();
+
+    json_object_object_add(resp, "cmd",
                            json_object_new_string("get_all_groups"));
-    json_object_object_add(respond_json, "groups",
-                           json_object_new_array_ext(n_groups));
-    json_object* groups_json = json_object_object_get(respond_json, "groups");
+    json_object_object_add(resp, "groups",
+                           json_tokener_parse(group_array_json));
 
-    for (size_t i = 0; i < n_groups; i++)
-    {
-        dbgroup_t* g = groups + i;
-        json_object* group_json = json_object_new_object();
-
-        server_group_to_json(g, group_json);
-        json_object_array_add(groups_json, group_json);
-    }
-
-    ws_json_send(client, respond_json);
-
-    free(groups);
+    ws_json_send(ctx->client, resp);
+    json_object_put(resp);
 
     return NULL;
+}
+
+const char* 
+server_get_all_groups(eworker_t* ew, 
+                      UNUSED client_t* client, 
+                      UNUSED json_object* payload, 
+                      UNUSED json_object* respond_json)
+{
+    // TODO: Limit getting public groups.
+    dbcmd_ctx_t ctx = {
+        .exec = get_all_groups_result
+    };
+    if (!db_async_get_public_groups(&ew->db, client->dbuser->user_id, &ctx))
+        return "Internal error: async-get-public-groups";
+
+    return NULL;
+    // u32 n_groups;
+    // dbgroup_t* groups = server_db_get_public_groups(&ew->db, client->dbuser->user_id, &n_groups);
+    // if (!groups)
+    //     return "Failed to get groups";
+    //
+    // json_object_object_add(respond_json, "cmd", 
+    //                        json_object_new_string("get_all_groups"));
+    // json_object_object_add(respond_json, "groups",
+    //                        json_object_new_array_ext(n_groups));
+    // json_object* groups_json = json_object_object_get(respond_json, "groups");
+    //
+    // for (size_t i = 0; i < n_groups; i++)
+    // {
+    //     dbgroup_t* g = groups + i;
+    //     json_object* group_json = json_object_new_object();
+    //
+    //     server_group_to_json(g, group_json);
+    //     json_object_array_add(groups_json, group_json);
+    // }
+    //
+    // ws_json_send(client, respond_json);
+    //
+    // free(groups);
+    //
+    // return NULL;
 }
 
 static void

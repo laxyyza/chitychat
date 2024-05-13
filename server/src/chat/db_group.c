@@ -147,7 +147,6 @@ do_get_group_msgs(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, db
 
         ctx->param.group_msgs.msgs_json = msgs_json_str;
         ctx->ret = DB_ASYNC_OK;
-        return;
     }
     else
     {
@@ -234,5 +233,44 @@ db_async_insert_group_msg(server_db_t* db, dbmsg_t* msg, dbcmd_ctx_t* ctx)
     ctx->exec_res = insert_group_msg_result;
     ctx->data = msg;
     ret = db_async_params(db, db->cmd->insert_msg, 4, vals, lens, formats, ctx);
+    return ret == 1;
+}
+
+static void
+get_public_groups_result(UNUSED eworker_t* ew,
+                         PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* groups_array_json;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        groups_array_json = PQgetvalue(res, 0, 0);
+        if (groups_array_json == NULL)
+            groups_array_json = "[]";
+        ctx->param.str = groups_array_json;
+        ctx->ret = DB_ASYNC_OK;
+    }
+    else
+    {
+        error("Async get public groups: %s\n",
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+bool 
+db_async_get_public_groups(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char user_id_str[DB_INTSTR_MAX];
+    const char* vals[1] = {
+        user_id_str
+    };
+    const i32 lens[1] = {
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id)
+    };
+    const i32 formats[1] = {0};
+    ctx->exec_res = get_public_groups_result;
+    ret = db_async_params(db, db->cmd->select_pub_group, 1, vals, lens, formats, ctx);
     return ret == 1;
 }

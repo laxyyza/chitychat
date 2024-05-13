@@ -153,10 +153,8 @@ do_save_file_img(eworker_t* ew, dbcmd_ctx_t* ctx)
         server_write_file(data, file->size,
                           ew->server->conf.img_dir, 
                           file->hash);
-        
     }
 
-    // HMMMMM
     free((void*)data);
 
     return NULL;
