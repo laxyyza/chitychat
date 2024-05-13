@@ -113,6 +113,71 @@ function client_groups(packet)
 //     }
 // }
 
+function resolve_group_members(new_user)
+{
+    for (let group_id in app.groups)
+    {
+        let group = app.groups[group_id];
+        for (let m = 0; m < group.members_id.length; m++)
+        {
+            let member_id = group.members_id[m];
+            if (member_id === new_user.id)
+            {
+                group.add_member(new_user);
+
+                let user_msgs = group.div_chat_messages.querySelectorAll("[msg_user_id=\"" + new_user.id + "\"]");
+                for (let i = 0; i < user_msgs.length; i++)
+                {
+                    const msg = user_msgs[i];
+                    let msg_displayname = msg.querySelector(".msg_displayname");
+                    msg_displayname.innerHTML = new_user.displayname;
+                    let msg_img = msg.querySelector(".msg_img");
+                    msg_img.src = new_user.pfp_url;
+                }
+                break;
+            }
+        }
+    }
+}
+
+function resolve_popup_users(new_user)
+{
+    if (app.popup_join)
+    {
+        let owner_lists = document.querySelectorAll("#popup_group_owner" + new_user.id);
+        let owner_username_lists = document.querySelectorAll("#popup_group_owner_username" + new_user.id);
+
+        for (let i = 0; i < owner_lists.length; i++)
+        {
+            let span_owner = owner_lists[i];
+            span_owner.innerHTML = new_user.displayname;
+        }
+
+        for (let i = 0; i < owner_username_lists.length; i++)
+        {
+            let span_owner_username = owner_username_lists[i];
+            span_owner_username.innerHTML = new_user.username;
+        }
+    }
+}
+
+function resolve_group_msgs(new_user)
+{
+    console.log("app.groups", app.groups);
+    for (let group_id in app.groups)
+    {
+        const group = app.groups[group_id];
+        const div_msgs = group.div_chat_messages;
+        const user_msgs = div_msgs.querySelectorAll("[msg_user_id=\"" + new_user.id + "\"]");
+        console.log("user_msgs", user_msgs);
+        user_msgs.forEach(msg => {
+            let pfp = msg.querySelector(".msg_img");
+            console.log("new_user.pfp_url", new_user.pfp_url);
+            pfp.src = new_user.pfp_url;
+        });
+    }
+}
+
 function get_user(users_packet)
 {
     users_packet.users.forEach(user => {
@@ -121,49 +186,10 @@ function get_user(users_packet)
                                 user.created_at, user.pfp_name,
                                 user.status);
         app.users[new_user.id] = new_user;
-
-        for (let group_id in app.groups)
-        {
-            let group = app.groups[group_id];
-            for (let m = 0; m < group.members_id.length; m++)
-            {
-                let member_id = group.members_id[m];
-                if (member_id === new_user.id)
-                {
-                    group.add_member(new_user);
-
-                    let user_msgs = group.div_chat_messages.querySelectorAll("[msg_user_id=\"" + new_user.id + "\"]");
-                    for (let i = 0; i < user_msgs.length; i++)
-                    {
-                        const msg = user_msgs[i];
-                        let msg_displayname = msg.querySelector(".msg_displayname");
-                        msg_displayname.innerHTML = new_user.displayname;
-                        let msg_img = msg.querySelector(".msg_img");
-                        msg_img.src = new_user.pfp_url;
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        if (app.popup_join)
-        {
-            let owner_lists = document.querySelectorAll("#popup_group_owner" + new_user.id);
-            let owner_username_lists = document.querySelectorAll("#popup_group_owner_username" + new_user.id);
-
-            for (let i = 0; i < owner_lists.length; i++)
-            {
-                let span_owner = owner_lists[i];
-                span_owner.innerHTML = new_user.displayname;
-            }
-
-            for (let i = 0; i < owner_username_lists.length; i++)
-            {
-                let span_owner_username = owner_username_lists[i];
-                span_owner_username.innerHTML = new_user.username;
-            }
-        }
+        
+        resolve_group_members(new_user);
+        resolve_group_msgs(new_user);
+        resolve_popup_users(new_user);
     });
 }
 
@@ -233,15 +259,9 @@ function get_group_msgs(packet)
         if (!user)
         {
             user = {
-                user_id: msg.user_id,
-                displayname: msg.user_id
+                id: msg.user_id,
+                displayname: ""
             };
-
-            const get_user_packet = {
-                cmd: "get_user",
-                user_id: msg.user_id
-            };
-            app.server.ws_send(get_user_packet);
         }
 
         group.add_msg(user, msg);

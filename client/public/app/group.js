@@ -239,6 +239,19 @@ export class Group
         app.server.ws_send(packet)
     }
 
+    get_msgs()
+    {
+        const packet = {
+            cmd: "get_group_msgs",
+            group_id: this.id,
+            limit: 15,
+            offset: this.msg_offset
+        };
+        this.msg_offset += packet.limit;
+
+        app.server.ws_send(packet);
+    }
+
     select()
     {
         if (app.selected_group)
@@ -246,8 +259,10 @@ export class Group
             app.selected_group.classList.remove("active");
         }
 
-        if (this.members_id.length == 0)
+        if (this.members_id.length === 0)
             this.get_member_ids()
+        if (this.messages.length === 0)
+            this.get_msgs()
 
         this.div_list.classList.add("active");
 
@@ -273,19 +288,6 @@ export class Group
         if (app.current_group && app.current_group.get_scroll_messages)
             app.messages_container.removeEventListener('scroll', app.current_group.get_scroll_messages);
         app.current_group = this;
-
-        if (this.messages.length === 0)
-        {
-            const packet = {
-                cmd: "get_group_msgs",
-                group_id: this.id,
-                limit: 15,
-                offset: this.msg_offset
-            };
-            this.msg_offset += packet.limit;
-
-            app.server.ws_send(packet);
-        }
 
         app.messages_container.addEventListener('scroll', this.get_scroll_messages)
         app.group_info_name.innerHTML = this.name;
