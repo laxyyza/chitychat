@@ -163,16 +163,13 @@ function resolve_popup_users(new_user)
 
 function resolve_group_msgs(new_user)
 {
-    console.log("app.groups", app.groups);
     for (let group_id in app.groups)
     {
         const group = app.groups[group_id];
         const div_msgs = group.div_chat_messages;
         const user_msgs = div_msgs.querySelectorAll("[msg_user_id=\"" + new_user.id + "\"]");
-        console.log("user_msgs", user_msgs);
         user_msgs.forEach(msg => {
             let pfp = msg.querySelector(".msg_img");
-            console.log("new_user.pfp_url", new_user.pfp_url);
             pfp.src = new_user.pfp_url;
 
             let name = msg.querySelector(".msg_displayname");
