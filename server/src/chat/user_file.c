@@ -188,7 +188,11 @@ server_save_file_img(eworker_t* ew, const void* data, size_t size,
     };
 
     if ((ret = db_async_insert_userfile(&ew->db, file, &ctx)))
+    {
+        ctx.exec = NULL;
+        ctx.data = NULL;
         ret = db_async_userfile_refcount(&ew->db, file->hash, &ctx);
+    }
 
     // if (server_db_insert_userfile(&ew->db, &file))
     // {

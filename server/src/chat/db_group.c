@@ -4,7 +4,6 @@
 #include "chat/db.h"
 #include "chat/group.h"
 #include <libpq-fe.h>
-#include <openssl/conf.h>
 
 static void
 db_get_groups_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
@@ -272,5 +271,39 @@ db_async_get_public_groups(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx)
     const i32 formats[1] = {0};
     ctx->exec_res = get_public_groups_result;
     ret = db_async_params(db, db->cmd->select_pub_group, 1, vals, lens, formats, ctx);
+    return ret == 1;
+}
+
+static void
+join_pub_group_result(UNUSED eworker_t* ew, 
+                      PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    if (status == PGRES_COMMAND_OK)
+        ctx->ret = DB_ASYNC_OK;
+    else
+    {
+        error("Failed to join pub group: %s\n",
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+bool 
+db_async_user_join_pub_group(server_db_t* db, u32 user_id, u32 group_id, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char user_id_str[DB_INTSTR_MAX];
+    char group_id_str[DB_INTSTR_MAX];
+    const char* vals[2] = {
+        user_id_str,
+        group_id_str
+    };
+    const i32 lens[2] = {
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id),
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id),
+    };
+    const i32 formats[2] = {0};
+    ctx->exec_res = join_pub_group_result;
+    ret = db_async_params(db, db->cmd->insert_pub_groupmember, 2, vals, lens, formats, ctx);
     return ret == 1;
 }

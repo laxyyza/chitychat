@@ -147,6 +147,8 @@ server_init_db(server_t* server)
 
     cmd->insert_groupmember_code = server_db_load_sql(server->conf.sql_insert_groupmember_code, &cmd->insert_groupmember_code_len);
     cmd->select_groupmember = server_db_load_sql(server->conf.sql_select_groupmember, &cmd->select_groupmember_len);
+    cmd->insert_pub_groupmember = server_db_load_sql("server/sql/join_pub_group.sql",
+                                                     &cmd->insert_pub_groupmember_len);
 
     cmd->insert_msg = server_db_load_sql(server->conf.sql_insert_msg, &cmd->insert_msg_len);
     cmd->select_msg = server_db_load_sql(server->conf.sql_select_msg, &cmd->select_msg_len);
@@ -227,6 +229,7 @@ server_db_free(server_t* server)
     free(cmd->delete_group);
 
     free(cmd->insert_groupmember_code);
+    free(cmd->insert_pub_groupmember);
     free(cmd->select_groupmember);
     free(cmd->delete_groupmember);
 

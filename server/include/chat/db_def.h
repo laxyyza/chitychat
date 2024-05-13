@@ -51,6 +51,8 @@ typedef struct
 
     char*   select_groupmember;
     size_t  select_groupmember_len;
+    char*   insert_pub_groupmember;
+    size_t  insert_pub_groupmember_len;
     char*   delete_groupmember;
     size_t  delete_groupmember_len;
 

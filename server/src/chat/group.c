@@ -312,17 +312,39 @@ server_get_all_groups(eworker_t* ew,
 }
 
 static void
-on_user_group_join(eworker_t* ew, client_t* client,
-                   dbgroup_t* group, json_object* respond_json)
+on_user_group_join(eworker_t* ew, client_t* client, u32 group_id)
 {
-    json_object* group_json;
-    json_object* array_json;
-    json_object* members_array_json;
-    json_object* oewer_clients_respond;
-    dbuser_t* gmembers;
-    const dbuser_t* member;
-    client_t* member_client;
-    u32 n_members;
+    // 1. Send to client: client_groups
+    // 2. Send to online clients in group: join_group
+    json_object* online_clients_respond;
+
+    dbcmd_ctx_t ctx = {
+        .exec = do_client_groups,
+        .client = client
+    };
+    db_async_get_group(&ew->db, group_id, &ctx);
+    
+    online_clients_respond = json_object_new_object();
+    json_object_object_add(online_clients_respond, "cmd",
+                           json_object_new_string("join_group"));
+    json_object_object_add(online_clients_respond, "user_id", 
+                           json_object_new_int(client->dbuser->user_id));
+    json_object_object_add(online_clients_respond, "group_id", 
+                           json_object_new_int(group_id));    
+
+    server_group_broadcast(ew, group_id, online_clients_respond);
+    // ctx.exec = do_user_join_broadcast;
+    // ctx.flags = DB_CTX_NO_JSON;
+    // db_async_get_group_member_ids(&ew->db, group_id, &ctx);
+
+    // json_object* group_json;
+    // json_object* array_json;
+    // json_object* members_array_json;
+    // json_object* oewer_clients_respond;
+    // dbuser_t* gmembers;
+    // const dbuser_t* member;
+    // client_t* member_client;
+    // u32 n_members;
 
     /*
      * To client who joined. (groups array always length of 1)
@@ -341,23 +363,23 @@ on_user_group_join(eworker_t* ew, client_t* client,
      * }
      */
 
-    json_object_object_add(respond_json, "cmd", 
-                           json_object_new_string("client_groups"));
-    json_object_object_add(respond_json, "groups", 
-                           json_object_new_array_ext(1));
-    array_json = json_object_object_get(respond_json, "groups");
-    group_json = json_object_new_object();
-
-    server_group_to_json(group, group_json);
-
-    gmembers = server_db_get_group_members(&ew->db, group->group_id, &n_members);
-
-    json_object_object_add(group_json, "members_id", 
-                           json_object_new_array_ext(n_members));
-    members_array_json = json_object_object_get(group_json, "members_id");
+    // json_object_object_add(respond_json, "cmd", 
+    //                        json_object_new_string("client_groups"));
+    // json_object_object_add(respond_json, "groups", 
+    //                        json_object_new_array_ext(1));
+    // array_json = json_object_object_get(respond_json, "groups");
+    // group_json = json_object_new_object();
+    //
+    // server_group_to_json(group, group_json);
+    //
+    // gmembers = server_db_get_group_members(&ew->db, group->group_id, &n_members);
+    //
+    // json_object_object_add(group_json, "members_id", 
+    //                        json_object_new_array_ext(n_members));
+    // members_array_json = json_object_object_get(group_json, "members_id");
 
     /*
-     * To oewer clients who are in the group.
+     * To online clients who are in the group.
      * {
      *      "cmd":      "join_group",
      *      "user_id":  <type:int>,
@@ -365,47 +387,66 @@ on_user_group_join(eworker_t* ew, client_t* client,
      * }
      */
 
-    oewer_clients_respond = json_object_new_object();
-    json_object_object_add(oewer_clients_respond, "cmd",
-                           json_object_new_string("join_group"));
-    json_object_object_add(oewer_clients_respond, "user_id", 
-                           json_object_new_int(client->dbuser->user_id));
-    json_object_object_add(oewer_clients_respond, "group_id", 
-                           json_object_new_int(group->group_id));
 
-    for (u32 m = 0; m < n_members; m++)
-    {
-        member = gmembers + m;
-        member_client = server_get_client_user_id(ew->server, member->user_id);
+    //
+    // for (u32 m = 0; m < n_members; m++)
+    // {
+    //     member = gmembers + m;
+    //     member_client = server_get_client_user_id(ew->server, member->user_id);
+    //
+    //     if (member_client && member_client != client)
+    //         ws_json_send(member_client, oewer_clients_respond);
+    //
+    //     json_object_array_add(members_array_json, 
+    //             json_object_new_int(member->user_id));
+    // }
+    //
+    // json_object_put(oewer_clients_respond);
+    // json_object_array_add(array_json, group_json);
+    //
+    // ws_json_send(client, respond_json);
+    //
+    // free(gmembers);
+}
 
-        if (member_client && member_client != client)
-            ws_json_send(member_client, oewer_clients_respond);
+static const char*
+join_group_result(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    u32 group_id;
 
-        json_object_array_add(members_array_json, 
-                json_object_new_int(member->user_id));
-    }
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to join group";
 
-    json_object_put(oewer_clients_respond);
-    json_object_array_add(array_json, group_json);
+    group_id = ctx->param.group_id;
+    
+    on_user_group_join(ew, ctx->client, group_id);
 
-    ws_json_send(client, respond_json);
-
-    free(gmembers);
+    return NULL;
 }
 
 const char* 
-server_join_group(UNUSED eworker_t* ew, 
-                  UNUSED client_t* client, 
-                  UNUSED json_object* payload, 
+server_join_group(eworker_t* ew, 
+                  client_t* client, 
+                  json_object* payload, 
                   UNUSED json_object* respond_json)
 {
-    return "server_join_group not implemented!";
-    // json_object* group_id_json;
-    // u32 group_id;
+    json_object* group_id_json;
+    u32 group_id;
+
+    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+    group_id = json_object_get_int(group_id_json);
+
+    dbcmd_ctx_t ctx = {
+        .exec = join_group_result,
+        .param.group_id = group_id
+    };
+
+    if (!db_async_user_join_pub_group(&ew->db, client->dbuser->user_id, group_id, &ctx))
+        return "Internal error: async-user-join-pub-group";
+
+    return NULL;
     // dbgroup_t* group;
     //
-    // RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
-    // group_id = json_object_get_int(group_id_json);
     //
     // group = server_db_get_group(&ew->db, group_id);
     // if (!group)
@@ -688,28 +729,31 @@ server_create_group_code(eworker_t* ew, client_t* client,
 }
 
 const char* 
-server_join_group_code(eworker_t* ew, client_t* client,
-                       json_object* payload, json_object* respond_json)
+server_join_group_code(UNUSED eworker_t* ew, 
+                       UNUSED client_t* client,
+                       UNUSED json_object* payload, 
+                       UNUSED json_object* respond_json)
 {
-    json_object* code_json;
-    const char* code;
-    const char* errmsg = NULL;
-    const u32 user_id = client->dbuser->user_id;
-    dbgroup_t* group_joined;
-
-    RET_IF_JSON_BAD(code_json, payload, "code", json_type_string);
-    code = json_object_get_string(code_json);
-
-    group_joined = server_db_insert_group_member_code(&ew->db,
-                                                      code,
-                                                      user_id);
-    if (!group_joined)
-        return "Failed to join or already joined";
-
-    on_user_group_join(ew, client, group_joined, respond_json);
-        
-    free(group_joined);
-    return errmsg;
+    return "server_join_group_code: not implemented!";
+    // json_object* code_json;
+    // const char* code;
+    // const char* errmsg = NULL;
+    // const u32 user_id = client->dbuser->user_id;
+    // dbgroup_t* group_joined;
+    //
+    // RET_IF_JSON_BAD(code_json, payload, "code", json_type_string);
+    // code = json_object_get_string(code_json);
+    //
+    // group_joined = server_db_insert_group_member_code(&ew->db,
+    //                                                   code,
+    //                                                   user_id);
+    // if (!group_joined)
+    //     return "Failed to join or already joined";
+    //
+    // on_user_group_join(ew, client, group_joined, respond_json);
+    //     
+    // free(group_joined);
+    // return errmsg;
 }
 
 const char* 
