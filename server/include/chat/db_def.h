@@ -58,6 +58,8 @@ typedef struct
     size_t  insert_msg_len;
     char*   select_msg;
     size_t  select_msg_len;
+    char*   select_group_msgs_json;
+    size_t  select_group_msgs_json_len;
     char*   delete_msg;
     size_t  delete_msg_len;
 

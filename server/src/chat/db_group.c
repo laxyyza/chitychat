@@ -106,3 +106,51 @@ db_async_get_group_member_ids(server_db_t* db, u32 group_id, dbcmd_ctx_t* ctx)
 
     return ret == 1;
 }
+
+static void
+do_get_group_msgs(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* msgs_json_str;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        msgs_json_str = PQgetvalue(res, 0, 0);
+        if (msgs_json_str == NULL)
+            msgs_json_str = "[]";
+
+        ctx->param.group_msgs.msgs_json = msgs_json_str;
+        ctx->ret = DB_ASYNC_OK;
+        return;
+    }
+    else
+    {
+        error("get_group_msgs not PGRES_TUPLES_OK: %s\n",
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+bool 
+db_async_get_group_msgs(server_db_t* db, u32 group_id, u32 limit, u32 offset, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char group_id_str[DB_INTSTR_MAX];
+    char limit_str[DB_INTSTR_MAX];
+    char offset_str[DB_INTSTR_MAX];
+    const char* vals[3] = {
+        group_id_str,
+        limit_str,
+        offset_str
+    };
+    const i32 lens[3] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id),
+        snprintf(limit_str, DB_INTSTR_MAX, "%u", limit),
+        snprintf(offset_str, DB_INTSTR_MAX, "%u", offset)
+    };
+    const i32 formats[3] = {0};
+
+    ctx->exec_res = do_get_group_msgs;
+    ret = db_async_params(db, db->cmd->select_group_msgs_json, 3, vals, lens, formats, ctx);
+
+    return ret == 1;
+}

@@ -22,10 +22,17 @@ typedef struct
     const char* ids_json;
 } member_ids_param_t;
 
+typedef struct 
+{
+    u32 group_id; 
+    const char* msgs_json;
+} group_msgs_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
     member_ids_param_t member_ids;
+    group_msgs_param_t group_msgs;
     session_t*  session;
     const char* str;
     u32         group_id;

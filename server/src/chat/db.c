@@ -150,6 +150,8 @@ server_init_db(server_t* server)
 
     cmd->insert_msg = server_db_load_sql(server->conf.sql_insert_msg, &cmd->insert_msg_len);
     cmd->select_msg = server_db_load_sql(server->conf.sql_select_msg, &cmd->select_msg_len);
+    cmd->select_group_msgs_json = server_db_load_sql("server/sql/select_group_msgs_json.sql",
+                                                     &cmd->select_group_msgs_json_len);
 
     cmd->update_user = server_db_load_sql(server->conf.sql_update_user, &cmd->delete_msg_len);
     cmd->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &cmd->insert_userfiles_len);
@@ -230,6 +232,7 @@ server_db_free(server_t* server)
 
     free(cmd->insert_msg);
     free(cmd->select_msg);
+    free(cmd->select_group_msgs_json);
     free(cmd->delete_msg);
 
     free(cmd->update_user);

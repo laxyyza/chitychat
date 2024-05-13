@@ -488,32 +488,69 @@ server_group_msg(eworker_t* ew, client_t* client,
     }
 }
 
+static const char*
+do_get_group_msgs(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    json_object* resp;
+    u32 group_id;
+    const char* msgs_array_json;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get group messages";
+
+    resp = json_object_new_object();
+    group_id = ctx->param.group_msgs.group_id;
+    msgs_array_json = ctx->param.group_msgs.msgs_json;
+
+    json_object_object_add(resp, "cmd",
+                           json_object_new_string("get_group_msgs"));
+    json_object_object_add(resp, "group_id",
+                           json_object_new_int(group_id));
+    json_object_object_add(resp, "messages",
+                           json_tokener_parse(msgs_array_json));
+
+    ws_json_send(ctx->client, resp);
+
+    json_object_put(resp);
+
+    return NULL;
+}
+
 const char* 
 server_get_group_msgs(UNUSED eworker_t* ew, 
                       UNUSED client_t* client, 
-                      UNUSED json_object* payload, 
+                      json_object* payload, 
                       UNUSED json_object* respond_json)
 {
-    return "server_get_group_msgs not implemented!";
-    // json_object* limit_json;
-    // json_object* group_id_json;
-    // json_object* offset_json;
-    // json_object* msgs_json;
-    // u64 group_id;
-    // u32 limit;
-    // u32 offset;
-    // u32 n_msgs;
+    json_object* limit_json;
+    json_object* group_id_json;
+    json_object* offset_json;
+    u64 group_id;
+    u32 limit;
+    u32 offset;
+
+    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+    RET_IF_JSON_BAD(limit_json, payload, "limit", json_type_int);
+    RET_IF_JSON_BAD(offset_json, payload, "offset", json_type_int);
+
+    group_id = json_object_get_int(group_id_json);
+    limit = json_object_get_int(limit_json);
+    offset = json_object_get_int(offset_json);
+
+    dbcmd_ctx_t ctx = {
+        .exec = do_get_group_msgs,
+        .param.group_id = group_id
+    };
+
+    if (!db_async_get_group_msgs(&ew->db, group_id, limit, offset, &ctx))
+        return "Internal error: async-get-group-msgs";
+
+    return NULL;
     // dbmsg_t* group_msgs;
     // dbmsg_t* msg;
     // json_object* msg_in_array;
     //
-    // RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
-    // RET_IF_JSON_BAD(limit_json, payload, "limit", json_type_int);
-    // RET_IF_JSON_BAD(offset_json, payload, "offset", json_type_int);
     //
-    // group_id = json_object_get_int(group_id_json);
-    // limit = json_object_get_int(limit_json);
-    // offset = json_object_get_int(offset_json);
     //
     // group_msgs = server_db_get_msgs_from_group(&ew->db, group_id, limit, 
     //                                            offset, &n_msgs);
