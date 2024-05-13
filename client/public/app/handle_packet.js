@@ -174,6 +174,9 @@ function resolve_group_msgs(new_user)
             let pfp = msg.querySelector(".msg_img");
             console.log("new_user.pfp_url", new_user.pfp_url);
             pfp.src = new_user.pfp_url;
+
+            let name = msg.querySelector(".msg_displayname");
+            name.innerHTML = new_user.displayname;
         });
     }
 }
@@ -187,9 +190,9 @@ function get_user(users_packet)
                                 user.status);
         app.users[new_user.id] = new_user;
         
+        resolve_popup_users(new_user);
         resolve_group_members(new_user);
         resolve_group_msgs(new_user);
-        resolve_popup_users(new_user);
     });
 }
 
