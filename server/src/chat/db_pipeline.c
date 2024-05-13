@@ -6,6 +6,21 @@
 #include "server_eworker.h"
 #include "server_websocket.h"
 
+static const char* const pgres_status_str[] = {
+	"PGRES_EMPTY_QUERY",
+	"PGRES_COMMAND_OK",
+	"PGRES_TUPLES_OK",
+	"PGRES_COPY_OUT",
+	"PGRES_COPY_IN",
+	"PGRES_BAD_RESPONSE",
+	"PGRES_NONFATAL_ERROR",
+	"PGRES_FATAL_ERROR",
+	"PGRES_COPY_BOTH",
+	"PGRES_SINGLE_TUPLE",
+	"PGRES_PIPELINE_SYNC",
+	"PGRES_PIPELINE_ABORTE"
+};
+
 i32 
 db_async_params(server_db_t* db, 
                 const char* query,
@@ -92,17 +107,15 @@ db_process_results(eworker_t* ew)
     server_db_t* db = &ew->db;
     ExecStatusType status;
     dbcmd_ctx_t* ctx_peek;
+    dbcmd_ctx_t* cmd_next;
     dbcmd_ctx_t cmd;
 
     while ((res = PQgetResult(db->conn)))
     {
         status = PQresultStatus(res);
-        debug("PQresult status: %d\n", status);
+        debug("> %zu: %s\n", count, pgres_status_str[status]);
         if (status == PGRES_PIPELINE_SYNC)
-        {
-            debug("> %zu: PGRES_PIPELINE_SYNC\n", count);
             goto clear;
-        }
         ctx_peek = db_pipeline_peek(db);
         if (!ctx_peek)
         {
@@ -117,8 +130,20 @@ db_process_results(eworker_t* ew)
         {
             db_pipeline_dequeue(db, &cmd);
             db_exec_cmd(ew, &cmd);
+            cmd_next = cmd.next;
+            while (cmd_next)
+            {
+                if (cmd_next->exec != cmd.exec)
+                {
+                    db_exec_cmd(ew, cmd_next);
+                    free(cmd_next->data);
+                }
+                cmd_next = cmd_next->next;
+            }
+            if (cmd.next)
+                if (cmd.data != cmd.next->data)
+                    free(cmd.data);
             db_cmd_free(cmd.next);
-            free(cmd.data);
         }
     clear:
         count++;
