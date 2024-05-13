@@ -38,6 +38,7 @@ union cmd_param
     session_t*  session;
     json_object* json;
     const char* str;
+    void*       ptr;
     u32         group_id;
     u32         user_id;
 };

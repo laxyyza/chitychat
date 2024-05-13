@@ -91,7 +91,7 @@ server_eworker_async_run(eworker_t* ew)
 {
     server_t* server = ew->server;
     server_tm_t* tm = &server->tm;
-    server_db_t* db = &ew->db;
+    // server_db_t* db = &ew->db;
     struct pollfd pfd = {
         .fd = ew->db.fd,
         .events = POLLIN
@@ -107,8 +107,8 @@ server_eworker_async_run(eworker_t* ew)
             break;
         }
 
-        debug("tid: %d\n\tret: %d\n\tdb->queue: %d\n", 
-              ew->tid, ret, db->queue.count);
+        // debug("tid: %d\n\tret: %d\n\tdb->queue: %d\n", 
+        //       ew->tid, ret, db->queue.count);
 
         if (ret > 0)
             db_process_results(ew);

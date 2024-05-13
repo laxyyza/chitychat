@@ -1,4 +1,7 @@
 #include "chat/user_file.h"
+#include "chat/db.h"
+#include "chat/db_def.h"
+#include "chat/db_userfile.h"
 #include "server.h"
 
 static const char*
@@ -126,16 +129,46 @@ server_save_file(UNUSED eworker_t* ew, UNUSED const void* data,
     return false;
 }
 
+static const char* 
+do_save_file_img(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    const void* data = ctx->param.str;
+    dbuser_file_t* file;
+    dbcmd_ctx_t* refcount_ctx = ctx->next;
+    i32 ref_count;
+
+    if (refcount_ctx == NULL)
+    {
+        warn("do_save_file_img() ctx->next is NULL!\n");
+        return "Internal error";
+    }
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to save image";
+
+    file = ctx->data;
+    ref_count = refcount_ctx->data_size;
+
+    if (ref_count == 1)
+    {
+        server_write_file(data, file->size,
+                          ew->server->conf.img_dir, 
+                          file->hash);
+        
+    }
+
+    // HMMMMM
+    free((void*)data);
+
+    return NULL;
+}
+
 bool 
 server_save_file_img(eworker_t* ew, const void* data, size_t size, 
-                     const char* name, dbuser_file_t* file_output)
+                     dbuser_file_t* file_output)
 {
-    dbuser_file_t file;
+    dbuser_file_t* file;
     const char* mime_type;
-    i32 ref_count;
     bool ret = true;
-
-    memset(&file, 0, sizeof(dbuser_file_t));
 
     mime_type = server_mime_type(ew->server, data, size);
     if (mime_type == NULL || strstr(mime_type, "image/") == NULL)
@@ -145,34 +178,41 @@ server_save_file_img(eworker_t* ew, const void* data, size_t size,
         print_hex(data, 20);
         return false;
     }
-    strncpy(file.mime_type, mime_type, DB_MIME_TYPE_LEN);
+    file = calloc(1, sizeof(dbuser_file_t));
+    strncpy(file->mime_type, mime_type, DB_MIME_TYPE_LEN);
 
-    server_sha256_str(data, size, file.hash);
-    file.size = size;
+    server_sha256_str(data, size, file->hash);
+    file->size = size;
 
-    strncpy(file.name, name, DB_PFP_NAME_MAX);
+    dbcmd_ctx_t ctx = {
+        .exec = do_save_file_img,
+        .param.str = data
+    };
 
-    if (server_db_insert_userfile(&ew->db, &file))
-    {
-        ref_count = server_db_select_userfile_ref_count(&ew->db, 
-                    file.hash);
-        if (ref_count == 1)
-        {
-            ret = server_write_file(data, size, 
-                    ew->server->conf.img_dir, file.hash);
-        }
-        else if (ref_count == 0)
-        {
-            error("ref_count for %s (%s) is 0??\n",
-                    file.hash, file.name);
-            ret = false;
-        }
-    }
-    else
-        ret = false;
+    if ((ret = db_async_insert_userfile(&ew->db, file, &ctx)))
+        ret = db_async_userfile_refcount(&ew->db, file->hash, &ctx);
 
+    // if (server_db_insert_userfile(&ew->db, &file))
+    // {
+    //     ref_count = server_db_select_userfile_ref_count(&ew->db, 
+    //                 file.hash);
+    //     if (ref_count == 1)
+    //     {
+    //         ret = server_write_file(data, size, 
+    //                 ew->server->conf.img_dir, file.hash);
+    //     }
+    //     else if (ref_count == 0)
+    //     {
+    //         error("ref_count for %s (%s) is 0??\n",
+    //                 file.hash, file.name);
+    //         ret = false;
+    //     }
+    // }
+    // else
+    //     ret = false;
+    //
     if (ret && file_output)
-        memcpy(file_output, &file, sizeof(dbuser_file_t));
+        memcpy(file_output, file, sizeof(dbuser_file_t));
 
     return ret;
 }

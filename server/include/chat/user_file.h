@@ -21,8 +21,10 @@ const char*     server_mime_type(server_t* server, const void* data,
                                                         size_t size);
 bool            server_save_file(eworker_t* th, const void* data, 
                         size_t size, const char* name);
-bool            server_save_file_img(eworker_t* th, const void* data, 
-                size_t size, const char* name, dbuser_file_t* file_output);
+bool            server_save_file_img(eworker_t* th, 
+                                     const void* data, 
+                                     size_t size, 
+                                     dbuser_file_t* file_output);
 void*           server_get_file(eworker_t* th, dbuser_file_t* file);
 bool            server_delete_file(eworker_t* th, dbuser_file_t* file);
 

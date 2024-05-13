@@ -1,5 +1,8 @@
 #include "chat/user_upload.h"
+#include "chat/db.h"
+#include "chat/db_def.h"
 #include "chat/group.h"
+#include "chat/db_group.h"
 #include "server.h"
 
 static upload_token_t*
@@ -69,11 +72,10 @@ server_handle_user_pfp_update(eworker_t* ew, client_t* client, const http_t* htt
         failed = true;
         goto respond;
     }
-    const char* filename = http->req.url + post_img_cmd_len;
 
     dbuser_file_t file;
 
-    if (server_save_file_img(ew, http->body, http->body_len, filename, &file))
+    if (server_save_file_img(ew, http->body, http->body_len, &file))
     {
         if (!server_db_update_user(&ew->db, NULL, NULL, file.hash, user_id))
             failed = true;
@@ -110,6 +112,26 @@ respond:
     free(user);
 }
 
+static const char*
+do_insert_msg_after(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    server_event_t* se;
+    dbmsg_t* msg;
+    upload_token_t* ut = ctx->param.ptr;
+    if (ctx->ret == DB_ASYNC_ERROR)
+        goto clear;
+
+    msg = ctx->data;
+    server_get_send_group_msg(ew, msg);
+clear:
+    if ((se = server_get_event(ew->server, ut->timerfd)))
+        server_del_event(ew, se);
+    else
+        server_del_upload_token(ew, ut);
+    ctx->data = NULL;
+    return NULL; 
+}
+
 static void 
 server_handle_msg_attach(eworker_t* ew, client_t* client, 
                          const http_t* http, upload_token_t* ut)
@@ -120,8 +142,6 @@ server_handle_msg_attach(eworker_t* ew, client_t* client,
     char* endptr;
     http_header_t* attach_index_header = http_get_header(http, "Attach-Index");
     json_object* attach_json;
-    json_object* name_json;
-    const char* name;
 
     if (attach_index_header == NULL)
     {
@@ -147,11 +167,9 @@ server_handle_msg_attach(eworker_t* ew, client_t* client,
     attach_json = json_object_array_get_idx(msg->attachments_json, attach_index);
     if (attach_json)
     {
-        name_json = json_object_object_get(attach_json, "name");
-        name = json_object_get_string(name_json);
         dbuser_file_t file;
 
-        if (server_save_file_img(ew, http->body, http->body_len, name, &file))
+        if (server_save_file_img(ew, http->body, http->body_len, &file))
         {
             json_object_object_add(attach_json, "hash",
                     json_object_new_string(file.hash));
@@ -159,18 +177,20 @@ server_handle_msg_attach(eworker_t* ew, client_t* client,
             ut->msg_state.current++;
             if (ut->msg_state.current >= ut->msg_state.total)
             {
-
                 msg->attachments = (char*)json_object_to_json_string(msg->attachments_json);
-
-                if (server_db_insert_msg(&ew->db, msg))
-                    server_get_send_group_msg(ew, msg);
-
-                server_event_t* se = server_get_event(ew->server, ut->timerfd);
-                if (se)
-                    server_del_event(ew, se);
-                else
-                    server_del_upload_token(ew, ut);
+                dbcmd_ctx_t ctx = {
+                    .exec = do_insert_msg_after,
+                    .param.ptr = ut,
+                    .client = NULL
+                };
+                db_async_insert_group_msg(&ew->db, msg, &ctx);
             }
+
+            /*
+             * Hacky set http->body_inheap to false so the body wont be freed.
+             * Why? server_save_file_img() will free it in do_save_file_img()
+             */
+            ((http_t*)http)->body_inheap = false;
         }
     }
     else

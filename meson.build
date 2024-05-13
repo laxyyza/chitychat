@@ -53,6 +53,7 @@ server_src = files(
     'server/src/chat/db_user.c',
     'server/src/chat/db_group.c',
     'server/src/chat/db_pipeline.c',
+    'server/src/chat/db_userfile.c',
     'server/src/chat/user_upload.c',
     'server/src/chat/rtusm.c',
     'server/src/chat/cmd.c',
