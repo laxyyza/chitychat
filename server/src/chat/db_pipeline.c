@@ -42,14 +42,7 @@ db_async_params(server_db_t* db,
     }
     debug("Used SQL (curr: %p): %s\n", 
           db->ctx.head, query);
-    if (db->queue.count == 0)
-    {
-        PQpipelineSync(db->conn);
-    }
-    else
-    {
-        PQsendFlushRequest(db->conn);
-    }
+    PQpipelineSync(db->conn);
     db_pipeline_enqueue_current(db, cmd);
 err:
     return ret;
@@ -99,6 +92,19 @@ db_cmd_free(dbcmd_ctx_t* cmd)
     }
 }
 
+static void
+db_exec_cmd_chain(eworker_t* ew, dbcmd_ctx_t* cmd)
+{
+    dbcmd_ctx_t* base = cmd;
+    while (cmd)
+    {
+        if (cmd->exec)
+            db_exec_cmd(ew, cmd);
+        cmd = cmd->next;
+    }
+    db_cmd_free(base);
+}
+
 void 
 db_process_results(eworker_t* ew)
 {
@@ -107,8 +113,7 @@ db_process_results(eworker_t* ew)
     server_db_t* db = &ew->db;
     ExecStatusType status;
     dbcmd_ctx_t* ctx_peek;
-    dbcmd_ctx_t* cmd_next;
-    dbcmd_ctx_t cmd;
+    dbcmd_ctx_t* cmd;
 
     while ((res = PQgetResult(db->conn)))
     {
@@ -126,28 +131,12 @@ db_process_results(eworker_t* ew)
             if (ctx_peek->next)
                 ctx_peek = ctx_peek->next;
         ctx_peek->exec_res(ew, res, status, ctx_peek);
+
         if (ctx_peek->next == NULL)
         {
-            db_pipeline_dequeue(db, &cmd);
-            db_exec_cmd(ew, &cmd);
-            cmd_next = cmd.next;
-            while (cmd_next)
-            {
-                if (cmd_next->exec != cmd.exec)
-                {
-                    db_exec_cmd(ew, cmd_next);
-                    free(cmd_next->data);
-                }
-                cmd_next = cmd_next->next;
-            }
-            if (cmd.next)
-            {
-                if (cmd.data != cmd.next->data)
-                    free(cmd.data);
-            }
-            else
-                free(cmd.data);
-            db_cmd_free(cmd.next);
+            cmd = malloc(sizeof(dbcmd_ctx_t));
+            db_pipeline_dequeue(db, cmd);
+            db_exec_cmd_chain(ew, cmd);
         }
     clear:
         count++;
@@ -180,10 +169,11 @@ db_pipeline_enqueue_current(server_db_t* db, const dbcmd_ctx_t* cmd)
     dbcmd_ctx_t* next_cmd = malloc(sizeof(dbcmd_ctx_t));
     memcpy(next_cmd, cmd, sizeof(dbcmd_ctx_t));
     next_cmd->next = NULL;
+    if (next_cmd->client == NULL)
+        next_cmd->client = db->ctx.client;
 
     if (db->ctx.head == NULL)
     {
-        next_cmd->client = db->ctx.client;
         db->ctx.head = next_cmd;
         db->ctx.tail = next_cmd;
         return 0;
@@ -228,7 +218,6 @@ db_pipeline_current_done(server_db_t* db)
     debug("db->ctx.head: %p\n", db->ctx.head);
     if (db->ctx.head == NULL)
         return;
-
     db_pipeline_enqueue(db, db->ctx.head);
     free(db->ctx.head);
     db_pipeline_reset_current(db);
