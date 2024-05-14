@@ -1,0 +1,2 @@
+> [!CAUTION]
+> `server/sql/*.sql` files are integral to the server but exists as separate source files. Any modifications to these files have the potential to disrupt server functionality and may lead to crashes.
