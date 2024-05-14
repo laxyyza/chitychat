@@ -124,8 +124,11 @@ server_group_to_json(const dbgroup_t* dbgroup, json_object* json)
 }
 
 static void 
-server_send_group_codes(client_t* client, dbgroup_code_t* codes, 
-                        u32 n_codes, u32 group_id, json_object* respond_json)
+server_send_group_codes(client_t* client, 
+                        dbgroup_code_t* codes, 
+                        u32 n_codes, 
+                        u32 group_id, 
+                        json_object* respond_json)
 {
     json_object* codes_array_json;
 
@@ -806,28 +809,63 @@ server_join_group_code(UNUSED eworker_t* ew,
     // return errmsg;
 }
 
+static const char*
+get_group_codes_result(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    u32 group_id;
+    const char* group_codes_array_json;
+    json_object* resp;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get group codes";
+
+    group_id = ctx->param.group_codes.group_id;
+    group_codes_array_json = ctx->param.group_codes.array_json;
+    resp = json_object_new_object();
+
+    json_object_object_add(resp, "cmd", 
+                           json_object_new_string("group_codes"));
+    json_object_object_add(resp, "group_id",
+                           json_object_new_int(group_id));
+    json_object_object_add(resp, "codes",
+                           json_tokener_parse(group_codes_array_json));
+
+    ws_json_send(ctx->client, resp);
+     
+    json_object_put(resp);
+    return NULL;
+}
+
 const char* 
-server_get_group_codes(eworker_t* ew, client_t* client,
-                       json_object* payload, json_object* respond_json)
+server_get_group_codes(eworker_t* ew, 
+                       client_t* client,
+                       json_object* payload, 
+                       UNUSED json_object* respond_json)
 {
     json_object* group_id_json;
     u32 group_id;
-    dbgroup_code_t* codes;
-    u32 n_codes;
 
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     group_id = json_object_get_int(group_id_json);
 
-    if (!server_db_user_in_group(&ew->db, group_id, client->dbuser->user_id))
-        return "Not a group member";
+    dbcmd_ctx_t ctx = {
+        .exec = get_group_codes_result,
+    };
 
-    codes = server_db_get_all_group_codes(&ew->db, group_id, &n_codes);
+    if (!db_async_get_group_codes(&ew->db, group_id, client->dbuser->user_id, &ctx))
+        return "Error: async-get-group-codes";
 
-    server_send_group_codes(client, codes, n_codes, group_id, respond_json);
-
-    if (codes)
-        free(codes);
     return NULL;
+    // if (!server_db_user_in_group(&ew->db, group_id, client->dbuser->user_id))
+    //     return "Not a group member";
+    //
+    // codes = server_db_get_all_group_codes(&ew->db, group_id, &n_codes);
+    //
+    // server_send_group_codes(client, codes, n_codes, group_id, respond_json);
+    //
+    // if (codes)
+    //     free(codes);
+    // return NULL;
 }
 
 const char* 

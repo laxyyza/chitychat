@@ -403,3 +403,46 @@ db_async_create_group_code(server_db_t* db,
     ret = db_async_params(db, db->cmd->create_group_code, 3, vals, lens, formats, ctx);
     return ret;
 }
+
+static void
+get_group_codes_result(UNUSED eworker_t* ew,
+                       PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* group_codes_array_json;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        group_codes_array_json = PQgetvalue(res, 0, 0);
+        if (group_codes_array_json == NULL)
+            group_codes_array_json = "[]";
+        ctx->param.group_codes.array_json = group_codes_array_json;
+        ctx->ret = DB_ASYNC_OK;
+    }
+    else
+    {
+        error("Get Group Codes: %s\n", 
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+bool 
+db_async_get_group_codes(server_db_t* db, u32 group_id, u32 user_id, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char group_id_str[DB_INTSTR_MAX];
+    char user_id_str[DB_INTSTR_MAX];
+    const char* vals[2] = {
+        group_id_str,
+        user_id_str
+    };
+    const i32 lens[2] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id),
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id),
+    };
+    const i32 formats[2] = {0, 0};
+    ctx->exec_res = get_group_codes_result;
+    ctx->param.group_codes.group_id = group_id;
+    ret = db_async_params(db, db->cmd->get_group_code, 2, vals, lens, formats, ctx);
+    return ret;
+}

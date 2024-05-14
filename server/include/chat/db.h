@@ -30,11 +30,18 @@ typedef struct
     const char* msgs_json;
 } group_msgs_param_t;
 
+typedef struct 
+{
+    u32 group_id;
+    const char* array_json;
+} get_group_codes_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
     member_ids_param_t member_ids;
     group_msgs_param_t group_msgs;
+    get_group_codes_param_t group_codes;
     session_t*  session;
     json_object* json;
     const char* str;
