@@ -32,6 +32,13 @@ typedef struct
 
 typedef struct 
 {
+    u32 msg_id;
+    u32 group_id;
+    const char* attachments_json;
+} delete_msg_param_t;
+
+typedef struct 
+{
     u32 group_id;
     const char* array_json;
 } get_group_codes_param_t;
@@ -42,6 +49,7 @@ union cmd_param
     member_ids_param_t member_ids;
     group_msgs_param_t group_msgs;
     get_group_codes_param_t group_codes;
+    delete_msg_param_t del_msg;
     session_t*  session;
     json_object* json;
     const char* str;

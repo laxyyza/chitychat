@@ -236,6 +236,50 @@ db_async_insert_group_msg(server_db_t* db, dbmsg_t* msg, dbcmd_ctx_t* ctx)
 }
 
 static void
+db_delete_msg_result(UNUSED eworker_t* ew,
+                     PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* group_id_str;
+    const char* attachments_str;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        group_id_str = PQgetvalue(res, 0, 0);
+        ctx->param.del_msg.group_id = strtoul(group_id_str, NULL, 0);
+
+        attachments_str = PQgetvalue(res, 0, 1);
+        ctx->param.del_msg.attachments_json = attachments_str;
+
+        ctx->ret = DB_ASYNC_OK;
+        return;
+    }
+    else if (status == PGRES_FATAL_ERROR)
+        error("Delete group message: %s\n",
+              PQresultErrorMessage(res));
+    ctx->ret = DB_ASYNC_ERROR;
+}
+
+bool 
+db_async_delete_msg(server_db_t* db, u32 msg_id, u32 user_id, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char msg_id_str[DB_INTSTR_MAX];
+    char user_id_str[DB_INTSTR_MAX];
+    const char* vals[2] = {
+        msg_id_str,
+        user_id_str
+    };
+    const i32 lens[2] = {
+        snprintf(msg_id_str, DB_INTSTR_MAX, "%u", msg_id),
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id),
+    };
+    const i32 formats[2] = {0, 0};
+    ctx->exec_res = db_delete_msg_result;
+    ret = db_async_params(db, db->cmd->delete_msg, 2, vals, lens, formats, ctx);
+    return ret;
+}
+
+static void
 get_public_groups_result(UNUSED eworker_t* ew,
                          PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
 {

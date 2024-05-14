@@ -246,31 +246,81 @@ error:
     return NULL;
 }
 
+static const char*
+do_delete_file(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    dbcmd_ctx_t* ctx_next = ctx->next;
+    dbuser_file_t* file;
+    const char* dir;
+    char* path;
+    i32 ref_count;
+
+    if (ctx_next == NULL)
+    {
+        warn("do_delete_file: ctx->next is NULL!\n");
+        return NULL;
+    }
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return NULL;
+
+    file = ctx->data;
+    ref_count = ctx_next->data_size;
+
+    if (ref_count <= 0)
+    {
+        dir = server_mime_type_dir(ew->server, file->mime_type);
+        path = calloc(1, PATH_MAX);
+        
+        snprintf(path, PATH_MAX, "%s/%s", dir, file->hash);
+
+        debug("Unlinking file: %s (%s)\n", path, file->name);
+
+        if (unlink(path) == -1)
+            error("unlink %s failed: %s\n", path, ERRSTR);
+
+        free(path);
+    }
+
+    return NULL;
+}
+
 bool 
 server_delete_file(eworker_t* ew, dbuser_file_t* file)
 {
-    const char* dir;
-    char* paew = NULL;
-    bool ret = true;
+    bool ret;
+    dbcmd_ctx_t ctx = {
+        .exec = do_delete_file,
+        .data = file
+    };
 
-    // I ewink this function might return wrong. from ref_count.
-    if (server_db_delete_userfile(&ew->db, file->hash))
+    if ((ret = db_async_delete_userfile(&ew->db, file->hash, &ctx)))
     {
-        dir = server_mime_type_dir(ew->server, file->mime_type);
-        paew = calloc(1, PATH_MAX);
-        
-        snprintf(paew, PATH_MAX, "%s/%s", dir, file->hash);
-
-        debug("Unlinking file: %s (%s)\n", paew, file->name);
-
-        if (unlink(paew) == -1)
-        {
-            error("unlink %s failed: %s\n", paew, ERRSTR);
-            ret = false;
-        }
-
-        free(paew);
+        ctx.exec = NULL;
+        ctx.data = NULL;
+        ret = db_async_userfile_refcount(&ew->db, file->hash, &ctx);
     }
-
     return ret;
+    // const char* dir;
+    // char* path = NULL;
+    // bool ret = true;
+    //
+    // if (server_db_delete_userfile(&ew->db, file->hash))
+    // {
+    //     dir = server_mime_type_dir(ew->server, file->mime_type);
+    //     path = calloc(1, PATH_MAX);
+    //     
+    //     snprintf(path, PATH_MAX, "%s/%s", dir, file->hash);
+    //
+    //     debug("Unlinking file: %s (%s)\n", path, file->name);
+    //
+    //     if (unlink(path) == -1)
+    //     {
+    //         error("unlink %s failed: %s\n", path, ERRSTR);
+    //         ret = false;
+    //     }
+    //
+    //     free(path);
+    // }
+    //
+    // return ret;
 }

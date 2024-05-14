@@ -85,7 +85,10 @@ userfile_refcount_result(UNUSED eworker_t* ew,
     if (status == PGRES_TUPLES_OK)
     {
         ref_count_str = PQgetvalue(res, 0, 0);
-        ref_count  = atoi(ref_count_str);
+        if (ref_count_str)
+            ref_count  = atoi(ref_count_str);
+        else
+            ref_count = 0;
         ctx->data_size = ref_count;
         ctx->ret = DB_ASYNC_OK;
     }

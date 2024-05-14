@@ -40,50 +40,49 @@ server_group_broadcast(eworker_t* ew, u32 group_id, json_object* json)
         json_object_put(json);
 }
 
-UNUSED static void 
-server_delete_msg_attachments(eworker_t* ew, dbmsg_t* msg)
+static void 
+server_delete_msg_attachments(eworker_t* ew, const char* attachments_str)
 {
+    json_object* msg_attachs_json;
     json_object* attach_json;
     json_object* hash_json;
     json_object* type_json;
     json_object* name_json;
-    dbuser_file_t file;
+    dbuser_file_t* file;
     const char* hash;
     const char* type;
     const char* name;
     size_t n;
-    bool put_json = false;
 
-    if (msg->attachments_json == NULL)
-    {
-        msg->attachments_json = json_tokener_parse(msg->attachments);
-        put_json = true;
-    }
+    msg_attachs_json = json_tokener_parse(attachments_str);
+    if (msg_attachs_json == NULL)
+        return;
 
-    n = json_object_array_length(msg->attachments_json);
+    n = json_object_array_length(msg_attachs_json);
 
     for (size_t i = 0; i < n; i++)
     {
-        attach_json = json_object_array_get_idx(msg->attachments_json, i);
-        memset(&file, 0, sizeof(dbuser_file_t));
+        file = calloc(1, sizeof(dbuser_file_t));
+
+        attach_json = json_object_array_get_idx(msg_attachs_json, i);
+        memset(file, 0, sizeof(dbuser_file_t));
 
         hash_json = json_object_object_get(attach_json, "hash");
         hash = json_object_get_string(hash_json);
-        strncpy(file.hash, hash, DB_PFP_HASH_MAX);
+        strncpy(file->hash, hash, DB_PFP_HASH_MAX);
 
         type_json = json_object_object_get(attach_json, "type");
         type = json_object_get_string(type_json);
-        strncpy(file.mime_type, type, DB_MIME_TYPE_LEN);
+        strncpy(file->mime_type, type, DB_MIME_TYPE_LEN);
 
         name_json = json_object_object_get(attach_json, "name");
         name = json_object_get_string(name_json);
-        strncpy(file.name, name, DB_PFP_NAME_MAX);
+        strncpy(file->name, name, DB_PFP_NAME_MAX);
 
-        server_delete_file(ew, &file);
+        server_delete_file(ew, file);
     }
 
-    if (put_json)
-        json_object_put(msg->attachments_json);
+    json_object_put(msg_attachs_json);
 }
 
 static void
@@ -925,21 +924,59 @@ server_delete_group_code(eworker_t* ew, client_t* client,
     // return NULL;
 }
 
+static const char* 
+delete_msg_result(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    u32 msg_id;
+    u32 group_id;
+    json_object* resp;
+    const char* attachments;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to delete message";
+
+    msg_id = ctx->param.del_msg.msg_id;
+    group_id = ctx->param.del_msg.group_id;
+    attachments = ctx->param.del_msg.attachments_json;
+
+    server_delete_msg_attachments(ew, attachments);
+
+    resp = json_object_new_object();
+    json_object_object_add(resp, "cmd",
+                           json_object_new_string("delete_msg"));
+    json_object_object_add(resp, "msg_id",
+                           json_object_new_int(msg_id));
+    json_object_object_add(resp, "group_id",
+                           json_object_new_int(group_id));
+    server_group_broadcast(ew, group_id, resp);
+
+    return NULL;
+}
+
 const char* 
 server_delete_group_msg(UNUSED eworker_t* ew, 
                         UNUSED client_t* client,
                         UNUSED json_object* payload, 
                         UNUSED json_object* respond_json)
 {
-    return "delete_group_msg not implemented!";
-//     json_object* msg_id_json;
-//     u32 msg_id;
+    json_object* msg_id_json;
+    u32 msg_id;
+    u32 user_id = client->dbuser->user_id;
+
+    RET_IF_JSON_BAD(msg_id_json, payload, "msg_id", json_type_int);
+    msg_id = json_object_get_int(msg_id_json);
+
+    dbcmd_ctx_t ctx = {
+        .exec = delete_msg_result,
+        .param.del_msg.msg_id = msg_id
+    };
+    if (!db_async_delete_msg(&ew->db, msg_id, user_id, &ctx))
+        return "Error: async-delete-msg";
+    return NULL;
 //     dbmsg_t* msg_to_delete;
 //     dbgroup_t* group;
 //     const char* errmsg = NULL;
 //
-//     RET_IF_JSON_BAD(msg_id_json, payload, "msg_id", json_type_int);
-//     msg_id = json_object_get_int(msg_id_json);
 //
 //     msg_to_delete = server_db_get_msg(&ew->db, msg_id);
 //     if (!msg_to_delete)

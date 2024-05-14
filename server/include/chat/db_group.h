@@ -17,6 +17,7 @@ bool db_async_get_group_msgs(server_db_t* db, u32 group_id, u32 limit, u32 offse
  * It will be freed if it was succesful.
  */
 bool db_async_insert_group_msg(server_db_t* db, dbmsg_t* msg, dbcmd_ctx_t* ctx);
+bool db_async_delete_msg(server_db_t* db, u32 msg_id, u32 user_id, dbcmd_ctx_t* ctx);
 
 bool db_async_get_public_groups(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx);
 
