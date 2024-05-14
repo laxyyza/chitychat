@@ -781,21 +781,43 @@ server_create_group_code(eworker_t* ew,
     // return NULL;
 }
 
+static const char*
+join_group_code_result(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    u32 group_id;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to join group";
+
+    group_id = ctx->param.group_id;
+    on_user_group_join(ew, ctx->client, group_id);
+    return NULL;
+}
+
 const char* 
 server_join_group_code(UNUSED eworker_t* ew, 
                        UNUSED client_t* client,
                        UNUSED json_object* payload, 
                        UNUSED json_object* respond_json)
 {
-    return "server_join_group_code: not implemented!";
-    // json_object* code_json;
-    // const char* code;
+    json_object* code_json;
+    const char* code;
+    const u32 user_id = client->dbuser->user_id;
+    
+    RET_IF_JSON_BAD(code_json, payload, "code", json_type_string);
+    code = json_object_get_string(code_json);
+
+    dbcmd_ctx_t ctx = {
+        .exec = join_group_code_result
+    };
+
+    if (!db_async_user_join_group_code(&ew->db, code, user_id, &ctx))
+        return "Error: async-user-join-group-code";
+    return NULL;
+
     // const char* errmsg = NULL;
-    // const u32 user_id = client->dbuser->user_id;
     // dbgroup_t* group_joined;
     //
-    // RET_IF_JSON_BAD(code_json, payload, "code", json_type_string);
-    // code = json_object_get_string(code_json);
     //
     // group_joined = server_db_insert_group_member_code(&ew->db,
     //                                                   code,

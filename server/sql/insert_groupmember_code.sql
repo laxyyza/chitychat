@@ -1,3 +1,8 @@
+-- Params
+    -- $1::int = user_id
+    -- $2::varchar(8) = invite_code
+-- Return: group_id
+
 -- Insert a group member via invite_code, increment group code uses, then return the group joined
 
 -- Get GroupCode from invite_code ($2)
@@ -29,5 +34,5 @@ SET uses = GroupCodes.uses + 1
 FROM g, gc
 WHERE GroupCodes.invite_code = gc.invite_code
 
--- Return group
-RETURNING g.*;
+-- Return group ID
+RETURNING g.group_id;

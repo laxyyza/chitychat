@@ -446,3 +446,46 @@ db_async_get_group_codes(server_db_t* db, u32 group_id, u32 user_id, dbcmd_ctx_t
     ret = db_async_params(db, db->cmd->get_group_code, 2, vals, lens, formats, ctx);
     return ret;
 }
+
+static void
+user_join_group_code_result(UNUSED eworker_t* ew,
+                            PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* group_id_str;
+    u32 group_id;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        if ((group_id_str = PQgetvalue(res, 0, 0)) == NULL)
+            goto err;
+        group_id = strtoul(group_id_str, NULL, 0);
+        ctx->param.group_id = group_id;
+        ctx->ret = DB_ASYNC_OK;
+        return;
+    }
+    else if (status == PGRES_FATAL_ERROR)
+        error("User join group via code: %s\n",
+              PQresultErrorMessage(res));
+err:
+    ctx->ret = DB_ASYNC_ERROR;
+}
+
+bool 
+db_async_user_join_group_code(server_db_t* db, 
+                              const char* code, u32 user_id, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char user_id_str[DB_INTSTR_MAX];
+    const char* vals[2] = {
+        user_id_str,
+        code
+    };
+    const i32 lens[2] = {
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id),
+        strnlen(code, DB_GROUP_CODE_MAX)
+    };
+    const i32 formats[2] = {0, 0};
+    ctx->exec_res = user_join_group_code_result;
+    ret = db_async_params(db, db->cmd->insert_groupmember_code, 2, vals, lens, formats, ctx);
+    return ret;
+}
