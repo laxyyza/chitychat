@@ -162,6 +162,9 @@ server_init_db(server_t* server)
                                                 &cmd->create_group_code_len);
     cmd->get_group_code = server_db_load_sql("server/sql/get_group_codes.sql",
                                              &cmd->get_group_code_len);
+    cmd->delete_group_code = server_db_load_sql("server/sql/delete_group_code.sql",
+                                                &cmd->delete_group_code_len);
+
     return db_exec_schema(server);
 }
 
@@ -247,6 +250,7 @@ server_db_free(server_t* server)
 
     free(cmd->create_group_code);
     free(cmd->get_group_code);
+    free(cmd->delete_group_code);
 }
 
 void 

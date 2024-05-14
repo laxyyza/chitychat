@@ -489,3 +489,38 @@ db_async_user_join_group_code(server_db_t* db,
     ret = db_async_params(db, db->cmd->insert_groupmember_code, 2, vals, lens, formats, ctx);
     return ret;
 }
+
+static void
+db_delete_group_code_result(UNUSED eworker_t* ew,
+                            PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    if (status == PGRES_COMMAND_OK)
+    {
+        ctx->ret = DB_ASYNC_OK;
+        return;
+    }
+    else if (status == PGRES_FATAL_ERROR)
+        error("Delete group code: %s\n",
+              PQresultErrorMessage(res));
+    ctx->ret = DB_ASYNC_ERROR;
+}
+
+bool 
+db_async_delete_group_code(server_db_t* db, 
+                           const char* invite_code, u32 user_id, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char user_id_str[DB_INTSTR_MAX];
+    const char* vals[2] = {
+        invite_code,
+        user_id_str
+    };
+    const i32 lens[2] = {
+        strnlen(invite_code, DB_GROUP_CODE_MAX),
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id)
+    };
+    const i32 formats[2] = {0, 0};
+    ctx->exec_res = db_delete_group_code_result;
+    ret = db_async_params(db, db->cmd->delete_group_code, 2, vals, lens, formats, ctx);
+    return ret;
+}

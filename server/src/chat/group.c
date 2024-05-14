@@ -890,29 +890,39 @@ server_get_group_codes(eworker_t* ew,
     // return NULL;
 }
 
+static const char*
+delete_group_code_result(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to delete group code";
+    return NULL;
+}
+
 const char* 
 server_delete_group_code(eworker_t* ew, client_t* client, 
                          json_object* payload, UNUSED json_object* resp)
 {
     json_object* code_json;
-    json_object* group_id_json;
-    u32 group_id;
     u32 user_id = client->dbuser->user_id;
     const char* code;
 
     RET_IF_JSON_BAD(code_json, payload, "code", json_type_string);
-    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
-
     code = json_object_get_string(code_json);
-    group_id = json_object_get_int(group_id_json);
 
-    if (!server_db_user_in_group(&ew->db, group_id, user_id)) 
-        return "Not a group owner";
-
-    if (!server_db_delete_group_code(&ew->db, code))
-        return "Failed to delete group code";
-
+    dbcmd_ctx_t ctx = {
+        .exec = delete_group_code_result
+    };
+    if (!db_async_delete_group_code(&ew->db, code, user_id, &ctx))
+        return "Error: async-delete-group-code";
     return NULL;
+    //
+    // if (!server_db_user_in_group(&ew->db, group_id, user_id)) 
+    //     return "Not a group owner";
+    //
+    // if (!server_db_delete_group_code(&ew->db, code))
+    //     return "Failed to delete group code";
+    //
+    // return NULL;
 }
 
 const char* 

@@ -78,6 +78,8 @@ typedef struct
     size_t  create_group_code_len;
     char*   get_group_code;
     size_t  get_group_code_len;
+    char*   delete_group_code;
+    size_t  delete_group_code_len;
 } server_db_commands_t;
 
 typedef struct eworker eworker_t;

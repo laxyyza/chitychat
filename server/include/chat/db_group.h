@@ -31,6 +31,8 @@ bool db_async_create_group_code(server_db_t* db,
                                 dbcmd_ctx_t* ctx);
 bool db_async_get_group_codes(server_db_t* db, u32 group_id, u32 user_id, dbcmd_ctx_t* ctx);
 bool db_async_user_join_group_code(server_db_t* db, 
-                                   const char* code, u32 group_id, dbcmd_ctx_t* ctx);
+                                   const char* code, u32 user_id, dbcmd_ctx_t* ctx);
+bool db_async_delete_group_code(server_db_t* db, 
+                                const char* invite_code, u32 user_id, dbcmd_ctx_t* ctx);
 
 #endif // _SERVER_DB_GROUP_H_
