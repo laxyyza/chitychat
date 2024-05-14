@@ -307,3 +307,47 @@ db_async_user_join_pub_group(server_db_t* db, u32 user_id, u32 group_id, dbcmd_c
     ret = db_async_params(db, db->cmd->insert_pub_groupmember, 2, vals, lens, formats, ctx);
     return ret == 1;
 }
+
+static void
+create_group_result(UNUSED eworker_t* ew, 
+                    PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* group_id_str;
+    dbgroup_t* group = ctx->data;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        group_id_str = PQgetvalue(res, 0, 0);
+        group->group_id = strtoul(group_id_str, NULL, 0);
+        ctx->ret = DB_ASYNC_OK;
+    }
+    else
+    {
+        error("create group: %s\n",
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+bool 
+db_async_create_group(server_db_t* db, dbgroup_t* group, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char owner_id_str[DB_INTSTR_MAX];
+    const char* public_str = (group->public) ? "true" : "false";
+    const char* vals[3] = {
+        group->displayname,
+        owner_id_str,
+        public_str
+    };
+    const i32 lens[3] = {
+        strnlen(group->displayname, DB_DISPLAYNAME_MAX),
+        snprintf(owner_id_str, DB_INTSTR_MAX, "%u", group->owner_id),
+        strlen(public_str)
+    };
+    const i32 formats[3] = {0};
+    ctx->exec_res = create_group_result;
+    ctx->data = group;
+    ret = db_async_params(db, db->cmd->insert_group, 3, vals, lens, formats, ctx);
+    return ret;
+}

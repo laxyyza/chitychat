@@ -2,6 +2,7 @@
 #define _SERVER_DB_GROUP_H_
 
 #include "chat/db_def.h"
+#include "chat/group.h"
 
 typedef struct dbmsg dbmsg_t;
 
@@ -19,5 +20,7 @@ bool db_async_insert_group_msg(server_db_t* db, dbmsg_t* msg, dbcmd_ctx_t* ctx);
 bool db_async_get_public_groups(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx);
 
 bool db_async_user_join_pub_group(server_db_t* db, u32 user_id, u32 group_id, dbcmd_ctx_t* ctx);
+
+bool db_async_create_group(server_db_t* db, dbgroup_t* group, dbcmd_ctx_t* ctx);
 
 #endif // _SERVER_DB_GROUP_H_

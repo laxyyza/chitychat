@@ -3,6 +3,7 @@
 #include "chat/db_def.h"
 #include "chat/db_group.h"
 #include "chat/ws_text_frame.h"
+#include "json_object.h"
 #include "server_websocket.h"
 
 static const char*
@@ -155,50 +156,6 @@ server_send_group_codes(client_t* client, dbgroup_code_t* codes,
     ws_json_send(client, respond_json);
 }
 
-const char* 
-server_group_create(eworker_t* ew, client_t* client, json_object* payload, 
-                    json_object* respond_json)
-{
-    json_object* name_json;
-    json_object* public_json;
-    json_object* group_array_json;
-    json_object* group_json;
-    dbgroup_t new_group;
-    const char* name;
-    bool public_group;
-
-    RET_IF_JSON_BAD(name_json, payload, "name", json_type_string);
-    RET_IF_JSON_BAD(public_json, payload, "public", json_type_boolean);
-
-    name = json_object_get_string(name_json);
-    public_group = json_object_get_boolean(public_json);
-
-    memset(&new_group, 0, sizeof(dbgroup_t));
-    new_group.owner_id = client->dbuser->user_id;
-    new_group.public = public_group;
-    strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
-
-    if (!server_db_insert_group(&ew->db, &new_group))
-        return "Failed to create group";
-
-    info("Creating new group, id: %u, name: '%s', owner_id: %u\n", 
-                new_group.group_id, name, new_group.owner_id);
-
-    json_object_object_add(respond_json, "cmd", 
-            json_object_new_string("client_groups"));
-    json_object_object_add(respond_json, "groups", 
-            json_object_new_array_ext(1));
-    group_array_json = json_object_object_get(respond_json, "groups");
-
-    group_json = json_object_new_object();
-    server_group_to_json(&new_group, group_json);
-    json_object_array_add(group_array_json, group_json);
-
-    ws_json_send(client, respond_json);
-
-    return NULL;
-}
-
 static const char* 
 do_client_groups(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 {
@@ -232,6 +189,69 @@ do_client_groups(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
     json_object_put(resp);
 
     return NULL;
+}
+
+const char* 
+server_group_create(eworker_t* ew, 
+                    client_t* client, 
+                    json_object* payload, 
+                    UNUSED json_object* respond_json)
+{
+    json_object* name_json;
+    json_object* public_json;
+    const char* name;
+    bool public_group;
+    u32 owner_id;
+    dbgroup_t* group;
+    
+    RET_IF_JSON_BAD(name_json, payload, "name", json_type_string);
+    RET_IF_JSON_BAD(public_json, payload, "public", json_type_boolean);
+
+    name = json_object_get_string(name_json);
+    public_group = json_object_get_boolean(public_json);
+    owner_id = client->dbuser->user_id;
+    group = calloc(1, sizeof(dbgroup_t));
+
+    group->owner_id = owner_id;
+    group->public = public_group;
+    strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
+
+    dbcmd_ctx_t ctx = {
+        .exec = do_client_groups,
+        .data_size = 1
+    };
+    if (!db_async_create_group(&ew->db, group, &ctx))
+        return "Internal error: async-create-group";
+    return NULL;
+
+    // json_object* group_array_json;
+    // json_object* group_json;
+    // dbgroup_t new_group;
+    //
+    // memset(&new_group, 0, sizeof(dbgroup_t));
+    // new_group.owner_id = client->dbuser->user_id;
+    // new_group.public = public_group;
+    // strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
+    //
+    // if (!server_db_insert_group(&ew->db, &new_group))
+    //     return "Failed to create group";
+    //
+    // info("Creating new group, id: %u, name: '%s', owner_id: %u\n", 
+    //             new_group.group_id, name, new_group.owner_id);
+    //
+    // json_object_object_add(respond_json, "cmd", 
+    //         json_object_new_string("client_groups"));
+    // json_object_object_add(respond_json, "groups", 
+    //         json_object_new_array_ext(1));
+    // group_array_json = json_object_object_get(respond_json, "groups");
+    //
+    // group_json = json_object_new_object();
+    // server_group_to_json(&new_group, group_json);
+    // json_object_array_add(group_array_json, group_json);
+    //
+    // ws_json_send(client, respond_json);
+    //
+    // return NULL;
 }
 
 const char* 
