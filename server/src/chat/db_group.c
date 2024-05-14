@@ -351,3 +351,55 @@ db_async_create_group(server_db_t* db, dbgroup_t* group, dbcmd_ctx_t* ctx)
     ret = db_async_params(db, db->cmd->insert_group, 3, vals, lens, formats, ctx);
     return ret;
 }
+
+static void
+create_group_code_result(UNUSED eworker_t* ew,
+                         PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    i32 rows;
+    const char* invite_code;
+    dbgroup_code_t* group_code = ctx->data;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        rows = PQntuples(res);
+        if (rows == 0)
+            goto err;
+        invite_code = PQgetvalue(res, 0, 0);
+        strncpy(group_code->invite_code, invite_code, DB_GROUP_CODE_MAX);
+        ctx->ret = DB_ASYNC_OK;
+        return;
+    }
+    else if (status == PGRES_FATAL_ERROR)
+        error("Create Group Code: %s\n",
+              PQresultErrorMessage(res));
+err:
+    ctx->ret = DB_ASYNC_ERROR;
+}
+
+bool 
+db_async_create_group_code(server_db_t* db, 
+                           dbgroup_code_t* group_code,
+                           u32 user_id, 
+                           dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char group_id_str[DB_INTSTR_MAX];
+    char max_uses_str[DB_INTSTR_MAX];
+    char user_id_str[DB_INTSTR_MAX];
+    const char* vals[3] = {
+        group_id_str,
+        max_uses_str,
+        user_id_str
+    };
+    const i32 lens[3] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_code->group_id),
+        snprintf(max_uses_str, DB_INTSTR_MAX, "%d", group_code->max_uses),
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id),
+    };
+    const i32 formats[3] = {0, 0, 0};
+    ctx->exec_res = create_group_code_result;
+    ctx->data = group_code;
+    ret = db_async_params(db, db->cmd->create_group_code, 3, vals, lens, formats, ctx);
+    return ret;
+}

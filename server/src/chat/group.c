@@ -714,13 +714,32 @@ server_get_group_msgs(UNUSED eworker_t* ew,
     // return NULL;
 }
 
+static const char*
+create_group_code_result(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    dbgroup_code_t* group_code;
+    json_object* resp;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to create group code";
+
+    group_code = ctx->data;
+    resp = json_object_new_object();
+    server_send_group_codes(ctx->client, group_code, 1, group_code->group_id, resp);
+    json_object_put(resp);
+
+    return NULL;
+}
+
 const char* 
-server_create_group_code(eworker_t* ew, client_t* client,
-                         json_object* payload, json_object* respond_json)
+server_create_group_code(eworker_t* ew, 
+                         client_t* client,
+                         json_object* payload, 
+                         UNUSED json_object* respond_json)
 {
     json_object* group_id_json;
     json_object* max_uses_json;
-    dbgroup_code_t group_code;
+    dbgroup_code_t* group_code;
     u32 group_id;
     i32 max_uses;
 
@@ -731,21 +750,32 @@ server_create_group_code(eworker_t* ew, client_t* client,
     max_uses = json_object_get_int(max_uses_json);
     if (max_uses == 0)
         max_uses = 1;
+    group_code = calloc(1, sizeof(dbgroup_code_t));
+    group_code->group_id = group_id;
+    group_code->max_uses = max_uses;
 
-    if (!client->dbuser || !server_db_user_in_group(&ew->db, group_id, 
-                                                    client->dbuser->user_id))
-        return "Not a group member";
+    dbcmd_ctx_t ctx = {
+        .exec = create_group_code_result,
+    };
 
-    group_code.group_id = group_id;
-    group_code.max_uses = max_uses;
-    group_code.uses = 0;
-
-    if (!server_db_insert_group_code(&ew->db, &group_code))
-        return "Failed to create group code";
-
-    server_send_group_codes(client, &group_code, 1, group_id, respond_json);
-
+    if (!db_async_create_group_code(&ew->db, group_code, client->dbuser->user_id, &ctx))
+        return "Error: async-create-group-code";
     return NULL;
+
+    // if (!client->dbuser || !server_db_user_in_group(&ew->db, group_id, 
+    //                                                 client->dbuser->user_id))
+    //     return "Not a group member";
+    //
+    // group_code.group_id = group_id;
+    // group_code.max_uses = max_uses;
+    // group_code.uses = 0;
+    //
+    // if (!server_db_insert_group_code(&ew->db, &group_code))
+    //     return "Failed to create group code";
+    //
+    // server_send_group_codes(client, &group_code, 1, group_id, respond_json);
+    //
+    // return NULL;
 }
 
 const char* 

@@ -158,6 +158,8 @@ server_init_db(server_t* server)
     cmd->update_user = server_db_load_sql(server->conf.sql_update_user, &cmd->delete_msg_len);
     cmd->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &cmd->insert_userfiles_len);
 
+    cmd->create_group_code = server_db_load_sql("server/sql/create_group_code.sql",
+                                                &cmd->create_group_code_len);
     return db_exec_schema(server);
 }
 
@@ -240,6 +242,8 @@ server_db_free(server_t* server)
 
     free(cmd->update_user);
     free(cmd->insert_userfiles);
+
+    free(cmd->create_group_code);
 }
 
 void 

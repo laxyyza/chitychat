@@ -73,6 +73,8 @@ typedef struct
 
     char*   insert_groupmember_code;
     size_t  insert_groupmember_code_len;
+    char*   create_group_code;
+    size_t  create_group_code_len;
 } server_db_commands_t;
 
 typedef struct eworker eworker_t;

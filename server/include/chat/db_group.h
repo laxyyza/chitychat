@@ -23,4 +23,10 @@ bool db_async_user_join_pub_group(server_db_t* db, u32 user_id, u32 group_id, db
 
 bool db_async_create_group(server_db_t* db, dbgroup_t* group, dbcmd_ctx_t* ctx);
 
+/* `group_code` must be allocated on the heap. */
+bool db_async_create_group_code(server_db_t* db, 
+                                dbgroup_code_t* group_code, 
+                                u32 user_id, 
+                                dbcmd_ctx_t* ctx);
+
 #endif // _SERVER_DB_GROUP_H_
