@@ -41,9 +41,14 @@ server_group_broadcast(eworker_t* ew, u32 group_id, json_object* json)
 }
 
 static void 
-server_delete_msg_attachments(eworker_t* ew, const char* attachments_str)
+server_delete_attachments_json(eworker_t* ew, json_object* msg_attachs_json)
 {
-    json_object* msg_attachs_json;
+    if (msg_attachs_json == NULL)
+    {
+        warn("server_delete_attachments_json msg_attachs_json is NULL\n");
+        return;
+    }
+
     json_object* attach_json;
     json_object* hash_json;
     json_object* type_json;
@@ -53,10 +58,6 @@ server_delete_msg_attachments(eworker_t* ew, const char* attachments_str)
     const char* type;
     const char* name;
     size_t n;
-
-    msg_attachs_json = json_tokener_parse(attachments_str);
-    if (msg_attachs_json == NULL)
-        return;
 
     n = json_object_array_length(msg_attachs_json);
 
@@ -83,6 +84,16 @@ server_delete_msg_attachments(eworker_t* ew, const char* attachments_str)
     }
 
     json_object_put(msg_attachs_json);
+}
+
+static void 
+server_delete_msg_attachments(eworker_t* ew, const char* attachments_str)
+{
+    json_object* msg_attachs_json;
+
+    msg_attachs_json = json_tokener_parse(attachments_str);
+
+    server_delete_attachments_json(ew, msg_attachs_json);
 }
 
 static void
@@ -1023,13 +1034,111 @@ server_delete_group_msg(UNUSED eworker_t* ew,
 //     return errmsg;
 }
 
+static const char* 
+delete_group_result(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    json_object* resp;
+    dbcmd_ctx_t* base = ctx;
+    dbcmd_ctx_t* attach_ctx = ctx->next;
+    dbcmd_ctx_t* member_ids_ctx = attach_ctx->next;
+    json_object** attach_array;
+    size_t        attach_array_len;
+    u32*        member_ids;
+    size_t      n_members;
+    u32 group_id;
+    group_id = ctx->param.group_id;
+
+    if (group_id == 0)
+    {
+        warn("group_id is 0!\n");
+    }
+
+    while (ctx)
+    {
+        debug("group_id: %u -- ctx->ret: %d\n", group_id, ctx->ret);
+        if (ctx->ret == DB_ASYNC_ERROR)
+            return "Failed to delete group";
+        ctx = ctx->next;
+    }
+    ctx = base;
+
+    attach_array = attach_ctx->data;
+    attach_array_len = attach_ctx->data_size;
+
+    member_ids = member_ids_ctx->data;
+    n_members = member_ids_ctx->data_size;
+
+    for (size_t i = 0; i < attach_array_len; i++)
+    {
+        json_object* attach_json = attach_array[i];
+        server_delete_attachments_json(ew, attach_json);
+    }
+
+    resp = json_object_new_object();
+    json_object_object_add(resp, "cmd", 
+                           json_object_new_string("delete_group"));
+    json_object_object_add(resp, "group_id",
+                           json_object_new_int(group_id));
+
+    for (size_t i = 0; i < n_members; i++)
+    {
+        client_t* member_client = server_get_client_user_id(ew->server, member_ids[i]);
+        if (member_client)
+            ws_json_send(member_client, resp);
+    }
+
+    json_object_put(resp);
+    return NULL;
+}
+
+static const char* 
+get_group_owner(eworker_t* ew, dbcmd_ctx_t* gowner_ctx)
+{
+    u32 owner_id;
+    u32 group_id;
+    u32 user_id;
+
+    if (gowner_ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get group owner";
+
+    owner_id = gowner_ctx->param.group_owner.owner_id;
+    group_id = gowner_ctx->param.group_owner.group_id;
+    user_id =  gowner_ctx->param.group_owner.user_id;
+
+    if (user_id != owner_id)
+        return "Not group owner";
+
+    dbcmd_ctx_t ctx = {
+        .exec = delete_group_result,
+        .param.group_id = group_id
+    };
+
+    if (!db_async_delete_group(&ew->db, group_id, &ctx))
+        return "Error: async-delete-group";
+    return NULL;
+}
+
 const char* 
-server_delete_group(UNUSED eworker_t* ew, 
+server_delete_group(eworker_t* ew, 
                     UNUSED client_t* client, 
-                    UNUSED json_object* payload, 
+                    json_object* payload, 
                     UNUSED json_object* resp_json)
 {
-    return "server_delete_group not implemented!";
+    json_object* group_id_json;
+    u32 group_id;
+
+    RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
+    group_id = json_object_get_int(group_id_json);
+
+    dbcmd_ctx_t ctx = {
+        .exec = get_group_owner,
+        .param.group_owner.group_id = group_id,
+        .param.group_owner.user_id = client->dbuser->user_id,
+    };
+    if (!db_async_get_group_owner(&ew->db, group_id, &ctx))
+        return "Error: async-get-group-owner";
+    return NULL;
+
     // json_object* group_id_json;
     // const dbuser_t* member;
     // client_t* member_client;
@@ -1038,11 +1147,8 @@ server_delete_group(UNUSED eworker_t* ew,
     // u32 n_members;
     // u32 n_msgs;
     // dbgroup_t* group;
-    // u32 group_id;
-    // u32 owner_id;
+    // u32 group_id; u32 owner_id;
     //
-    // RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
-    // group_id = json_object_get_int(group_id_json);
     //
     // if ((group = server_db_get_group(&ew->db, group_id)) == NULL)
     //     return "Group not found";

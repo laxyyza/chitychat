@@ -16,7 +16,8 @@
 #define DB_ASYNC_OK     1
 #define DB_ASYNC_ERROR -1
 
-#define DB_CTX_NO_JSON  0x01
+#define DB_CTX_NO_JSON   0x01
+#define DB_CTX_DONT_FREE 0x02
 
 typedef struct 
 {
@@ -43,6 +44,13 @@ typedef struct
     const char* array_json;
 } get_group_codes_param_t;
 
+typedef struct 
+{
+    u32 group_id;
+    u32 owner_id;
+    u32 user_id;
+} group_owner_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
@@ -50,6 +58,7 @@ union cmd_param
     group_msgs_param_t group_msgs;
     get_group_codes_param_t group_codes;
     delete_msg_param_t del_msg;
+    group_owner_param_t group_owner;
     session_t*  session;
     json_object* json;
     const char* str;

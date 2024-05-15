@@ -4,6 +4,7 @@
 #include "chat/db.h"
 #include "chat/group.h"
 #include <libpq-fe.h>
+#include <stdio.h>
 
 static void
 db_get_groups_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
@@ -77,7 +78,7 @@ db_get_group_member_ids_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusTy
 
     if (status == PGRES_TUPLES_OK)
     {
-        if (ctx->flags == DB_CTX_NO_JSON)
+        if (ctx->flags & DB_CTX_NO_JSON)
         {
             rows = PQntuples(res);
             user_ids = calloc(rows, sizeof(u32));
@@ -113,7 +114,7 @@ bool
 db_async_get_group_member_ids(server_db_t* db, u32 group_id, dbcmd_ctx_t* ctx)
 {
     const char* sql;
-    if (ctx->flags == DB_CTX_NO_JSON)
+    if (ctx->flags & DB_CTX_NO_JSON)
         sql = "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;";
     else
         sql = "SELECT json_agg(user_id) FROM GroupMembers WHERE group_id = $1::int;";
@@ -566,5 +567,163 @@ db_async_delete_group_code(server_db_t* db,
     const i32 formats[2] = {0, 0};
     ctx->exec_res = db_delete_group_code_result;
     ret = db_async_params(db, db->cmd->delete_group_code, 2, vals, lens, formats, ctx);
+    return ret;
+}
+
+static void
+del_group_result(UNUSED eworker_t* ew,
+                 PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    if (status == PGRES_COMMAND_OK)
+        ctx->ret = DB_ASYNC_OK;
+    else
+    {
+        error("Delete group failed: %s\n",
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+static void
+get_all_attachs_result(UNUSED eworker_t* ew, 
+                       PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    i32 rows;
+    json_object** attachs_array;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        ctx->ret = DB_ASYNC_OK;
+        rows = PQntuples(res);
+        if (rows == 0)
+            return;
+
+        attachs_array = calloc(rows, sizeof(void*));
+        for (i32 i = 0; i < rows; i++)
+        {
+            json_object** json_obj = attachs_array + i;
+            const char* attach = PQgetvalue(res, i, 0);
+            *json_obj = json_tokener_parse(attach);
+        }
+        ctx->data = attachs_array;
+        ctx->data_size = rows;
+    }
+    else
+    {
+        error("Get all attachs: %s\n",
+              PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
+}
+
+/*
+ * Quite a heavy operation:
+ *      1. Select all it's messages with attachments (for further deletion and unlinking from filesystem)
+ *      2. Select all it's member IDs (to broadcast to them that the group was deleted)
+ *      3. Delete all it's messages
+ *      4. Delete all it's group members
+ *      5. Delete all it's group codes
+ *      6. Delete Group
+ */
+bool
+db_async_delete_group(server_db_t* db, u32 group_id, dbcmd_ctx_t* ctx)
+{
+    const char* get_all_attachs     = "SELECT attachments FROM Messages WHERE group_id = $1::int AND json_array_length(attachments) > 0;";
+    const char* del_group_msg       = "DELETE FROM Messages WHERE group_id = $1::int;";
+    const char* del_group_members   = "DELETE FROM GroupMembers WHERE group_id = $1::int;";
+    const char* del_group_codes     = "DELETE FROM GroupCodes WHERE group_id = $1::int;";
+    const char* del_group           = "DELETE FROM Groups WHERE group_id = $1::int;";
+    i32 ret;
+    char group_id_str[DB_INTSTR_MAX];
+    const char* vals[1] = {
+        group_id_str,
+    };
+    const i32 lens[1] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id),
+    };
+    const i32 formats[1] = {0};
+
+    /* Begin transaction */
+    if (!(ret = db_async_begin(db, ctx)))
+        return false;
+    ctx->exec = NULL;
+
+    /* Get all messages with atttachments */
+    ctx->exec_res = get_all_attachs_result;
+    if (!(ret = db_async_params(db, get_all_attachs, 1, vals, lens, formats, ctx)))
+        goto rollback;
+
+    /* Get all (former) member IDs */
+    ctx->flags |= DB_CTX_NO_JSON;
+    if (!(ret = db_async_get_group_member_ids(db, group_id, ctx)))
+        goto rollback;
+    ctx->exec_res = del_group_result;
+
+    /* Delete all messages */
+    if (!(ret = db_async_params(db, del_group_msg, 1, vals, lens, formats, ctx)))
+        goto rollback;
+
+    /* Delete all group members */
+    if (!(ret = db_async_params(db, del_group_members, 1, vals, lens, formats, ctx)))
+        goto rollback;
+    
+    /* Delete all group codes */
+    if (!(ret = db_async_params(db, del_group_codes, 1, vals, lens, formats, ctx)))
+        goto rollback;
+
+    /* Delete group */
+    if (!(ret = db_async_params(db, del_group, 1, vals, lens, formats, ctx)))
+        goto rollback;
+
+    ret = db_async_commit(db);
+    return ret;
+rollback:
+    db_async_rollback(db);
+    return false;
+}
+
+static void
+get_group_owner_result(UNUSED eworker_t* ew, 
+                       PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* owner_id_str;
+    u32 owner_id;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        if (PQntuples(res) == 0)
+        {
+            error("PQntuples() is 0\n");
+            ctx->ret = DB_ASYNC_ERROR;
+            return;
+        }
+        owner_id_str = PQgetvalue(res, 0, 0);
+        owner_id = strtoul(owner_id_str, NULL, 0);
+        printf("owner_id_str: %s\n", owner_id_str);
+        ctx->param.group_owner.owner_id = owner_id;
+        ctx->ret = DB_ASYNC_OK;
+        return;
+    }
+    else if (status == PGRES_FATAL_ERROR)
+        error("Get group owner: %s\n",
+              PQresultErrorMessage(res));
+    ctx->ret = DB_ASYNC_ERROR;
+}
+
+bool 
+db_async_get_group_owner(server_db_t* db, u32 group_id, dbcmd_ctx_t* ctx)
+{
+    const char* sql = "SELECT owner_id FROM Groups WHERE group_id = $1::int;";
+    i32 ret;
+    char group_id_str[DB_INTSTR_MAX];
+    const char* vals[1] = {
+        group_id_str
+    };
+    const i32 lens[1] = {
+        snprintf(group_id_str, DB_INTSTR_MAX, "%u", group_id)
+    };
+    const i32 formats[1] = {0};
+    ctx->exec_res = get_group_owner_result;
+    ret = db_async_params(db, sql, 1, vals, lens, formats, ctx);
     return ret;
 }

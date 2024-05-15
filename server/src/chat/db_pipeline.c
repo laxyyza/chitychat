@@ -2,6 +2,7 @@
 #include "chat/db.h"
 #include "chat/db_def.h"
 #include <libpq-fe.h>
+#include "common.h"
 #include "json_object.h"
 #include "server_eworker.h"
 #include "server_websocket.h"
@@ -56,6 +57,52 @@ db_async_exec(server_db_t* db, const char* query,
 }
 
 static void
+begin_result(UNUSED eworker_t* ew,
+             UNUSED PGresult* res,
+             ExecStatusType status,
+             dbcmd_ctx_t* ctx)
+{
+    if (status == PGRES_FATAL_ERROR)
+        ctx->ret = DB_ASYNC_ERROR;
+    else
+        ctx->ret = DB_ASYNC_OK;
+}
+
+i32 
+db_async_begin(server_db_t* db, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    ctx->exec_res = begin_result;
+    ctx->flags |= DB_CTX_DONT_FREE;
+    ret = db_async_exec(db, "BEGIN;", ctx);
+    return ret;
+}
+
+i32 
+db_async_commit(server_db_t* db)
+{
+    i32 ret;
+    dbcmd_ctx_t ctx = {
+        .exec = NULL,
+        .exec_res = begin_result,
+    };
+    ret = db_async_exec(db, "COMMIT;", &ctx);
+    return ret;
+}
+
+i32 
+db_async_rollback(server_db_t* db)
+{
+    i32 ret;
+    dbcmd_ctx_t ctx = {
+        .exec = NULL,
+        .exec_res = begin_result,
+    };
+    ret = db_async_exec(db, "ROLLBACK;", &ctx);
+    return ret;
+}
+
+static void
 db_exec_cmd(eworker_t* ew, dbcmd_ctx_t* cmd)
 {
     const char* errmsg;
@@ -86,7 +133,8 @@ db_cmd_free(dbcmd_ctx_t* cmd)
     while (cmd)
     {
         next = cmd->next;
-        free(cmd->data);
+        if ((cmd->flags & DB_CTX_DONT_FREE) == 0)
+            free(cmd->data);
         free(cmd);
         cmd = next;
     }
