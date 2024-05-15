@@ -4,6 +4,18 @@
 #include "chat/db_def.h"
 #include "chat/user.h"
 
+/**
+ * Potential Issue:
+ *  If a client disconnects immediately after making a request,
+ *  it could result in a use-after-free scenario.
+ *
+ * Consideration:
+ *  Implementing a reference counting mechanism for client requests in the pipeline
+ *  could mitigate this issue. With this approach, any operations triggered by a disconnected
+ *  client would be disregarded, and the client would only be freed once all asynchronous
+ *  operations have concluded.
+ */
+
 /* Async operations */
 i32 db_async_params(server_db_t* db, 
                     const char* query, 
