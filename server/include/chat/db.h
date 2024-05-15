@@ -51,6 +51,14 @@ typedef struct
     u32 user_id;
 } group_owner_param_t;
 
+typedef struct
+{
+    u32 user_id;
+    rtusm_new_t new;
+    rtusm_t status;
+    const char* pfp_hash;
+} rtusm_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
@@ -59,6 +67,7 @@ union cmd_param
     get_group_codes_param_t group_codes;
     delete_msg_param_t del_msg;
     group_owner_param_t group_owner;
+    rtusm_param_t rtusm;
     session_t*  session;
     json_object* json;
     const char* str;

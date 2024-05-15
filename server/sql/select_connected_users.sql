@@ -9,7 +9,7 @@ WITH user_group_ids AS (
     WHERE gm.user_id = $1::int
 )
 -- Select all group members from the group IDs
-SELECT DISTINCT u.*
+SELECT DISTINCT u.user_id
 FROM Users u 
 JOIN GroupMembers gm ON gm.group_id IN (
     SELECT group_id FROM user_group_ids

@@ -91,6 +91,7 @@ typedef struct server
 
     server_ght_t event_ht;
     server_ght_t client_ht;
+    server_ght_t user_ht;
     server_ght_t session_ht;
     server_ght_t upload_token_ht;
     server_ght_t chat_cmd_ht;

@@ -10,18 +10,7 @@ server_get_client_fd(server_t* server, i32 fd)
 client_t*   
 server_get_client_user_id(server_t* server, u64 id)
 {
-    server_ght_t* ht = &server->client_ht;
-    // TODO: Use hash table to get client from user_id, not looping.
-    server_ght_lock(ht);
-    GHT_FOREACH(client_t* client, ht, {
-        if (client->state & CLIENT_STATE_LOGGED_IN && client->dbuser->user_id == id)
-        {
-            server_ght_unlock(ht);
-            return client;
-        }
-    });
-    server_ght_unlock(ht);
-    return NULL;
+    return server_ght_get(&server->user_ht, id);
 }
 
 client_t*
@@ -56,9 +45,9 @@ err:
 }
 
 void 
-server_free_client(eworker_t* th, client_t* client)
+server_free_client(eworker_t* ew, client_t* client)
 {
-    server_t* server = th->server;
+    server_t* server = ew->server;
 
     if (!client)
         return;
@@ -80,13 +69,13 @@ server_free_client(eworker_t* th, client_t* client)
         SSL_free(client->ssl);
     }
 
-    if (client->session && client->session->timerfd == 0 && th->server->running)
+    if (client->session && client->session->timerfd == 0 && ew->server->running)
     {
         union timer_data data = {
             .session = client->session
         };
         // TODO: Make client session timer configurable
-        server_timer_t* timer = server_addtimer(th, MINUTES(30), 
+        server_timer_t* timer = server_addtimer(ew, MINUTES(30), 
                                                 TIMER_ONCE, TIMER_CLIENT_SESSION, 
                                                 &data, sizeof(void*));
         if (timer)
@@ -96,7 +85,10 @@ server_free_client(eworker_t* th, client_t* client)
     if (client->recv.data)
         free(client->recv.data);
     if (client->dbuser)
+    {
+        server_ght_del(&ew->server->user_ht, client->dbuser->user_id);
         free(client->dbuser);
+    }
     close(client->addr.sock);
 
     pthread_mutex_destroy(&client->ssl_mutex);

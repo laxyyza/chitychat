@@ -3,6 +3,7 @@
 #include "chat/rtusm.h"
 #include "chat/ws_text_frame.h"
 #include "chat/db_user.h"
+#include "json_object.h"
 #include "server_client.h"
 #include "server_websocket.h"
 
@@ -63,27 +64,106 @@ do_get_users(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
     return NULL;
 }
 
+static dbuser_t**
+get_rm_users_json(eworker_t* ew, json_object* array, size_t* n)
+{
+    dbuser_t** ret = NULL;
+    client_t* client;
+    size_t array_size = json_object_array_length(array);
+    size_t pos = 0;
+    json_object* int_json;
+    u32 user_id;
+    server_ght_t* uht = &ew->server->user_ht;
+
+    for (ssize_t i = array_size - 1; i >= 0; i--)
+    {
+        int_json = json_object_array_get_idx(array, i);
+        user_id = json_object_get_int(int_json);
+
+        if ((client = server_ght_get(uht, user_id)))
+        {
+            if (ret == NULL)
+                ret = calloc(array_size, sizeof(void*));
+            ret[pos] = client->dbuser;
+            pos++;
+            json_object_array_del_idx(array, i, 1);
+        }
+    }
+    *n = pos;
+    return ret;
+}
+
+static const char*
+get_users_from_db(eworker_t* ew, 
+                  json_object* user_ids_array_json)
+{
+    const char* user_ids_array_str;
+    size_t size;
+
+    size = json_object_array_length(user_ids_array_json);
+    if (size <= 0)
+        return NULL;
+
+    user_ids_array_str = json_object_to_json_string(user_ids_array_json);
+    dbcmd_ctx_t ctx = {
+        .exec = do_get_users
+    };
+    if (!db_async_get_user_array(&ew->db, user_ids_array_str, &ctx))
+        return "Internal error: async-get-user-array";
+    return NULL;
+}
+
+static void
+send_users_from_clients(client_t* client, 
+                       dbuser_t** users,
+                       size_t n,
+                       json_object* resp)
+{
+    json_object* users_array_json;
+    json_object* user_json;
+    dbuser_t* user;
+
+    if (users == NULL)
+        return;
+
+    json_object_object_add(resp, "cmd",
+                           json_object_new_string("get_user"));
+    users_array_json = json_object_new_array_ext(n);
+
+    for (size_t i = 0; i < n; i++)
+    {
+        user = users[i];
+        user_json = json_object_new_object();
+        server_add_user_in_json(user, user_json);
+        json_object_array_put_idx(users_array_json, i, user_json);
+    }
+    json_object_object_add(resp, "users",
+                           users_array_json);
+    ws_json_send(client, resp);
+
+    free(users);
+
+}
+
 const char* 
 server_get_user(eworker_t* ew, 
-                UNUSED client_t* client, 
-                UNUSED json_object* payload, 
-                UNUSED json_object* respond_json)
+                client_t* client, 
+                json_object* payload, 
+                json_object* resp)
 {
     json_object* user_ids_array_json; 
-    const char* user_ids_array_str;
+    const char* errmsg;
+    dbuser_t** online_users;
+    size_t    n_online_users;
 
     RET_IF_JSON_BAD(user_ids_array_json, payload, "user_ids", json_type_array);
     if (verify_json_array_type(user_ids_array_json, json_type_int) == false)
         return "Invalid array";
 
-    user_ids_array_str = json_object_to_json_string(user_ids_array_json);
+    online_users = get_rm_users_json(ew, user_ids_array_json, &n_online_users);
 
-    dbcmd_ctx_t ctx = {
-        .exec = do_get_users
-    };
-
-    if (!db_async_get_user_array(&ew->db, user_ids_array_str, &ctx))
-        return "Internal error: async-get-user-array";
+    errmsg = get_users_from_db(ew, user_ids_array_json);
+    send_users_from_clients(client, online_users, n_online_users, resp);
 
     // user_id = json_object_get_int(user_id_json);
     //
@@ -107,7 +187,7 @@ server_get_user(eworker_t* ew,
     // if (free_user)
     //     free(dbuser);
 
-    return NULL;
+    return errmsg;
 }
 
 const char* 

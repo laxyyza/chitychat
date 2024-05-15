@@ -446,6 +446,9 @@ server_init_ht(server_t* server)
     if (server_ght_init(&server->client_ht, ht_size, NULL) == false)
         return false;
 
+    if (server_ght_init(&server->user_ht, ht_size, NULL) == false)
+        return false;
+
     if (server_ght_init(&server->session_ht, ht_size, NULL) == false)
         return false;
 

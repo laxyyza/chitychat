@@ -1,4 +1,5 @@
 #include "chat/db.h"
+#include "chat/db_def.h"
 #include "chat/db_pipeline.h"
 #include <libpq-fe.h>
 
@@ -145,4 +146,51 @@ db_async_insert_user(server_db_t* db, const dbuser_t* user, dbcmd_ctx_t* ctx)
     ctx->data = (void*)user;
     ret = db_async_params(db, db->cmd->insert_user, 4, vals, lens, formats, ctx);
     return ret == 1;
+}
+
+static void
+get_connected_users_result(UNUSED eworker_t* ew,
+                           PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+{
+    const char* user_id_str;
+    u32* user_ids;
+    i32  rows;
+
+    if (status == PGRES_TUPLES_OK)
+    {
+        if ((rows = PQntuples(res)) == 0)
+            goto err;
+        user_ids = calloc(rows, sizeof(u32));
+        for (i32 i = 0; i < rows; i++)
+        {
+            user_id_str = PQgetvalue(res, i, 0);
+            user_ids[i] = strtoul(user_id_str, NULL, 0);
+        }
+        ctx->data = user_ids;
+        ctx->data_size = rows;
+        ctx->ret = DB_ASYNC_OK;
+        return;
+    }
+    else if (status == PGRES_FATAL_ERROR)
+        error("Get connected users: %s\n",
+              PQresultErrorMessage(res));
+err:
+    ctx->ret = DB_ASYNC_ERROR;
+}
+
+bool 
+db_async_get_connected_users(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx)
+{
+    i32 ret;
+    char user_id_str[DB_INTSTR_MAX];
+    const char* vals[1] = {
+        user_id_str
+    };
+    const i32 lens[1] = {
+        snprintf(user_id_str, DB_INTSTR_MAX, "%u", user_id)
+    };
+    const i32 formats[1] = {0};
+    ctx->exec_res = get_connected_users_result;
+    ret = db_async_params(db, db->cmd->select_connected_users, 1, vals, lens, formats, ctx);
+    return ret;
 }

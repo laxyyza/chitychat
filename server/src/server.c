@@ -32,6 +32,7 @@ server_del_all_clients(server_t* server)
         server_free_client(&server->main_ew, client);
     });
     server_ght_destroy(ht);
+    server_ght_destroy(&server->user_ht);
 }
 
 static void 

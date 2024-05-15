@@ -5,6 +5,7 @@
 #include "chat/rtusm.h"
 #include "chat/user_session.h"
 #include "chat/ws_text_frame.h"
+#include "server_ht.h"
 
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
 
@@ -24,6 +25,7 @@ server_set_client_logged_in(eworker_t* ew,
         return "Someone else already logged in";
 
     client->dbuser = user;
+    server_ght_insert(&ew->server->user_ht, user->user_id, client);
 
     json_object_object_add(respond_json, "cmd", 
                         json_object_new_string("session"));
