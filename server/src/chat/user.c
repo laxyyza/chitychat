@@ -164,28 +164,6 @@ server_get_user(eworker_t* ew,
     errmsg = get_users_from_db(ew, user_ids_array_json);
     send_users_from_clients(client, online_users, n_online_users, resp);
 
-    // user_id = json_object_get_int(user_id_json);
-    //
-    // if ((connected_user = server_get_client_user_id(ew->server, user_id)))
-    //     dbuser = connected_user->dbuser;
-    // else
-    // {
-    //     dbuser = server_db_get_user_from_id(&ew->db, user_id);
-    //     free_user = true;
-    // }
-    //
-    // if (!dbuser)
-    //     return "User not found";
-    //
-    // json_object_object_add(respond_json, "cmd", 
-    //                        json_object_new_string("get_user"));
-    // server_add_user_in_json(dbuser, respond_json);
-    //
-    // ws_json_send(client, respond_json);
-    //
-    // if (free_user)
-    //     free(dbuser);
-
     return errmsg;
 }
 
@@ -206,6 +184,9 @@ server_client_user_info(eworker_t* ew,
     return NULL;
 }
 
+/**
+ * TODO: Finish server_user_edit_account()
+ */
 const char* 
 server_user_edit_account(eworker_t* ew, client_t* client, 
                          json_object* payload, UNUSED json_object* respond_json)
