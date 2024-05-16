@@ -78,7 +78,7 @@ class Group:
                  owner_id: int, 
                  name: str, 
                  public: bool,
-                 members_id: list[int]) -> None:
+                 members_id: list[int]=[]) -> None:
         self.id = id
         self.owner_id = owner_id
         self.name = name
@@ -102,7 +102,6 @@ def packet_to_group(packet: dict) -> Group:
         packet["owner_id"],
         packet["name"],
         packet["public"],
-        packet["members_id"],
     )
 
 class Bot:
@@ -230,4 +229,9 @@ class Bot:
     async def join_group(self, group_id: int):
         await self.send("join_group",
             group_id = group_id
+        )
+
+    async def get_group_members(self, group: Group) -> None:
+        await self.send("get_member_ids", 
+            group_id = group.id
         )

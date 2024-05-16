@@ -70,7 +70,7 @@ async def client_groups(bot: Bot, packet: dict) -> None:
     i = 0
     for group_json in groups:
         group = packet_to_group(group_json)
-        group.try_resolve_members(bot.users)
+        await bot.get_group_members(group)
         group.print()
         bot.groups[group.id]= group
         if i == 0:
@@ -105,6 +105,12 @@ async def error(bot: Bot, packet: dict) -> None:
 @cmd
 async def group_msg(bot: Bot, packet: dict) -> None:
     print(f"Message: {packet["content"]}")
+
+@cmd
+async def get_member_ids(bot: Bot, packet: dict) -> None:
+    await bot.send("get_user",
+        user_ids = packet["member_ids"]
+    )
 
 async def connected(bot: Bot) -> None:
    global selected_group
