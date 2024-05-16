@@ -142,7 +142,7 @@ do_get_group_msgs(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, db
     if (status == PGRES_TUPLES_OK)
     {
         msgs_json_str = PQgetvalue(res, 0, 0);
-        if (msgs_json_str == NULL)
+        if (!msgs_json_str || *msgs_json_str == 0x00)
             msgs_json_str = "[]";
 
         ctx->param.group_msgs.msgs_json = msgs_json_str;
