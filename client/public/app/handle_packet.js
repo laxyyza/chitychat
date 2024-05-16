@@ -21,8 +21,12 @@ function cmd_session(packet)
 
 function client_user_info(packet)
 {
-    app.client_user = new User(packet.user_id, packet.username, packet.displayname, packet.bio, packet.created_at, packet.pfp_name, packet.status);
-    app.users[app.client_user.id] = this.client_user;
+    app.client_user = new User(packet.user_id, packet.username, 
+                                packet.displayname, packet.bio, 
+                                packet.created_at, packet.pfp_name, 
+                                packet.status);
+    app.users[app.client_user.id] = app.client_user;
+
     let me_displayname = document.getElementById("me_displayname");
     me_displayname.innerHTML = app.client_user.displayname;
     let me_username = document.getElementById("me_username");
