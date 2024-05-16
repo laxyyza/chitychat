@@ -142,7 +142,6 @@ send_users_from_clients(client_t* client,
     ws_json_send(client, resp);
 
     free(users);
-
 }
 
 const char* 
@@ -211,38 +210,38 @@ const char*
 server_user_edit_account(eworker_t* ew, client_t* client, 
                          json_object* payload, UNUSED json_object* respond_json)
 {
-    json_object* new_username_json;
-    json_object* new_displayname_json;
+    // json_object* new_username_json;
+    // json_object* new_displayname_json;
     json_object* new_pfp_json;
     const char* new_username = NULL;
     const char* new_displayname = NULL;
     bool new_pfp = false;
 
-    new_username_json = json_object_object_get(payload, "new_username");
-    new_displayname_json = json_object_object_get(payload, "new_displayname");
+    // new_username_json = json_object_object_get(payload, "new_username");
+    // new_displayname_json = json_object_object_get(payload, "new_displayname");
     new_pfp_json = json_object_object_get(payload, "new_pfp");
 
     // Check if username is type string
-    if (json_object_is_type(new_username_json, json_type_string))
-        new_username = json_object_get_string(new_username_json);
-    else if (new_username_json != NULL)
-        return "\"new_username\" is invalid";
-
-    // Check if displayname is type string
-    if (json_object_is_type(new_displayname_json, json_type_string))
-        new_displayname = json_object_get_string(new_displayname_json);
-    else if (new_displayname_json != NULL)
-        return "\"new_displayname\" is invalid";
-
+    // if (json_object_is_type(new_username_json, json_type_string))
+    //     new_username = json_object_get_string(new_username_json);
+    // else if (new_username_json != NULL)
+    //     return "\"new_username\" is invalid";
+    //
+    // // Check if displayname is type string
+    // if (json_object_is_type(new_displayname_json, json_type_string))
+    //     new_displayname = json_object_get_string(new_displayname_json);
+    // else if (new_displayname_json != NULL)
+    //     return "\"new_displayname\" is invalid";
+    //
     // Check if new_pfp is type boolean
     if (json_object_is_type(new_pfp_json, json_type_boolean))
         new_pfp = json_object_get_boolean(new_pfp_json);
     else if (new_pfp_json != NULL)
         return "\"new_pfp\" is invalid";
-
-    if (!server_db_update_user(&ew->db, new_username, new_displayname, 
-            NULL, client->dbuser->user_id))
-        return "Failed to update user"; 
+    //
+    // if (!server_db_update_user(&ew->db, new_username, new_displayname, 
+    //         NULL, client->dbuser->user_id))
+    //     return "Failed to update user"; 
 
     if (new_pfp)
     {

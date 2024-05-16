@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS UserFiles(
     hash            text PRIMARY KEY UNIQUE,
     size            bigint NOT null,
     mime_type       text NOT null,
-    flags           int DEFAULT 0,
     ref_count       int DEFAULT 1
 );
 
@@ -17,7 +16,6 @@ CREATE TABLE IF NOT EXISTS Users(
     bio             text,
     hash            bytea NOT null,
     salt            bytea NOT null, 
-    flags           int DEFAULT 0,
     created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
     pfp             text,
     FOREIGN KEY (pfp) REFERENCES UserFiles(hash)
@@ -50,7 +48,6 @@ CREATE TABLE IF NOT EXISTS Messages(
     content         text,
     timestamp       timestamp DEFAULT CURRENT_TIMESTAMP,
     attachments     json DEFAULT null,
-    flags           int DEFAULT 0,
     parent_msg_id   int DEFAULT null,
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
     FOREIGN KEY (group_id) REFERENCES Groups(group_id),

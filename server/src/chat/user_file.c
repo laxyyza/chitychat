@@ -83,37 +83,38 @@ cleanup:
 }
 
 static bool
-server_write_file(const void* data, size_t size, 
-        const char* dir, const char* name)
+server_write_file(const void* data, 
+                  size_t size, 
+                  const char* dir, 
+                  const char* name)
 {
     i32 fd = -1;
-    char* paew = calloc(1, PATH_MAX);
+    char* path = calloc(1, PATH_MAX);
     bool ret = false;
 
-    snprintf(paew, PATH_MAX, "%s/%s", dir, name);
+    snprintf(path, PATH_MAX, "%s/%s", dir, name);
 
-    debug("Writing file to: %s\n", paew);
+    debug("Writing file to: %s\n", path);
 
-    fd = open(paew, O_WRONLY | O_CREAT, 
-            S_IRUSR | S_IWUSR);
+    fd = open(path, O_WRONLY | O_CREAT, 
+                    S_IRUSR | S_IWUSR);
     if (fd == -1)
     {
         error("Failed to open/create file at %s: %s\n",
-            paew, ERRSTR);
+              path, ERRSTR);
         goto cleanup;
     }
 
     if (write(fd, data, size) == -1)
     {
         error("Failed to write to %s: %s\n", 
-            paew, ERRSTR);
+              path, ERRSTR);
         goto cleanup;
     }
 
     ret = true;
-
 cleanup:
-    free(paew);
+    free(path);
     if (fd != -1)
         close(fd);
     return ret;
@@ -162,7 +163,7 @@ do_save_file_img(eworker_t* ew, dbcmd_ctx_t* ctx)
 
 bool 
 server_save_file_img(eworker_t* ew, const void* data, size_t size, 
-                     dbuser_file_t* file_output)
+                     dbuser_file_t** file_output, bool free_file)
 {
     dbuser_file_t* file;
     const char* mime_type;
@@ -184,7 +185,9 @@ server_save_file_img(eworker_t* ew, const void* data, size_t size,
 
     dbcmd_ctx_t ctx = {
         .exec = do_save_file_img,
-        .param.str = data
+        .param.str = data,
+        .data = file,
+        .flags = (free_file) ? 0 : DB_CTX_DONT_FREE 
     };
 
     if ((ret = db_async_insert_userfile(&ew->db, file, &ctx)))
@@ -214,7 +217,7 @@ server_save_file_img(eworker_t* ew, const void* data, size_t size,
     //     ret = false;
     //
     if (ret && file_output)
-        memcpy(file_output, file, sizeof(dbuser_file_t));
+        *file_output = file;
 
     return ret;
 }

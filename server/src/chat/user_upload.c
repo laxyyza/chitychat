@@ -1,9 +1,13 @@
 #include "chat/user_upload.h"
 #include "chat/db.h"
 #include "chat/db_def.h"
+#include "chat/db_userfile.h"
 #include "chat/group.h"
 #include "chat/db_group.h"
+#include "chat/db_user.h"
+#include "chat/user_file.h"
 #include "server.h"
+#include "server_client.h"
 
 static upload_token_t*
 server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
@@ -50,11 +54,64 @@ server_check_upload_token(server_t* server, const http_t* http, u32* user_id)
     return real_token;
 }
 
+static const char*
+update_pfp_result(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    dbuser_t* user;
+    dbuser_file_t* file;
+    dbuser_file_t* old_file;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return NULL;
+
+    user = ctx->param.ptr;
+    file = ctx->data;
+    old_file = calloc(1, sizeof(dbuser_file_t));
+
+    strncpy(old_file->hash, user->pfp_hash, DB_PFP_HASH_MAX);
+    strcpy(old_file->mime_type, "image/");
+    server_delete_file(ew, old_file);
+
+    strncpy(user->pfp_hash, file->hash, DB_PFP_HASH_MAX);
+    server_rtusm_user_pfp_change(ew, user);
+
+    return NULL;
+}
+
+static bool 
+update_user_pfp(eworker_t* ew, dbuser_t* user, dbuser_file_t* file)
+{
+    bool ret;
+    dbcmd_ctx_t ctx = {
+        .exec = update_pfp_result,
+        .param.ptr = user,
+        .data = file
+    };
+    ret = db_async_update_user(&ew->db, NULL, NULL, file->hash, user->user_id, &ctx);
+    return !ret;
+    // bool failed = false;
+    // if (!server_db_update_user(&ew->db, NULL, NULL, hash, user->user_id))
+    //     failed = true;
+    // else
+    // {
+    //     dbuser_file_t* dbfile = server_db_select_userfile(&ew->db, user->pfp_hash);
+    //     if (dbfile)
+    //     {
+    //         server_delete_file(ew, dbfile);
+    //         free(dbfile);
+    //     }
+    //     else
+    //         warn("User:%d %s (%s) no pfp?\n", user->user_id, user->username, user->displayname);
+    // }
+    // return failed;
+}
+
 static void 
 server_handle_user_pfp_update(eworker_t* ew, client_t* client, const http_t* http, u32 user_id)
 {
     http_t* resp = NULL;
     dbuser_t* user = NULL;
+    client_t* user_client;
     bool failed = false;
     const char* post_img_cmd = "/img/";
     size_t post_img_cmd_len = strlen(post_img_cmd);
@@ -65,35 +122,23 @@ server_handle_user_pfp_update(eworker_t* ew, client_t* client, const http_t* htt
         goto respond;
     }
 
-    user = server_db_get_user_from_id(&ew->db, user_id);
-    if (!user)
+    user_client = server_get_client_user_id(ew->server, user_id);
+    if (!user_client)
     {
         warn("User %u not found.\n", user_id);
         failed = true;
         goto respond;
     }
+    user = user_client->dbuser;
 
-    dbuser_file_t file;
+    dbuser_file_t* file;
 
-    if (server_save_file_img(ew, http->body, http->body_len, &file))
-    {
-        if (!server_db_update_user(&ew->db, NULL, NULL, file.hash, user_id))
-            failed = true;
-        else
-        {
-            dbuser_file_t* dbfile = server_db_select_userfile(&ew->db, user->pfp_hash);
-            if (dbfile)
-            {
-                server_delete_file(ew, dbfile);
-                free(dbfile);
-            }
-            else
-                warn("User:%d %s (%s) no pfp?\n", user->user_id, user->username, user->displayname);
-        }
-    }
+    if (server_save_file_img(ew, http->body, http->body_len, &file, false))
+        failed = update_user_pfp(ew, user, file);
     else
+    {
         failed = true;
-
+    }
 respond:
     if (!resp)
     {
@@ -102,14 +147,12 @@ respond:
         else
         {
             resp = http_new_resp(HTTP_CODE_OK, "OK", NULL, 0);
-            strncpy(user->pfp_hash, file.hash, DB_PFP_HASH_MAX);
-            server_rtusm_user_pfp_change(ew, user);
+            ((http_t*)http)->body_inheap = false;
         }
     }
 
     http_send(client, resp);
     http_free(resp);
-    free(user);
 }
 
 static const char*
@@ -167,12 +210,11 @@ server_handle_msg_attach(eworker_t* ew, client_t* client,
     attach_json = json_object_array_get_idx(msg->attachments_json, attach_index);
     if (attach_json)
     {
-        dbuser_file_t file;
-
-        if (server_save_file_img(ew, http->body, http->body_len, &file))
+        dbuser_file_t* file = NULL;
+        if (server_save_file_img(ew, http->body, http->body_len, &file, true))
         {
             json_object_object_add(attach_json, "hash",
-                    json_object_new_string(file.hash));
+                                   json_object_new_string(file->hash));
 
             ut->msg_state.current++;
             if (ut->msg_state.current >= ut->msg_state.total)
