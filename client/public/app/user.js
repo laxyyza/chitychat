@@ -10,7 +10,10 @@ export class User
         this.displayname = displayname;
         this.bio = bio;
         this.created_at = created_at;
-        this.status = status;
+        if (!status)
+            this.status = "offline";
+        else
+            this.status = status;
 
         if (!pfp_name)
             pfp_name = "default.jpg";
@@ -30,7 +33,6 @@ export class User
             let group = app.groups[group_id];
             let group_member = group.div_group_members.querySelector("[group_member_id=\"" + 
                                                                     this.id + "\"]");
-            
             if (group_member)
             {
                 let member_status = group_member.querySelector("[member_status]");

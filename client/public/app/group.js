@@ -43,26 +43,6 @@ export class Group
         this.members = [];
         this.messages = [];
 
-        if (this.members_id)
-        {
-            for (let m = 0; m < this.members_id.length; m++)
-            {
-                const id = this.members_id[m];
-                const user = app.users[id];
-                if (user)
-                    this.add_member(user);
-                else
-                {
-                    const packet = {
-                        cmd: "get_user",
-                        user_id: id
-                    };
-
-                    app.server.ws_send(packet);
-                }
-            }
-        }
-
         app.group_list.appendChild(this.div_list);
     }
 
