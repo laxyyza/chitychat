@@ -408,6 +408,9 @@ function rtusm(packet)
      * @type {User}
      */
     let user = app.users[packet.user_id];
+    if (!user)
+        return;
+
     if (packet.status)
         user.set_status(packet.status);
     if (packet.pfp_name)
