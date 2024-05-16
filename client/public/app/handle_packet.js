@@ -277,7 +277,9 @@ function join_group(packet)
     {
         const get_user_packet = {
             cmd: "get_user",
-            user_id: packet.user_id
+            user_ids: [
+                packet.user_id
+            ]
         };
 
         app.server.ws_send(get_user_packet);
