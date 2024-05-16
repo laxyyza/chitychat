@@ -219,21 +219,17 @@ function get_all_groups(packet)
             };
 
             if (!requested_users.includes(group.owner_id))
-            {
-                const req_packet = {
-                    cmd: "get_user",
-                    user_id: group.owner_id
-                };
-
-                // const json_string = JSON.stringify(req_packet);
-                app.server.ws_send(req_packet);
-
                 requested_users.push(group.owner_id);
-            }
         }
 
         app.popup_join_group_add_group(group);
     }
+
+    const get_owners = {
+        cmd: "get_user",
+        user_ids: requested_users
+    };
+    app.server.ws_send(get_owners);
 
     app.start_popup_join_group_style_modifiers();
 }
