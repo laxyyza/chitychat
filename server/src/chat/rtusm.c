@@ -86,51 +86,6 @@ rtusm_broadcast(eworker_t* ew, dbuser_t* user, rtusm_new_t new)
         .param.rtusm.pfp_hash = pfp_hash
     };
     db_async_get_connected_users(&ew->db, user->user_id, &ctx);
-
-    // json_object* packet;
-    // dbuser_t* connected_users;
-    // u32     n_users;
-    // client_t* connected_client;
-    // const rtusm_t* user_status = &user->rtusm;
-    // const char* const status_str = rtusm_status_str[user_status->status];
-    //
-    // packet = json_object_new_object();
-    //
-    // json_object_object_add(packet, "cmd", 
-    //                        json_object_new_string("rtusm"));
-    // json_object_object_add(packet, "user_id",
-    //                        json_object_new_int(user->user_id));
-    // if (new.status)
-    // {
-    //     json_object_object_add(packet, "status",
-    //                            json_object_new_string(status_str));
-    // }
-    //
-    // if (new.typing && user_status->typing_group_id)
-    // {
-    //     json_object_object_add(packet, "typing",
-    //                            json_object_new_boolean(user_status->typing));
-    //     json_object_object_add(packet, "typing_group_id",
-    //                            json_object_new_int(user_status->typing_group_id));
-    // }
-    //
-    // if (new.pfp)
-    // {
-    //     json_object_object_add(packet, "pfp_name",
-    //                            json_object_new_string(user->pfp_hash));
-    // }
-    // 
-    // connected_users = server_db_get_connected_users(&ew->db, user->user_id, &n_users);
-    //
-    // for (u32 i = 0; i < n_users; i++)
-    // {
-    //     connected_client = server_get_client_user_id(ew->server, connected_users[i].user_id); 
-    //     if (connected_client)
-    //         ws_json_send(connected_client, packet);
-    // }
-    //
-    // json_object_put(packet);
-    // free(connected_users);
 }
 
 void    
