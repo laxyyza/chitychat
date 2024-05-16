@@ -189,32 +189,6 @@ server_client_login(eworker_t* ew,
     if (!db_async_get_user_username(&ew->db, username, &ctx))
         return "Failed to do async sql.\n";
     return NULL;
-
-    // user = server_db_get_user_from_name(&ew->db, username);
-    // if (!user)
-    //     return INCORRECT_LOGIN_STR;
-    //
-    // salt = user->salt;
-    // server_sha512(password, salt, hash_login);
-    //
-    // if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
-    // {
-    //     if (do_session)
-    //     {
-    //         session = server_new_user_session(ew->server, client);
-    //         session->user_id = user->user_id;
-    //     }
-    //     else 
-    //         session = NULL;
-    //
-    //     errmsg = server_set_client_logged_in(ew, client, user, session, respond_json);
-    // }
-    // else
-    //     errmsg = INCORRECT_LOGIN_STR;
-    //
-    // if (errmsg)
-    //     free(user);
-    // return errmsg;
 }
 
 static const char* 
@@ -290,24 +264,5 @@ server_client_register(eworker_t* ew,
         errmsg = "Internal error: async-insert-user";
         free(new_user);
     }
-
-    // if (!server_db_insert_user(&ew->db, new_user))
-    // {
-    //     free(new_user);
-    //     return "Username already taken";
-    // }
-    //
-    // info("\tUser created: { id: %u, username: '%s', displayname: '%s'}\n", 
-    //      new_user->user_id, new_user->displayname, new_user->username);
-    //
-    // if (do_session)
-    // {
-    //     session = server_new_user_session(ew->server, client);
-    //     session->user_id = new_user->user_id;
-    // }
-    //
-    // if ((errmsg = server_set_client_logged_in(ew, client, new_user, session, resp)))
-    //     free(new_user);
-    //
     return errmsg;
 }
