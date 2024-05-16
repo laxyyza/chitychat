@@ -236,35 +236,6 @@ server_group_create(eworker_t* ew,
     if (!db_async_create_group(&ew->db, group, &ctx))
         return "Internal error: async-create-group";
     return NULL;
-
-    // json_object* group_array_json;
-    // json_object* group_json;
-    // dbgroup_t new_group;
-    //
-    // memset(&new_group, 0, sizeof(dbgroup_t));
-    // new_group.owner_id = client->dbuser->user_id;
-    // new_group.public = public_group;
-    // strncpy(new_group.displayname, name, DB_DISPLAYNAME_MAX);
-    //
-    // if (!server_db_insert_group(&ew->db, &new_group))
-    //     return "Failed to create group";
-    //
-    // info("Creating new group, id: %u, name: '%s', owner_id: %u\n", 
-    //             new_group.group_id, name, new_group.owner_id);
-    //
-    // json_object_object_add(respond_json, "cmd", 
-    //         json_object_new_string("client_groups"));
-    // json_object_object_add(respond_json, "groups", 
-    //         json_object_new_array_ext(1));
-    // group_array_json = json_object_object_get(respond_json, "groups");
-    //
-    // group_json = json_object_new_object();
-    // server_group_to_json(&new_group, group_json);
-    // json_object_array_add(group_array_json, group_json);
-    //
-    // ws_json_send(client, respond_json);
-    //
-    // return NULL;
 }
 
 const char* 
@@ -317,38 +288,11 @@ server_get_all_groups(eworker_t* ew,
         return "Internal error: async-get-public-groups";
 
     return NULL;
-    // u32 n_groups;
-    // dbgroup_t* groups = server_db_get_public_groups(&ew->db, client->dbuser->user_id, &n_groups);
-    // if (!groups)
-    //     return "Failed to get groups";
-    //
-    // json_object_object_add(respond_json, "cmd", 
-    //                        json_object_new_string("get_all_groups"));
-    // json_object_object_add(respond_json, "groups",
-    //                        json_object_new_array_ext(n_groups));
-    // json_object* groups_json = json_object_object_get(respond_json, "groups");
-    //
-    // for (size_t i = 0; i < n_groups; i++)
-    // {
-    //     dbgroup_t* g = groups + i;
-    //     json_object* group_json = json_object_new_object();
-    //
-    //     server_group_to_json(g, group_json);
-    //     json_object_array_add(groups_json, group_json);
-    // }
-    //
-    // ws_json_send(client, respond_json);
-    //
-    // free(groups);
-    //
-    // return NULL;
 }
 
 static void
 on_user_group_join(eworker_t* ew, client_t* client, u32 group_id)
 {
-    // 1. Send to client: client_groups
-    // 2. Send to online clients in group: join_group
     json_object* online_clients_respond;
 
     dbcmd_ctx_t ctx = {
@@ -366,80 +310,6 @@ on_user_group_join(eworker_t* ew, client_t* client, u32 group_id)
                            json_object_new_int(group_id));    
 
     server_group_broadcast(ew, group_id, online_clients_respond);
-    // ctx.exec = do_user_join_broadcast;
-    // ctx.flags = DB_CTX_NO_JSON;
-    // db_async_get_group_member_ids(&ew->db, group_id, &ctx);
-
-    // json_object* group_json;
-    // json_object* array_json;
-    // json_object* members_array_json;
-    // json_object* oewer_clients_respond;
-    // dbuser_t* gmembers;
-    // const dbuser_t* member;
-    // client_t* member_client;
-    // u32 n_members;
-
-    /*
-     * To client who joined. (groups array always length of 1)
-     * {
-     *      "cmd": "client_groups",
-     *      "groups": [
-     *          {
-     *              "group_id": <type:int>,
-     *              "owner_id": <type:int>,
-     *              "name":     <type:string>,
-     *              "desc":     <type:string>,
-     *              "public":   <type:bool>
-     *              "members_id": [ <type:int[]> ]
-     *          }
-     *      ]
-     * }
-     */
-
-    // json_object_object_add(respond_json, "cmd", 
-    //                        json_object_new_string("client_groups"));
-    // json_object_object_add(respond_json, "groups", 
-    //                        json_object_new_array_ext(1));
-    // array_json = json_object_object_get(respond_json, "groups");
-    // group_json = json_object_new_object();
-    //
-    // server_group_to_json(group, group_json);
-    //
-    // gmembers = server_db_get_group_members(&ew->db, group->group_id, &n_members);
-    //
-    // json_object_object_add(group_json, "members_id", 
-    //                        json_object_new_array_ext(n_members));
-    // members_array_json = json_object_object_get(group_json, "members_id");
-
-    /*
-     * To online clients who are in the group.
-     * {
-     *      "cmd":      "join_group",
-     *      "user_id":  <type:int>,
-     *      "group_id": <type:int>
-     * }
-     */
-
-
-    //
-    // for (u32 m = 0; m < n_members; m++)
-    // {
-    //     member = gmembers + m;
-    //     member_client = server_get_client_user_id(ew->server, member->user_id);
-    //
-    //     if (member_client && member_client != client)
-    //         ws_json_send(member_client, oewer_clients_respond);
-    //
-    //     json_object_array_add(members_array_json, 
-    //             json_object_new_int(member->user_id));
-    // }
-    //
-    // json_object_put(oewer_clients_respond);
-    // json_object_array_add(array_json, group_json);
-    //
-    // ws_json_send(client, respond_json);
-    //
-    // free(gmembers);
 }
 
 static const char*
@@ -478,25 +348,6 @@ server_join_group(eworker_t* ew,
         return "Internal error: async-user-join-pub-group";
 
     return NULL;
-    // dbgroup_t* group;
-    //
-    //
-    // group = server_db_get_group(&ew->db, group_id);
-    // if (!group)
-    //     return "Group not found";
-    //
-    // if (!server_db_insert_group_member(&ew->db, group->group_id, 
-    //                                    client->dbuser->user_id))
-    // {
-    //     free(group);
-    //     return "Failed to join";
-    // }
-    //
-    // on_user_group_join(ew, client, group, respond_json);
-    //
-    // free(group);
-    //
-    // return NULL;
 }
 
 const char*
@@ -687,44 +538,6 @@ server_get_group_msgs(UNUSED eworker_t* ew,
         return "Internal error: async-get-group-msgs";
 
     return NULL;
-    // dbmsg_t* group_msgs;
-    // dbmsg_t* msg;
-    // json_object* msg_in_array;
-    //
-    //
-    //
-    // group_msgs = server_db_get_msgs_from_group(&ew->db, group_id, limit, 
-    //                                            offset, &n_msgs);
-    //
-    // json_object_object_add(respond_json, "cmd", 
-    //                        json_object_new_string("get_group_msgs"));
-    // json_object_object_add(respond_json, "group_id", 
-    //                        json_object_new_int(group_id));
-    // json_object_object_add(respond_json, "messages", 
-    //                        json_object_new_array_ext(n_msgs));
-    // msgs_json = json_object_object_get(respond_json, "messages");
-    //
-    // for (u32 i = 0; i < n_msgs; i++)
-    // {
-    //     msg = group_msgs + i;
-    //
-    //     msg_in_array = json_object_new_object();
-    //
-    //     server_msg_to_json(msg, msg_in_array);
-    //
-    //     json_object_array_add(msgs_json, msg_in_array);
-    //
-    //     if (msg->attachments_inheap && msg->attachments)
-    //     {
-    //         free(msg->attachments);
-    //         msg->attachments_inheap = false;
-    //     }
-    // }
-    //
-    // ws_json_send(client, respond_json);
-    //
-    // free(group_msgs);
-    // return NULL;
 }
 
 static const char*
@@ -774,21 +587,6 @@ server_create_group_code(eworker_t* ew,
     if (!db_async_create_group_code(&ew->db, group_code, client->dbuser->user_id, &ctx))
         return "Error: async-create-group-code";
     return NULL;
-
-    // if (!client->dbuser || !server_db_user_in_group(&ew->db, group_id, 
-    //                                                 client->dbuser->user_id))
-    //     return "Not a group member";
-    //
-    // group_code.group_id = group_id;
-    // group_code.max_uses = max_uses;
-    // group_code.uses = 0;
-    //
-    // if (!server_db_insert_group_code(&ew->db, &group_code))
-    //     return "Failed to create group code";
-    //
-    // server_send_group_codes(client, &group_code, 1, group_id, respond_json);
-    //
-    // return NULL;
 }
 
 static const char*
@@ -824,21 +622,6 @@ server_join_group_code(UNUSED eworker_t* ew,
     if (!db_async_user_join_group_code(&ew->db, code, user_id, &ctx))
         return "Error: async-user-join-group-code";
     return NULL;
-
-    // const char* errmsg = NULL;
-    // dbgroup_t* group_joined;
-    //
-    //
-    // group_joined = server_db_insert_group_member_code(&ew->db,
-    //                                                   code,
-    //                                                   user_id);
-    // if (!group_joined)
-    //     return "Failed to join or already joined";
-    //
-    // on_user_group_join(ew, client, group_joined, respond_json);
-    //     
-    // free(group_joined);
-    // return errmsg;
 }
 
 static const char*
@@ -888,16 +671,6 @@ server_get_group_codes(eworker_t* ew,
         return "Error: async-get-group-codes";
 
     return NULL;
-    // if (!server_db_user_in_group(&ew->db, group_id, client->dbuser->user_id))
-    //     return "Not a group member";
-    //
-    // codes = server_db_get_all_group_codes(&ew->db, group_id, &n_codes);
-    //
-    // server_send_group_codes(client, codes, n_codes, group_id, respond_json);
-    //
-    // if (codes)
-    //     free(codes);
-    // return NULL;
 }
 
 static const char*
@@ -925,14 +698,6 @@ server_delete_group_code(eworker_t* ew, client_t* client,
     if (!db_async_delete_group_code(&ew->db, code, user_id, &ctx))
         return "Error: async-delete-group-code";
     return NULL;
-    //
-    // if (!server_db_user_in_group(&ew->db, group_id, user_id)) 
-    //     return "Not a group owner";
-    //
-    // if (!server_db_delete_group_code(&ew->db, code))
-    //     return "Failed to delete group code";
-    //
-    // return NULL;
 }
 
 static const char* 
@@ -984,54 +749,6 @@ server_delete_group_msg(UNUSED eworker_t* ew,
     if (!db_async_delete_msg(&ew->db, msg_id, user_id, &ctx))
         return "Error: async-delete-msg";
     return NULL;
-//     dbmsg_t* msg_to_delete;
-//     dbgroup_t* group;
-//     const char* errmsg = NULL;
-//
-//
-//     msg_to_delete = server_db_get_msg(&ew->db, msg_id);
-//     if (!msg_to_delete)
-//         return "Message not found";
-//
-//     group = server_db_get_group(&ew->db, msg_to_delete->group_id);
-//     if (!group)
-//     {
-//         errmsg = "Group not found";
-//         goto cleanup;
-//     }
-//
-//     /*
-//      * Currently only group owner and user's own can delete messages.
-//      * Will change, when member roles (admin) are implemented.
-//      */
-//     if (client->dbuser->user_id != group->owner_id &&
-//         client->dbuser->user_id != msg_to_delete->user_id)
-//     {
-//         errmsg = "Permission denied";
-//         goto cleanup;
-//     } 
-//
-//     if (!server_db_delete_msg(&ew->db, msg_to_delete->msg_id))
-//     {
-//         errmsg = "Failed to delete message";
-//         goto cleanup;
-//     }
-//
-//     json_object_object_add(respond_json, "cmd", 
-//                            json_object_new_string("delete_msg"));
-//     json_object_object_add(respond_json, "group_id",
-//                            json_object_new_int(msg_to_delete->group_id));
-//     json_object_object_add(respond_json, "msg_id",
-//                            json_object_new_int(msg_to_delete->msg_id));
-//
-//     server_group_broadcast(ew, group->group_id, respond_json);
-//     server_delete_msg_attachments(ew, msg_to_delete);
-//
-// cleanup:
-//     free(msg_to_delete);
-//     free(group);
-//
-//     return errmsg;
 }
 
 static const char* 
@@ -1138,61 +855,6 @@ server_delete_group(eworker_t* ew,
     if (!db_async_get_group_owner(&ew->db, group_id, &ctx))
         return "Error: async-get-group-owner";
     return NULL;
-
-    // json_object* group_id_json;
-    // const dbuser_t* member;
-    // client_t* member_client;
-    // dbuser_t* gmembers;
-    // dbmsg_t* attach_msgs;
-    // u32 n_members;
-    // u32 n_msgs;
-    // dbgroup_t* group;
-    // u32 group_id; u32 owner_id;
-    //
-    //
-    // if ((group = server_db_get_group(&ew->db, group_id)) == NULL)
-    //     return "Group not found";
-    //
-    // owner_id = group->owner_id;
-    // free(group);
-    //
-    // if (owner_id != client->dbuser->user_id)
-    //     return "Permission denied";
-    //
-    // gmembers = server_db_get_group_members(&ew->db, group_id, &n_members);
-    // attach_msgs = server_db_get_msgs_only_attachs(&ew->db, group_id, &n_msgs);
-    // 
-    // if (!server_db_delete_group(&ew->db, group_id))
-    // {
-    //     free(gmembers);
-    //     return "Failed to delete group";
-    // }
-    //
-    // for (u32 i = 0; i < n_msgs; i++)
-    // {
-    //     dbmsg_t* msg = attach_msgs + i;
-    //     server_delete_msg_attachments(ew, msg);
-    //     json_object_put(msg->attachments_json);
-    // }
-    // free(attach_msgs);
-    //
-    // json_object_object_add(resp_json, "cmd",
-    //                        json_object_new_string("delete_group"));
-    // json_object_object_add(resp_json, "group_id",
-    //                        json_object_new_int(group_id));
-    //
-    // for (u32 i = 0; i < n_members; i++)
-    // {
-    //     member = gmembers + i;
-    //     member_client = server_get_client_user_id(ew->server, member->user_id);
-    //
-    //     if (member_client)
-    //         ws_json_send(member_client, resp_json);
-    // }
-    //
-    // free(gmembers);
-    //
-    // return NULL;
 }
 
 static const char*
