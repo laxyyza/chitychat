@@ -197,25 +197,6 @@ server_save_file_img(eworker_t* ew, const void* data, size_t size,
         ret = db_async_userfile_refcount(&ew->db, file->hash, &ctx);
     }
 
-    // if (server_db_insert_userfile(&ew->db, &file))
-    // {
-    //     ref_count = server_db_select_userfile_ref_count(&ew->db, 
-    //                 file.hash);
-    //     if (ref_count == 1)
-    //     {
-    //         ret = server_write_file(data, size, 
-    //                 ew->server->conf.img_dir, file.hash);
-    //     }
-    //     else if (ref_count == 0)
-    //     {
-    //         error("ref_count for %s (%s) is 0??\n",
-    //                 file.hash, file.name);
-    //         ret = false;
-    //     }
-    // }
-    // else
-    //     ret = false;
-    //
     if (ret && file_output)
         *file_output = file;
 
@@ -303,27 +284,4 @@ server_delete_file(eworker_t* ew, dbuser_file_t* file)
         ret = db_async_userfile_refcount(&ew->db, file->hash, &ctx);
     }
     return ret;
-    // const char* dir;
-    // char* path = NULL;
-    // bool ret = true;
-    //
-    // if (server_db_delete_userfile(&ew->db, file->hash))
-    // {
-    //     dir = server_mime_type_dir(ew->server, file->mime_type);
-    //     path = calloc(1, PATH_MAX);
-    //     
-    //     snprintf(path, PATH_MAX, "%s/%s", dir, file->hash);
-    //
-    //     debug("Unlinking file: %s (%s)\n", path, file->name);
-    //
-    //     if (unlink(path) == -1)
-    //     {
-    //         error("unlink %s failed: %s\n", path, ERRSTR);
-    //         ret = false;
-    //     }
-    //
-    //     free(path);
-    // }
-    //
-    // return ret;
 }
