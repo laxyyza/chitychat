@@ -193,10 +193,17 @@ insert_group_msg_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType stat
     {
         msg = ctx->data;
         msg_id_str = PQgetvalue(res, 0, 0);
-        msg->msg_id = strtoul(msg_id_str, &endptr, 10);
+        if ((msg->msg_id = strtoul(msg_id_str, &endptr, 10)) == 0)
+        {
+            error("msg_id is 0: %s\n", msg_id_str);
+            ctx->ret = DB_ASYNC_ERROR;
+            return;
+        }
 
-        timestamp = PQgetvalue(res, 0, 1);
-        strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
+        if ((timestamp = PQgetvalue(res, 0, 1)) == NULL)
+            error("timestamp is NULL!\n");
+        else
+            strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
         ctx->ret = DB_ASYNC_OK;
     }
     else
@@ -245,6 +252,12 @@ db_delete_msg_result(UNUSED eworker_t* ew,
 
     if (status == PGRES_TUPLES_OK)
     {
+        if (PQntuples(res) == 0)
+        {
+            ctx->ret = DB_ASYNC_ERROR;
+            return;
+        }
+
         group_id_str = PQgetvalue(res, 0, 0);
         ctx->param.del_msg.group_id = strtoul(group_id_str, NULL, 0);
 
