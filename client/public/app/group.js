@@ -88,7 +88,8 @@ export class Group
 
         let div_img = document.createElement("img");
         div_img.className = "msg_img";
-        div_img.src = user.pfp_url;
+        if (user.pfp_url)
+            div_img.src = user.pfp_url;
         div_msg_top.appendChild(div_img);
 
         let span_displayname = document.createElement("span");
