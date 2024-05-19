@@ -123,7 +123,7 @@ async def connected(bot: Bot) -> None:
 async def tick(bot: Bot, inter: int) -> None:
     task = random.choices(random_tasks, tasks_weight)[0]
     await task(bot, inter)
-    await asyncio.sleep(1)
+    await asyncio.sleep(random.randint(1, 20))
 
 if __name__ == "__main__":
     bot = Bot(
