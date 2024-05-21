@@ -7,7 +7,7 @@
 #include "server_eworker.h"
 #include "server_websocket.h"
 
-static const char* const pgres_status_str[] = {
+UNUSED static const char* const pgres_status_str[] = {
 	"PGRES_EMPTY_QUERY",
 	"PGRES_COMMAND_OK",
 	"PGRES_TUPLES_OK",
@@ -41,8 +41,8 @@ db_async_params(server_db_t* db,
               PQerrorMessage(db->conn));
         goto err;
     }
-    debug("Used SQL (curr: %p): %s\n", 
-          db->ctx.head, query);
+    // debug("Used SQL (curr: %p): %s\n", 
+    //       db->ctx.head, query);
     PQpipelineSync(db->conn);
     db_pipeline_enqueue_current(db, cmd);
 err:
@@ -166,7 +166,7 @@ db_process_results(eworker_t* ew)
     while ((res = PQgetResult(db->conn)))
     {
         status = PQresultStatus(res);
-        debug("> %zu: %s\n", count, pgres_status_str[status]);
+        // debug("> %zu: %s\n", count, pgres_status_str[status]);
         if (status == PGRES_PIPELINE_SYNC)
             goto clear;
         ctx_peek = db_pipeline_peek(db);
@@ -263,7 +263,7 @@ db_pipeline_reset_current(server_db_t* db)
 void
 db_pipeline_current_done(server_db_t* db)
 {
-    debug("db->ctx.head: %p\n", db->ctx.head);
+    // debug("db->ctx.head: %p\n", db->ctx.head);
     if (db->ctx.head == NULL)
         return;
     db_pipeline_enqueue(db, db->ctx.head);
