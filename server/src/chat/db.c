@@ -1,7 +1,7 @@
 #include "server.h"
 #include "chat/db.h"
 
-#define DB_PIPELINE_QUEUE_SIZE 16
+#define DB_PIPELINE_QUEUE_SIZE 128
 
 static void
 db_init_queue(server_db_t* db, size_t size)
