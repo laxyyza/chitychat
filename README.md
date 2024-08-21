@@ -116,7 +116,7 @@
 
 ### Clone repo and cd into:
 ```
-git clone https://github.com/laxyy69/chitychat.git && cd chitychat
+git clone https://github.com/laxyyza/chitychat.git && cd chitychat
 ```
 ### Setup build directory:
 ```
@@ -150,4 +150,4 @@ Config file: `server/config.json`
 Change port in config file or use `--port` arguments. See `build/chitychat --help`
 
 ## Coding Style
-* https://github.com/laxyy69/stdcode
+* https://github.com/laxyyza/stdcode
