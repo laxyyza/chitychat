@@ -7,7 +7,7 @@
 6. [Planned Features](#planned-features)
 7. [Learning Experience](#learning-experience)
 8. [Project Directory Structure](#project-directory-structure)
-9. [Build Web Server](#build-web-server)
+9. [Running ChityChat server (Docker Compose)](#running-chitychat-server-docker-compose)
 10. [Coding Style](#coding-style)
 
 # Chity Chat
@@ -101,24 +101,24 @@
 ```
 
 # Running ChityChat server (Docker Compose)
-1. Clone the repository and change directory:
+1. **Clone the repository and navigate to the project directory:**
 ```
 git clone https://github.com/laxyyza/chitychat.git && cd chitychat
 ```
-2. Create `.env` file, set your own `DB_USER` and `DB_PASSWORD` environment variables. 
+2. **Create `.env` file**, set your own `DB_USER` and `DB_PASSWORD` environment variables. 
 ```
-echo "DB_USER=USER
-      DB_PASSWORD=PASSWORD" > .env
+echo "DB_USER=your_user
+      DB_PASSWORD=your_password" > .env
 ```
-3. Create SSL certificates:
+3. **Generate SSL certificates** for secure communication:
 ```
 openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes
 ```
-4. Build the Docker image:
+4. **Build the Docker image:**
 ```
 docker build -t chitychat .
 ```
-5. Run chitychat and postgresql:
+5. **Start the ChityChat server and PostgreSQL** using Docker Compose:
 ```
 docker-compose up -d
 ```
