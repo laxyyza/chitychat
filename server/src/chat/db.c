@@ -93,7 +93,7 @@ db_exec_schema(server_t* server)
     bool ret = true;
     server_db_t db;
 
-    if (!server_db_open(&db, server->conf.database, DB_DEFAULT))
+    if (!server_db_open(&db, &server->conf, DB_DEFAULT))
         ret = false;
 
     if (ret && !db_exec_sql(&db, server->db_commands.schema))
@@ -152,19 +152,27 @@ server_init_db(server_t* server)
 }
 
 bool
-server_db_open(server_db_t* db, const char* dbname, i32 flags)
+server_db_open(server_db_t* db, server_config_t* config, i32 flags)
 {
     struct passwd* pw;
     char conninfo[DB_CONNINTO_LEN];
+    const char* user;
 
-    pw = getpwuid(geteuid());
-    if (pw == NULL)
+    if (config->database_user[0] == 0x00)
     {
-        fatal("getpwuid: %s\n", strerror(errno));
-        return false;
+        pw = getpwuid(geteuid());
+        if (pw == NULL)
+        {
+            fatal("getpwuid: %s\n", strerror(errno));
+            return false;
+        }
+        user = pw->pw_name;
     }
+    else
+        user = config->database_user;
 
-    snprintf(conninfo, DB_CONNINTO_LEN, "dbname=%s user=%s", dbname, pw->pw_name);
+    snprintf(conninfo, DB_CONNINTO_LEN, "host=%s port=%d dbname=%s user=%s", 
+        config->database_host, config->database_port, config->database_name, user);
 
     db->conn = PQconnectdb(conninfo);
     if (PQstatus(db->conn) != CONNECTION_OK)

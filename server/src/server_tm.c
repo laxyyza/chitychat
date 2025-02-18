@@ -60,7 +60,7 @@ server_init_tm(server_t* server, i32 n_workers)
 
     tm->state |= TM_STATE_INIT;
 
-    if (server_db_open(&server->main_ew.db, server->conf.database, 0) == false)
+    if (server_db_open(&server->main_ew.db, &server->conf, 0) == false)
         goto err;
     snprintf(server->main_ew.name, THREAD_NAME_LEN, "main_thread");
     server->main_ew.server = server;

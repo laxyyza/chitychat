@@ -1,9 +1,11 @@
 #include "server_init.h"
 #include "chat/db_def.h"
+#include "json_object.h"
 #include "server.h"
 #include "server_events.h"
 #include "server_ht.h"
 #include "chat/cmd.h"
+#include <netinet/in.h>
 #include <sys/eventfd.h>
 
 #define LISTEN_BACKLOG 100
@@ -28,6 +30,12 @@ server_default_config(void)
                            json_object_new_string("ipv6"));
     json_object_object_add(config, "log_level", 
                            json_object_new_string("debug"));
+    json_object_object_add(config, "database_host", 
+                           json_object_new_string("localhost"));
+    json_object_object_add(config, "database_port", 
+                           json_object_new_int(5432));
+    json_object_object_add(config, "database_user", 
+                           json_object_new_null());
     json_object_object_add(config, "database_name", 
                            json_object_new_string("chitychat"));
     json_object_object_add(config, "thread_pool",
@@ -110,7 +118,7 @@ server_argv(server_t* server, int argc, char* const* argv)
                 server_set_loglevel(SERVER_VERBOSE);
                 break;
             case 'd':
-                strncpy(server->conf.database, optarg, NAME_MAX);
+                strncpy(server->conf.database_name, optarg, NAME_MAX);
                 break;
             case '4':
                 server->conf.addr_version = IPv4;
@@ -150,7 +158,10 @@ server_load_config(server_t* server, int argc, char* const* argv)
     json_object* addr_ip;
     json_object* addr_port;
     json_object* addr_version;
-    json_object* database;
+    json_object* database_name;
+    json_object* database_user;
+    json_object* database_host;
+    json_object* database_port;
     json_object* log_level_json;
     json_object* thread_pool_json;
     const char* root_dir_str;
@@ -159,7 +170,9 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* file_dir_str;
     const char* addr_ip_str;
     const char* addr_version_str;
-    const char* database_str;
+    const char* database_name_str;
+    const char* database_host_str;
+    const char* database_user_str;
     const char* loglevel_str;
     const char* thread_pool_str;
     enum server_log_level log_level = SERVER_DEBUG;
@@ -253,9 +266,25 @@ server_load_config(server_t* server, int argc, char* const* argv)
     else
         warn("Config: addr_version: \"%s\"? Default to IPv4\n", addr_version_str);
 
-    database = JSON_GET("database_name");
-    database_str = json_object_get_string(database);
-    strncpy(server->conf.database, database_str, CONFIG_PATH_LEN);
+    database_name = JSON_GET("database_name");
+    database_name_str = json_object_get_string(database_name);
+    strncpy(server->conf.database_name, database_name_str, CONFIG_PATH_LEN);
+
+    database_host = JSON_GET("database_host");
+    database_host_str = json_object_get_string(database_host);
+    strncpy(server->conf.database_host, database_host_str, INET6_ADDRSTRLEN);
+
+    database_user = JSON_GET("database_user");
+    if (json_object_is_type(database_user, json_type_null))
+        server->conf.database_user[0] = 0x00;
+    else
+    {
+        database_user_str = json_object_get_string(database_user);
+        strncpy(server->conf.database_user, database_user_str, CONFIG_USER_LEN_MAX);
+    }
+
+    database_port = JSON_GET("database_port");
+    server->conf.database_port = json_object_get_int(database_port);
 
     thread_pool_json = JSON_GET("thread_pool");
     thread_pool_str = json_object_get_string(thread_pool_json);

@@ -24,6 +24,7 @@
 #define SERVER_CONFIG_PATH "server/config.json"
 
 #define CONFIG_PATH_LEN 512
+#define CONFIG_USER_LEN_MAX 128
 #define CONFIG_ADDR_VRESION_LEN 10
 
 #define MAX_SESSIONS 10
@@ -36,7 +37,7 @@ enum client_recv_status
     RECV_ERROR
 };
 
-typedef struct 
+typedef struct server_config
 {
     char root_dir[CONFIG_PATH_LEN];
     char img_dir[CONFIG_PATH_LEN];
@@ -45,7 +46,10 @@ typedef struct
     char addr_ip[INET6_ADDRSTRLEN];
     uint16_t addr_port;
     enum ip_version addr_version;
-    char database[CONFIG_PATH_LEN];
+    char database_name[CONFIG_PATH_LEN];
+    char database_host[INET6_ADDRSTRLEN];
+    char database_user[CONFIG_USER_LEN_MAX];
+    i32  database_port;
     bool fork;
     i32  thread_pool;
 

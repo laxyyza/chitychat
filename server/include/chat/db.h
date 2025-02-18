@@ -16,6 +16,8 @@
 #define DB_CTX_NO_JSON   0x01
 #define DB_CTX_DONT_FREE 0x02
 
+typedef struct server_config server_config_t;
+
 typedef struct 
 {
     u32 group_id;
@@ -115,7 +117,7 @@ typedef struct server_db
 } server_db_t;
 
 bool        server_init_db(server_t* server);
-bool        server_db_open(server_db_t* db, const char* dbname, i32 flags);
+bool        server_db_open(server_db_t* db, server_config_t* config, i32 flags);
 void        server_db_free(server_t* server);
 void        server_db_close(server_db_t* db);
 

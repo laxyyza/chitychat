@@ -75,7 +75,7 @@ bool
 server_eworker_init(eworker_t* ew)
 {
     ew->tid = gettid();
-    if (!server_db_open(&ew->db, ew->server->conf.database, 
+    if (!server_db_open(&ew->db, &ew->server->conf, 
                         DB_PIPELINE | DB_NONBLOCK))
         return false;
 
