@@ -16,7 +16,7 @@ export class User
             this.status = status;
 
         if (!pfp_name)
-            pfp_name = "default.jpg";
+            pfp_name = "default.png";
 
         this.update_pfp(pfp_name);
     }
