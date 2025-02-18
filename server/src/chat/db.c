@@ -1,5 +1,6 @@
 #include "server.h"
 #include "chat/db.h"
+#include <pwd.h>
 
 #define DB_PIPELINE_QUEUE_SIZE 128
 
@@ -153,12 +154,17 @@ server_init_db(server_t* server)
 bool
 server_db_open(server_db_t* db, const char* dbname, i32 flags)
 {
-    char user[SYSTEM_USERNAME_LEN];
+    struct passwd* pw;
     char conninfo[DB_CONNINTO_LEN];
 
-    getlogin_r(user, SYSTEM_USERNAME_LEN);
+    pw = getpwuid(geteuid());
+    if (pw == NULL)
+    {
+        fatal("getpwuid: %s\n", strerror(errno));
+        return false;
+    }
 
-    snprintf(conninfo, DB_CONNINTO_LEN, "dbname=%s user=%s", dbname, user);
+    snprintf(conninfo, DB_CONNINTO_LEN, "dbname=%s user=%s", dbname, pw->pw_name);
 
     db->conn = PQconnectdb(conninfo);
     if (PQstatus(db->conn) != CONNECTION_OK)
