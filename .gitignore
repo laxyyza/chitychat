@@ -55,7 +55,6 @@ build/
 compile_commands.json
 *.db
 .cache/
-.*
 client/public/img
 *.key
 *.csr
