@@ -69,3 +69,4 @@ __*
 
 client/public/upload/imgs/*
 !client/public/upload/imgs/default.png
+.env

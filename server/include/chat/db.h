@@ -5,9 +5,10 @@
 #include "chat/group.h"
 #include "chat/user_login.h"
 
-#define DB_DEFAULT      0x00
 #define DB_PIPELINE     0x01
 #define DB_NONBLOCK     0x02
+#define DB_TRY_RECONNECT 0x04
+#define DB_DEFAULT      0x00
 
 #define DB_ASYNC_BUSY   0
 #define DB_ASYNC_OK     1

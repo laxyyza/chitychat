@@ -7,9 +7,8 @@
 	"addr_port": 8080,
 	"addr_version": "ipv6",
 	"log_level": "debug",
-	"database_host": "localhost",
+	"database_host": "db",
 	"database_port": 5432,
-	"database_user": "root",
 	"database_name": "chitychat",
 	"thread_pool": -1
 }

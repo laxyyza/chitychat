@@ -48,7 +48,6 @@ typedef struct server_config
     enum ip_version addr_version;
     char database_name[CONFIG_PATH_LEN];
     char database_host[INET6_ADDRSTRLEN];
-    char database_user[CONFIG_USER_LEN_MAX];
     i32  database_port;
     bool fork;
     i32  thread_pool;
@@ -69,6 +68,8 @@ typedef struct server_config
     const char* sql_update_user;
 
     const char* sql_insert_userfiles;
+
+    bool retry_db_connect;
 } server_config_t;
  
 typedef struct server

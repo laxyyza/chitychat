@@ -100,54 +100,30 @@
 └── tests/         # Currently only have load_balance_bots.sh
 ```
 
-## Build Web Server
-> [!NOTE]
-> Exclusively for Linux.
-### Dependencies
-* clang
-* json-c
-* libmagic
-* postgresql
-* openssl
-* meson
-> Dependencies Package Names
->* Arch: `json-c file postgresql openssl meson clang`
->* Debian: `libjson-c-dev libmagic-dev postgresql postgresql-client libpq-dev libssl-dev meson clang` 
-
-### Clone repo and cd into:
+# Running ChityChat server (Docker Compose)
+1. Clone the repository and change directory:
 ```
 git clone https://github.com/laxyyza/chitychat.git && cd chitychat
 ```
-### Setup build directory:
+2. Create `.env` file, set your own `DB_USER` and `DB_PASSWORD` environment variables. 
 ```
-CC=clang meson setup build/
+echo "DB_USER=USER
+      DB_PASSWORD=PASSWORD" > .env
 ```
-### Compile:
-```
-ninja -C build/
-```
-Executable name: `chitychat` inside `build/`
-## After compilation: PostgreSQL and SSL certificates.
-### PostgreSQL:
-Read the [Arch Wiki](https://wiki.archlinux.org/title/PostgreSQL) (or your distro wiki) for setting up PostgreSQL.
-> After you setup PostgreSQL, create a PostgreSQL database called: `chitychat`
-```
-sudo -u postgres createdb chitychat
-```
-### SSL certificates:
-Generate self-signed SSL keys: (in project's root directory)
-> [!NOTE]
-> Your browser will display a warning when using self-signed SSL keys.
+3. Create SSL certificates:
 ```
 openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes
 ```
-Now you _should_ be done, and execute `build/chitychat` server.
-
-Config file: `server/config.json`
-
-### In your browser: `https://localhost:8080` or `https://` + ip address + `:8080`
-
-Change port in config file or use `--port` arguments. See `build/chitychat --help`
+4. Build the Docker image:
+```
+docker build -t chitychat .
+```
+5. Run chitychat and postgresql:
+```
+docker-compose up -d
+```
+6. **Access the server:** Open your browser and go to: https://localhost:8080.
+Note: You'll get a warning because of the self-signed SSL certificate.
 
 ## Coding Style
 * https://github.com/laxyyza/stdcode

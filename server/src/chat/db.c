@@ -1,6 +1,8 @@
 #include "server.h"
+#include "server_log.h"
 #include "chat/db.h"
 #include <pwd.h>
+#include <stdlib.h>
 
 #define DB_PIPELINE_QUEUE_SIZE 128
 
@@ -93,7 +95,7 @@ db_exec_schema(server_t* server)
     bool ret = true;
     server_db_t db;
 
-    if (!server_db_open(&db, &server->conf, DB_DEFAULT))
+    if (!server_db_open(&db, &server->conf, (server->conf.retry_db_connect) ? DB_TRY_RECONNECT : DB_DEFAULT))
         ret = false;
 
     if (ret && !db_exec_sql(&db, server->db_commands.schema))
@@ -154,11 +156,14 @@ server_init_db(server_t* server)
 bool
 server_db_open(server_db_t* db, server_config_t* config, i32 flags)
 {
+    i32 retries = 1;
     struct passwd* pw;
     char conninfo[DB_CONNINTO_LEN];
-    const char* user;
 
-    if (config->database_user[0] == 0x00)
+    const char* user = getenv("DB_USER");
+    const char* password = getenv("DB_PASSWORD");
+
+    if (user == NULL)
     {
         pw = getpwuid(geteuid());
         if (pw == NULL)
@@ -168,15 +173,27 @@ server_db_open(server_db_t* db, server_config_t* config, i32 flags)
         }
         user = pw->pw_name;
     }
-    else
-        user = config->database_user;
 
-    snprintf(conninfo, DB_CONNINTO_LEN, "host=%s port=%d dbname=%s user=%s", 
-        config->database_host, config->database_port, config->database_name, user);
+    if (password == NULL)
+    {
+        fatal("Require DB_PASSWORD environment variable!\n");
+        return false;
+    }
 
+    snprintf(conninfo, DB_CONNINTO_LEN, "host=%s port=%d dbname=%s user=%s password=%s", 
+        config->database_host, config->database_port, config->database_name, user, password);
+
+retry:
     db->conn = PQconnectdb(conninfo);
     if (PQstatus(db->conn) != CONNECTION_OK)
     {
+        if (flags & DB_TRY_RECONNECT && retries <= 3)
+        {
+            sleep(2);
+            retries++;
+            goto retry;
+        }
+
         error("Failed connect to database: %s\n", 
                 PQerrorMessage(db->conn));
         return false;

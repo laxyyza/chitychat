@@ -34,8 +34,6 @@ server_default_config(void)
                            json_object_new_string("localhost"));
     json_object_object_add(config, "database_port", 
                            json_object_new_int(5432));
-    json_object_object_add(config, "database_user", 
-                           json_object_new_null());
     json_object_object_add(config, "database_name", 
                            json_object_new_string("chitychat"));
     json_object_object_add(config, "thread_pool",
@@ -91,10 +89,11 @@ server_argv(server_t* server, int argc, char* const* argv)
         {"fork", 0, NULL, 'f'},
         {"help", 0, NULL, 'h'},
         {"thread-pool", required_argument, NULL, 'T'},
+        {"retry-db-connect", 0, NULL, 'R'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "T:p:d:v46hf", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "T:p:d:v46hfR", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
@@ -135,6 +134,9 @@ server_argv(server_t* server, int argc, char* const* argv)
             case 'T':
                 server->conf.thread_pool = atoi(optarg);
                 break;
+            case 'R':
+                server->conf.retry_db_connect = true;
+                break;
             case '?':
                 error("Unknown or missing argument\n");
                 return false;
@@ -159,7 +161,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     json_object* addr_port;
     json_object* addr_version;
     json_object* database_name;
-    json_object* database_user;
     json_object* database_host;
     json_object* database_port;
     json_object* log_level_json;
@@ -172,7 +173,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* addr_version_str;
     const char* database_name_str;
     const char* database_host_str;
-    const char* database_user_str;
     const char* loglevel_str;
     const char* thread_pool_str;
     enum server_log_level log_level = SERVER_DEBUG;
@@ -273,15 +273,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     database_host = JSON_GET("database_host");
     database_host_str = json_object_get_string(database_host);
     strncpy(server->conf.database_host, database_host_str, INET6_ADDRSTRLEN);
-
-    database_user = JSON_GET("database_user");
-    if (json_object_is_type(database_user, json_type_null))
-        server->conf.database_user[0] = 0x00;
-    else
-    {
-        database_user_str = json_object_get_string(database_user);
-        strncpy(server->conf.database_user, database_user_str, CONFIG_USER_LEN_MAX);
-    }
 
     database_port = JSON_GET("database_port");
     server->conf.database_port = json_object_get_int(database_port);
