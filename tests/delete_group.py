@@ -51,31 +51,33 @@ async def main(username: str, password: str, group_id: int) -> int:
         "group_id": group_id
     }
     async with websockets.connect(uri, ssl=ssl_context) as ws:
-        async def recv_print(oneline_array=False, print_data=True) -> dict:
+        async def recv_print(oneline_array=False, print_data=True, wait_for_cmd=None) -> dict:
             packet = json.loads(await ws.recv())
             json_str = json.dumps(packet, indent=4)
             if print_data or packet["cmd"] == "error":
                 if oneline_array:
                     json_str = re.sub(r"(?<=\[)[^\[\]]+(?=])", repl_func, json_str)
                 print(f"Recv from server {uri}:\n{json_str}\n")
+            if wait_for_cmd != None and packet["cmd"] != "error" and packet["cmd"] != wait_for_cmd:
+                return await recv_print(oneline_array, print_data, wait_for_cmd)
             return packet
 
         # Send login command
         await ws.send(str(login_packet))
-        recv_packet = await recv_print(print_data=False)
+        recv_packet = await recv_print(print_data=True)
         if recv_packet["cmd"] == "error":
             return -1
 
         # Send get user info about us
         await ws.send(str(user_info_packet)) 
-        recv_packet = await recv_print(print_data=False)
+        recv_packet = await recv_print(print_data=True)
         if recv_packet["cmd"] == "error":
             return -1
         user = recv_packet
         
         # Send get all the groups we are in
         await ws.send(str(user_groups_packet))
-        recv_packet = await recv_print(print_data=False)
+        recv_packet = await recv_print(wait_for_cmd="client_groups")
         if recv_packet["cmd"] == "error":
             return -1
         groups = recv_packet["groups"]

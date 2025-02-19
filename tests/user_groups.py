@@ -60,6 +60,8 @@ async def main(username: str, password: str) -> int:
         recv_packet = await recv_print()
         if recv_packet["cmd"] == "error":
             return -1
+        elif recv_packet["cmd"] == "rtusm":
+            recv_packet = await recv_print()
 
         for group in recv_packet["groups"]:
             group_id: int = group["group_id"]
