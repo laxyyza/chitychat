@@ -1,0 +1,41 @@
+name: CI/CD with Docker Compose.
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+      
+      - name: Create `.env` file for database credentials
+        run: |
+          echo "DB_USER=test_user" > .env
+          echo "DB_PASSWORD=test_pass" >> .env
+      
+      - name: Create SSL certs
+        run: openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes -subj "/CN=localhost"
+
+      - name: Build Docker image
+        run: docker build -t chitychat .
+      
+      - name: Start containers using docker-compose
+        run: |
+          docker-compose up -d
+          sleep 30
+      
+      - name: Stop and remove containers
+        run: docker-compose down --volumes
