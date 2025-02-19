@@ -2,9 +2,9 @@ name: CI/CD with Docker Compose.
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
 
 jobs:
   test:
@@ -35,7 +35,10 @@ jobs:
       - name: Start containers using docker-compose
         run: |
           docker-compose up -d
-          sleep 30
+          sleep 5
+      
+      - name: Testing creating user
+        run: ./tests/register.py test Test test_password
       
       - name: Stop and remove containers
         run: docker-compose down --volumes
