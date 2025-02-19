@@ -2,37 +2,36 @@
 
 # Simple test to see if creating a new user works or not.
 
-import sys
-import asyncio
-import websockets
-import json
-import ssl
+from common import *
 
-do_session = True
-host = "127.0.0.1"
-port = "8080"
-uri = f"wss://{host}:{port}"
+test: CTTest = None
 
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE;
+async def run(username, displayname, password) -> dict:
+    test = CTTest()
+    try:
+        login_packet: dict = {
+            "cmd": "register",
+            "username": username,
+            "displayname": displayname,
+            "password": password,
+            "session": test.do_session
+        }
 
-async def main(username: str, displayname: str, password: str) -> int:
-    login_packet: dict = {
-        "cmd": "register",
-        "username": username,
-        "displayname": displayname,
-        "password": password,
-        "session": do_session
-    }
-    ret = -1
-    async with websockets.connect(uri, ssl=ssl_context) as ws:
-        await ws.send(str(login_packet))
-        recv_packet = json.loads(await ws.recv())
-        if recv_packet["cmd"] == "session":
-            ret = 0
-        print(f"Recv from server {uri}:\n\t{recv_packet}")
-    return ret
+        await test.connect()
+        session: dict = await test.request_wait("session", login_packet)
+        await test.close()
+
+        return session
+    except Exception as e:
+        await test.close()
+        raise e
+
+async def main(username, displayname, password) -> int:
+    try:
+        await run(username, displayname, password)
+    except Exception as e:
+        return -1
+    return 0
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:

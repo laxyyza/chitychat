@@ -37,8 +37,8 @@ jobs:
           docker-compose up -d
           sleep 5
       
-      - name: Testing creating user
-        run: ./tests/register.py test Test test_password
+      - name: Run Chat Server tests
+        run: python3 tests/run_all_tests.py
       
       - name: Stop and remove containers
         run: docker-compose down --volumes
