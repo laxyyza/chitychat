@@ -26,6 +26,12 @@ jobs:
           echo "DB_USER=test_user" > .env
           echo "DB_PASSWORD=test_pass" >> .env
       
+      - name: Create SSL certs
+        run: openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes -subj "/CN=localhost"
+
+      - name: Build Docker image
+        run: docker build -t chitychat .
+      
       - name: Start containers using docker-compose
         run: |
           docker-compose up -d
@@ -33,14 +39,3 @@ jobs:
       
       - name: Stop and remove containers
         run: docker-compose down --volumes
-  
-  docker:
-    needs: test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      
-      - name: Build and tag Docker image
-        run: docker-compose Build
