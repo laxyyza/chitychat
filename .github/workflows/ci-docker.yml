@@ -1,4 +1,4 @@
-name: CI/CD with Docker Compose.
+name: "CI: Docker Compose Build & Test"
 
 on:
   push:
@@ -33,9 +33,7 @@ jobs:
         run: docker build -t chitychat .
       
       - name: Start containers using docker-compose
-        run: |
-          docker-compose up -d
-          sleep 5
+        run: docker-compose up -d
       
       - name: Run Chat Server tests
         run: python3 tests/run_all_tests.py
