@@ -8,6 +8,7 @@ services:
       - DB_USER=${DB_USER}
     depends_on:
       - db
+    restart: unless-stopped
   db:
     image: postgres:latest
     ports:
@@ -16,3 +17,4 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=chitychat
+    restart: unless-stopped
