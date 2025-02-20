@@ -9,6 +9,7 @@ import user_info
 import user_groups
 import create_group
 import send_msg
+import delete_msg
 
 username = "test3"
 displayname = "Test"
@@ -71,10 +72,16 @@ async def test_user_info(session: dict) -> None:
 async def test_create_group(session: dict) -> dict:
     return await create_group.run(session, "Group Name", False)
 
-async def test_send_msg(session: dict, groups: dict) -> None:
+async def test_send_msg(session: dict, groups: dict) -> dict:
     group: dict = groups['groups'][0]
 
-    await send_msg.run(session, group, "Testing testing message. 1616.")
+    return await send_msg.run(session, group, [
+        "This message will NOT be deleted :3",
+        "This message WILL be deleted ;(",
+    ])
+
+async def test_delete_msg(session, msg) -> None:
+    await delete_msg.run(session, msg)
 
 async def do_tests() -> None:
     # Register 
@@ -90,9 +97,10 @@ async def do_tests() -> None:
     groups: dict = await test_create_group(session)
 
     # Send a messages in that group
-    await test_send_msg(session, groups)
+    msg: dict = await test_send_msg(session, groups)
 
     # Delete a message in that group.
+    await test_delete_msg(session, msg)
 
     # Delete group.
  
