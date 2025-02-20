@@ -21,6 +21,7 @@
 #define DB_GROUP_CODE_MAX   8
 
 #define DB_CONNINTO_LEN     1024
+#define DB_ADDRESS_LEN      256
 
 #define DB_INTSTR_MAX       30
 

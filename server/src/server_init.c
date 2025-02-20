@@ -30,12 +30,6 @@ server_default_config(void)
                            json_object_new_string("ipv6"));
     json_object_object_add(config, "log_level", 
                            json_object_new_string("debug"));
-    json_object_object_add(config, "database_host", 
-                           json_object_new_string("localhost"));
-    json_object_object_add(config, "database_port", 
-                           json_object_new_int(5432));
-    json_object_object_add(config, "database_name", 
-                           json_object_new_string("chitychat"));
     json_object_object_add(config, "thread_pool",
                            json_object_new_int(-1));
 
@@ -65,7 +59,6 @@ print_help(const char* exe_path)
         "  -h, --help\t\t\tShow this message\n"\
         "  -v, --verbose\t\t\tSet log level to verbose\n"\
         "  -p, --port=PORT\t\tPort number to bind\n"\
-        "  -d, --database-name=NAME\tPostgreSQL database name\n"\
         "  -T, --thread-pool=N\t\tSet the number of threads for the thread pool,\n"\
         "\t\t\t\tUse -1 (default) to automatically determine the number based on system threads.\n"\
         "  -6, --ipv6\t\t\tUse IPv6\n"\
@@ -83,7 +76,6 @@ server_argv(server_t* server, int argc, char* const* argv)
     struct option long_opts[] = {
         {"port", required_argument, NULL, 'p'},
         {"verbose", 0, NULL, 'v'},
-        {"database-name", required_argument, NULL, 'd'},
         {"ipv6", 0, NULL, '6'},
         {"ipv4", 0, NULL, '4'},
         {"fork", 0, NULL, 'f'},
@@ -115,9 +107,6 @@ server_argv(server_t* server, int argc, char* const* argv)
             }
             case 'v':
                 server_set_loglevel(SERVER_VERBOSE);
-                break;
-            case 'd':
-                strncpy(server->conf.database_name, optarg, NAME_MAX);
                 break;
             case '4':
                 server->conf.addr_version = IPv4;
@@ -160,9 +149,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     json_object* addr_ip;
     json_object* addr_port;
     json_object* addr_version;
-    json_object* database_name;
-    json_object* database_host;
-    json_object* database_port;
     json_object* log_level_json;
     json_object* thread_pool_json;
     const char* root_dir_str;
@@ -171,8 +157,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* file_dir_str;
     const char* addr_ip_str;
     const char* addr_version_str;
-    const char* database_name_str;
-    const char* database_host_str;
     const char* loglevel_str;
     const char* thread_pool_str;
     enum server_log_level log_level = SERVER_DEBUG;
@@ -265,17 +249,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
         server->conf.addr_version = IPv6;
     else
         warn("Config: addr_version: \"%s\"? Default to IPv4\n", addr_version_str);
-
-    database_name = JSON_GET("database_name");
-    database_name_str = json_object_get_string(database_name);
-    strncpy(server->conf.database_name, database_name_str, CONFIG_PATH_LEN);
-
-    database_host = JSON_GET("database_host");
-    database_host_str = json_object_get_string(database_host);
-    strncpy(server->conf.database_host, database_host_str, INET6_ADDRSTRLEN);
-
-    database_port = JSON_GET("database_port");
-    server->conf.database_port = json_object_get_int(database_port);
 
     thread_pool_json = JSON_GET("thread_pool");
     thread_pool_str = json_object_get_string(thread_pool_json);

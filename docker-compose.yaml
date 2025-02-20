@@ -6,6 +6,7 @@ services:
     environment:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_USER=${DB_USER}
+      - DB_HOST=db
     depends_on:
       - db
     restart: unless-stopped

@@ -1,8 +1,11 @@
+#include "chat/db_def.h"
 #include "server.h"
 #include "server_log.h"
 #include "chat/db.h"
 #include <pwd.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define DB_PIPELINE_QUEUE_SIZE 128
 
@@ -153,15 +156,33 @@ server_init_db(server_t* server)
     return db_exec_schema(server);
 }
 
+static inline const char*
+getenvd(const char* var, const char* default_val)
+{
+    const char* ret = getenv(var);
+    return (ret) ? ret : default_val;
+}
+
 bool
-server_db_open(server_db_t* db, server_config_t* config, i32 flags)
+server_db_open(server_db_t* db, UNUSED server_config_t* config, i32 flags)
 {
     i32 retries = 1;
     struct passwd* pw;
     char conninfo[DB_CONNINTO_LEN];
+    char dbaddress[DB_ADDRESS_LEN] = "";
 
     const char* user = getenv("DB_USER");
-    const char* password = getenv("DB_PASSWORD");
+    const char* password = getenvd("DB_PASSWORD", "");
+    const char* dbhost = getenv("DB_HOST");
+    const char* dbport = getenv("DB_PORT");
+    const char* dbname = getenvd("DB_NAME", "chitychat");
+
+    if (dbhost && dbport)
+        snprintf(dbaddress, DB_ADDRESS_LEN, "host=%s port=%s", dbhost, dbport);
+    else if (dbhost)
+        snprintf(dbaddress, DB_ADDRESS_LEN, "host=%s", dbhost);
+    else if (dbport)
+        snprintf(dbaddress, DB_ADDRESS_LEN, "port=%s", dbport);
 
     if (user == NULL)
     {
@@ -174,11 +195,8 @@ server_db_open(server_db_t* db, server_config_t* config, i32 flags)
         user = pw->pw_name;
     }
 
-    if (password == NULL)
-        password = "";
-
-    snprintf(conninfo, DB_CONNINTO_LEN, "host=%s port=%d dbname=%s user=%s password=%s", 
-        config->database_host, config->database_port, config->database_name, user, password);
+    snprintf(conninfo, DB_CONNINTO_LEN, "%s dbname=%s user=%s password=%s", 
+        dbaddress, dbname, user, password);
 
 retry:
     db->conn = PQconnectdb(conninfo);

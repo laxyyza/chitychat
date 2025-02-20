@@ -46,9 +46,6 @@ typedef struct server_config
     char addr_ip[INET6_ADDRSTRLEN];
     uint16_t addr_port;
     enum ip_version addr_version;
-    char database_name[CONFIG_PATH_LEN];
-    char database_host[INET6_ADDRSTRLEN];
-    i32  database_port;
     bool fork;
     i32  thread_pool;
 
