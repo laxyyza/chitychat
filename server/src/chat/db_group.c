@@ -146,7 +146,7 @@ do_get_group_msgs(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, db
             msgs_json_str = "[]";
 
         ctx->param.group_msgs.msgs_json = msgs_json_str;
-        ctx->ret = DB_ASYNC_OK
+        ctx->ret = DB_ASYNC_OK;
     }
     else
     {
