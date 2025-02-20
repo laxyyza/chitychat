@@ -7,6 +7,7 @@ import register
 import session_login
 import user_info
 import user_groups
+import create_group
 
 username = "test3"
 displayname = "Test"
@@ -66,6 +67,9 @@ async def test_user_info(session: dict) -> None:
     groups: dict = await user_groups.run(session)
     info(f"User:{user['user_id']} is in {len(groups['groups'])} groups")
 
+async def test_create_group(session: dict) -> None:
+    await create_group.run(session, "Group Name", False)
+
 async def do_tests() -> None:
     # Register 
     session: dict = await test_register()
@@ -77,6 +81,7 @@ async def do_tests() -> None:
     await test_user_info(session)
 
     # Create a private and public group.
+    await test_create_group(session)
 
     # Get user groups.
 
