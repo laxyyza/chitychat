@@ -22,6 +22,8 @@ async def run(session: dict, group_name: str, public: bool) -> dict:
         print(f"Went from {len(current_groups['groups'])} -> {len(new_groups['groups'])} groups.")
 
         await test.close()
+
+        return new_groups
     except Exception as e:
         await test.close()
         raise e
