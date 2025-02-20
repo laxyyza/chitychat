@@ -175,10 +175,7 @@ server_db_open(server_db_t* db, server_config_t* config, i32 flags)
     }
 
     if (password == NULL)
-    {
-        fatal("Require DB_PASSWORD environment variable!\n");
-        return false;
-    }
+        password = "";
 
     snprintf(conninfo, DB_CONNINTO_LEN, "host=%s port=%d dbname=%s user=%s password=%s", 
         config->database_host, config->database_port, config->database_name, user, password);
