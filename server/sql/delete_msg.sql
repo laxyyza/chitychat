@@ -8,5 +8,11 @@
 --USING Groups g
 --WHERE m.msg_id = $1::int
     --AND m.group_id = g.group_id
-    --AND (m.user_id = $2::int OR g.owner_id = $2::int)
+    --AND (m.user_id = $2::int OR g.owner_id = $2::int) 
 --RETURNING g.group_id, m.attachments;
+
+SELECT g.group_id, m.attachments
+FROM Messages m
+JOIN Groups g ON m.group_id = g.group_id
+WHERE m.msg_id = $1::int
+    AND (m.user_id = $2::int OR g.owner_id = $2::int);
