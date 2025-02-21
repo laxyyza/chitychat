@@ -336,8 +336,13 @@ static void
 join_pub_group_result(UNUSED eworker_t* ew, 
                       PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
 {
-    if (status == PGRES_COMMAND_OK)
-        ctx->ret = DB_ASYNC_OK;
+    if (status == PGRES_TUPLES_OK)
+    {
+        if (PQntuples(res) == 0)
+            ctx->ret = DB_ASYNC_ERROR;
+        else
+            ctx->ret = DB_ASYNC_OK;
+    }
     else
     {
         error("Failed to join pub group: %s\n",
