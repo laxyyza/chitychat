@@ -3,6 +3,14 @@ name: CI/CD Docker Pipeline
 on:
   push:
     branches: [ "main", "dev" ] 
+    paths:
+      - 'server/**'
+      - 'tests/**'
+      - 'Dockerfile'
+      - 'docker-compose.yaml'
+      - '.github/workflows/**'
+      - 'meson.build'
+      - '.dockerignore'
   pull_request:
     branches: [ "main", "dev" ]
 
