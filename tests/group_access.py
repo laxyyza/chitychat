@@ -58,6 +58,9 @@ async def run() -> None:
 
         private_group_id = private_group['group_id']
 
+        await user1.send_msg(private_group_id, "Super Secret Message 1")
+        await user1.send_msg(private_group_id, "Super Secret Message 2")
+
         await test_user_permission_denied(user2, private_group_id)
 
         await user1.close()
