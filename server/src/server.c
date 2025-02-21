@@ -109,7 +109,7 @@ server_print_ssl_error(client_t* client, i32 ret, const char* from)
     error("SSL %s: %s\n", from, ERR_error_string(err, NULL));
 }
 
-ssize_t 
+ssize_t  
 server_send(client_t* client, const void* buf, size_t len)
 {
     ssize_t bytes_sent = -1;
