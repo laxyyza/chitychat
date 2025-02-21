@@ -63,7 +63,7 @@ jobs:
       - name: Download Docker Image artifact
         uses: actions/download-artifact@v4
         with:
-          name: chitychat-image:w
+          name: chitychat-image
       
       - name: Load Docker Image
         run: gunzip -c chitychat-image.tar.gz | docker load
