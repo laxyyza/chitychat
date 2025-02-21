@@ -1,0 +1,81 @@
+name: CI/CD Docker Pipeline
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Installing packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose python3-websockets
+      
+      - name: Create `.env` file for database credentials
+        run: |
+          echo "DB_USER=test_user" > .env
+          echo "DB_PASSWORD=test_pass" >> .env
+      
+      - name: Create SSL certs
+        run: openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes -subj "/CN=localhost"
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/chitychat
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Start containers using docker-compose
+        run: docker-compose up -d
+      
+      - name: Run Chat Server tests
+        run: python3 tests/run_all_tests.py || { docker-compose logs app && exit -1; }
+      
+      - name: Stop and remove containers
+        run: docker-compose down --volumes
+      
+      - name: Export Image Name
+        if: github.ref == 'refs/heads/main'
+        run: echo "IMAGE_ID=${{ steps.build.outputs.imageid }}" >> $GITHUB_ENV
+  
+  cd:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Load Built Image from Cache
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/chitychat
+          load: true
+          cache-from: type=gha
+      
+      - name: Push Image to Docker Hub
+        run: docker push ${{ vars.DOCKERHUB_USERNAME }}/chitychat
