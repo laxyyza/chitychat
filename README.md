@@ -116,7 +116,7 @@ openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.
 ```
 4. **Build the Docker image:**
 ```
-docker build -t chitychat .
+docker build -t laxyy/chitychat .
 ```
 5. **Start the ChityChat server and PostgreSQL** using Docker Compose:
 ```
