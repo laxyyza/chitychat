@@ -1,7 +1,6 @@
 FROM alpine:latest
 
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf &&\
-    apk update &&\
+RUN apk update &&\
     apk add musl-dev pkgconfig gcc meson openssl openssl-dev json-c json-c-dev libpq libpq-dev file file-dev linux-headers cmake
 
 WORKDIR /app
