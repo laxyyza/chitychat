@@ -371,19 +371,20 @@ db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
 
     hexstr_to_u8(salt_str, salt_size, user->salt);
 
-    const char* flags_str = PQgetvalue(res, row, 6);
-    if (flags_str)
-        user->flags = atoi(flags_str);
-    else
-        warn("flags is NULL!\n");
+    // const char* flags_str = PQgetvalue(res, row, 6);
+    // if (flags_str)
+    //     user->flags = atoi(flags_str);
+    // else
+    //     warn("flags is NULL!\n");
 
-    const char* created_at = PQgetvalue(res, row, 7);
+    const char* created_at = PQgetvalue(res, row, 6);
     if (created_at)
         strncpy(user->created_at, created_at, DB_TIMESTAMP_MAX);
     else
         warn("created_at is NULL!\n");
 
-    const char* pfp_hash = PQgetvalue(res, row, 8);
+    const char* pfp_hash = PQgetvalue(res, row, 7);
+    info("pfp_hash: %s, created_at: %s\n", pfp_hash, created_at);
     if (pfp_hash)
         strncpy(user->pfp_hash, pfp_hash, DB_PFP_HASH_MAX);
 }
