@@ -10,7 +10,7 @@ async def run(session: dict, msg: dict) -> None:
     test = CTTest()
     try:
         await test.connect()
-        await test.request_wait("session", session)
+        await test.request_wait("session", session, print_packet=False)
 
         group_msgs: dict = await test.request_wait("get_group_msgs", {
             "cmd": "get_group_msgs",

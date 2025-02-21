@@ -10,7 +10,7 @@ async def run(session: dict) -> dict:
     test = CTTest()
     try:
         await test.connect()
-        await test.request_wait("session", session)
+        await test.request_wait("session", session, print_packet=False)
 
         client_user_info:dict = await test.request_wait("client_user_info", {"cmd": "client_user_info"})
 

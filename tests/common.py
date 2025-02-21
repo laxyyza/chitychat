@@ -21,19 +21,20 @@ class CTTest:
         print("Sending ", str(request))
         await self.ws.send(str(request))
     
-    async def recv(self) -> dict:
+    async def recv(self, print_packet: bool=True) -> dict:
         packet: dict = json.loads(await self.ws.recv())
         json_str = json.dumps(packet, indent=4)
-        print(f"From {self.uri}:\n{json_str}\n")
+        if print_packet:
+            print(f"From {self.uri}:\n{json_str}\n")
 
         if packet["cmd"] == "error":
             raise RuntimeError(packet)
 
         return packet
 
-    async def request_wait(self, expected_cmd: str, request: dict) -> dict:
+    async def request_wait(self, expected_cmd: str, request: dict, print_packet: bool=True) -> dict:
         await self.request(request)
-        recv_packet: dict = await self.recv()
+        recv_packet: dict = await self.recv(print_packet)
         recv_cmd = recv_packet["cmd"]
         if expected_cmd:
             while recv_cmd != expected_cmd:
