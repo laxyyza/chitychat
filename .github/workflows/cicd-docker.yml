@@ -9,6 +9,7 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    environment: DockerHub
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,6 +58,7 @@ jobs:
     needs: ci
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment: DockerHub
 
     steps:
       - name: Set up Docker buildx
