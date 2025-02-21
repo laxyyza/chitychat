@@ -14,11 +14,8 @@ async def run(session: dict, group_name: str, public: bool) -> dict:
 
         current_groups: dict = await test.request_wait("client_groups", {"cmd": "client_groups"})
 
-        new_groups: dict = await test.request_wait("client_groups", {
-            "cmd": "group_create",
-            "name": group_name,
-            "public": public
-        })
+        new_groups: dict = await test.create_group(group_name, public)
+
         print(f"Went from {len(current_groups['groups'])} -> {len(new_groups['groups'])} groups.")
 
         await test.close()

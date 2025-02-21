@@ -18,7 +18,7 @@ async def run(username, displayname, password) -> dict:
         }
 
         await test.connect()
-        session: dict = await test.request_wait("session", login_packet)
+        session: dict = await test.register(username, displayname, password)
         await test.close()
 
         return session

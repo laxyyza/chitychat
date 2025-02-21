@@ -6,6 +6,16 @@ import ssl
 import os
 import pprint
 
+def good(msg: str) -> None:
+    print(f"GOOD: {msg}.")
+
+def info(msg: str) -> None:
+    print(f"INFO: {msg}")
+
+def bad(msg: str) -> None:
+    print(f"BAD: {msg}.")
+
+
 class CTTest:
     def __init__(self):
         self.do_session: bool = os.getenv("CT_DO_SESSION", "true").lower() in ("true", 1)
@@ -47,3 +57,41 @@ class CTTest:
 
     async def close(self) -> None:
         await self.ws.close()
+    
+    async def register(self, username: str, displayname: str, password: str) -> dict:
+        return await self.request_wait("session", {
+            "cmd": "register",
+            "username": username,
+            "displayname": displayname,
+            "password": password,
+            "session": self.do_session
+        })
+    
+    async def create_group(self, name: str, public: bool) -> dict:
+        return await self.request_wait("client_groups", {
+            "cmd": "group_create",
+            "name": name,
+            "public": public
+        })
+    
+    async def send_msg(self, group_id: int, content: str) -> dict:
+        return await self.request_wait("group_msg", {
+            "cmd": "group_msg",
+            "group_id": group_id,
+            "content": content,
+            "attachments": []
+        })
+    
+    async def join_group(self, group_id: int) -> dict:
+        return await self.request_wait("client_groups", {
+            "cmd": "join_group",
+            "group_id": group_id
+        })
+    
+    async def get_group_msgs(self, group_id: int, limit: int = 10000, offset: int = 0) -> dict:
+        return await self.request_wait("get_group_msgs", {
+            "cmd": "get_group_msgs",
+            "group_id": group_id,
+            "limit": limit,
+            "offset": offset
+        })

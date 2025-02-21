@@ -16,12 +16,7 @@ async def run(session: dict, group: dict, msgs: list[str]) -> dict:
         group_msg: dict = None
 
         for msg in msgs:
-            group_msg = await test.request_wait("group_msg", {
-                "cmd": "group_msg",
-                "group_id": group_id,
-                "content": msg,
-                "attachments": []
-            })
+            group_msg = await test.send_msg(group_id, msg)
             print(f"User:{group_msg['user_id']}: '{group_msg['content']}', {group_msg['timestamp']}")
 
         await test.close()

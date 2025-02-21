@@ -10,19 +10,12 @@ import user_groups
 import create_group
 import send_msg
 import delete_msg
+import group_access
+from common import *
 
 username = "test3"
 displayname = "Test"
 password = "test_pass"
-
-def good(msg: str) -> None:
-    print(f"GOOD: {msg}.")
-
-def info(msg: str) -> None:
-    print(f"INFO: {msg}")
-
-def bad(msg: str) -> None:
-    print(f"BAD: {msg}.")
 
 """
 Register a new account. 
@@ -102,7 +95,8 @@ async def do_tests() -> None:
     # Delete a message in that group.
     await test_delete_msg(session, msg)
 
-    # Delete group.
+    # Group Access
+    await group_access.run()
  
 async def main() -> None:
     await do_tests()
