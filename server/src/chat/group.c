@@ -508,9 +508,32 @@ do_get_group_msgs(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
     return NULL;
 }
 
+static const char* 
+do_user_in_group(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+	u64 group_id;
+	u32 limit;
+	u32 offset;
+
+	if (ctx->ret == DB_ASYNC_ERROR)
+		return "Failed to get group messages";
+
+	group_id = ctx->param.get_group_msgs.group_id;
+	limit = ctx->param.get_group_msgs.limit;
+	offset = ctx->param.get_group_msgs.offset;
+
+    ctx->exec = do_get_group_msgs;
+	ctx->param.group_id = group_id;
+
+	if (!db_async_get_group_msgs(&ew->db, group_id, limit, offset, ctx))
+		return "Internal error: async-get-group-msgs";
+
+	return NULL;
+}
+
 const char* 
 server_get_group_msgs(UNUSED eworker_t* ew, 
-                      UNUSED client_t* client, 
+                      client_t* client, 
                       json_object* payload, 
                       UNUSED json_object* respond_json)
 {
@@ -530,12 +553,14 @@ server_get_group_msgs(UNUSED eworker_t* ew,
     offset = json_object_get_int(offset_json);
 
     dbcmd_ctx_t ctx = {
-        .exec = do_get_group_msgs,
-        .param.group_id = group_id
+        .exec = do_user_in_group,
+        .param.get_group_msgs.group_id = group_id,
+        .param.get_group_msgs.limit = limit,
+        .param.get_group_msgs.offset = offset,
     };
 
-    if (!db_async_get_group_msgs(&ew->db, group_id, limit, offset, &ctx))
-        return "Internal error: async-get-group-msgs";
+	if (!db_async_user_in_group(&ew->db, group_id, client->dbuser->user_id, &ctx))
+		return "Internal error: async-user-in-group";
 
     return NULL;
 }

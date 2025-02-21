@@ -51,6 +51,13 @@ typedef struct
     u32 user_id;
 } group_owner_param_t;
 
+typedef struct 
+{
+	u64 group_id;
+	u32 limit;
+	u32 offset;
+} get_group_msgs_param_t;
+
 typedef struct
 {
     u32 user_id;
@@ -74,6 +81,7 @@ union cmd_param
     void*       ptr;
     u32         group_id;
     u32         user_id;
+	get_group_msgs_param_t get_group_msgs;
 };
 
 typedef struct dbcmd_ctx
