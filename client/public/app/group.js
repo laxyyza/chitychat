@@ -40,7 +40,7 @@ export class Group
             this.select();
         });
 
-        this.members = [];
+        this.members = Object();
         this.messages = [];
 
         app.group_list.appendChild(this.div_list);
@@ -48,6 +48,9 @@ export class Group
 
     add_member(member)
     {
+        if (member.id in this.members)
+            return;
+
         let div_member = document.createElement("div");
         div_member.className = "group_member";
         div_member.setAttribute("group_member_id", member.id);
@@ -69,7 +72,7 @@ export class Group
         div_member.appendChild(span_name);
 
         this.div_group_members.appendChild(div_member);
-        this.members.push(member);
+        this.members[member.id] = member;
     }
 
     add_msg(user, msg, insert=true)
