@@ -75,14 +75,15 @@
 
 ## Learning experience
 > Through building Chity Chat, I learned:
-* Web Server Implementation:
+* **Web Server Implementation:**
     * HTTP
     * Web Sockets
     * SSL/TLS
     * Multi-Threading
-* SQL Database Usage with SQLite3, later PostgreSQL.
-* Frontend Development with JavaScript, HTML, and CSS.
-* Password Security with SHA512 hashing.
+* **SQL Database Management:** SQLite3, later migrated to PostgreSQL.
+* **Frontend Development:** JavaScript, HTML, and CSS.
+* **Password Security:** SHA512 hashing.
+* **CI/CD with GitHub Actions:** Docker-based pipeline.
 
 ## Project Directory Structure
 ```
