@@ -143,8 +143,8 @@ parse_url(http_t* http, char* url)
     char* endptr;
 
     path = strtok_r(url, "?", &params_line);
-    
-    if (*params_line)
+
+    if (params_line && *params_line)
     {
         param = strtok_r(params_line, "&", &endptr);
 
