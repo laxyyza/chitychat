@@ -95,3 +95,9 @@ class CTTest:
             "limit": limit,
             "offset": offset
         })
+
+    async def get_member_ids(self, group_id: int) -> dict:
+        return await self.request_wait("get_member_ids", {
+            "cmd": "get_member_ids",
+            "group_id": group_id
+        })

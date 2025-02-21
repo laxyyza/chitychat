@@ -509,14 +509,14 @@ do_get_group_msgs(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 }
 
 static const char* 
-do_user_in_group(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+do_user_in_group(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
 	u64 group_id;
 	u32 limit;
 	u32 offset;
 
 	if (ctx->ret == DB_ASYNC_ERROR)
-		return "Failed to get group messages";
+        return "Failed to get group messages: Not a group member";
 
 	group_id = ctx->param.get_group_msgs.group_id;
 	limit = ctx->param.get_group_msgs.limit;

@@ -39,6 +39,13 @@ async def test_user_permission_denied(user2: CTTest, group_id: int) -> None:
     else:
         raise RuntimeError("Managed to get group messages?")
 
+    try:
+        await user2.get_member_ids(group_id)
+    except Exception as e:
+        good("Getting group members failed")
+    else:
+        raise RuntimeError("Manged to get group members?")
+
 async def run() -> None:
     user1: CTTest = CTTest()
     user2: CTTest = CTTest()
