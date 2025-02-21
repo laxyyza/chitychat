@@ -509,7 +509,7 @@ do_get_group_msgs(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 }
 
 static const char* 
-do_user_in_group(eworker_t* ew, dbcmd_ctx_t* ctx)
+do_user_in_group_get_msgs(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
 	u64 group_id;
 	u32 limit;
@@ -553,7 +553,7 @@ server_get_group_msgs(UNUSED eworker_t* ew,
     offset = json_object_get_int(offset_json);
 
     dbcmd_ctx_t ctx = {
-        .exec = do_user_in_group,
+        .exec = do_user_in_group_get_msgs,
         .param.get_group_msgs.group_id = group_id,
         .param.get_group_msgs.limit = limit,
         .param.get_group_msgs.offset = offset,
@@ -909,9 +909,23 @@ do_get_group_member_ids(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
     return NULL;
 }
 
+static const char* 
+do_user_in_group_get_member_ids(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    ctx->exec = do_get_group_member_ids;
+
+	if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to get group members: Not a group member";
+
+	if (db_async_get_group_member_ids(&ew->db, ctx->param.member_ids.group_id, ctx) == false) 
+        return "Internal error: async-get-group-member-ids";
+
+	return NULL;
+}
+
 const char* 
 server_get_group_member_ids(eworker_t* ew,
-                            UNUSED client_t* client, 
+                            client_t* client, 
                             json_object* payload, 
                             UNUSED json_object* resp_json)
 {
@@ -921,12 +935,13 @@ server_get_group_member_ids(eworker_t* ew,
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
 
     group_id = json_object_get_int(group_id_json);
-    dbcmd_ctx_t ctx = {
-        .exec = do_get_group_member_ids,
-        .param.member_ids.group_id = group_id
-    };
 
-    if (db_async_get_group_member_ids(&ew->db, group_id, &ctx) == false) 
-        return "internal error: async-get-group-member-ids";
+	dbcmd_ctx_t ctx = {
+		.exec = do_user_in_group_get_member_ids,
+		.param.member_ids.group_id = group_id
+	};
+	if (!db_async_user_in_group(&ew->db, group_id, client->dbuser->user_id, &ctx))
+		return "Internal error: async-user-in-group";
+
     return NULL;
 }
