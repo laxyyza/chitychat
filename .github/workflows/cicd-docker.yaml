@@ -91,7 +91,7 @@ jobs:
         run: docker push ${{ vars.DOCKERHUB_USERNAME }}/chitychat:latest
       
       - name: Deploy to Server
-        uses: appleboy/ssh-action@v0.1.4
+        uses: appleboy/ssh-action@v1.2.1
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
