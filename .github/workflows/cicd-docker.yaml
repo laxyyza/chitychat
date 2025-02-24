@@ -98,7 +98,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd ~/chitychat
+            git pull
             docker-compose pull
             docker-compose down
             docker-compose up -d
-            
