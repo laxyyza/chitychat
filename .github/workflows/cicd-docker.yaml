@@ -11,6 +11,7 @@ on:
       - '.github/workflows/**'
       - 'meson.build'
       - '.dockerignore'
+      - 'client/public/**'
   pull_request:
     branches: [ "main", "dev" ]
 
