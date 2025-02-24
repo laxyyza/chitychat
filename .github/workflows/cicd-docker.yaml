@@ -88,4 +88,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Push Image to Docker Hub
-        run: docker push ${{ vars.DOCKERHUB_USERNAME }}/chitychat
+        run: docker push ${{ vars.DOCKERHUB_USERNAME }}/chitychat:latest
