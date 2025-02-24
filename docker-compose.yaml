@@ -7,6 +7,12 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_USER=${DB_USER}
       - DB_HOST=db
+    env_file:
+      - .env
+    volumes: 
+      - ./server/server.crt:/app/server/server.crt:ro
+      - ./server/server.key:/app/server/server.key:ro
+      - ./client/public/upload:/app/client/public/upload:rw
     depends_on:
       - db
     restart: unless-stopped
@@ -18,4 +24,9 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=chitychat
+    volumes:
+      - pg_data:/var/lib/postgresql/data
     restart: unless-stopped
+
+volumes:
+  pg_data:

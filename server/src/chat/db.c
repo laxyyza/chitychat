@@ -156,13 +156,6 @@ server_init_db(server_t* server)
     return db_exec_schema(server);
 }
 
-static inline const char*
-getenvd(const char* var, const char* default_val)
-{
-    const char* ret = getenv(var);
-    return (ret) ? ret : default_val;
-}
-
 bool
 server_db_open(server_db_t* db, UNUSED server_config_t* config, i32 flags)
 {

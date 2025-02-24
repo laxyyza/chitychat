@@ -5,3 +5,5 @@ build/
 .github
 tests
 client/headless
+server/server.key
+server/server.crt

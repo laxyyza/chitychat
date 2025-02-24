@@ -5,36 +5,13 @@
 #include "server_events.h"
 #include "server_ht.h"
 #include "chat/cmd.h"
+#include "server_log.h"
+#include "server_util.h"
 #include <netinet/in.h>
+#include <stdlib.h>
 #include <sys/eventfd.h>
 
 #define LISTEN_BACKLOG 100
-
-static json_object* 
-server_default_config(void)
-{
-    json_object* config = json_object_new_object();
-    json_object_object_add(config, "root_dir", 
-                           json_object_new_string("client/public"));
-    json_object_object_add(config, "img_dir", 
-                           json_object_new_string("client/public/upload/imgs"));
-    json_object_object_add(config, "vid_dir", 
-                           json_object_new_string("client/public/upload/vids"));
-    json_object_object_add(config, "file_dir", 
-                           json_object_new_string("client/public/upload/files"));
-    json_object_object_add(config, "addr_ip", 
-                           json_object_new_string("any"));
-    json_object_object_add(config, "addr_port", 
-                           json_object_new_int(8080));
-    json_object_object_add(config, "addr_version", 
-                           json_object_new_string("ipv6"));
-    json_object_object_add(config, "log_level", 
-                           json_object_new_string("debug"));
-    json_object_object_add(config, "thread_pool",
-                           json_object_new_int(-1));
-
-    return config;
-}
 
 static void 
 server_chdir(const char* exe_path)
@@ -140,17 +117,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
 {
 #define JSON_GET(x) json_object_object_get(config, x)
 
-    i32 fd = -1;
-    json_object* config = NULL;
-    json_object* root_dir;
-    json_object* img_dir;
-    json_object* vid_dir;
-    json_object* file_dir;
-    json_object* addr_ip;
-    json_object* addr_port;
-    json_object* addr_version;
-    json_object* log_level_json;
-    json_object* thread_pool_json;
     const char* root_dir_str;
     const char* img_dir_str;
     const char* vid_dir_str;
@@ -159,90 +125,37 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* addr_version_str;
     const char* loglevel_str;
     const char* thread_pool_str;
+    const char* port_str;
+    i32 port;
     enum server_log_level log_level = SERVER_DEBUG;
-    const char* config_path = SERVER_CONFIG_PATH;
 
     server_chdir(argv[0]);
 
-    fd = open(config_path, O_RDONLY);
-    if (fd == -1)
-    {
-        if (errno == ENOENT)
-        {
-            config = server_default_config();
-            if (!config)
-            {
-                fatal("Failed to create default config\n");
-                return false;
-            }
-
-            fd = open(config_path, O_RDWR | O_CREAT, 
-                        S_IRUSR | S_IWUSR);
-            if (fd == -1)
-            {
-                fatal("Creating file %s failed %d (%s\n)",
-                        config_path, errno, ERRSTR);
-                return false;
-            }
-
-            i32 ret = json_object_to_fd(fd, config, 
-                JSON_C_TO_STRING_PRETTY | 
-                JSON_C_TO_STRING_PRETTY_TAB | 
-                JSON_C_TO_STRING_SPACED | 
-                JSON_C_TO_STRING_NOSLASHESCAPE);
-
-            close(fd);
-            fd = -1;
-            if (ret == -1)
-            {
-                fatal("json_object_to_fd: %s\n",
-                    json_util_get_last_err());
-                return false;
-            }
-        }
-        else
-        {
-            fatal("open %s failed error %d (%s)\n",
-                config_path, errno, ERRSTR);
-            return false;
-        }
-    }
-    if (!config)
-        config = json_object_from_fd(fd);
-    if (fd != -1)
-        close(fd);
-    if (!config)
-    {
-        fatal("json_object_from_file: %s\n",
-            json_util_get_last_err());
-        return false;
-    }
-
-    root_dir = JSON_GET("root_dir");
-    root_dir_str = json_object_get_string(root_dir);
+    root_dir_str = getenvd("APP_ROOT_DIR", "client/public");
     strncpy(server->conf.root_dir, root_dir_str, CONFIG_PATH_LEN);
 
-    img_dir = JSON_GET("img_dir");
-    img_dir_str = json_object_get_string(img_dir);
+    img_dir_str = getenvd("APP_IMG_DIR", "client/public/imgs");
     strncpy(server->conf.img_dir, img_dir_str, CONFIG_PATH_LEN);
 
-    vid_dir = JSON_GET("vid_dir");
-    vid_dir_str = json_object_get_string(vid_dir);
+    vid_dir_str = getenvd("APP_VID_DIR", "client/piblic/upload/vids");
     strncpy(server->conf.vid_dir, vid_dir_str, CONFIG_PATH_LEN);
 
-    file_dir = JSON_GET("file_dir");
-    file_dir_str = json_object_get_string(file_dir);
+    file_dir_str = getenvd("APP_FILE_DIR", "client/public/upload/files");
     strncpy(server->conf.file_dir, file_dir_str, CONFIG_PATH_LEN);
 
-    addr_ip = JSON_GET("addr_ip");
-    addr_ip_str = json_object_get_string(addr_ip);
+    addr_ip_str = getenvd("APP_IP", "any");
     strncpy(server->conf.addr_ip, addr_ip_str, INET6_ADDRSTRLEN);
 
-    addr_port = JSON_GET("addr_port");
-    server->conf.addr_port = json_object_get_int(addr_port);
+    port_str = getenvd("APP_PORT", "8080");
+    port = atoi(port_str);
+    if (port <= 0 && port >= UINT16_MAX)
+    {
+        fatal("Invalid APP_PORT!\n");
+        return false;
+    }
+    server->conf.addr_port = port;
 
-    addr_version = JSON_GET("addr_version");
-    addr_version_str = json_object_get_string(addr_version);
+    addr_version_str = getenvd("APP_IP_VERSION", "ipv6");
     if (!strcmp(addr_version_str, "ipv4"))
         server->conf.addr_version = IPv4;
     else if (!strcmp(addr_version_str, "ipv6"))
@@ -250,37 +163,30 @@ server_load_config(server_t* server, int argc, char* const* argv)
     else
         warn("Config: addr_version: \"%s\"? Default to IPv4\n", addr_version_str);
 
-    thread_pool_json = JSON_GET("thread_pool");
-    thread_pool_str = json_object_get_string(thread_pool_json);
+    thread_pool_str = getenvd("APP_THREAD_POOL", "0");
     server->conf.thread_pool = atoi(thread_pool_str);
 
-    log_level_json = JSON_GET("log_level");
-    if (log_level_json)
-    {
-        loglevel_str = json_object_get_string(log_level_json);
+    loglevel_str = getenvd("APP_LOG_LEVEL", "info");
 
-        if (!strcmp(loglevel_str, "fatal"))
-            log_level = SERVER_FATAL;
-        else if (!strcmp(loglevel_str, "error"))
-            log_level = SERVER_ERROR;
-        else if (!strcmp(loglevel_str, "warn") || !strcmp(loglevel_str, "warning"))
-            log_level = SERVER_WARN;
-        else if (!strcmp(loglevel_str, "info"))
-            log_level = SERVER_INFO;
-        else if (!strcmp(loglevel_str, "debug"))
-            log_level = SERVER_DEBUG;
-        else if (!strcmp(loglevel_str, "verbose"))
-            log_level = SERVER_VERBOSE;
-        else
-        {
-            fatal("JSON %s invalid \"log_level\": %s\n", config_path, loglevel_str);
-            json_object_put(config);
-            return false;
-        }
+    if (!strcmp(loglevel_str, "fatal"))
+        log_level = SERVER_FATAL;
+    else if (!strcmp(loglevel_str, "error"))
+        log_level = SERVER_ERROR;
+    else if (!strcmp(loglevel_str, "warn") || !strcmp(loglevel_str, "warning"))
+        log_level = SERVER_WARN;
+    else if (!strcmp(loglevel_str, "info"))
+        log_level = SERVER_INFO;
+    else if (!strcmp(loglevel_str, "debug"))
+        log_level = SERVER_DEBUG;
+    else if (!strcmp(loglevel_str, "verbose"))
+        log_level = SERVER_VERBOSE;
+    else
+    {
+        fatal("Invalid APP_LOG_LEVEL: %s\n", loglevel_str);
+        return false;
     }
 
     server_set_loglevel(log_level);
-    json_object_put(config);
 
     if (!server_argv(server, argc, argv))
         return false;
@@ -305,7 +211,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
 
     server->conf.sql_insert_userfiles = "server/sql/insert_userfiles.sql";
 
-    if (server->conf.thread_pool == -1)
+    if (server->conf.thread_pool == 0)
         server->conf.thread_pool = server_tm_system_threads();
 
     return true;

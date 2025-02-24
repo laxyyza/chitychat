@@ -241,3 +241,10 @@ server_get_content_type(const char* path)
 
     return "application/octet-stream";
 }
+
+const char*
+getenvd(const char* var, const char* default_val)
+{
+    const char* ret = getenv(var);
+    return (ret) ? ret : default_val;
+}

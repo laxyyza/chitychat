@@ -21,8 +21,6 @@
 
 #define SERVER_NAME "ChityChat"
 
-#define SERVER_CONFIG_PATH "server/config.json"
-
 #define CONFIG_PATH_LEN 512
 #define CONFIG_USER_LEN_MAX 128
 #define CONFIG_ADDR_VRESION_LEN 10
