@@ -2,7 +2,7 @@ services:
   app:
     image: laxyy/chitychat
     ports:
-      - "8080:8080"
+      - "${APP_PORT}:${APP_PORT}"
     environment:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_USER=${DB_USER}
