@@ -46,6 +46,11 @@ export class Group
         app.group_list.appendChild(this.div_list);
     }
 
+    update_member_count() 
+    {
+        app.group_members_info.innerHTML = Object.keys(this.members).length + " members";
+    }
+
     add_member(member)
     {
         if (member.id in this.members)
@@ -73,6 +78,7 @@ export class Group
 
         this.div_group_members.appendChild(div_member);
         this.members[member.id] = member;
+        this.update_member_count();
     }
 
     add_msg(user, msg, insert=true)
@@ -276,8 +282,8 @@ export class Group
         app.messages_container.addEventListener('scroll', this.get_scroll_messages)
         app.group_info_name.innerHTML = this.name;
         app.group_desc.innerHTML = this.desc;
-        app.group_members_info.innerHTML = this.members.length + " members";
         localStorage.setItem("group_id", this.id);
+        this.update_member_count();
     }
     // TODO: Add a `update_member()` method.
 }

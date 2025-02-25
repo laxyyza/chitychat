@@ -12,7 +12,7 @@ services:
     volumes: 
       - ./server/server.crt:/app/server/server.crt:ro
       - ./server/server.key:/app/server/server.key:ro
-      - ./client/public/upload:/app/client/public/upload:rw
+      - ./client/public:/app/client/public:rw
     depends_on:
       - db
     restart: unless-stopped
