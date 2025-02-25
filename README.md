@@ -106,10 +106,9 @@
 ```
 git clone https://github.com/laxyyza/chitychat.git && cd chitychat
 ```
-2. **Create `.env` file**, set your own `DB_USER` and `DB_PASSWORD` environment variables. 
+2. Copy `.env-example` to `.env`, then edit it to configure your settings. Be sure to set `DB_USER`, `DB_PASSWORD`, and any other necessary options.
 ```
-echo "DB_USER=your_user
-      DB_PASSWORD=your_password" > .env
+cp .env-example .env
 ```
 3. **Generate SSL certificates** for secure communication:
 ```
