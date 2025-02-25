@@ -106,7 +106,7 @@ server_print_ssl_error(client_t* client, i32 ret, const char* from)
     i32 err = SSL_get_error(client->ssl, ret);
     if (err == SSL_ERROR_NONE)
         return;
-    error("SSL %s: %s\n", from, ERR_error_string(err, NULL));
+    error("SSL %s: %s (%d)\n", from, ERR_error_string(err, NULL), err);
 }
 
 ssize_t  

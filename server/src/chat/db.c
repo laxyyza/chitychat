@@ -377,7 +377,6 @@ db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
         warn("created_at is NULL!\n");
 
     const char* pfp_hash = PQgetvalue(res, row, 7);
-    info("pfp_hash: %s, created_at: %s\n", pfp_hash, created_at);
     if (pfp_hash)
         strncpy(user->pfp_hash, pfp_hash, DB_PFP_HASH_MAX);
 }
