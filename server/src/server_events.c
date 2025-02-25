@@ -62,7 +62,7 @@ se_accept_conn(eworker_t* th, UNUSED server_event_t* ev)
     if ((client = server_accept_client(th)) == NULL)
         return SE_ERROR;
 
-    info("Client (fd:%d, IP: %s:%s) connected.\n", 
+    debug("Client (fd:%d, IP: %s:%s) connected.\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv);
 
     return SE_OK;
@@ -237,10 +237,7 @@ server_process_event(eworker_t* ew, server_event_t* se)
         server_del_event(ew, se);
     }
     else if (ev & (EPOLLRDHUP | EPOLLHUP))
-    {
-        verbose("fd: %d hang up.\n", fd);
         server_del_event(ew, se);
-    }
     else if (ev & EPOLLIN)
     {
         ret = se->read(ew, se);

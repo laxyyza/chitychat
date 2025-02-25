@@ -1,5 +1,6 @@
 #include "server_http.h"
 #include "server.h"
+#include "server_log.h"
 
 #define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
 
@@ -298,9 +299,16 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     return http;
 }
 
-void 
-print_parsed_http(const http_t* http)
+static void 
+print_parsed_http(const http_t* http, client_t* client)
 {
+    if (http->type == HTTP_REQUEST)
+        debug("%s %s %s  (%s:%s)\n", 
+            http->req.version, http->req.method, http->req.url, client->addr.ip_str, client->addr.serv);
+    else
+        debug("%s %d %s  (%s:%s)\n", 
+            http->resp.version, http->resp.code, http->resp.msg, client->addr.ip_str, client->addr.serv);
+
     if (server_get_loglevel() != SERVER_VERBOSE)
         return;
     
@@ -573,7 +581,7 @@ server_http_parse(eworker_t* th, client_t* client, u8* buf, size_t buf_len)
         return RECV_ERROR;
     }
 
-    print_parsed_http(http);
+    print_parsed_http(http, client);
 
     if (!http->buf.missing)
         ret = server_handle_http(th, client, http);
@@ -592,8 +600,6 @@ http_send(client_t* client, http_t* http)
 
     ssize_t bytes_sent = 0;
     http_to_str_t to_str = http_to_str(http);
-
-    verbose("HTTP send to fd:%d (%s:%s), len: %zu\n%s\n", client->addr.sock, client->addr.ip_str, client->addr.serv, to_str.len, to_str.str);
 
     if ((bytes_sent = server_send(client, to_str.str, to_str.len)) == -1)
     {

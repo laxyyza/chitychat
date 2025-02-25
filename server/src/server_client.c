@@ -53,12 +53,12 @@ server_free_client(eworker_t* ew, client_t* client)
         return;
     server_ght_del(&server->client_ht, client->addr.sock);
 
-    info("Client (fd:%d, IP: %s:%s, host: %s) disconnected.\n", 
-            client->addr.sock, client->addr.ip_str, client->addr.serv, client->addr.host);
+    debug("Client (IP: %s:%s) closed.\n", 
+            client->addr.ip_str, client->addr.serv);
     if (client->dbuser)
     {
         if (client->dbuser->user_id)
-            debug("\tUser:%u %s '%s' logged out.\n", 
+            info("\tUser:%u %s '%s' logged out.\n", 
                 client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
     }
 

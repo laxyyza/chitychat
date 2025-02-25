@@ -151,7 +151,6 @@ ws_send_adv(client_t* client, u8 opcode, const char* buf, size_t len,
         i++;
         if (len >= UINT16_MAX)
         {
-            verbose("WS SEND 64-bit\n");
             ws.frame.payload_len = 127;
             swpcpy((u8*)&ws.ext.u64, (u8*)&len, sizeof(u64));
             iov[i].iov_base = &ws.ext.u64;
@@ -159,7 +158,6 @@ ws_send_adv(client_t* client, u8 opcode, const char* buf, size_t len,
         }
         else
         {
-            verbose("WS SEND 16-bit\n");
             ws.frame.payload_len = 126;
             swpcpy((u8*)&ws.ext.u16, (const u8*)&len, sizeof(u16));
             iov[i].iov_base = &ws.ext.u16;

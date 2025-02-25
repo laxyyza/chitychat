@@ -37,9 +37,8 @@ server_set_client_logged_in(eworker_t* ew,
         client->state |= CLIENT_STATE_LOGGED_IN;
         client->session = session;
 
-        debug("Client (fd: %d, IP: %s) logged as user:\n\t\t{ id: %u, username: '%s', displayname: '%s'}\n",
-            client->addr.sock, client->addr.ip_str, 
-            user->user_id, user->username, user->displayname);
+        info("Client (IP: %s) login as user:\n\t\t{ id: %u, username: '%s', displayname: '%s'}\n",
+            client->addr.ip_str, user->user_id, user->username, user->displayname);
     }
 
     if (session && session->timerfd)
