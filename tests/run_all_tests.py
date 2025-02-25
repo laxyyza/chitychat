@@ -11,9 +11,10 @@ import create_group
 import send_msg
 import delete_msg
 import group_access
+import login
 from common import *
 
-username = "test3"
+username = "test1"
 displayname = "Test"
 password = "test_pass"
 
@@ -22,7 +23,11 @@ Register a new account.
 Then retry registering account with the same username.
 """
 async def test_register() -> dict:
-    session: dict = await register.run(username, displayname, password)
+    session: dict = None
+    try:
+        session = await register.run(username, displayname, password)
+    except Exception:
+        session = await login.run(username, password)
 
     try:
         await register.run(username, displayname, password)

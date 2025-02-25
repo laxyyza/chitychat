@@ -15,10 +15,7 @@ async def run(session: dict, msg: dict) -> None:
         group_msgs: dict = await test.get_group_msgs(msg['group_id'])
         old_msg_count = len(group_msgs["messages"])
 
-        await test.request_wait("delete_msg", {
-            "cmd": "delete_msg",
-            "msg_id": msg['msg_id']
-        })
+        await test.delete_msg(msg["msg_id"])
 
         group_msgs: dict = await test.get_group_msgs(msg['group_id'])
         new_msg_count = len(group_msgs["messages"])

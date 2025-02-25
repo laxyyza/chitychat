@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import random
+
 """
 Goal: Verify that only authorized users can interact with a private group, 
 while any user can interact with a public group. Additionally, user that 
@@ -54,11 +56,13 @@ async def run() -> None:
         await user1.connect()
         await user2.connect()
 
-        await user1.register("tgau1", "Test Group Access User 1", "test_pass")
-        await user2.register("tgau2", "Test Group Access User 2", "test_pass")
+        rand = str(random.randint(0, 1000000))
 
-        private_group: dict = await user1.create_group("Private Group", False)
-        public_group: dict = await user1.create_group("Public Group", True)
+        await user1.register("u1_" + rand, "U 1_" + rand, "test_pass")
+        await user2.register("u2_" + rand, "U 2_" + rand, "test_pass")
+
+        private_group: dict = await user1.create_group("test_private_group_" + rand, False)
+        public_group: dict = await user1.create_group("test_public_group_" + rand, True)
 
         private_group = private_group["groups"][0]
         public_group = public_group["groups"][0]

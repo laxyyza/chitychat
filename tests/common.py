@@ -58,6 +58,20 @@ class CTTest:
     async def close(self) -> None:
         await self.ws.close()
     
+    async def login(self, username: str, password: str) -> dict:
+        return await self.request_wait("session", {
+            "cmd": "login",
+            "username": username,
+            "password": password,
+            "session": self.do_session
+        })
+    
+    async def delete_msg(self, msg_id: int) -> dict:
+        return await self.request_wait("delete_msg", {
+            "cmd": "delete_msg",
+            "msg_id": msg_id
+        })
+    
     async def register(self, username: str, displayname: str, password: str) -> dict:
         return await self.request_wait("session", {
             "cmd": "register",
