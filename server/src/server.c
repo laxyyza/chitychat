@@ -104,7 +104,7 @@ static void
 server_print_ssl_error(client_t* client, i32 ret, const char* from)
 {
     i32 err = SSL_get_error(client->ssl, ret);
-    if (err == SSL_ERROR_NONE)
+    if (err == SSL_ERROR_NONE || err == SSL_ERROR_ZERO_RETURN)
         return;
     error("SSL %s: %s (%d)\n", from, ERR_error_string(err, NULL), err);
 }
