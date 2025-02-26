@@ -401,7 +401,7 @@ export class App
 
         const session_packet = {
             cmd: "session",
-            id: Number(session_id)
+            id: session_id
         };
 
         this.server.ws_send(session_packet);

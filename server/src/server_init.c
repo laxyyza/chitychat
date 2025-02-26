@@ -193,24 +193,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
 
     verbose("Setting log level: %d\n", log_level);
 
-    server->conf.sql_schema = "server/sql/schema.sql";
-
-    server->conf.sql_insert_user = "server/sql/insert_user.sql";
-    server->conf.sql_select_user = "server/sql/select_user.sql";
-
-    server->conf.sql_insert_group = "server/sql/insert_group.sql";
-    server->conf.sql_select_group = "server/sql/select_group.sql";
-
-    server->conf.sql_insert_groupmember_code = "server/sql/insert_groupmember_code.sql";
-    server->conf.sql_select_groupmember = "server/sql/select_groupmember.sql";
-
-    server->conf.sql_insert_msg = "server/sql/insert_msg.sql";
-    server->conf.sql_select_msg = "server/sql/select_msg.sql";
-
-    server->conf.sql_update_user = "server/sql/update_user.sql";
-
-    server->conf.sql_insert_userfiles = "server/sql/insert_userfiles.sql";
-
     if (server->conf.thread_pool == 0)
         server->conf.thread_pool = server_tm_system_threads();
 
@@ -346,9 +328,6 @@ server_init_ht(server_t* server)
         return false;
 
     if (server_ght_init(&server->user_ht, ht_size, NULL) == false)
-        return false;
-
-    if (server_ght_init(&server->session_ht, ht_size, NULL) == false)
         return false;
 
     if (server_ght_init(&server->upload_token_ht, ht_size, NULL) == false)

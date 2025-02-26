@@ -2,18 +2,6 @@
 #include "server.h"
 
 static enum se_status
-timer_user_session(server_t* server, server_timer_t* timer)
-{
-    session_t* session = timer->data.session;
-
-    debug("Client session for user_id:%u expired %zu times, id: %u.\n", 
-          session->user_id, timer->exp, session->session_id);
-    server_del_user_session(server, session);
-
-    return SE_CLOSE;
-}
-
-static enum se_status
 timer_ut(eworker_t* th, server_timer_t* timer)
 {
     upload_token_t* ut = timer->data.ut;
@@ -36,9 +24,6 @@ server_timer_exp(eworker_t* th, server_timer_t* timer)
 
     switch (timer->type)
     {
-        case TIMER_CLIENT_SESSION:
-            ret = timer_user_session(th->server, timer);
-            break;
         case TIMER_UPLOAD_TOKEN:
             ret = timer_ut(th, timer);
             break;
@@ -105,9 +90,6 @@ server_addtimer(eworker_t* th, i32 seconds, i32 flags,
 
     switch (timer->type)
     {
-        case TIMER_CLIENT_SESSION:
-            timer->data.session->timerfd = timer->fd;
-            break;
         case TIMER_UPLOAD_TOKEN:
             timer->data.ut->timerfd = timer->fd;
             break;

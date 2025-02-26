@@ -27,60 +27,40 @@
 
 typedef struct 
 {
-    char*   schema;
-    size_t  schema_len;
+    const char*   schema;
 
-    char*   insert_user;
-    size_t  insert_user_len;
-    char*   select_user;
-    size_t  select_user_len;
-    char*   select_connected_users;
-    size_t  select_connected_users_len;
-    char*   select_user_json;
-    size_t  select_user_json_len;
-    char*   delete_user;
-    size_t  delete_user_len;
+    const char*   insert_user;
+    const char*   select_user;
+    const char*   select_connected_users;
+    const char*   select_user_json;
+    const char*   delete_user;
 
-    char*   insert_group;
-    size_t  insert_group_len;
-    char*   select_user_groups;
-    size_t  select_user_groups_len;
-    char*   select_pub_group;
-    size_t  select_pub_group_len;
-    char*   delete_group;
-    size_t  delete_group_len;
+    const char*   insert_group;
+    const char*   select_user_groups;
+    const char*   select_pub_group;
+    const char*   delete_group;
 
-    char*   select_groupmember;
-    size_t  select_groupmember_len;
-    char*   insert_pub_groupmember;
-    size_t  insert_pub_groupmember_len;
-    char*   delete_groupmember;
-    size_t  delete_groupmember_len;
+    const char*   select_groupmember;
+    const char*   insert_pub_groupmember;
+    const char*   delete_groupmember;
 
-    char*   insert_msg;
-    size_t  insert_msg_len;
-    char*   select_msg;
-    size_t  select_msg_len;
-    char*   select_group_msgs_json;
-    size_t  select_group_msgs_json_len;
-    char*   delete_msg;
-    size_t  delete_msg_len;
+    const char*   insert_msg;
+    const char*   select_msg;
+    const char*   select_group_msgs_json;
+    const char*   delete_msg;
 
-    char*   update_user;
-    size_t  update_user_len;
+    const char*   update_user;
 
-    char*   insert_userfiles;
-    size_t  insert_userfiles_len;
+    const char*   insert_userfiles;
 
-    char*   insert_groupmember_code;
-    size_t  insert_groupmember_code_len;
+    const char*   insert_groupmember_code;
 
-    char*   create_group_code;
-    size_t  create_group_code_len;
-    char*   get_group_code;
-    size_t  get_group_code_len;
-    char*   delete_group_code;
-    size_t  delete_group_code_len;
+    const char*   create_group_code;
+    const char*   get_group_code;
+    const char*   delete_group_code;
+
+    const char*   insert_session;
+    const char*   select_session;
 } server_db_commands_t;
 
 typedef struct eworker eworker_t;

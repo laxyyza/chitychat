@@ -47,23 +47,6 @@ typedef struct server_config
     bool fork;
     i32  thread_pool;
 
-    const char* sql_schema;
-    const char* sql_insert_user;
-    const char* sql_select_user;
-
-    const char* sql_insert_group;
-    const char* sql_select_group;
-
-    const char* sql_insert_groupmember_code;
-    const char* sql_select_groupmember;
-
-    const char* sql_insert_msg;
-    const char* sql_select_msg;
-
-    const char* sql_update_user;
-
-    const char* sql_insert_userfiles;
-
     bool retry_db_connect;
 } server_config_t;
  
@@ -92,7 +75,6 @@ typedef struct server
     server_ght_t event_ht;
     server_ght_t client_ht;
     server_ght_t user_ht;
-    server_ght_t session_ht;
     server_ght_t upload_token_ht;
     server_ght_t chat_cmd_ht;
     bool running;

@@ -64,6 +64,14 @@ CREATE TABLE IF NOT EXISTS GroupCodes(
     FOREIGN KEY (group_id) REFERENCES Groups(group_id)
 );
 
+CREATE TABLE IF NOT EXISTS Sessions(
+    session_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    created_at  TIMESTAMP DEFAULT now(),
+    last_used   TIMESTAMP DEFAULT now(),
+    expires_at  TIMESTAMP DEFAULT now() + INTERVAL '7 days'
+);
+
 CREATE OR REPLACE FUNCTION delete_groupcode_if_over_max()
 RETURNS TRIGGER AS $$
 BEGIN

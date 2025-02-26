@@ -47,7 +47,7 @@ server_src = files(
     'server/src/chat/group.c',
     'server/src/chat/user.c',
     'server/src/chat/ws_text_frame.c',
-    'server/src/chat/user_session.c',
+    #'server/src/chat/user_session.c',
     'server/src/chat/upload_token.c',
     'server/src/chat/db.c',
     'server/src/chat/db_user.c',
@@ -57,6 +57,7 @@ server_src = files(
     'server/src/chat/user_upload.c',
     'server/src/chat/rtusm.c',
     'server/src/chat/cmd.c',
+    'server/src/chat/db_user_session.c',
 )
 include_dirs = include_directories('server/include')
 

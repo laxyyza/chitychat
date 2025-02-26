@@ -37,7 +37,6 @@ typedef struct client
     u16         err;
     SSL*        ssl;
     dbuser_t*   dbuser;
-    session_t*  session;
     recv_buf_t  recv;
     pthread_mutex_t ssl_mutex;
 } client_t;

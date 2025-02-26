@@ -66,6 +66,12 @@ typedef struct
     const char* pfp_hash;
 } rtusm_param_t;
 
+typedef struct 
+{
+    client_t* client;
+    dbuser_t* user;
+} session_login_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
@@ -75,13 +81,14 @@ union cmd_param
     delete_msg_param_t del_msg;
     group_owner_param_t group_owner;
     rtusm_param_t rtusm;
-    session_t*  session;
+    dbsession_t*  session;
     json_object* json;
     const char* str;
     void*       ptr;
     u32         group_id;
     u32         user_id;
 	get_group_msgs_param_t get_group_msgs;
+    session_login_param_t session_login;
 };
 
 typedef struct dbcmd_ctx

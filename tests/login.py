@@ -18,19 +18,18 @@ async def run(username, password) -> dict:
         await test.close()
         raise e
 
-async def main(username, displayname, password) -> int:
+async def main(username, password) -> int:
     try:
-        await run(username, displayname, password)
+        await run(username, password)
     except Exception as e:
         return -1
     return 0
 
 if __name__ == '__main__':
-    if len(sys.argv) == 4:
+    if len(sys.argv) == 3:
         username = sys.argv[1]
-        displayname = sys.argv[2]
-        password = sys.argv[3]
-        ret = asyncio.run(main(username, displayname, password))
+        password = sys.argv[2]
+        ret = asyncio.run(main(username, password))
         sys.exit(ret)
-    print("Need username, displayname and password arguments")
+    print("Need username and password arguments")
     sys.exit(-1)

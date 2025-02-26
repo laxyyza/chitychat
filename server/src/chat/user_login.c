@@ -3,26 +3,27 @@
 #include "chat/db_def.h"
 #include "chat/db_user.h"
 #include "chat/rtusm.h"
+#include "chat/db_user_session.h"
 #include "chat/user_session.h"
 #include "chat/ws_text_frame.h"
 #include "server_ht.h"
 
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
+#define SOMEONE_ELSE_STR "Someone else already logged in"
 
 static const char* 
 server_set_client_logged_in(eworker_t* ew, 
                             client_t* client, 
                             dbuser_t* user,
-                            session_t* session, 
+                            dbsession_t* session, 
                             json_object* respond_json)
 {
-    server_event_t* session_timer_ev = NULL;
     const client_t* client_already_logged_in;
-    const u64 session_id = (session) ? session->session_id : 0;
+    const char* session_id = (session) ? session->uuid : "0";
 
     client_already_logged_in = server_get_client_user_id(ew->server, user->user_id);
     if (client_already_logged_in)
-        return "Someone else already logged in";
+        return SOMEONE_ELSE_STR;
 
     client->dbuser = user;
     server_ght_insert(&ew->server->user_ht, user->user_id, client);
@@ -30,26 +31,14 @@ server_set_client_logged_in(eworker_t* ew,
     json_object_object_add(respond_json, "cmd", 
                         json_object_new_string("session"));
     json_object_object_add(respond_json, "id", 
-                           json_object_new_uint64(session_id));
+                           json_object_new_string(session_id));
 
     if (ws_json_send(client, respond_json) != -1)
     {
         client->state |= CLIENT_STATE_LOGGED_IN;
-        client->session = session;
 
         info("Client (IP: %s) login as user:\n\t\t{ id: %u, username: '%s', displayname: '%s'}\n",
             client->addr.ip_str, user->user_id, user->username, user->displayname);
-    }
-
-    if (session && session->timerfd)
-    {
-        session_timer_ev = server_get_event(ew->server, session->timerfd);
-        if (session_timer_ev)
-        {
-            session_timer_ev->keep_data = true;
-            server_del_event(ew, session_timer_ev);
-        }
-        session->timerfd = 0;
     }
 
     return NULL;
@@ -58,24 +47,41 @@ server_set_client_logged_in(eworker_t* ew,
 static const char*
 do_client_login_session(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
-    session_t* session = ctx->param.session;
+    dbsession_t* session = ctx->param.session;
     dbuser_t* user = ctx->data;
     const char* errmsg;
 
     if (ctx->ret == DB_ASYNC_ERROR)
-    {
-        server_del_user_session(ew->server, ctx->param.session);
         return "Could not find user from session";
-    }
 
     json_object* resp = json_object_new_object();
     errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
     json_object_put(resp);
 
+    // IDK if session needs to be freed or not.
+
     if (errmsg == NULL)
         ctx->data = NULL;
 
     return errmsg;
+}
+
+static const char* 
+do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    dbsession_t* session  = ctx->data;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Invalid session ID";
+
+    ctx->exec = do_client_login_session;
+    ctx->param.session = session;
+    ctx->data = NULL;
+
+    if (!db_async_get_user(&ew->db, session->user_id, ctx))
+        return "Internal error: async-get-user";
+
+    return NULL;
 }
 
 const char* 
@@ -85,22 +91,73 @@ server_client_login_session(eworker_t* ew,
                             UNUSED json_object* respond_json)
 {
     json_object* session_id_json;
-    session_t* session;
-    u32 session_id;
+    dbsession_t* session;
+    const char* session_id;
     
-    RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_int);
-    session_id = json_object_get_uint64(session_id_json);
-
-    session = server_get_user_session(ew->server, session_id);
-    if (!session)
-        return "Invalid session ID or session expired";
+    RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_string);
+    session_id = json_object_get_string(session_id_json);
 
     dbcmd_ctx_t ctx = {
-        .exec = do_client_login_session,
-        .param.session = session
+        .exec = do_get_session
     };
-    if (db_async_get_user(&ew->db, session->user_id, &ctx) == false)
-        return "Internal error: async-get-user";
+
+    session = calloc(1, sizeof(dbsession_t));
+    strncpy(session->uuid, session_id, UUID_LEN);
+
+    if (!db_async_select_session(&ew->db, session, &ctx))
+        return "Internal error: async-select-session";
+
+    // session = server_get_user_session(ew->server, session_id);
+    // if (!session)
+    //     return "Invalid session ID or session expired";
+
+    // dbcmd_ctx_t ctx = {
+    //     .exec = do_client_login_session,
+    //     .param.session = session
+    // };
+    // if (db_async_get_user(&ew->db, session->user_id, &ctx) == false)
+    //     return "Internal error: async-get-user";
+    return NULL;
+}
+
+static const char* 
+after_session_insert(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    const char* errmsg;
+    json_object* resp;
+    client_t* client;
+    dbuser_t* user;
+    dbsession_t* session;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+        return "Failed to create session";
+
+    client = ctx->param.session_login.client;
+    user = ctx->param.session_login.user;
+    session = ctx->data;
+
+    resp = json_object_new_object();
+    errmsg = server_set_client_logged_in(ew, client, user, session, resp);
+    json_object_put(resp);
+
+    return errmsg;
+}
+
+static const char*
+async_create_session(eworker_t* ew, client_t* client, dbuser_t* user, dbsession_t* session)
+{
+    dbcmd_ctx_t ctx = {
+        .exec = after_session_insert,
+        .param.session_login.client = client,
+        .param.session_login.user = user,
+        .client = client
+    };
+    if (!db_async_insert_session(&ew->db, session, &ctx))
+    {
+        free(session);
+        return "Internal error: async-insert-session";
+    }
+
     return NULL;
 }
 
@@ -111,7 +168,7 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
     dbuser_t* user = ctx->data;
     const char* password = ctx->param.user_login.password;
     const bool do_session = ctx->param.user_login.do_session;
-    session_t* session;
+    dbsession_t* session;
     u8 hash_login[SERVER_HASH_SIZE];
 
     if (ctx->ret == DB_ASYNC_ERROR)
@@ -126,17 +183,20 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
     {
-        if (do_session)
+        if (server_get_client_user_id(ew->server, user->user_id))    
+            errmsg = SOMEONE_ELSE_STR;
+        else if (do_session)
         {
-            session = server_new_user_session(ew->server, ctx->client);
+            session = calloc(1, sizeof(dbsession_t));
             session->user_id = user->user_id;
+            errmsg = async_create_session(ew, ctx->client, user, session);
         }
         else
-            session = NULL;
-
-        json_object* resp = json_object_new_object();
-        errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
-        json_object_put(resp);
+        {
+            json_object* resp = json_object_new_object();
+            errmsg = server_set_client_logged_in(ew, ctx->client, user, NULL, resp);
+            json_object_put(resp);
+        }
     }
     else
         errmsg = INCORRECT_LOGIN_STR;
@@ -195,7 +255,7 @@ do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
     const char* errmsg = NULL;
     dbuser_t* user = ctx->data;
-    session_t* session;
+    dbsession_t* session;
     const bool do_session = ctx->param.user_login.do_session;
 
     if (ctx->ret == DB_ASYNC_ERROR)
@@ -203,15 +263,20 @@ do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if (do_session)
     {
-        session = server_new_user_session(ew->server, ctx->client);
+        session = calloc(1, sizeof(dbsession_t));
         session->user_id = user->user_id;
     }
     else 
         session = NULL;
 
-    json_object* resp = json_object_new_object();
-    errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
-    json_object_put(resp);
+    if (session)
+        errmsg = async_create_session(ew, ctx->client, user, session);
+    else
+    {
+        json_object* resp = json_object_new_object();
+        errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
+        json_object_put(resp);
+    }
 
     /* See user_login.c:do_client_login() why setting ctx->data to NULL */
     if (errmsg == NULL)

@@ -69,19 +69,6 @@ server_free_client(eworker_t* ew, client_t* client)
         SSL_free(client->ssl);
     }
 
-    if (client->session && client->session->timerfd == 0 && ew->server->running)
-    {
-        union timer_data data = {
-            .session = client->session
-        };
-        // TODO: Make client session timer configurable
-        server_timer_t* timer = server_addtimer(ew, MINUTES(30), 
-                                                TIMER_ONCE, TIMER_CLIENT_SESSION, 
-                                                &data, sizeof(void*));
-        if (timer)
-            client->session->timerfd = timer->fd;
-    }
-
     if (client->recv.data)
         free(client->recv.data);
     if (client->dbuser)

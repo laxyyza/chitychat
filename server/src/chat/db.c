@@ -23,11 +23,13 @@ db_init_queue(server_db_t* db, size_t size)
 }
 
 static char* 
-server_db_load_sql(const char* path, size_t* size)
+server_db_load_sql(const char* name)
 {
     i32 fd;
     size_t len = 0;
     char* buffer = NULL;
+    char path[PATH_MAX];
+    snprintf(path, PATH_MAX, "server/sql/%s.sql", name);
 
     fd = open(path, O_RDONLY);
     if (fd == -1)
@@ -44,7 +46,6 @@ server_db_load_sql(const char* path, size_t* size)
     }
 
     buffer = malloc(len + 1);
-    *size = len;
 
     if (read(fd, buffer, len) == -1)
     {
@@ -116,42 +117,39 @@ server_init_db(server_t* server)
 
     cmd = &server->db_commands;
 
-    cmd->schema = server_db_load_sql(server->conf.sql_schema, &cmd->schema_len);
+    cmd->schema = server_db_load_sql("schema");
 
-    cmd->insert_user = server_db_load_sql(server->conf.sql_insert_user, &cmd->insert_user_len);
-    cmd->select_user = server_db_load_sql(server->conf.sql_select_user, &cmd->select_user_len);
-    cmd->select_connected_users = server_db_load_sql("server/sql/select_connected_users.sql",
-                                                     &cmd->select_connected_users_len);
-    cmd->select_user_json = server_db_load_sql("server/sql/select_user_json.sql",
-                                               &cmd->select_user_json_len);
+    cmd->insert_user = server_db_load_sql("insert_user");
+    cmd->select_user = server_db_load_sql("select_user");
 
-    cmd->insert_group = server_db_load_sql(server->conf.sql_insert_group, &cmd->insert_group_len);
-    cmd->select_user_groups = server_db_load_sql("server/sql/select_user_groups.sql", 
-                                                 &cmd->select_user_groups_len);
-    cmd->select_pub_group = server_db_load_sql("server/sql/select_public_group.sql",
-                                               &cmd->select_pub_group_len);
+    cmd->select_connected_users = server_db_load_sql("select_connected_users");
+    cmd->select_user_json = server_db_load_sql("select_user_json");
 
-    cmd->insert_groupmember_code = server_db_load_sql(server->conf.sql_insert_groupmember_code, &cmd->insert_groupmember_code_len);
-    cmd->select_groupmember = server_db_load_sql(server->conf.sql_select_groupmember, &cmd->select_groupmember_len);
-    cmd->insert_pub_groupmember = server_db_load_sql("server/sql/join_pub_group.sql",
-                                                     &cmd->insert_pub_groupmember_len);
+    cmd->insert_group = server_db_load_sql("insert_group");
+    cmd->select_user_groups = server_db_load_sql("select_user_groups");
+    cmd->select_pub_group = server_db_load_sql("select_public_group");
 
-    cmd->insert_msg = server_db_load_sql(server->conf.sql_insert_msg, &cmd->insert_msg_len);
-    cmd->select_msg = server_db_load_sql(server->conf.sql_select_msg, &cmd->select_msg_len);
-    cmd->select_group_msgs_json = server_db_load_sql("server/sql/select_group_msgs_json.sql",
-                                                     &cmd->select_group_msgs_json_len);
-    cmd->delete_msg = server_db_load_sql("server/sql/delete_msg.sql",
-                                         &cmd->delete_msg_len);
+    cmd->insert_groupmember_code = server_db_load_sql("insert_groupmember_code");
 
-    cmd->update_user = server_db_load_sql(server->conf.sql_update_user, &cmd->delete_msg_len);
-    cmd->insert_userfiles = server_db_load_sql(server->conf.sql_insert_userfiles, &cmd->insert_userfiles_len);
+    cmd->select_groupmember = server_db_load_sql("select_groupmember");
+    cmd->insert_pub_groupmember = server_db_load_sql("join_pub_group");
 
-    cmd->create_group_code = server_db_load_sql("server/sql/create_group_code.sql",
-                                                &cmd->create_group_code_len);
-    cmd->get_group_code = server_db_load_sql("server/sql/get_group_codes.sql",
-                                             &cmd->get_group_code_len);
-    cmd->delete_group_code = server_db_load_sql("server/sql/delete_group_code.sql",
-                                                &cmd->delete_group_code_len);
+    cmd->insert_msg = server_db_load_sql("insert_msg");
+    cmd->select_msg = server_db_load_sql("select_msg");
+
+    cmd->select_group_msgs_json = server_db_load_sql("select_group_msgs_json");
+    cmd->delete_msg = server_db_load_sql("delete_msg");
+
+    cmd->update_user = server_db_load_sql("update_user");
+
+    cmd->insert_userfiles = server_db_load_sql("insert_userfiles");
+
+    cmd->create_group_code = server_db_load_sql("create_group_code");
+    cmd->get_group_code = server_db_load_sql("get_group_codes");
+    cmd->delete_group_code = server_db_load_sql("delete_group_code");
+
+    cmd->insert_session = server_db_load_sql("insert_session");
+    cmd->select_session = server_db_load_sql("select_session");
 
     return db_exec_schema(server);
 }
@@ -243,35 +241,38 @@ server_db_free(server_t* server)
 
     server_db_commands_t* cmd = &server->db_commands;
 
-    free(cmd->schema);
+    free((void*)cmd->schema);
 
-    free(cmd->insert_user);
-    free(cmd->select_user);
-    free(cmd->select_user_json);
-    free(cmd->select_connected_users);
-    free(cmd->delete_user);
+    free((void*)cmd->insert_user);
+    free((void*)cmd->select_user);
+    free((void*)cmd->select_user_json);
+    free((void*)cmd->select_connected_users);
+    free((void*)cmd->delete_user);
 
-    free(cmd->insert_group);
-    free(cmd->select_user_groups);
-    free(cmd->select_pub_group);
-    free(cmd->delete_group);
+    free((void*)cmd->insert_group);
+    free((void*)cmd->select_user_groups);
+    free((void*)cmd->select_pub_group);
+    free((void*)cmd->delete_group);
 
-    free(cmd->insert_groupmember_code);
-    free(cmd->insert_pub_groupmember);
-    free(cmd->select_groupmember);
-    free(cmd->delete_groupmember);
+    free((void*)cmd->insert_groupmember_code);
+    free((void*)cmd->insert_pub_groupmember);
+    free((void*)cmd->select_groupmember);
+    free((void*)cmd->delete_groupmember);
 
-    free(cmd->insert_msg);
-    free(cmd->select_msg);
-    free(cmd->select_group_msgs_json);
-    free(cmd->delete_msg);
+    free((void*)cmd->insert_msg);
+    free((void*)cmd->select_msg);
+    free((void*)cmd->select_group_msgs_json);
+    free((void*)cmd->delete_msg);
 
-    free(cmd->update_user);
-    free(cmd->insert_userfiles);
+    free((void*)cmd->update_user);
+    free((void*)cmd->insert_userfiles);
 
-    free(cmd->create_group_code);
-    free(cmd->get_group_code);
-    free(cmd->delete_group_code);
+    free((void*)cmd->create_group_code);
+    free((void*)cmd->get_group_code);
+    free((void*)cmd->delete_group_code);
+
+    free((void*)cmd->insert_session);
+    free((void*)cmd->select_session);
 }
 
 void 

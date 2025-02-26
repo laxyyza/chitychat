@@ -36,18 +36,6 @@ server_del_all_clients(server_t* server)
 }
 
 static void 
-server_del_all_sessions(server_t* server)
-{
-    server_ght_t* ht = &server->session_ht;
-    ht->ignore_resize = true;
-
-    GHT_FOREACH(session_t* session, ht, {
-        server_del_user_session(server, session);
-    });
-    server_ght_destroy(ht);
-}
-
-static void 
 server_del_all_upload_tokens(server_t* server)
 {
     server_ght_t* ht = &server->upload_token_ht;
@@ -81,7 +69,6 @@ server_cleanup(server_t* server)
     server_ght_destroy(&server->chat_cmd_ht);
     server_del_all_events(server);
     server_del_all_clients(server);
-    server_del_all_sessions(server);
     server_del_all_upload_tokens(server);
     server_db_free(server);
     server_close_magic(server);

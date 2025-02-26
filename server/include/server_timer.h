@@ -11,13 +11,11 @@
 
 enum timer_type
 {
-    TIMER_CLIENT_SESSION,
     TIMER_UPLOAD_TOKEN
 };
 
 union timer_data
 {
-    session_t* session;
     upload_token_t* ut;
 };
 
