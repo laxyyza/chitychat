@@ -9,24 +9,18 @@
 #include "server_ht.h"
 
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
-#define SOMEONE_ELSE_STR "Someone else already logged in"
 
 static const char* 
-server_set_client_logged_in(eworker_t* ew, 
+server_set_client_logged_in(UNUSED eworker_t* ew, 
                             client_t* client, 
                             dbuser_t* user,
                             dbsession_t* session, 
                             json_object* respond_json)
 {
-    const client_t* client_already_logged_in;
     const char* session_id = (session) ? session->uuid : "0";
 
-    client_already_logged_in = server_get_client_user_id(ew->server, user->user_id);
-    if (client_already_logged_in)
-        return SOMEONE_ELSE_STR;
-
+    array_add_voidp(&user->connected_clients, client);
     client->dbuser = user;
-    server_ght_insert(&ew->server->user_ht, user->user_id, client);
 
     json_object_object_add(respond_json, "cmd", 
                         json_object_new_string("session"));
@@ -70,18 +64,31 @@ static const char*
 do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
     dbsession_t* session  = ctx->data;
+    dbuser_t* user;
+    const char* errmsg = NULL;
 
     if (ctx->ret == DB_ASYNC_ERROR)
         return "Invalid session ID";
 
-    ctx->exec = do_client_login_session;
     ctx->param.session = session;
-    ctx->data = NULL;
 
-    if (!db_async_get_user(&ew->db, session->user_id, ctx))
-        return "Internal error: async-get-user";
+    if ((user = server_ght_get(&ew->server->user_ht, session->user_id)))
+    {
+        info("Cached user: %u\n", user->username);
+        ctx->data = user;
+        errmsg = do_client_login_session(ew, ctx);
+        ctx->data = NULL;
+    }
+    else
+    {
+        info("Getting user-id: %u from database.\n", session->user_id);
+        ctx->exec = do_client_login_session;
 
-    return NULL;
+        if (!db_async_get_user(&ew->db, session->user_id, ctx))
+            return "Internal error: async-get-user";
+    }
+
+    return errmsg;
 }
 
 const char* 
@@ -183,9 +190,7 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
     {
-        if (server_get_client_user_id(ew->server, user->user_id))    
-            errmsg = SOMEONE_ELSE_STR;
-        else if (do_session)
+        if (do_session)
         {
             session = calloc(1, sizeof(dbsession_t));
             session->user_id = user->user_id;
@@ -312,7 +317,7 @@ server_client_register(eworker_t* ew,
     password = json_object_get_string(password_json);
     do_session = json_object_get_boolean(do_session_json);
 
-    new_user = calloc(1, sizeof(dbuser_t));
+    new_user = server_new_user(ew, 0);
     strncpy(new_user->username, username, DB_USERNAME_MAX);
     strncpy(new_user->displayname, displayname, DB_USERNAME_MAX);
 

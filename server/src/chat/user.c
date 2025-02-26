@@ -7,6 +7,45 @@
 #include "server_client.h"
 #include "server_websocket.h"
 
+dbuser_t* 
+server_new_user(eworker_t* ew, u32 user_id)
+{
+    dbuser_t* user;
+
+    if (user_id && (user = server_ght_get(&ew->server->user_ht, user_id)))
+        return user;
+    
+    user = calloc(1, sizeof(dbuser_t));
+    array_init(&user->connected_clients, sizeof(client_t*), 5);
+
+    if (user_id)
+        server_ght_insert(&ew->server->user_ht, user_id, user);
+
+    return user;
+}
+
+void
+server_user_send(dbuser_t* user, json_object* packet)
+{
+    for (u32 i = 0; i < user->connected_clients.count; i++)
+    {
+        client_t* client = *(client_t**)array_idx(&user->connected_clients, i);
+        ws_json_send(client, packet);
+    }
+}
+
+bool
+server_userid_send(eworker_t* ew, u32 user_id, json_object* packet)
+{
+    dbuser_t* user = server_ght_get(&ew->server->user_ht, user_id);
+    if (user == NULL)
+        return false;
+
+    server_user_send(user, packet);
+
+    return true;
+}
+
 static void 
 server_add_user_in_json(dbuser_t* dbuser, json_object* json)
 {
@@ -68,7 +107,7 @@ static dbuser_t**
 get_rm_users_json(eworker_t* ew, json_object* array, size_t* n)
 {
     dbuser_t** ret = NULL;
-    client_t* client;
+    dbuser_t* user;
     size_t array_size = json_object_array_length(array);
     size_t pos = 0;
     json_object* int_json;
@@ -80,11 +119,11 @@ get_rm_users_json(eworker_t* ew, json_object* array, size_t* n)
         int_json = json_object_array_get_idx(array, i);
         user_id = json_object_get_int(int_json);
 
-        if ((client = server_ght_get(uht, user_id)))
+        if ((user = server_ght_get(uht, user_id)))
         {
             if (ret == NULL)
                 ret = calloc(array_size, sizeof(void*));
-            ret[pos] = client->dbuser;
+            ret[pos] = user;
             pos++;
             json_object_array_del_idx(array, i, 1);
         }

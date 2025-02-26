@@ -144,8 +144,6 @@ se_close_client(eworker_t* th, server_event_t* ev)
 
     if (ev->err == EPIPE)
         server_set_client_err(client, CLIENT_ERR_SSL);
-    else if (client->dbuser && th->server->running)
-        server_rtusm_user_disconnect(th, client->dbuser);
 
     server_free_client(th, client);
     return SE_OK;

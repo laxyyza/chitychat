@@ -1,22 +1,18 @@
 project('chitychat', 'c', 
-    version: '0.1',
     default_options: [
-        'c_std=c17',
+        'c_std=c23',
         'werror=true',
         'warning_level=2',
     ],
+    version: run_command('cat', join_paths(meson.project_source_root(), 'VERSION'), check: true).stdout().strip(),
 )
 
 add_global_arguments(
-    '-Wshadow',
-    '-Wstrict-prototypes',
-    '-Wstrict-overflow=5',
-    '-Wunreachable-code',
-    '-Winit-self',
-    '-Wuninitialized',
     '-Wno-deprecated-declarations', 
     language: 'c',
 )
+
+subdir('server/lib/cutils')
 
 openssl_dep = dependency('openssl')
 jsonc_dep = dependency('json-c')
@@ -59,7 +55,8 @@ server_src = files(
     'server/src/chat/cmd.c',
     'server/src/chat/db_user_session.c',
 )
-include_dirs = include_directories('server/include')
+include_dirs = [include_directories('server/include')]
+include_dirs += cutils_include
 
 executable('chitychat', server_src, 
     include_directories: include_dirs,
@@ -68,5 +65,6 @@ executable('chitychat', server_src,
         jsonc_dep, 
         libpq_dep, 
         magic_dep
-    ]
+    ],
+    link_with: libcutils
 )

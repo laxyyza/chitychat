@@ -11,15 +11,10 @@ do_group_broadcast(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
     json_object* json = ctx->param.json;
     const i32* member_ids = ctx->data;
-    client_t* member_client;
     size_t n_members = ctx->data_size;
 
     for (size_t i = 0; i < n_members; i++)
-    {
-        member_client = server_get_client_user_id(ew->server, member_ids[i]);
-        if (member_client)
-            ws_json_send(member_client, json);
-    }
+        server_userid_send(ew, member_ids[i], json);
 
     json_object_put(json);
 

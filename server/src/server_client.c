@@ -73,8 +73,21 @@ server_free_client(eworker_t* ew, client_t* client)
         free(client->recv.data);
     if (client->dbuser)
     {
-        server_ght_del(&ew->server->user_ht, client->dbuser->user_id);
-        free(client->dbuser);
+        for (u32 i = 0; i < client->dbuser->connected_clients.count; i++)
+        {
+            client_t* other_client = *(client_t**)array_idx(&client->dbuser->connected_clients, i);
+            if (other_client == client)
+            {
+                array_erase(&client->dbuser->connected_clients, i);
+                break;
+            }
+        }
+
+        if (ew->server->running)
+            server_rtusm_user_disconnect(ew, client->dbuser);
+
+        if (client->dbuser->connected_clients.count == 0)
+            server_ght_del(&ew->server->user_ht, client->dbuser->user_id);
     }
     close(client->addr.sock);
 

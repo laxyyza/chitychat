@@ -1,23 +1,42 @@
+#include "server.h"
 #include "chat/db.h"
 #include "chat/db_def.h"
 #include "chat/db_pipeline.h"
 #include <libpq-fe.h>
 
 static void 
-db_get_user_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+db_get_user_result(eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
 {
     i32 rows;
     ctx->ret = DB_ASYNC_ERROR;
     dbuser_t* user = NULL;
+    u32 user_id;
+    char* endptr;
 
     if (status == PGRES_TUPLES_OK)
     {
         rows = PQntuples(res);
         if (rows == 0)
             return;
-        ctx->ret = DB_ASYNC_OK;
-        user = calloc(1, sizeof(dbuser_t));
-        db_row_to_user(user, res, 0);
+
+        const char* id_str = PQgetvalue(res, 0, 0);
+        if (id_str)
+        {
+            user_id = strtoul(id_str, &endptr, 10);
+            ctx->ret = DB_ASYNC_OK;
+
+            if ((user = server_ght_get(&ew->server->user_ht, user_id)) == NULL)
+            {
+                user = server_new_user(ew, 0);
+                db_row_to_user(user, res, 0);
+                server_ght_insert(&ew->server->user_ht, user->user_id, user);
+            }
+        }
+        else
+        {
+            ctx->ret = DB_ASYNC_ERROR;
+            return;
+        }
     }
     else
         error("get_user: %s\n", PQresultErrorMessage(res));

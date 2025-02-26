@@ -1,3 +1,4 @@
+#include "server.h"
 #include "chat/rtusm.h"
 #include "chat/db_def.h"
 #include "chat/user.h"
@@ -62,12 +63,8 @@ do_rtusm_broadcast(eworker_t* ew, dbcmd_ctx_t* ctx)
                                json_object_new_string(pfp_hash));
     }
 
-    for (size_t i = 0; i < size; i++)
-    {
-        client_t* connected_client = server_get_client_user_id(ew->server, user_ids[i]);
-        if (connected_client)
-            ws_json_send(connected_client, json);
-    }
+    for (u32 i = 0; i < size; i++)
+        server_userid_send(ew, user_ids[i], json);
 
     json_object_put(json);
     free((void*)pfp_hash);
@@ -100,6 +97,9 @@ server_rtusm_set_user_status(eworker_t* ew, dbuser_t* user, enum rtusm_status st
 void    
 server_rtusm_user_disconnect(eworker_t* ew, dbuser_t* user)
 {
+    if (user->connected_clients.count > 0)
+        return;
+
     user->rtusm.status = USER_OFFLINE;
     user->rtusm.typing_group_id = 0;
     user->rtusm.typing = 0;
