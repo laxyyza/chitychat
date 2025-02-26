@@ -3,6 +3,7 @@ project('chitychat', 'c',
         'c_std=c23',
         'werror=true',
         'warning_level=2',
+        'default_library=static',
     ],
     version: run_command('cat', join_paths(meson.project_source_root(), 'VERSION'), check: true).stdout().strip(),
 )
