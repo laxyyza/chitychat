@@ -11,7 +11,7 @@
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
 
 static const char* 
-server_set_client_logged_in(UNUSED eworker_t* ew, 
+server_set_client_logged_in(eworker_t* ew, 
                             client_t* client, 
                             dbuser_t* user,
                             dbsession_t* session, 
@@ -19,6 +19,7 @@ server_set_client_logged_in(UNUSED eworker_t* ew,
 {
     const char* session_id = (session) ? session->uuid : "0";
 
+    server_rtusm_user_connect(ew, user);
     array_add_voidp(&user->connected_clients, client);
     client->dbuser = user;
 
