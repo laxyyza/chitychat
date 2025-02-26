@@ -48,7 +48,7 @@ jobs:
         run: docker-compose up -d
       
       - name: Run Chat Server tests
-        run: python3 tests/run_all_tests.py || { docker-compose logs app && exit -1; }
+        run: timeout -v 10s tests/run_all_tests.py || { docker-compose logs app && exit -1; }
       
       - name: Stop and remove containers
         run: docker-compose down --volumes
