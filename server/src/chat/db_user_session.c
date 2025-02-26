@@ -46,6 +46,8 @@ db_select_session_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType sta
     dbsession_t* session;
     char* endptr;
 
+    ctx->ret = DB_ASYNC_ERROR;
+
     if (status == PGRES_TUPLES_OK && PQntuples(res) == 1)
     {
         ctx->ret = DB_ASYNC_OK;
@@ -53,15 +55,9 @@ db_select_session_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType sta
         const char* user_id_str = PQgetvalue(res, 0, 0);
         if (user_id_str)
             session->user_id = strtoul(user_id_str, &endptr, 10);
-        else
-        {
-            warn("select_session user_id is NULL?\n");
-            ctx->ret = DB_ASYNC_ERROR;
-        }
     }
-    else
+    else if (status == PGRES_FATAL_ERROR)
     {
-        ctx->ret = DB_ASYNC_ERROR;
         error("select_session: %s\n", PQresultErrorMessage(res));
     }
 }
