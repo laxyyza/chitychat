@@ -6,6 +6,7 @@
 #include "json_object.h"
 #include "server_client.h"
 #include "server_websocket.h"
+#include "nano_timer.h"
 
 dbuser_t* 
 server_new_user(eworker_t* ew, u32 user_id)
@@ -17,6 +18,11 @@ server_new_user(eworker_t* ew, u32 user_id)
     
     user = calloc(1, sizeof(dbuser_t));
     array_init(&user->connected_clients, sizeof(client_t*), 5);
+
+    user->msg_tokens.tokens = TOKEN_CAP;
+    hr_time_t current_time;
+    nano_gettime(&current_time);
+    user->msg_tokens.last_token_refil = user->msg_tokens.last_respond_time;
 
     return user;
 }

@@ -18,6 +18,10 @@ server_set_client_logged_in(eworker_t* ew,
                             json_object* respond_json)
 {
     const char* session_id = (session) ? session->uuid : "0";
+    const char* errmsg;
+
+    if ((errmsg = server_user_rate_limit_check(user)))
+        return errmsg; 
 
     server_ght_insert(&ew->server->user_ht, user->user_id, user);
     server_rtusm_user_connect(ew, user);
@@ -76,7 +80,6 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if ((user = server_ght_get(&ew->server->user_ht, session->user_id)))
     {
-        info("Cached user: %u\n", user->username);
         ctx->data = user;
         errmsg = do_client_login_session(ew, ctx);
         ctx->data = NULL;
