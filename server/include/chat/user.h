@@ -8,6 +8,18 @@
 
 typedef struct client client_t;
 
+#define TOKEN_CAP 15
+#define TOKEN_REFIL_RATE 1
+#define RATE_LIMIT_RESPOND_RATE 20
+#define RATE_LIMIT_DISCONNECT -30
+
+typedef struct 
+{
+    i32 tokens;
+    f64 last_token_refil;
+    f64 last_respond_time;
+} token_bucket_t;
+
 typedef struct dbuser
 {
     u32     user_id;
@@ -22,6 +34,7 @@ typedef struct dbuser
     rtusm_t rtusm;
 
     array_t connected_clients;
+    token_bucket_t msg_tokens;
 } dbuser_t;
 
 dbuser_t* server_new_user(eworker_t* ew, u32 user_id);

@@ -1,6 +1,7 @@
 #include "chat/ws_text_frame.h"
 #include "chat/user_login.h"
 #include "chat/cmd.h"
+#include "nano_timer.h"
 
 bool 
 json_bad(json_object* json, json_type type)
@@ -33,6 +34,40 @@ server_ws_handle_text_frame(eworker_t* ew,
     {
         warn("WS JSON parse failed, message:\n%s\n", buf);
         return RECV_DISCONNECT;
+    }
+
+    if (client->dbuser)
+    {
+        token_bucket_t* bucket = &client->dbuser->msg_tokens;
+        hr_time_t current_time;
+        nano_gettime(&current_time);
+        f64 current_time_s = nano_time_s(&current_time);
+        f64 time_elapsed = current_time_s - bucket->last_token_refil;
+        i32 new_tokens = (i32)(time_elapsed * TOKEN_REFIL_RATE);
+
+        bucket->tokens--;
+
+        if (new_tokens > 0)
+        {
+            bucket->last_token_refil = current_time_s;
+            bucket->tokens += new_tokens;
+            if (bucket->tokens > TOKEN_CAP)
+                bucket->tokens = TOKEN_CAP;
+        }
+
+        if (bucket->tokens <= 0)
+        {
+            if (bucket->tokens <= RATE_LIMIT_DISCONNECT)
+                return RECV_DISCONNECT;
+
+            time_elapsed = current_time_s - bucket->last_respond_time;
+            if (time_elapsed >= RATE_LIMIT_RESPOND_RATE)
+            {
+                error_msg = "Rate limited";
+                bucket->last_respond_time = current_time_s;
+            }
+            goto send_error;
+        }
     }
 
     cmd_json = json_object_object_get(payload, "cmd");
