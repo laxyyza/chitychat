@@ -104,7 +104,7 @@
 # Running ChityChat server (Docker Compose)
 1. **Clone the repository and navigate to the project directory:**
 ```
-git clone https://github.com/laxyyza/chitychat.git && cd chitychat
+git clone --recursive https://github.com/laxyyza/chitychat.git && cd chitychat
 ```
 2. Copy `.env-example` to `.env`, then edit it to configure your settings. Be sure to set `DB_USER`, `DB_PASSWORD`, and any other necessary options.
 ```
