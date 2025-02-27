@@ -149,7 +149,7 @@ server_new_chatcmd(server_t* server,
         return false;
     }
 
-    strncpy(chatcmd->cmd, cmd, CMD_STR_MAX);
+    strncpy(chatcmd->cmd, cmd, CMD_STR_MAX - 1);
     chatcmd->cmd_hash = server_ght_hashstr(chatcmd->cmd);
     chatcmd->callback = callback;
     chatcmd->perms = perms;

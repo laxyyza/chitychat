@@ -157,15 +157,15 @@ parse_url(http_t* http, char* url)
 
             key = strtok_r(param, "=", &val);
 
-            strncpy(http_param->name, key, HTTP_HEAD_NAME_LEN);
-            strncpy(http_param->val, val, HTTP_HEAD_VAL_LEN);
+            strncpy(http_param->name, key, HTTP_HEAD_NAME_LEN - 1);
+            strncpy(http_param->val, val, HTTP_HEAD_VAL_LEN - 1);
 
             param = strtok_r(NULL, "&", &endptr);
             http->n_params++;
         }
     }
 
-    strncpy(http->req.url, path, HTTP_URL_LEN);
+    strncpy(http->req.url, path, HTTP_URL_LEN - 1);
 }
 
 static http_t* 
@@ -205,12 +205,12 @@ parse_http(client_t* client, char* buf, size_t buf_len)
         if (strstr(token, "HTTP/"))
         {
             http->type = HTTP_RESPOND;
-            strncpy(http->resp.version, token, HTTP_VERSION_LEN);
+            strncpy(http->resp.version, token, HTTP_VERSION_LEN - 1);
         }
         else
         {
             http->type = HTTP_REQUEST;
-            strncpy(http->req.method, token, HTTP_METHOD_LEN);
+            strncpy(http->req.method, token, HTTP_METHOD_LEN - 1);
         }
     }
     else
@@ -232,9 +232,9 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     if (token)
     {
         if (http->type == HTTP_REQUEST)
-            strncpy(http->req.version, token, HTTP_METHOD_LEN);
+            strncpy(http->req.version, token, HTTP_METHOD_LEN - 1);
         else
-            strncpy(http->resp.msg, token, HTTP_STATUS_MSG_LEN);
+            strncpy(http->resp.msg, token, HTTP_STATUS_MSG_LEN - 1);
     }
 
     header_line = strsplit(NULL, HTTP_NL, &saveptr);
@@ -257,8 +257,8 @@ parse_http(client_t* client, char* buf, size_t buf_len)
             token++;
         val = token;
 
-        strncpy(http_header->name, name, HTTP_HEAD_NAME_LEN);
-        strncpy(http_header->val, val, HTTP_HEAD_VAL_LEN);
+        strncpy(http_header->name, name, HTTP_HEAD_NAME_LEN - 1);
+        strncpy(http_header->val, val, HTTP_HEAD_VAL_LEN - 1);
 
         header_line = strsplit(NULL, HTTP_NL, &saveptr);
         http->n_headers++;
@@ -391,8 +391,8 @@ http_add_header(http_t* http, const char* name, const char* val)
         http->n_headers++;
     }
 
-    strncpy(to_header->name, name, HTTP_HEAD_NAME_LEN);
-    strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN);
+    strncpy(to_header->name, name, HTTP_HEAD_NAME_LEN - 1);
+    strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN - 1);
 }
 
 static void 
@@ -455,8 +455,8 @@ http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_le
 
     http->type = HTTP_RESPOND;
     http->resp.code = code;
-    strncpy(http->resp.msg, status_msg, HTTP_STATUS_MSG_LEN);
-    strncpy(http->resp.version, HTTP_VERSION, HTTP_VERSION_LEN);
+    strncpy(http->resp.msg, status_msg, HTTP_STATUS_MSG_LEN - 1);
+    strncpy(http->resp.version, HTTP_VERSION, HTTP_VERSION_LEN - 1);
 
     http_add_header(http, "Server", SERVER_NAME);
 

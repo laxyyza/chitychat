@@ -132,19 +132,19 @@ server_load_config(server_t* server, int argc, char* const* argv)
     server_chdir(argv[0]);
 
     root_dir_str = getenvd("APP_ROOT_DIR", "client/public");
-    strncpy(server->conf.root_dir, root_dir_str, CONFIG_PATH_LEN);
+    strncpy(server->conf.root_dir, root_dir_str, CONFIG_PATH_LEN - 1);
 
     img_dir_str = getenvd("APP_IMG_DIR", "client/public/imgs");
-    strncpy(server->conf.img_dir, img_dir_str, CONFIG_PATH_LEN);
+    strncpy(server->conf.img_dir, img_dir_str, CONFIG_PATH_LEN - 1);
 
     vid_dir_str = getenvd("APP_VID_DIR", "client/piblic/upload/vids");
-    strncpy(server->conf.vid_dir, vid_dir_str, CONFIG_PATH_LEN);
+    strncpy(server->conf.vid_dir, vid_dir_str, CONFIG_PATH_LEN - 1);
 
     file_dir_str = getenvd("APP_FILE_DIR", "client/public/upload/files");
-    strncpy(server->conf.file_dir, file_dir_str, CONFIG_PATH_LEN);
+    strncpy(server->conf.file_dir, file_dir_str, CONFIG_PATH_LEN - 1);
 
     addr_ip_str = getenvd("APP_IP", "any");
-    strncpy(server->conf.addr_ip, addr_ip_str, INET6_ADDRSTRLEN);
+    strncpy(server->conf.addr_ip, addr_ip_str, INET6_ADDRSTRLEN - 1);
 
     port_str = getenvd("APP_PORT", "8080");
     port = atoi(port_str);
