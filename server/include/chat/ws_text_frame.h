@@ -13,5 +13,6 @@ bool json_bad(json_object* json, json_type type);
 
 enum client_recv_status server_ws_handle_text_frame(eworker_t* th, client_t* client, 
                                                     char* buf, size_t buf_len);
+const char* server_user_rate_limit_check(dbuser_t* user);
 
 #endif // _SERVER_WS_PLD_HDLR_H_

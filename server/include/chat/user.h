@@ -8,7 +8,7 @@
 
 typedef struct client client_t;
 
-#define TOKEN_CAP 15
+#define TOKEN_CAP 10
 #define TOKEN_REFIL_RATE 1
 #define RATE_LIMIT_RESPOND_RATE 20
 #define RATE_LIMIT_DISCONNECT -30

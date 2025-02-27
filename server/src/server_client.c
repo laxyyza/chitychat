@@ -86,7 +86,7 @@ server_free_client(eworker_t* ew, client_t* client)
         if (ew->server->running)
             server_rtusm_user_disconnect(ew, client->dbuser);
 
-        if (client->dbuser->connected_clients.count == 0)
+        if (client->dbuser->connected_clients.count == 0 && client->dbuser->msg_tokens.tokens > 0)
             server_ght_del(&ew->server->user_ht, client->dbuser->user_id);
     }
     close(client->addr.sock);
