@@ -29,7 +29,6 @@ db_get_user_result(eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ct
             {
                 user = server_new_user(ew, 0);
                 db_row_to_user(user, res, 0);
-                server_ght_insert(&ew->server->user_ht, user->user_id, user);
             }
         }
         else

@@ -19,6 +19,7 @@ server_set_client_logged_in(eworker_t* ew,
 {
     const char* session_id = (session) ? session->uuid : "0";
 
+    server_ght_insert(&ew->server->user_ht, user->user_id, user);
     server_rtusm_user_connect(ew, user);
     array_add_voidp(&user->connected_clients, client);
     client->dbuser = user;
