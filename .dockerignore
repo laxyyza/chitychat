@@ -7,3 +7,4 @@ tests
 client/headless
 server/server.key
 server/server.crt
+coredumps/

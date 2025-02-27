@@ -15,7 +15,7 @@ db_insert_session_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType sta
         ctx->ret = DB_ASYNC_OK;
         session = ctx->data;
         const char* session_id = PQgetvalue(res, 0, 0);
-        strncpy(session->uuid, session_id, UUID_LEN);
+        strncpy(session->uuid, session_id, UUID_LEN - 1);
     }
     else
         error("insert_session: %s\n", PQresultErrorMessage(res));

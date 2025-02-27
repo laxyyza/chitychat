@@ -19,6 +19,7 @@ server_set_client_logged_in(eworker_t* ew,
 {
     const char* session_id = (session) ? session->uuid : "0";
 
+    server_ght_insert(&ew->server->user_ht, user->user_id, user);
     server_rtusm_user_connect(ew, user);
     array_add_voidp(&user->connected_clients, client);
     client->dbuser = user;
@@ -110,7 +111,7 @@ server_client_login_session(eworker_t* ew,
     };
 
     session = calloc(1, sizeof(dbsession_t));
-    strncpy(session->uuid, session_id, UUID_LEN);
+    strncpy(session->uuid, session_id, UUID_LEN - 1);
 
     if (!db_async_select_session(&ew->db, session, &ctx))
         return "Internal error: async-select-session";
@@ -249,7 +250,7 @@ server_client_login(eworker_t* ew,
 
     ctx.exec = do_client_login;
     ctx.param.user_login.do_session = do_session;
-    strncpy(ctx.param.user_login.password, password, DB_PASSWORD_MAX);
+    strncpy(ctx.param.user_login.password, password, DB_PASSWORD_MAX - 1);
 
     if (!db_async_get_user_username(&ew->db, username, &ctx))
         return "Failed to do async sql.\n";
@@ -319,8 +320,8 @@ server_client_register(eworker_t* ew,
     do_session = json_object_get_boolean(do_session_json);
 
     new_user = server_new_user(ew, 0);
-    strncpy(new_user->username, username, DB_USERNAME_MAX);
-    strncpy(new_user->displayname, displayname, DB_USERNAME_MAX);
+    strncpy(new_user->username, username, DB_USERNAME_MAX - 1);
+    strncpy(new_user->displayname, displayname, DB_USERNAME_MAX - 1);
 
     getrandom(new_user->salt, SERVER_SALT_SIZE, 0);
     server_sha512(password, new_user->salt, new_user->hash);

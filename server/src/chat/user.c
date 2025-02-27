@@ -18,9 +18,6 @@ server_new_user(eworker_t* ew, u32 user_id)
     user = calloc(1, sizeof(dbuser_t));
     array_init(&user->connected_clients, sizeof(client_t*), 5);
 
-    if (user_id)
-        server_ght_insert(&ew->server->user_ht, user_id, user);
-
     return user;
 }
 

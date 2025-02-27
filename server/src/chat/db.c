@@ -305,13 +305,13 @@ db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
 
     const char* name = PQgetvalue(res, row, 2);
     if (name)
-        strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
+        strncpy(group->displayname, name, DB_DISPLAYNAME_MAX - 1);
     else
         warn("group displayname is NULL\n");
 
     const char* desc = PQgetvalue(res, row, 3);
     if (desc)
-        strncpy(group->desc, desc, DB_DESC_MAX);
+        strncpy(group->desc, desc, DB_DESC_MAX - 1);
     else
         warn("group desc is NULL!\n");
 
@@ -323,7 +323,7 @@ db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
 
     const char* created_at = PQgetvalue(res, row, 5);
     if (created_at)
-        strncpy(group->created_at, created_at, DB_TIMESTAMP_MAX);
+        strncpy(group->created_at, created_at, DB_TIMESTAMP_MAX - 1);
     else
         warn("group created_at is NULL!\n");
 }
@@ -341,19 +341,19 @@ db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
     
     const char* username = PQgetvalue(res, row, 1);
     if (username)
-        strncpy(user->username, username, DB_USERNAME_MAX);
+        strncpy(user->username, username, DB_USERNAME_MAX - 1);
     else
         warn("username is NULL!\n");
 
     const char* displayname = PQgetvalue(res, row, 2);
     if (displayname)
-        strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX);
+        strncpy(user->displayname, displayname, DB_DISPLAYNAME_MAX - 1);
     else
         warn("displayname is NULL!\n");
 
     const char* bio = PQgetvalue(res, row, 3);
     if (bio)
-        strncpy(user->bio, bio, DB_BIO_MAX);
+        strncpy(user->bio, bio, DB_BIO_MAX - 1);
 
     const void* hash_str = PQgetvalue(res, row, 4);
     size_t hash_size = PQgetlength(res, row, 4);
@@ -373,11 +373,11 @@ db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
 
     const char* created_at = PQgetvalue(res, row, 6);
     if (created_at)
-        strncpy(user->created_at, created_at, DB_TIMESTAMP_MAX);
+        strncpy(user->created_at, created_at, DB_TIMESTAMP_MAX - 1);
     else
         warn("created_at is NULL!\n");
 
     const char* pfp_hash = PQgetvalue(res, row, 7);
     if (pfp_hash)
-        strncpy(user->pfp_hash, pfp_hash, DB_PFP_HASH_MAX);
+        strncpy(user->pfp_hash, pfp_hash, DB_PFP_HASH_MAX - 1);
 }

@@ -244,7 +244,7 @@ insert_group_msg_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType stat
         if ((timestamp = PQgetvalue(res, 0, 1)) == NULL)
             error("timestamp is NULL!\n");
         else
-            strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX);
+            strncpy(msg->timestamp, timestamp, DB_TIMESTAMP_MAX - 1);
         ctx->ret = DB_ASYNC_OK;
     }
     else
@@ -470,7 +470,7 @@ create_group_code_result(UNUSED eworker_t* ew,
         if (rows == 0)
             goto err;
         invite_code = PQgetvalue(res, 0, 0);
-        strncpy(group_code->invite_code, invite_code, DB_GROUP_CODE_MAX);
+        strncpy(group_code->invite_code, invite_code, DB_GROUP_CODE_MAX - 1);
         ctx->ret = DB_ASYNC_OK;
         return;
     }

@@ -149,7 +149,7 @@ server_new_chatcmd(server_t* server,
         return false;
     }
 
-    strncpy(chatcmd->cmd, cmd, CMD_STR_MAX);
+    strncpy(chatcmd->cmd, cmd, CMD_STR_MAX - 1);
     chatcmd->cmd_hash = server_ght_hashstr(chatcmd->cmd);
     chatcmd->callback = callback;
     chatcmd->perms = perms;
@@ -177,8 +177,8 @@ server_exec_chatcmd(const char* cmd,
     else if (!(chatcmd->perms & client->state))
         return "Require permission";
 
-    verbose("Executing '%s' (hash: %zu)...\n", 
-            chatcmd->cmd, chatcmd->cmd_hash);
+    verbose("%s executing '%s' (hash: %zu)...\n", 
+            client->addr.ip_str, chatcmd->cmd, chatcmd->cmd_hash);
 
     ret = chatcmd->callback(ew, client, payload, resp);
 

@@ -205,5 +205,7 @@ ws_json_send(client_t* client, json_object* json)
     size_t len;
     const char* string = json_object_to_json_string_length(json, 0, &len);
 
+    verbose("Sending to %s: '%s'\n", client->addr.ip_str, string);
+
     return ws_send(client, string, len);
 }

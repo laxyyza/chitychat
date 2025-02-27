@@ -13,6 +13,7 @@ services:
       - ./server/server.crt:/app/server/server.crt:ro
       - ./server/server.key:/app/server/server.key:ro
       - ./client/public:/app/client/public:rw
+      - ./coredumps:/var/coredumps
     depends_on:
       - db
     restart: unless-stopped

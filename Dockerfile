@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN meson setup build
+RUN meson setup build --debug --buildtype plain
 RUN ninja -C build
 RUN apk del musl-dev pkgconfig gcc meson openssl-dev json-c-dev libpq-dev file-dev linux-headers cmake
 RUN mkdir bin &&\

@@ -65,15 +65,15 @@ server_delete_attachments_json(eworker_t* ew, json_object* msg_attachs_json)
 
         hash_json = json_object_object_get(attach_json, "hash");
         hash = json_object_get_string(hash_json);
-        strncpy(file->hash, hash, DB_PFP_HASH_MAX);
+        strncpy(file->hash, hash, DB_PFP_HASH_MAX - 1);
 
         type_json = json_object_object_get(attach_json, "type");
         type = json_object_get_string(type_json);
-        strncpy(file->mime_type, type, DB_MIME_TYPE_LEN);
+        strncpy(file->mime_type, type, DB_MIME_TYPE_LEN - 1);
 
         name_json = json_object_object_get(attach_json, "name");
         name = json_object_get_string(name_json);
-        strncpy(file->name, name, DB_PFP_NAME_MAX);
+        strncpy(file->name, name, DB_PFP_NAME_MAX - 1);
 
         server_delete_file(ew, file);
     }
@@ -222,7 +222,7 @@ server_group_create(eworker_t* ew,
 
     group->owner_id = owner_id;
     group->public = public_group;
-    strncpy(group->displayname, name, DB_DISPLAYNAME_MAX);
+    strncpy(group->displayname, name, DB_DISPLAYNAME_MAX - 1);
 
     dbcmd_ctx_t ctx = {
         .exec = do_client_groups,
@@ -392,7 +392,7 @@ set_msg(dbmsg_t* msg, u32 user_id, u32 group_id, const char* content)
 
     msg->user_id = user_id;
     msg->group_id = group_id;
-    strncpy(msg->content, content, DB_MESSAGE_MAX);
+    strncpy(msg->content, content, DB_MESSAGE_MAX - 1);
 }
 
 static const char*
