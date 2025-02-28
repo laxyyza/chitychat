@@ -41,8 +41,7 @@ export class Server
         });
 
         this.socket.addEventListener('error', (event) => {
-            console.error("Server WS ERROR:", event.reason);
-            this.app.server_error(event);
+            //window.location.href = "/login";
         });
 
         this.socket.addEventListener('close', (event) => {

@@ -392,19 +392,6 @@ export class App
 
     server_open(event)
     {
-        const session_id = localStorage.getItem("session_id");
-        if (!session_id)
-        {
-            window.location.href = "/login";
-            return;
-        }
-
-        const session_packet = {
-            cmd: "session",
-            id: session_id
-        };
-
-        this.server.ws_send(session_packet);
     }
 
     server_error()

@@ -80,25 +80,25 @@ set_client_connection(client_t* client, http_header_t* header)
     }
 }
 
-static void 
-handle_http_upgrade(client_t* client, http_header_t* header)
-{
-    if (client->state & CLIENT_STATE_UPGRADE_PENDING)
-    {
-        if (!strncmp(header->val, "websocket", HTTP_HEAD_VAL_LEN))
-        {
-            client->state |= CLIENT_STATE_WEBSOCKET;
-        }
-        else
-        {
-            warn("Connection upgrade '%s' not implemented!\n", header->val);
-        }
-    }
-    else
-    {
-        warn("Client no upgrade connection?\n");
-    }
-}
+// static void 
+// handle_http_upgrade(client_t* client, http_header_t* header)
+// {
+//     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
+//     {
+//         if (!strncmp(header->val, "websocket", HTTP_HEAD_VAL_LEN))
+//         {
+//             client->state |= CLIENT_STATE_WEBSOCKET;
+//         }
+//         else
+//         {
+//             warn("Connection upgrade '%s' not implemented!\n", header->val);
+//         }
+//     }
+//     else
+//     {
+//         warn("Client no upgrade connection?\n");
+//     }
+// }
 
 static void 
 handle_websocket_key(http_t* http, http_header_t* header)
@@ -125,6 +125,19 @@ http_handle_content_len(http_t* http, http_header_t* header)
 }
 
 static void 
+handle_cookie(http_t* http, http_header_t* header)
+{
+    char* token = strtok(header->val, "=");
+    if (strcmp(token, "session_id") == 0)
+    {
+        token = strtok(NULL, "=");
+        http->session_uuid = token;
+    }
+    else
+        error("Invalid cookie key: %s\n", token);
+}
+
+static void 
 handle_http_header(client_t* client, http_t* http, http_header_t* header)
 {
     if (NAME_CMP("Content-Length"))
@@ -133,6 +146,8 @@ handle_http_header(client_t* client, http_t* http, http_header_t* header)
         set_client_connection(client, header);
     else if (NAME_CMP("Sec-WebSocket-Key"))
         handle_websocket_key(http, header);
+    else if (NAME_CMP("Cookie"))
+        handle_cookie(http, header);
 }
 
 static void 
@@ -272,15 +287,15 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     for (size_t i = 0; i < http->n_headers; i++)
         handle_http_header(client, http, &http->headers[i]);
 
-    if (client->state & CLIENT_STATE_UPGRADE_PENDING)
-    {
-        handle_http_upgrade(client, 
-            http_get_header(
-                http, 
-                HTTP_HEAD_CONN_UPGRADE
-            )
-        );
-    }
+    // if (client->state & CLIENT_STATE_UPGRADE_PENDING)
+    // {
+    //     handle_http_upgrade(client, 
+    //         http_get_header(
+    //             http, 
+    //             HTTP_HEAD_CONN_UPGRADE
+    //         )
+    //     );
+    // }
 
     if (http->body || http->body_len)
     {
@@ -361,11 +376,11 @@ http_get_header(const http_t* http, const char* name)
     return NULL;
 }
 
-static void 
+char*
 http_add_header(http_t* http, const char* name, const char* val)
 {
-    if (!http || !name || !val)
-        return;
+    if (!http || !name)
+        return NULL;
 
     http_header_t* to_header = NULL;
 
@@ -384,7 +399,7 @@ http_add_header(http_t* http, const char* name, const char* val)
         if (http->n_headers >= HTTP_MAX_HEADERS)
         {
             warn("http_add_header(name: %s, val: %s): n headers is FULL!\n", name, val);
-            return;
+            return NULL;
         }
 
         to_header = http->headers + http->n_headers;
@@ -392,46 +407,82 @@ http_add_header(http_t* http, const char* name, const char* val)
     }
 
     strncpy(to_header->name, name, HTTP_HEAD_NAME_LEN - 1);
-    strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN - 1);
+    if (val)
+        strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN - 1);
+
+    return to_header->val;
 }
 
-static void 
-server_upgrade_client_to_websocket(client_t* client, http_t* req_http)
+void 
+server_http_switch_to_websocket(client_t* client)
 {
-    http_t* http = http_new_resp(HTTP_CODE_SW_PROTO, "Switching Protocols", NULL, 0);
+    http_t* http;
+
+    http = http_new_resp(HTTP_CODE_SW_PROTO, HTTP_SW_PROTO, NULL, 0);
     http_add_header(http, "Connection", HTTP_HEAD_CONN_UPGRADE);
     http_add_header(http, "Upgrade", "websocket");
-    http_add_header(http, HTTP_HEAD_WS_ACCEPT, req_http->websocket_key);
-
-    for (size_t i = 0; i < http->n_params; i++)
-    {
-        http_header_t* param = http->params + i;
-        debug("ws: '%s' = '%s'\n", param->name, param->val);
-    }
+    http_add_header(http, HTTP_HEAD_WS_ACCEPT, client->websocket_key);
 
     if (http_send(client, http) != -1)
         client->state |= CLIENT_STATE_WEBSOCKET;
     http_free(http);
-    free(req_http->websocket_key);
+    free(client->websocket_key);
+    client->websocket_key = NULL;
 }
 
-static void 
-server_handle_client_upgrade(client_t* client, http_t* http)
+static enum client_recv_status
+server_upgrade_client_to_websocket(eworker_t* ew, client_t* client, http_t* req_http)
 {
+    http_t* http;
+
+    client->websocket_key = req_http->websocket_key;
+
+    if (strcmp(req_http->req.url, "/login") == 0)
+        server_http_switch_to_websocket(client);
+    else
+    {
+        if (req_http->session_uuid == NULL)
+        {
+            http = http_new_resp(HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED, NULL, 0);
+            goto error;
+        }
+
+        const char* errmsg = server_client_login_session_uuid(ew, req_http->session_uuid);
+        if (errmsg)
+        {
+            http = http_new_resp(HTTP_CODE_SERVER_ERROR, errmsg, NULL, 0);
+            goto error;
+        }
+    }
+
+    return RECV_OK;
+error:
+    http_send(client, http);
+    http_free(http);
+    return RECV_DISCONNECT;
+}
+
+static enum client_recv_status
+server_handle_client_upgrade(eworker_t* ew, client_t* client, http_t* http)
+{
+    enum client_recv_status ret = RECV_OK;
+
     const http_header_t* upgrade = http_get_header(http, HTTP_HEAD_CONN_UPGRADE);
     if (upgrade == NULL)
     {
         warn("Client fd:%d (Upgrade pending): No upgrade header in HTTP.\n", client->addr.sock);
         client->state ^= CLIENT_STATE_UPGRADE_PENDING;
-        return;
+        return RECV_ERROR;
     }
 
     if (!strncmp(upgrade->val, "websocket", HTTP_HEAD_VAL_LEN))
-        server_upgrade_client_to_websocket(client, http);
+        ret = server_upgrade_client_to_websocket(ew, client, http);
     else
         warn("Connection upgrade '%s' not implemented.\n", upgrade);
 
     client->state ^= CLIENT_STATE_UPGRADE_PENDING;
+
+    return ret;
 }
 
 static void 
@@ -544,18 +595,18 @@ server_handle_http_resp(UNUSED server_t* server, UNUSED client_t* client, UNUSED
 }
 
 enum client_recv_status
-server_handle_http(eworker_t* th, client_t* client, http_t* http)
+server_handle_http(eworker_t* ew, client_t* client, http_t* http)
 {
     enum client_recv_status ret = RECV_OK;
 
     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
-        server_handle_client_upgrade(client, http);
+        server_handle_client_upgrade(ew, client, http);
     else
     {
         if (http->type == HTTP_REQUEST)
-            ret = server_handle_http_req(th, client, http);
+            ret = server_handle_http_req(ew, client, http);
         else if (http->type == HTTP_RESPOND)
-            ret = server_handle_http_resp(th->server, client, http);
+            ret = server_handle_http_resp(ew->server, client, http);
         else
         {
             warn("Unknown http type: %d. Request or Respond? Ignored.\n", http->type);

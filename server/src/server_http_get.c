@@ -2,6 +2,49 @@
 #include "server_http.h"
 #include "server_util.h"
 
+static inline void
+server_handle_set_session(server_t* server, client_t* client, http_t* http)
+{
+    const char* token = NULL;
+
+    for (u32 i = 0; i < http->n_params; i++)
+    {
+        const http_header_t* param = http->params + i;
+        if (strcmp(param->name, "token") == 0)
+        {
+            token = param->val;
+            break;
+        }
+    }
+
+    if (token)
+    {
+        u64 tokenid = strtoull(token, NULL, 10);
+        info("token: '%s', int: %lu\n", token, tokenid);
+        client_t* ws_client = server_ght_get(&server->client_by_tmptoken_ht, tokenid);
+        if (ws_client)
+        {
+            http_t* resp_http = http_new_resp(HTTP_CODE_OK, "Ok", NULL, 0);
+            // For some reason I need to add "Content-Length: 0" for Firefox, else it doesn't work.
+            http_add_header(resp_http, HTTP_HEAD_CONTENT_LEN, "0");
+            char* set_cookie = http_add_header(resp_http, "Set-Cookie", NULL);
+            if (set_cookie == NULL)
+            {
+                warn("http_add_header() returned NULL!\n");
+                return;
+            }
+            snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session_id=%s; HttpOnly; Secure; SameSite=Strict", ws_client->session_uuid);
+            http_send(client, resp_http);
+            server_ght_del(&server->client_by_tmptoken_ht, tokenid);
+            http_free(resp_http);
+        }
+        else
+            server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
+    }
+    else
+        server_http_resp_error(client, HTTP_CODE_BAD_REQ, HTTP_BAD_REQ);
+}
+
 enum client_recv_status 
 server_handle_http_get(server_t* server, client_t* client, http_t* http)
 {    
@@ -11,6 +54,12 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     size_t content_len;
     char* content;
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
+
+    if (strcmp(http->req.url, "/set-session") == 0)
+    {
+        server_handle_set_session(server, client, http);
+        return RECV_OK;
+    }
 
     if (server_http_url_checks(http) == -1)
     {

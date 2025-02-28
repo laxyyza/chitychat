@@ -5,7 +5,7 @@ let keep_logged_in = true;
 
 function init()
 {
-    let socket = new WebSocket("wss://" + window.location.host);
+    let socket = new WebSocket("wss://" + window.location.host + "/login");
 
     socket.addEventListener('open', (event) => {
         error_msg.innerHTML = "";
@@ -18,10 +18,17 @@ function init()
 
         if (respond.cmd === "session")
         {
-            console.log("Sucsess: ", respond.id)
-            localStorage.removeItem("session_id");
-            localStorage.setItem("session_id", respond.id);
-            window.location.href = "/app";
+            fetch("https://" + window.location.host + "/set-session?token=" + respond.id)
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = "/app";
+                    } 
+                    else {
+                        error_msg.innerHTML = "Error: " + response.status + " " + response.statusText;
+                    }
+                }
+            )
+            //window.location.href = "/app";
         }
         else if (respond.cmd === "error")
         {

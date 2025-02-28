@@ -52,6 +52,8 @@ server_free_client(eworker_t* ew, client_t* client)
     if (!client)
         return;
     server_ght_del(&server->client_ht, client->addr.sock);
+    if (client->state & CLIENT_STATE_SESSION_PENDING)
+        server_ght_del(&ew->server->client_by_tmptoken_ht, client->tmptoken);
 
     debug("Client (IP: %s:%s) closed.\n", 
             client->addr.ip_str, client->addr.serv);

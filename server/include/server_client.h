@@ -14,6 +14,7 @@
 #define CLIENT_STATE_WEBSOCKET       0x0002
 #define CLIENT_STATE_KEEP_ALIVE      0x0004
 #define CLIENT_STATE_LOGGED_IN       0x0008
+#define CLIENT_STATE_SESSION_PENDING 0x0010
 
 #define CLIENT_ERR_NONE  00
 #define CLIENT_ERR_SSL   01
@@ -39,6 +40,9 @@ typedef struct client
     dbuser_t*   dbuser;
     recv_buf_t  recv;
     pthread_mutex_t ssl_mutex;
+    u64         tmptoken;
+    char*       websocket_key;
+    char        session_uuid[UUID_LEN];
 } client_t;
 
 client_t*   server_accept_client(eworker_t* ew);

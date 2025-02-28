@@ -106,10 +106,10 @@ server_init_chatcmd_not_logged_in(server_t* server)
                             CHATCMD_PERM_NONE)) 
         return false;
 
-    if (!server_new_chatcmd(server, "session",
-                            server_client_login_session,
-                            CHATCMD_PERM_NONE)) 
-        return false;
+    // if (!server_new_chatcmd(server, "session",
+    //                         server_client_login_session,
+    //                         CHATCMD_PERM_NONE)) 
+    //     return false;
 
     return true;
 }

@@ -28,6 +28,15 @@
 #define HTTP_CODE_BAD_REQ       400
 #define HTTP_CODE_NOT_FOUND     404
 #define HTTP_CODE_INTERAL_ERROR 500
+#define HTTP_CODE_UNAUTHORIZED  401
+#define HTTP_CODE_FORBIDDEN     403
+#define HTTP_CODE_SERVER_ERROR  500
+
+#define HTTP_UNAUTHORIZED "Unauthorized"
+#define HTTP_SW_PROTO "Switching Protocols"
+#define HTTP_FORBIDDEN "Forbidden"
+#define HTTP_BAD_REQ "Bad Request"
+#define HTTP_SERVER_ERROR "Internal Server Error"
 
 #define HTTP_HEAD_CONTENT_LEN "Content-Length"
 #define HTTP_HEAD_WS_ACCEPT   "Sec-WebSocket-Accept"
@@ -85,6 +94,7 @@ typedef struct http
     struct {
         enum http_keep_alive keep_alive;
         char* websocket_key;
+		char* session_uuid;
         bool body_inheap;
     };
 
@@ -101,10 +111,12 @@ typedef struct
     size_t max;
 } http_to_str_t;
 
+void                    server_http_switch_to_websocket(client_t* client);
 enum client_recv_status server_http_parse(eworker_t* ew, client_t* client, u8* buf, 
                                           size_t buf_len);
 enum client_recv_status server_handle_http(eworker_t* ew, client_t* client, http_t* http);
 http_header_t*          http_get_header(const http_t* http, const char* name);
+char*                   http_add_header(http_t* http, const char* name, const char* val);
 http_t*                 http_new_resp(u16 code, const char* status_msg, const char* body, 
                                       size_t body_len);
 ssize_t                 http_send(client_t* client, http_t* http);

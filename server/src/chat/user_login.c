@@ -9,6 +9,7 @@
 #include "server_ht.h"
 
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
+#define U64_STR_LEN 21
 
 static const char* 
 server_set_client_logged_in(eworker_t* ew, 
@@ -17,8 +18,21 @@ server_set_client_logged_in(eworker_t* ew,
                             dbsession_t* session, 
                             json_object* respond_json)
 {
-    const char* session_id = (session) ? session->uuid : "0";
     const char* errmsg;
+    char token[U64_STR_LEN];
+
+    if (!(client->state & CLIENT_STATE_WEBSOCKET))
+        server_http_switch_to_websocket(client);
+
+    if (session)
+    {
+        client->state |= CLIENT_STATE_SESSION_PENDING;
+        getrandom(&client->tmptoken, sizeof(u64), 0);
+        server_ght_insert(&ew->server->client_by_tmptoken_ht, client->tmptoken, client);
+        strncpy(client->session_uuid, session->uuid, UUID_LEN - 1);
+    }
+    else
+        client->tmptoken = 0;
 
     if ((errmsg = server_user_rate_limit_check(user)))
         return errmsg; 
@@ -28,10 +42,12 @@ server_set_client_logged_in(eworker_t* ew,
     array_add_voidp(&user->connected_clients, client);
     client->dbuser = user;
 
+    snprintf(token, U64_STR_LEN, "%lu", client->tmptoken);
+
     json_object_object_add(respond_json, "cmd", 
                         json_object_new_string("session"));
     json_object_object_add(respond_json, "id", 
-                           json_object_new_string(session_id));
+                           json_object_new_string(token));
 
     if (ws_json_send(client, respond_json) != -1)
     {
@@ -86,7 +102,6 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
     }
     else
     {
-        info("Getting user-id: %u from database.\n", session->user_id);
         ctx->exec = do_client_login_session;
 
         if (!db_async_get_user(&ew->db, session->user_id, ctx))
@@ -96,39 +111,26 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
     return errmsg;
 }
 
+/**
+ *  `ew->db.ctx.client` will contain the client reference. 
+ *  No need to pass client_t in this function.
+ **/
 const char* 
-server_client_login_session(eworker_t* ew, 
-                            UNUSED client_t* client, 
-                            json_object* payload, 
-                            UNUSED json_object* respond_json)
+server_client_login_session_uuid(eworker_t* ew, 
+                                 const char* session_uuid)
 {
-    json_object* session_id_json;
     dbsession_t* session;
-    const char* session_id;
     
-    RET_IF_JSON_BAD(session_id_json, payload, "id", json_type_string);
-    session_id = json_object_get_string(session_id_json);
-
     dbcmd_ctx_t ctx = {
-        .exec = do_get_session
+        .exec = do_get_session,
     };
 
     session = calloc(1, sizeof(dbsession_t));
-    strncpy(session->uuid, session_id, UUID_LEN - 1);
+    strncpy(session->uuid, session_uuid, UUID_LEN - 1);
 
     if (!db_async_select_session(&ew->db, session, &ctx))
         return "Internal error: async-select-session";
 
-    // session = server_get_user_session(ew->server, session_id);
-    // if (!session)
-    //     return "Invalid session ID or session expired";
-
-    // dbcmd_ctx_t ctx = {
-    //     .exec = do_client_login_session,
-    //     .param.session = session
-    // };
-    // if (db_async_get_user(&ew->db, session->user_id, &ctx) == false)
-    //     return "Internal error: async-get-user";
     return NULL;
 }
 

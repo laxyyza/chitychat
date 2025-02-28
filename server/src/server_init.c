@@ -327,6 +327,12 @@ server_init_ht(server_t* server)
     if (server_ght_init(&server->client_ht, ht_size, NULL) == false)
         return false;
 
+    if (server_ght_init(&server->client_by_session_ht, ht_size, NULL) == false)
+        return false;
+
+    if (server_ght_init(&server->client_by_tmptoken_ht, ht_size, NULL) == false)
+        return false;
+
     if (server_ght_init(&server->user_ht, ht_size, NULL) == false)
         return false;
 
@@ -346,7 +352,7 @@ eventfd_dummy_read(eworker_t* ew, UNUSED server_event_t* ev)
      * Won't read eventfd.
      * Make all threads wake up from epoll_wait().
      */
-    debug("eventfd_dummy_read() from %d\n", ew->tid);
+    verbose("eventfd_dummy_read() from %d\n", ew->tid);
     return SE_OK;
 }
 
