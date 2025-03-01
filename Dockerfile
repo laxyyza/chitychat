@@ -1,7 +1,21 @@
 FROM alpine:latest
 
 RUN apk update &&\
-    apk add musl-dev pkgconfig gcc meson openssl openssl-dev json-c json-c-dev libpq libpq-dev file file-dev linux-headers cmake
+    apk add \
+    musl-dev \
+    pkgconfig \
+    gcc \
+    meson \
+    openssl \
+    openssl-dev \
+    json-c \
+    json-c-dev \
+    libpq \
+    libpq-dev \
+    file \
+    file-dev \
+    linux-headers \
+    cmake
 
 WORKDIR /app
 
@@ -10,9 +24,9 @@ COPY . /app
 RUN meson setup build --debug --buildtype plain
 RUN ninja -C build
 RUN apk del musl-dev pkgconfig gcc meson openssl-dev json-c-dev libpq-dev file-dev linux-headers cmake
-RUN mkdir bin &&\
+RUN mkdir bin coredumps &&\
     cp -v build/chitychat bin/ &&\
-    rm -rvf server/src server/include build
+    rm -rvf build
 
 EXPOSE 8080
 
