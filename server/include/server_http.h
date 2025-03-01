@@ -130,7 +130,7 @@ void                    server_http_resp_ok(client_t* client, char* content,
 
 enum client_recv_status server_handle_http_get(server_t* server, client_t* client, http_t* http);
 
-void                    server_handle_http_post(eworker_t* ew, client_t* client, 
+enum client_recv_status server_handle_http_post(eworker_t* ew, client_t* client, 
                                                 const http_t* http);
 
 #endif // _SERVER_HTTP_H_

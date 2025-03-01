@@ -532,6 +532,7 @@ void
 server_http_resp_error(client_t* client, u16 error_code, const char* status_msg)
 {
     http_t* http = http_new_resp(error_code, status_msg, NULL, 0);
+    http_add_header(http, "Content-Length", "0");
 
     http_send(client, http);
 
@@ -575,9 +576,9 @@ server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
     enum client_recv_status ret = RECV_OK;
 
     if (!HTTP_CMP_METHOD("GET"))
-        server_handle_http_get(th->server, client, http);
+        ret = server_handle_http_get(th->server, client, http);
     else if (!HTTP_CMP_METHOD("POST"))
-        server_handle_http_post(th, client, http);
+        ret = server_handle_http_post(th, client, http);
     else
     {
         warn("Need to implement '%s' HTTP request.\n", http->req.method);
