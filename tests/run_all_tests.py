@@ -12,6 +12,7 @@ import send_msg
 import delete_msg
 import group_access
 import login
+import get_session
 from common import *
 
 username = "test1"
@@ -22,12 +23,11 @@ password = "test_pass"
 Register a new account. 
 Then retry registering account with the same username.
 """
-async def test_register() -> dict:
-    session: dict = None
+async def test_register() -> None:
     try:
-        session = await register.run(username, displayname, password)
+        await register.run(username, displayname, password)
     except Exception:
-        session = await login.run(username, password)
+        await login.run(username, password)
 
     try:
         await register.run(username, displayname, password)
@@ -36,28 +36,23 @@ async def test_register() -> dict:
     else:
         raise RuntimeError("Managed to register twice?")
 
-    return session
-
 """
 Login with session ID
 Then login with invalid session ID zero.
 """
-async def test_session_login(session: dict) -> None:
+async def test_session_login(session: str) -> None:
     await session_login.run(session)
-
-    real_id = session["id"]
 
     try:
         # Try invalid session ID 0
-        session["id"] = 0
+        session = "0" 
         await session_login.run(session)
     except Exception:
-        good("Got error when sending invalid session ID")
-        session["id"] = real_id
+        good(f"Got error when sending invalid session ID")
     else:
         raise RecursionError("Session ID zero worked?")
 
-async def test_user_info(session: dict) -> None:
+async def test_user_info(session: str) -> None:
     user: dict = await user_info.run(session)
     if user["username"] != username:
         bad("user_info username is different!")
@@ -67,10 +62,10 @@ async def test_user_info(session: dict) -> None:
     groups: dict = await user_groups.run(session)
     info(f"User:{user['user_id']} is in {len(groups['groups'])} groups")
 
-async def test_create_group(session: dict) -> dict:
+async def test_create_group(session: str) -> dict:
     return await create_group.run(session, "Group Name", False)
 
-async def test_send_msg(session: dict, groups: dict) -> dict:
+async def test_send_msg(session: str, groups: dict) -> dict:
     group: dict = groups['groups'][0]
 
     return await send_msg.run(session, group, [
@@ -78,27 +73,30 @@ async def test_send_msg(session: dict, groups: dict) -> dict:
         "This message WILL be deleted ;(",
     ])
 
-async def test_delete_msg(session, msg) -> None:
+async def test_delete_msg(session: str, msg) -> None:
     await delete_msg.run(session, msg)
 
 async def do_tests() -> None:
     # Register 
-    session: dict = await test_register()
+    await test_register()
+
+    # Get session 
+    session_uuid: str = await get_session.run(username, password)
 
     # Login
-    await test_session_login(session)
+    await test_session_login(session_uuid)
 
     # Get user info.
-    await test_user_info(session)
+    await test_user_info(session_uuid)
 
     # Create a private and public group.
-    groups: dict = await test_create_group(session)
+    groups: dict = await test_create_group(session_uuid)
 
     # Send a messages in that group
-    msg: dict = await test_send_msg(session, groups)
+    msg: dict = await test_send_msg(session_uuid, groups)
 
     # Delete a message in that group.
-    await test_delete_msg(session, msg)
+    await test_delete_msg(session_uuid, msg)
 
     # Group Access
     await group_access.run()

@@ -49,8 +49,8 @@ async def test_user_permission_denied(user2: CTTest, group_id: int) -> None:
         raise RuntimeError("Managed to get group members?")
 
 async def run() -> None:
-    user1: CTTest = CTTest()
-    user2: CTTest = CTTest()
+    user1: CTTest = CTTest(do_session=False)
+    user2: CTTest = CTTest(do_session=False)
 
     try:
         await user1.connect()

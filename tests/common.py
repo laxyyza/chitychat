@@ -17,15 +17,25 @@ def bad(msg: str) -> None:
 
 
 class CTTest:
-    def __init__(self):
-        self.do_session: bool = os.getenv("CT_DO_SESSION", "true").lower() in ("true", 1)
+    def __init__(self, session_uuid = None, do_session: bool=True):
+        self.do_session: bool = do_session
         self.host: str = os.getenv("CT_HOST", "127.0.0.1")
         self.port: str = os.getenv("CT_PORT", "8080")
-        self.uri: str = os.getenv("CT_URI", f"wss://{self.host}:{self.port}")
+        self.session_uuid = session_uuid
+        if session_uuid:
+            self.path: str = '/'
+        else:
+            self.path: str = '/login'
+        self.set_uri()
 
         self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         self.ssl_context.check_hostname = False
         self.ssl_context.verify_mode = ssl.CERT_NONE
+
+    def set_uri(self, path = None) -> None:
+        if path:
+            self.path = path
+        self.uri: str = os.getenv("CT_URI", f"wss://{self.host}:{self.port}{self.path}")
     
     async def request(self, request: dict) -> None:
         print("Sending ", str(request))
@@ -52,8 +62,15 @@ class CTTest:
                 recv_cmd = recv_packet["cmd"]
         return recv_packet
 
-    async def connect(self) -> int:
-        self.ws = await websockets.connect(self.uri, ssl=self.ssl_context)
+    async def connect(self, path=None) -> None:
+        self.set_uri(path)
+        cookie_headers = None
+        if self.session_uuid:
+            cookie_headers = [('Cookie', f'session_id={self.session_uuid}')]
+        print("Connecting to ", self.uri)
+        self.ws = await websockets.connect(self.uri, 
+                                           ssl=self.ssl_context, 
+                                           extra_headers=cookie_headers)
 
     async def close(self) -> None:
         await self.ws.close()
@@ -64,6 +81,11 @@ class CTTest:
             "username": username,
             "password": password,
             "session": self.do_session
+        })
+
+    async def client_user_info(self) -> dict:
+        return await self.request_wait("client_user_info", {
+            "cmd": "client_user_info",
         })
     
     async def delete_msg(self, msg_id: int) -> dict:

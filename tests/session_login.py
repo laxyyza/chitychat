@@ -4,13 +4,13 @@
 
 from common import *
 
-test: CTTest = None
-
-async def run(session: dict) -> None:
-    test = CTTest()
+async def run(session_uuid: str) -> None:
+    test = CTTest(session_uuid)
     try:
         await test.connect()
-        await test.request_wait("session", session)
+
+        await test.client_user_info()
+
         await test.close()
     except Exception as e:
         await test.close()

@@ -6,13 +6,12 @@ from common import *
 
 test: CTTest = None
 
-async def run(session: dict) -> dict:
-    test = CTTest()
+async def run(session: str) -> dict:
+    test = CTTest(session)
     try:
         await test.connect()
-        await test.request_wait("session", session, print_packet=False)
 
-        client_user_info:dict = await test.request_wait("client_user_info", {"cmd": "client_user_info"})
+        client_user_info:dict = await test.client_user_info()
 
         await test.close()
         return client_user_info 

@@ -6,13 +6,12 @@ from common import *
 
 test: CTTest = None
 
-async def run(session: dict) -> dict:
+async def run(session: str|None) -> dict:
     global test
     try:
         if test is None:
-            test = CTTest()
+            test = CTTest(session)
             await test.connect()
-            await test.request_wait("session", session)
 
         groups: dict = await test.request_wait("client_groups", {"cmd": "client_groups"})
 

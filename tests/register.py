@@ -9,14 +9,6 @@ test: CTTest = None
 async def run(username, displayname, password) -> dict:
     test = CTTest()
     try:
-        login_packet: dict = {
-            "cmd": "register",
-            "username": username,
-            "displayname": displayname,
-            "password": password,
-            "session": test.do_session
-        }
-
         await test.connect()
         session: dict = await test.register(username, displayname, password)
         await test.close()
