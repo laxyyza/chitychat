@@ -26,7 +26,7 @@ RUN ninja -C build
 RUN apk del musl-dev pkgconfig gcc meson openssl-dev json-c-dev libpq-dev file-dev linux-headers cmake
 RUN mkdir bin coredumps &&\
     cp -v build/chitychat bin/ &&\
-    rm -rvf build
+    rm -rvf build meson.build VERSION
 
 EXPOSE 8080
 
