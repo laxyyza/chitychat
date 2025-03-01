@@ -99,9 +99,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            apt updatee || exit -1
-            cd ~/chitychat
-            git pull
-            docker-compose pull
-            docker-compose down
-            docker-compose up -d
+            cd ~/chitychat || exit -1
+            git pull || exit -1
+            docker-compose pull || exit -1
+            docker-compose down || exit -1
+            docker-compose up -d || exit -1
