@@ -7,6 +7,7 @@
 #include "chat/user_session.h"
 #include "chat/ws_text_frame.h"
 #include "server_ht.h"
+#include "server_http.h"
 
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
 #define U64_STR_LEN 21
@@ -90,7 +91,10 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
     const char* errmsg = NULL;
 
     if (ctx->ret == DB_ASYNC_ERROR)
+    {
+        server_http_resp_error(ctx->client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
         return "Invalid session ID";
+    }
 
     ctx->param.session = session;
 

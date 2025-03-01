@@ -80,26 +80,6 @@ set_client_connection(client_t* client, http_header_t* header)
     }
 }
 
-// static void 
-// handle_http_upgrade(client_t* client, http_header_t* header)
-// {
-//     if (client->state & CLIENT_STATE_UPGRADE_PENDING)
-//     {
-//         if (!strncmp(header->val, "websocket", HTTP_HEAD_VAL_LEN))
-//         {
-//             client->state |= CLIENT_STATE_WEBSOCKET;
-//         }
-//         else
-//         {
-//             warn("Connection upgrade '%s' not implemented!\n", header->val);
-//         }
-//     }
-//     else
-//     {
-//         warn("Client no upgrade connection?\n");
-//     }
-// }
-
 static void 
 handle_websocket_key(http_t* http, http_header_t* header)
 {
@@ -492,11 +472,6 @@ http_add_body(http_t* restrict http, const char* restrict body, size_t body_len)
     memcpy(http->body, body, body_len);
     http->body_inheap = true;
     http->body_len = body_len;
-
-    char val[HTTP_HEAD_VAL_LEN];
-    snprintf(val, HTTP_HEAD_VAL_LEN, "%zu", body_len);
-
-    http_add_header(http, HTTP_HEAD_CONTENT_LEN, val);
 }
 
 http_t* 
@@ -513,6 +488,11 @@ http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_le
 
     if (body)
         http_add_body(http, body, body_len);
+
+    char val[HTTP_HEAD_VAL_LEN];
+    snprintf(val, HTTP_HEAD_VAL_LEN, "%zu", body_len);
+
+    http_add_header(http, HTTP_HEAD_CONTENT_LEN, val);
 
     return http;
 }

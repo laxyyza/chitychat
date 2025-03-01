@@ -17,32 +17,34 @@ server_handle_set_session(server_t* server, client_t* client, http_t* http)
         }
     }
 
-    if (token)
+    if (token == NULL)
     {
-        u64 tokenid = strtoull(token, NULL, 10);
-        info("token: '%s', int: %lu\n", token, tokenid);
-        client_t* ws_client = server_ght_get(&server->client_by_tmptoken_ht, tokenid);
-        if (ws_client)
+        error("No token provided\n");
+        server_http_resp_error(client, HTTP_CODE_BAD_REQ, HTTP_BAD_REQ);
+        return;
+    }
+
+    u64 tokenid = strtoull(token, NULL, 10);
+    client_t* ws_client = server_ght_get(&server->client_by_tmptoken_ht, tokenid);
+    if (ws_client)
+    {
+        http_t* resp_http = http_new_resp(HTTP_CODE_OK, "Ok", NULL, 0);
+        char* set_cookie = http_add_header(resp_http, "Set-Cookie", NULL);
+        if (set_cookie == NULL)
         {
-            http_t* resp_http = http_new_resp(HTTP_CODE_OK, "Ok", NULL, 0);
-            // For some reason I need to add "Content-Length: 0" for Firefox, else it doesn't work.
-            http_add_header(resp_http, HTTP_HEAD_CONTENT_LEN, "0");
-            char* set_cookie = http_add_header(resp_http, "Set-Cookie", NULL);
-            if (set_cookie == NULL)
-            {
-                warn("http_add_header() returned NULL!\n");
-                return;
-            }
-            snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session_id=%s; HttpOnly; Secure; SameSite=Strict", ws_client->session_uuid);
-            http_send(client, resp_http);
-            server_ght_del(&server->client_by_tmptoken_ht, tokenid);
-            http_free(resp_http);
+            warn("http_add_header() returned NULL!\n");
+            return;
         }
-        else
-            server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
+        snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session_id=%s; HttpOnly; Secure; SameSite=Strict", ws_client->session_uuid);
+        http_send(client, resp_http);
+        server_ght_del(&server->client_by_tmptoken_ht, tokenid);
+        http_free(resp_http);
     }
     else
-        server_http_resp_error(client, HTTP_CODE_BAD_REQ, HTTP_BAD_REQ);
+    {
+        error("No client in tmptoken_ht\n");
+        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
+    }
 }
 
 enum client_recv_status 

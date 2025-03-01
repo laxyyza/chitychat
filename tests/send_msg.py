@@ -6,11 +6,10 @@ from common import *
 
 test: CTTest = None
 
-async def run(session: dict, group: dict, msgs: list[str]) -> dict:
-    test = CTTest()
+async def run(session: str, group: dict, msgs: list[str]) -> dict:
+    test = CTTest(session)
     try:
         await test.connect()
-        await test.request_wait("session", session, print_packet=False)
 
         group_id: int = group["group_id"]
         group_msg: dict = None

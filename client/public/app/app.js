@@ -394,11 +394,6 @@ export class App
     {
     }
 
-    server_error()
-    {
-
-    }
-
     server_msg(packet)
     {
         console.log(packet);

@@ -4,13 +4,10 @@
 
 from common import *
 
-test: CTTest = None
-
-async def run(session: dict, msg: dict) -> None:
-    test = CTTest()
+async def run(session: str, msg: dict) -> None:
+    test = CTTest(session)
     try:
         await test.connect()
-        await test.request_wait("session", session, print_packet=False)
 
         group_msgs: dict = await test.get_group_msgs(msg['group_id'])
         old_msg_count = len(group_msgs["messages"])
