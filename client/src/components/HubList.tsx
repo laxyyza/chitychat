@@ -1,4 +1,3 @@
-import { ReactNode } from 'react';
 import { FaBeer } from 'react-icons/fa';
 
 const Hub = (text: string) => {

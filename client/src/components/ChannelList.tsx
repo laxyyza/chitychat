@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
 
 interface ListProp {
     title: string;
@@ -49,6 +49,7 @@ const ChannelList = () => {
 
     return (
         <div className="channels">
+            <div className="bg-green-950 text-center">Hub Settings</div>
             <Channel name="Filesystem"></Channel>
             <List title="Text Channels" items={items1}></List>
             <List title="Voice Channels" items={items2}></List>
