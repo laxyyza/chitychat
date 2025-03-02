@@ -1,12 +1,12 @@
 import HubList from './HubList';
-import Channels from './Channels';
+import ChannelList from './ChannelList';
 import UserProfile from './UserProfile';
 
 const SideBar = () => {
     return (
         <div className="sidebar">
             <HubList />
-            <Channels />
+            <ChannelList />
             <UserProfile />
         </div>
     );
