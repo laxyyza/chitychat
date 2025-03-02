@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+:root {
+    --green: rgb(50, 85, 50);
+    --blue: rgb(39, 39, 65);
+    --red: rgb(78, 44, 44);
+}
+
+@layer components {
+    .test-icon {
+        @apply relative flex
+        justify-center items-center 
+        bg-gray-500 rounded-3xl hover:bg-green-600 
+        hover:rounded-xl transition-all 
+        duration-100 cursor-pointer ease-linear
+        h-12 w-12 mt-1 mb-1 mx-auto shadow-lg;
+    }
+
+    .test-tooltip {
+        @apply absolute w-auto p-2 m-2 min-w-max left-12 rounded-md
+            shadow-md text-white bg-gray-900 
+            text-xs font-bold transition-all 
+            duration-100 origin-left scale-0 z-1000;
+    }
+}
+
+/*
+ * I forgot a lot of CSS, so writing CSS here for now.
+ */
+
+.br {
+    border-color: black;
+    border-width: 3px;
+}
+
+.sidebar {
+    display: flex;
+    height: 100vh;
+    flex-wrap: wrap;
+    width: 225px;
+}
+
+.server-list {
+    background-color: var(--red);
+    width: 50px;
+    height: calc(100% - 50px);
+}
+
+.channels {
+    background-color: var(--blue);
+    flex: 1;
+}
+
+.user-profile {
+    height: 50px;
+    background-color: var(--green);
+    color: white;
+    width: 100%;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    background-color: var(--blue);
+    height: 100vh;
+}
+
+.chat-window {
+    flex: 1;
+    background-color: var(--red);
+}
+
+.input {
+    background-color: var(--green);
+    height: 40px;
+    margin: 5px;
+}
+
+.member-list {
+    position: fiexd;
+    background-color: var(--green);
+    width: 200px;
+    right: 0;
+    top: 0;
+}

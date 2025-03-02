@@ -1,7 +1,16 @@
-import './App.css'
+import './App.css';
+import SideBar from './components/SideBar';
+import MainContent from './components/MainContent';
+import MemberList from './components/MemberList';
 
 function App() {
-  return <h1>Chity Chat</h1>
+    return (
+        <div className="flex">
+            <SideBar></SideBar>
+            <MainContent></MainContent>
+            <MemberList></MemberList>
+        </div>
+    );
 }
 
-export default App
+export default App;
