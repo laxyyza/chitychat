@@ -6,17 +6,26 @@
     --red: rgb(78, 44, 44);
 }
 
+@theme {
+    --color-gray-950: #0c0c0c;
+    --color-gray-900: #111111;
+    --color-gray-800: #222222;
+    --color-gray-700: #333333;
+    --color-gray-600: #444444;
+}
+
 @layer components {
-    .test-icon {
+
+    .hub-icon {
         @apply relative flex
         justify-center items-center 
-        bg-gray-500 rounded-3xl hover:bg-green-600 
+        bg-gray-800 rounded-3xl hover:bg-green-600 
         hover:rounded-xl transition-all 
         duration-100 cursor-pointer ease-linear
-        h-12 w-12 mt-1 mb-1 mx-auto shadow-lg;
+        h-12 w-12 mb-1 mt-1 mr-1 ml-1 mx-auto shadow-lg text-white;
     }
 
-    .test-tooltip {
+    .hub-tooltip {
         @apply absolute w-auto p-2 m-2 min-w-max left-12 rounded-md
             shadow-md text-white bg-gray-900 
             text-xs font-bold transition-all 
@@ -35,14 +44,13 @@
 
 .sidebar {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     width: 225px;
 }
 
-.server-list {
+.hub-list {
     background-color: var(--red);
     width: 50px;
-    height: calc(100% - 50px);
 }
 
 .channels {
@@ -52,6 +60,7 @@
 
 .user-profile {
     height: 50px;
+    display: flex;
     background-color: var(--green);
     color: white;
     width: 100%;

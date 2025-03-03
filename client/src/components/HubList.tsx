@@ -2,10 +2,10 @@ import { FaBeer } from 'react-icons/fa';
 
 const Hub = (text: string) => {
     return (
-        <div className="test-icon group">
+        <div className="hub-icon group">
             <FaBeer size={32} />
 
-            <span className="test-tooltip group-hover:scale-100">{text}</span>
+            <span className="hub-tooltip group-hover:scale-100">{text}</span>
         </div>
     );
 };
@@ -21,7 +21,12 @@ const HubList = () => {
         Hub('Test')
     ];
 
-    return <div className="server-list">{hubs}</div>;
+    return (
+        <div className="flex flex-col bg-gray-900">
+            <div className="flex-1">{hubs}</div>
+            <div className="bg-gray-900">{Hub('Create')}</div>
+        </div>
+    );
 };
 
 export default HubList;

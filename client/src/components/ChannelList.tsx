@@ -48,8 +48,10 @@ const ChannelList = () => {
     const items2 = ['General', 'Meeting'];
 
     return (
-        <div className="channels">
-            <div className="bg-green-950 text-center">Hub Settings</div>
+        <div className="flex-1 bg-gray-800 text-white">
+            <div className="bg-gray-800 text-center shadow-md">
+                Hub Settings
+            </div>
             <Channel name="Filesystem"></Channel>
             <List title="Text Channels" items={items1}></List>
             <List title="Voice Channels" items={items2}></List>

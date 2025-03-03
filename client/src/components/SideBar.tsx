@@ -5,8 +5,10 @@ import UserProfile from './UserProfile';
 const SideBar = () => {
     return (
         <div className="sidebar">
-            <HubList />
-            <ChannelList />
+            <div className="flex flex-1">
+                <HubList />
+                <ChannelList />
+            </div>
             <UserProfile />
         </div>
     );
