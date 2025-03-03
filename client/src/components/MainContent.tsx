@@ -4,7 +4,8 @@ import { FaRegUser } from 'react-icons/fa';
 
 interface MessageProp {
     username: string;
-    content: string;
+    content?: string;
+    attachments?: string[];
 }
 
 interface ChatWindowProp {
@@ -28,13 +29,13 @@ const HeaderBar = ({ name }: HeaderBarProp) => {
 const Img = ({ url }: ImgProp) => {
     return (
         <img
-            className="rounded-4xl p-2 object-contain max-h-100 shrink"
+            className="rounded-3xl p-2 object-contain max-h-100 shrink"
             src={url}
         />
     );
 };
 
-const Message = ({ username, content }: MessageProp) => {
+const Message = ({ username, content, attachments }: MessageProp) => {
     return (
         <div className="m-2 rounded-2xl p-2 hover:bg-gray-600 text-white flex-col max-w-full">
             <div className="flex">
@@ -53,15 +54,9 @@ const Message = ({ username, content }: MessageProp) => {
                 </div>
                 {/* <div className="bg-black">yo</div> */}
             </div>
-            <div className="m-1">
-                {content} twasdiujqsdaoijd aoijdawoi djawodij awdoij
-                daoidjaidjadoij daowijdawiodj doawijdawiojda oidjawod ijawdo
-                iajda oijdao iwjdaoid jaodijawdoiawjd oaiwdjaoidjawodijawd
-            </div>
+            <div className="m-1">{content}</div>
             <div className="flex flex-wrap">
-                {/* <Img url="https://www.whiskas.in/sites/g/files/fnmzdf2051/files/2024-10/cat-play.png"></Img>
-                <Img url="https://i.pinimg.com/736x/2f/86/86/2f8686457ae5349508751f852111dace.jpg"></Img>
-                <Img url="https://wallpapersok.com/images/hd/ultra-wide-4k-aesthetic-city-lights-fmsnpxlc1cpadvhm.jpg"></Img> */}
+                {attachments && attachments.map((url) => <Img url={url}></Img>)}
             </div>
         </div>
     );
@@ -87,15 +82,39 @@ const MainContent = () => {
         <Message username="username" content="Message content" />,
         <Message username="username" content="Message content" />,
         <Message username="username" content="Message content" />,
+        <Message
+            username="username"
+            content="Message content"
+            attachments={[
+                'https://wallpapersok.com/images/hd/ultra-wide-4k-aesthetic-city-lights-fmsnpxlc1cpadvhm.jpg'
+            ]}
+        />,
+        <Message
+            username="username"
+            content="Message content"
+            attachments={[
+                'https://www.whiskas.in/sites/g/files/fnmzdf2051/files/2024-10/cat-play.png',
+                'https://i.pinimg.com/736x/2f/86/86/2f8686457ae5349508751f852111dace.jpg'
+            ]}
+        />,
         <Message username="username" content="Message content" />,
         <Message username="username" content="Message content" />,
         <Message username="username" content="Message content" />,
+        <Message
+            username="username"
+            content="Message content ccatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatat"
+            attachments={[
+                'https://www.whiskas.in/sites/g/files/fnmzdf2051/files/2024-10/cat-play.png'
+            ]}
+        />,
         <Message username="username" content="Message content" />,
         <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
+        <Message
+            username="username"
+            attachments={[
+                'https://i.pinimg.com/736x/2f/86/86/2f8686457ae5349508751f852111dace.jpg'
+            ]}
+        />,
         <Message username="username" content="Message content" />
     ];
 
