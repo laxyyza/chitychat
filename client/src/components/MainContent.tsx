@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { FaRegUser } from 'react-icons/fa';
 import Input from './Input';
+import UserIcon from './UserIcon';
 
 interface MessageProp {
     username: string;
@@ -62,10 +62,7 @@ const Message = ({ username, content, attachments }: MessageProp) => {
     return (
         <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-600 text-white flex-col max-w-full">
             <div className="flex">
-                <FaRegUser
-                    className="bg-red-600 m-1 mr-2 p-1 rounded-4xl"
-                    size="42"
-                ></FaRegUser>
+                <UserIcon username={username}></UserIcon>
                 <div className="m-0 p-0 flex-1">
                     <div className="font-bold text-[18px]">
                         Display Name
@@ -97,55 +94,34 @@ const ChatWindow = ({ children }: ChatWindowProp) => {
 
 const MainContent = () => {
     const messages = [
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message
-            username="username"
-            content="Message content"
-            attachments={[
-                'https://wallpapersok.com/images/hd/ultra-wide-4k-aesthetic-city-lights-fmsnpxlc1cpadvhm.jpg'
-            ]}
-        />,
-        <Message
-            username="username"
-            content="Message content"
-            attachments={[
-                'https://www.whiskas.in/sites/g/files/fnmzdf2051/files/2024-10/cat-play.png',
-                'https://i.pinimg.com/736x/2f/86/86/2f8686457ae5349508751f852111dace.jpg'
-            ]}
-        />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
-        <Message
-            username="username"
-            content="Message content ccatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatcatat"
-            attachments={[
-                'https://www.whiskas.in/sites/g/files/fnmzdf2051/files/2024-10/cat-play.png'
-            ]}
-        />,
-        <Message username="username" content="Message content" />,
-        <Message
-            username="username"
-            content="Message content"
-            attachments={['https://localhost:8080/video_av1.mp4']}
-        />,
-        <Message
-            username="username"
-            attachments={[
-                'https://i.pinimg.com/736x/2f/86/86/2f8686457ae5349508751f852111dace.jpg'
-            ]}
-        />,
-        <Message username="username" content="Message content" />
+        'Message test',
+        'Message test',
+        'Message test',
+        'Message test',
+        'Message test',
+        'Message test',
+        'Message test',
+        'Message ok',
+        'Message ok',
+        'Message ok',
+        'Message ok',
+        'Message ok',
+        'Message ok',
+        'Message ok',
+        'Message ok'
     ];
 
     return (
         <div className="flex flex-col flex-1 h-screen bg-gray-700">
             <HeaderBar name="Text Channel Name"></HeaderBar>
-            <ChatWindow>{messages}</ChatWindow>
+            <ChatWindow>
+                {messages.map((msg, index) => (
+                    <Message
+                        username={'username' + index}
+                        content={msg}
+                    ></Message>
+                ))}
+            </ChatWindow>
             <Input></Input>
         </div>
     );

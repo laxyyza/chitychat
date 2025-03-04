@@ -92,3 +92,16 @@
     right: 0;
     top: 0;
 }
+
+.user-icon {
+    anchor-name: --usericon;
+}
+
+.popover-test {
+    position-anchor: --usericon;
+    margin: 0;
+    inset: 0;
+}
+
+.popover-test:popover-open {
+}

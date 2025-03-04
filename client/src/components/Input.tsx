@@ -37,6 +37,7 @@ const Input = () => {
         console.log('Change: ', event.target.value);
         setMessage(event.target.value);
         adjustHeight();
+        setShowPopup(false);
     };
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
