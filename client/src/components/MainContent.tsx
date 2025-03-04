@@ -20,6 +20,15 @@ interface ImgProp {
     url: string;
 }
 
+interface VideoProp {
+    url: string;
+}
+
+interface AttachmentProp {
+    url: string;
+    type: 'video' | 'image';
+}
+
 const HeaderBar = ({ name }: HeaderBarProp) => {
     return (
         <div className="bg-gray-800 text-center text-white shadow">{name}</div>
@@ -33,6 +42,20 @@ const Img = ({ url }: ImgProp) => {
             src={url}
         />
     );
+};
+
+const Vid = ({ url }: VideoProp) => {
+    return (
+        <video className="rounded-xl" width="600" controls>
+            <source src={url} />
+        </video>
+    );
+};
+
+const Attachment = ({ url, type }: AttachmentProp) => {
+    if (type === 'video') return <Vid url={url} />;
+    else if (type === 'image') return <Img url={url} />;
+    else return <h1>Unknown type: {type}</h1>;
 };
 
 const Message = ({ username, content, attachments }: MessageProp) => {
@@ -56,7 +79,13 @@ const Message = ({ username, content, attachments }: MessageProp) => {
             </div>
             <div className="m-1">{content}</div>
             <div className="flex flex-wrap">
-                {attachments && attachments.map((url) => <Img url={url}></Img>)}
+                {attachments &&
+                    attachments.map((url) => (
+                        <Attachment
+                            url={url}
+                            type={url.endsWith('.mp4') ? 'video' : 'image'}
+                        ></Attachment>
+                    ))}
             </div>
         </div>
     );
@@ -108,7 +137,11 @@ const MainContent = () => {
             ]}
         />,
         <Message username="username" content="Message content" />,
-        <Message username="username" content="Message content" />,
+        <Message
+            username="username"
+            content="Message content"
+            attachments={['https://localhost:8080/video_av1.mp4']}
+        />,
         <Message
             username="username"
             attachments={[
