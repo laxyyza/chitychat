@@ -56,7 +56,7 @@ const Input = () => {
     };
 
     return (
-        <div className="relative h-10 m-2 flex max-h-100" ref={divRef}>
+        <div className="relative h-10 m-2 flex max-h-[50%]" ref={divRef}>
             <div className="bg-gray-900 text-white rounded-2xl flex flex-1">
                 <div className="">
                     <div className="relative">
