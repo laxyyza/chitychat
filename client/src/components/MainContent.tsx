@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { IoAddCircleOutline } from 'react-icons/io5';
 import { FaRegUser } from 'react-icons/fa';
+import Input from './Input';
 
 interface MessageProp {
     username: string;
@@ -60,7 +60,7 @@ const Attachment = ({ url, type }: AttachmentProp) => {
 
 const Message = ({ username, content, attachments }: MessageProp) => {
     return (
-        <div className="m-2 rounded-2xl p-2 hover:bg-gray-600 text-white flex-col max-w-full">
+        <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-600 text-white flex-col max-w-full">
             <div className="flex">
                 <FaRegUser
                     className="bg-red-600 m-1 mr-2 p-1 rounded-4xl"
@@ -93,15 +93,6 @@ const Message = ({ username, content, attachments }: MessageProp) => {
 
 const ChatWindow = ({ children }: ChatWindowProp) => {
     return <div className="flex-1 overflow-y-auto">{children}</div>;
-};
-
-const Input = () => {
-    return (
-        <div className="input flex">
-            <IoAddCircleOutline className="" size="40"></IoAddCircleOutline>
-            <input className="w-full h-full" type="text" />
-        </div>
-    );
 };
 
 const MainContent = () => {
