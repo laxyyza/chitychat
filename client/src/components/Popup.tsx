@@ -1,0 +1,142 @@
+// import { ReactNode, useRef, useEffect } from 'react';
+// import { createPortal } from 'react-dom';
+
+// interface Prop {
+//     children?: ReactNode;
+//     left?: boolean;
+// }
+
+// const Popup = ({ children, left = false }: Prop) => {
+//     const ref = useRef<HTMLDivElement | null>(null);
+
+//     useEffect(() => {
+//         if (ref.current) {
+//             ref.current.innerHTML += String(
+//                 ref.current.getBoundingClientRect()
+//             );
+//         }
+//     }, []);
+
+//     return (
+//         <div ref={ref} className="absolute z-10 left-0">
+//             {children}
+//         </div>
+//     );
+// };
+
+// export default Popup;
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+
+interface PopupProps {
+    targetRef: React.RefObject<HTMLElement>; // The element the popup should be next to
+    children: React.ReactNode;
+    className?: string;
+    onClose?: () => void;
+}
+
+export default function Popup({
+    targetRef,
+    children,
+    onClose,
+    className = ''
+}: PopupProps) {
+    const popupRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState({
+        top: targetRef.current.style.top,
+        left: targetRef.current.style.left
+    });
+
+    useEffect(() => {
+        function updatePosition() {
+            if (targetRef.current && popupRef.current) {
+                const targetRect = targetRef.current.getBoundingClientRect();
+                const popupRect = popupRef.current?.getBoundingClientRect();
+
+                const rightOverflow = () => {
+                    return (
+                        targetRect.right + popupRect?.width > window.innerWidth
+                    );
+                };
+
+                const bottomOverflow = () => {
+                    return (
+                        targetRect.bottom + popupRect?.height >
+                        window.innerHeight
+                    );
+                };
+
+                let newTop = targetRect.top;
+                let newLeft = 0;
+
+                if (rightOverflow())
+                    newLeft = targetRect.left - popupRect.width;
+                else newLeft = targetRect.right;
+
+                if (bottomOverflow())
+                    newTop = targetRect.top - popupRect.height;
+                else newTop = targetRect.top;
+                // popupRef.current.getBoundingClientRect().height, // Below the target
+                // popupRef.current.getBoundingClientRect().width // Align left
+
+                setPosition({
+                    top: newTop,
+                    left: newLeft
+                });
+            }
+        }
+
+        updatePosition(); // Set initial position
+
+        // Reposition on scroll and resize
+        window.addEventListener('resize', updatePosition);
+        window.addEventListener('scroll', updatePosition);
+
+        return () => {
+            window.removeEventListener('resize', updatePosition);
+            window.removeEventListener('scroll', updatePosition);
+        };
+    }, [targetRef]);
+
+    // Close when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (
+                popupRef.current &&
+                !popupRef.current.contains(event.target as Node)
+            ) {
+                if (onClose) onClose();
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+
+        const handleKeyEvent = (event) => {
+            if (event.key == 'Escape') if (onClose) onClose();
+        };
+
+        document.addEventListener('keydown', handleKeyEvent);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleKeyEvent);
+        };
+    }, []);
+
+    return createPortal(
+        <div
+            onClick={(event) => {
+                event.stopPropagation();
+            }}
+            ref={popupRef}
+            style={{
+                position: 'fixed',
+                top: position.top,
+                left: position.left,
+                zIndex: 1000
+            }}
+            className={className}
+        >
+            {children}
+        </div>,
+        document.body
+    );
+}

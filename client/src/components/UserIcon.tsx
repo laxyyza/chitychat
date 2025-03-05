@@ -1,19 +1,20 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FaRegUser } from 'react-icons/fa';
+import Popup from './Popup';
 
 interface Prop {
     username: string;
-    placement?: 'right' | 'left';
 }
 
-const UserDetails = ({ placement, username }: Prop) => {
-    const place = placement === 'right' ? 'left-17' : '-left-100';
-    const className =
-        'absolute bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white  ' +
-        place;
+const UserDetails = ({ username }: Prop) => {
+    // return (
+    //     <Popup targetRef={ref}>
+    //         <div className="bg-gray-900 w-100 h-70 rounded-2xl"></div>
+    //     </Popup>
+    // );
 
     return (
-        <div className={className}>
+        <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white">
             <FaRegUser
                 className="bg-red-600 m-1 p-1 rounded-4xl border-black border-1"
                 size="64"
@@ -35,18 +36,18 @@ const UserDetails = ({ placement, username }: Prop) => {
 
 const UserIcon = ({ placement = 'right', username }: Prop) => {
     const [showDetails, setShowDetails] = useState(false);
+    const ref = useRef<HTMLDivElement | null>(null);
 
     return (
-        <div onClick={() => setShowDetails(!showDetails)}>
+        <div onClick={() => setShowDetails(!showDetails)} ref={ref}>
             <FaRegUser
                 className="bg-red-600 m-1 mr-2 p-1 rounded-4xl"
                 size="42"
             ></FaRegUser>
             {showDetails && (
-                <UserDetails
-                    placement={placement}
-                    username={username}
-                ></UserDetails>
+                <Popup targetRef={ref} onClose={() => setShowDetails(false)}>
+                    <UserDetails username={username}></UserDetails>
+                </Popup>
             )}
         </div>
     );
