@@ -152,6 +152,11 @@ parse_url(http_t* http, char* url)
 
             key = strtok_r(param, "=", &val);
 
+            if (key == NULL)
+                break;
+            else if (val == NULL)
+                val = "";
+
             strncpy(http_param->name, key, HTTP_HEAD_NAME_LEN - 1);
             strncpy(http_param->val, val, HTTP_HEAD_VAL_LEN - 1);
 
