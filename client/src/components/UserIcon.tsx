@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Popup from './Popup';
 import User from './User';
 import Input from './Input';
@@ -8,14 +8,8 @@ interface Prop {
 }
 
 const UserDetails = ({ user }: Prop) => {
-    // return (
-    //     <Popup targetRef={ref}>
-    //         <div className="bg-gray-900 w-100 h-70 rounded-2xl"></div>
-    //     </Popup>
-    // );
-
     return (
-        <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white">
+        <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
             <img src={user.pfp} className="w-full h-full rounded-xl mb-2" />
             <div className="">
                 <div className="font-bold text-2xl text-center">
@@ -39,16 +33,26 @@ const UserDetails = ({ user }: Prop) => {
 const UserIcon = ({ user }: Prop) => {
     const [showDetails, setShowDetails] = useState(false);
     const ref = useRef<HTMLDivElement | null>(null);
+    const [canOpen, setCanOpen] = useState(true);
 
     return (
         <div
-            onClick={() => setShowDetails(!showDetails)}
+            onClick={() => {
+                if (canOpen) setShowDetails(true);
+            }}
             ref={ref}
-            className="max-w-13 max-h-13 mr-2"
+            className="max-w-13 max-h-13"
         >
             <img src={user.pfp} className="w-full h-full rounded-full" />
             {showDetails && (
-                <Popup targetRef={ref} onClose={() => setShowDetails(false)}>
+                <Popup
+                    targetRef={ref}
+                    onClose={() => {
+                        setShowDetails(false);
+                        setCanOpen(false);
+                        setTimeout(() => setCanOpen(true), 100);
+                    }}
+                >
                     <UserDetails user={user}></UserDetails>
                 </Popup>
             )}

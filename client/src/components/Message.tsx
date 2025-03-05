@@ -48,7 +48,7 @@ const Message = ({ user, content, attachments }: Prop) => {
         <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-600 text-white flex-col max-w-full">
             <div className="flex">
                 <UserIcon user={user}></UserIcon>
-                <div className="m-0 p-0 flex-1">
+                <div className="ml-2 m-0 p-0 flex-1">
                     <div className="font-bold text-[18px]">
                         {user.displayname}
                         <span className="m-6 text-[14px] font-normal">

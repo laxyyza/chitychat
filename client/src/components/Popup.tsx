@@ -1,30 +1,3 @@
-// import { ReactNode, useRef, useEffect } from 'react';
-// import { createPortal } from 'react-dom';
-
-// interface Prop {
-//     children?: ReactNode;
-//     left?: boolean;
-// }
-
-// const Popup = ({ children, left = false }: Prop) => {
-//     const ref = useRef<HTMLDivElement | null>(null);
-
-//     useEffect(() => {
-//         if (ref.current) {
-//             ref.current.innerHTML += String(
-//                 ref.current.getBoundingClientRect()
-//             );
-//         }
-//     }, []);
-
-//     return (
-//         <div ref={ref} className="absolute z-10 left-0">
-//             {children}
-//         </div>
-//     );
-// };
-
-// export default Popup;
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -108,7 +81,7 @@ export default function Popup({
                 if (onClose) onClose();
             }
         }
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('mouseup', handleClickOutside);
 
         const handleKeyEvent = (event) => {
             if (event.key == 'Escape') if (onClose) onClose();
@@ -116,7 +89,7 @@ export default function Popup({
 
         document.addEventListener('keydown', handleKeyEvent);
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('mouseup', handleClickOutside);
             document.removeEventListener('keydown', handleKeyEvent);
         };
     }, []);
