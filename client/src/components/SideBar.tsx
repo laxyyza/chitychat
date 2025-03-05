@@ -1,15 +1,11 @@
 import HubList from './HubList';
 import ChannelList from './ChannelList';
 import UserProfile from './UserProfile';
+import { AppCtx } from './AppProvider';
+import { useContext } from 'react';
 
 const SideBar = () => {
-    const user: User = {
-        id: 41,
-        username: 'username',
-        displayname: 'Display Name',
-        about_me: 'ABOUT ME',
-        pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg'
-    };
+    const app = useContext(AppCtx);
 
     return (
         <div className="sidebar">
@@ -17,7 +13,7 @@ const SideBar = () => {
                 <HubList />
                 <ChannelList />
             </div>
-            <UserProfile user={user} />
+            <UserProfile user={app.login_user} />
         </div>
     );
 };

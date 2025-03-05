@@ -1,30 +1,18 @@
-import { FaBeer } from 'react-icons/fa';
-
-const Hub = (text: string) => {
-    return (
-        <div className="hub-icon group">
-            <FaBeer size={32} />
-
-            <span className="hub-tooltip group-hover:scale-100">{text}</span>
-        </div>
-    );
-};
+import { useContext } from 'react';
+import { AppCtx } from './AppProvider';
+import { HubComponent } from './Hub';
 
 const HubList = () => {
-    const hubs = [
-        Hub('H'),
-        Hub('WW'),
-        Hub('LO'),
-        Hub('?'),
-        Hub('F'),
-        Hub('Q'),
-        Hub('Test')
-    ];
+    const app = useContext(AppCtx);
+    const hubs = app.hubs;
 
     return (
         <div className="flex flex-col bg-gray-900">
-            <div className="flex-1">{hubs}</div>
-            <div className="bg-gray-900">{Hub('Create')}</div>
+            <div className="flex-1">
+                {hubs.map((hub) => (
+                    <HubComponent hub={hub}></HubComponent>
+                ))}
+            </div>
         </div>
     );
 };
