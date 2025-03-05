@@ -1,6 +1,11 @@
 import { IoAddCircleOutline } from 'react-icons/io5';
 import React, { useState, useRef } from 'react';
 
+interface Prop {
+    placeholder?: string;
+    attachments?: boolean;
+}
+
 const Popup = () => {
     return (
         <div className="absolute bg-gray-950 text-white bottom-12 p-2 rounded-xl w-35 select-none border-black border-1">
@@ -14,7 +19,10 @@ const Popup = () => {
     );
 };
 
-const Input = () => {
+const Input = ({
+    placeholder = 'Type a message...',
+    attachments = true
+}: Prop) => {
     const [message, setMessage] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const divRef = useRef<HTMLDivElement | null>(null);
@@ -56,25 +64,27 @@ const Input = () => {
     };
 
     return (
-        <div className="relative h-10 m-2 flex max-h-[50%]" ref={divRef}>
-            <div className="bg-gray-900 text-white rounded-2xl flex flex-1">
-                <div className="">
-                    <div className="relative">
-                        <IoAddCircleOutline
-                            className="hover:bg-gray-600 active:bg-gray-500 rounded-l-2xl mr-2"
-                            size="40"
-                            onClick={() => setShowPopup(!showPopup)}
-                        ></IoAddCircleOutline>
-                        {showPopup && <Popup></Popup>}
+        <div className="relative h-10" ref={divRef}>
+            <div className="flex">
+                {attachments && (
+                    <div className="">
+                        <div className="relative">
+                            <IoAddCircleOutline
+                                className="hover:bg-gray-600 active:bg-gray-500 rounded-l-2xl mr-2"
+                                size="40"
+                                onClick={() => setShowPopup(!showPopup)}
+                            ></IoAddCircleOutline>
+                            {showPopup && <Popup></Popup>}
+                        </div>
                     </div>
-                </div>
-                <div className="overflow-auto h-full w-full">
+                )}
+                <div className="flex-1">
                     <textarea
                         ref={textareaRef}
                         value={message}
                         onChange={handleChange}
                         onKeyDown={handleKeyDown}
-                        placeholder="Type a message..."
+                        placeholder={placeholder}
                         className="w-full h-full outline-0 text-2xl resize-none"
                         rows={1}
                     ></textarea>

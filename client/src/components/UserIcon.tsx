@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { FaRegUser } from 'react-icons/fa';
 import Popup from './Popup';
+import User from './User';
+import Input from './Input';
 
 interface Prop {
-    username: string;
+    user: User;
 }
 
-const UserDetails = ({ username }: Prop) => {
+const UserDetails = ({ user }: Prop) => {
     // return (
     //     <Popup targetRef={ref}>
     //         <div className="bg-gray-900 w-100 h-70 rounded-2xl"></div>
@@ -15,38 +16,40 @@ const UserDetails = ({ username }: Prop) => {
 
     return (
         <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white">
-            <FaRegUser
-                className="bg-red-600 m-1 p-1 rounded-4xl border-black border-1"
-                size="64"
-            ></FaRegUser>
+            <img src={user.pfp} className="w-full h-full rounded-xl mb-2" />
             <div className="">
-                <div className="font-bold text-2xl">Display Name</div>
-                <div>@{username}</div>
-                <div className="text-[14px] text-right">
-                    Created at 12 January 2025, 10:30 am
+                <div className="font-bold text-2xl text-center">
+                    {user.displayname}
                 </div>
+                <div className="text-center">{user.username}</div>
             </div>
-            <div className="mt-4 bg-gray-800 p-2 rounded-xl">
-                ABOUT MEidjwaodijaw doijawdo iajdoia jdaowi jdawd daowidj
-                awoidja oidja odijwa
+            <div className="mt-4 bg-gray-800 p-2 rounded-xl min-h-10">
+                {user.about_me ? user.about_me : 'ABOUT ME'}
+            </div>
+            <div className="bg-gray-800 rounded-xl text-white mt-3 max-h-50 overflow-auto pl-2">
+                <Input
+                    attachments={false}
+                    placeholder={'Message @' + user.username}
+                ></Input>
             </div>
         </div>
     );
 };
 
-const UserIcon = ({ placement = 'right', username }: Prop) => {
+const UserIcon = ({ user }: Prop) => {
     const [showDetails, setShowDetails] = useState(false);
     const ref = useRef<HTMLDivElement | null>(null);
 
     return (
-        <div onClick={() => setShowDetails(!showDetails)} ref={ref}>
-            <FaRegUser
-                className="bg-red-600 m-1 mr-2 p-1 rounded-4xl"
-                size="42"
-            ></FaRegUser>
+        <div
+            onClick={() => setShowDetails(!showDetails)}
+            ref={ref}
+            className="max-w-13 max-h-13 mr-2"
+        >
+            <img src={user.pfp} className="w-full h-full rounded-full" />
             {showDetails && (
                 <Popup targetRef={ref} onClose={() => setShowDetails(false)}>
-                    <UserDetails username={username}></UserDetails>
+                    <UserDetails user={user}></UserDetails>
                 </Popup>
             )}
         </div>
