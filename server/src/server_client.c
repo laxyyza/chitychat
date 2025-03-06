@@ -14,7 +14,7 @@ server_get_client_user_id(server_t* server, u64 id)
 }
 
 client_t*
-server_accept_client(eworker_t* th)
+server_accept_client(eworker_t* th, server_event_t* ev)
 {
     client_t* client;
     server_t* server = th->server;
@@ -24,11 +24,13 @@ server_accept_client(eworker_t* th)
     client->addr.version = server->conf.addr_version;
     client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
     client->addr.sock = accept(server->sock, client->addr.addr_ptr, &client->addr.len);
+    server_event_rearm(server, ev);
     if (client->addr.sock == -1)
     {
         error("accept: %s", ERRSTR);
         goto err;
     }
+
     if (server_client_ssl_handsake(server, client) == -1)
         goto err;
     server_get_client_info(client);

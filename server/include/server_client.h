@@ -22,6 +22,8 @@
 #define CLIENT_RECV_PAGE             4096
 #define CLIENT_MAX_ERRORS 3
 
+typedef struct server_event server_event_t;
+
 typedef struct 
 {
     u8*     data;
@@ -45,7 +47,7 @@ typedef struct client
     char        session_uuid[UUID_LEN];
 } client_t;
 
-client_t*   server_accept_client(eworker_t* ew);
+client_t*   server_accept_client(eworker_t* ew, server_event_t* ev);
 int         server_client_ssl_handsake(server_t* server, client_t* client);
 client_t*   server_get_client_fd(server_t* server, i32 fd);
 client_t*   server_get_client_user_id(server_t* server, u64 id);
