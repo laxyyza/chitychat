@@ -8,14 +8,31 @@ interface Prop {
 }
 
 const UserDetails = ({ user }: Prop) => {
+    const [big, setBig] = useState(false);
+
+    const addClass = () => {
+        return big ? 'w-full h-full rounded-xl' : 'rounded-[40px] h-20 w-20';
+    };
+
     return (
         <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
-            <img src={user.pfp} className="w-full h-full rounded-xl mb-2" />
+            <div>
+                <img
+                    onClick={() => {
+                        setBig(!big);
+                    }}
+                    src={user.pfp}
+                    className={
+                        ' bg-gray-800 transition-all duration-200 cursor-pointer ease-linear mb-1 shadow-lg text-white ' +
+                        addClass()
+                    }
+                />
+            </div>
             <div className="">
-                <div className="font-bold text-2xl text-center">
+                <div className="font-bold text-2xl text-left">
                     {user.displayname}
                 </div>
-                <div className="text-center">{user.username}</div>
+                <div className="text-left">{user.username}</div>
             </div>
             <div className="mt-4 bg-gray-800 p-2 rounded-xl min-h-10">
                 {user.about_me ? user.about_me : 'ABOUT ME'}
