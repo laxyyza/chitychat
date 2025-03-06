@@ -279,7 +279,7 @@ server_init_epoll(server_t* server)
         return false;
     }
 
-    if (server_new_event(server, server->sock, NULL, se_accept_conn, NULL) == NULL)
+    if ((server->server_event = server_new_event(server, server->sock, NULL, se_accept_conn, NULL)) == NULL)
         return false;
     
     return true;

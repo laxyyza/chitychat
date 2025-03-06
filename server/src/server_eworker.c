@@ -50,6 +50,7 @@ eworker_wait_for_events(eworker_t* ew)
         event = ew->ep_events + i;
         se = event->data.ptr;
         se->ep_events = event->events;
+        se->armed = false;
 
         eworker_prep_event(ew, se);
     }

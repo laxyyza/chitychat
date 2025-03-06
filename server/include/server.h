@@ -79,6 +79,7 @@ typedef struct server
     server_ght_t user_ht;
     server_ght_t upload_token_ht;
     server_ght_t chat_cmd_ht;
+    server_event_t* server_event;
     bool running;
 } server_t;
 
