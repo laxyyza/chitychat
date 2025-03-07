@@ -31,13 +31,16 @@ server_accept_client(eworker_t* th, server_event_t* ev)
         goto err;
     }
 
-    if (server_client_ssl_handsake(server, client) == -1)
-        goto err;
+    fcntl(client->addr.sock, F_SETFL, O_NONBLOCK);
+
+    client->ssl = SSL_new(server->ssl_ctx);
+    SSL_set_fd(client->ssl, client->addr.sock);
+
     server_get_client_info(client);
     pthread_mutex_init(&client->ssl_mutex, NULL);
     server_ght_insert(&server->client_ht, client->addr.sock, client);
     if (server_new_event(server, client->addr.sock, client, 
-                         se_read_client, se_close_client) == NULL)
+                         se_ssl_accept, se_close_client) == NULL)
         goto err;
 
     return client;
@@ -97,24 +100,6 @@ server_free_client(eworker_t* ew, client_t* client)
 
     pthread_mutex_destroy(&client->ssl_mutex);
     free(client);
-}
-
-int 
-server_client_ssl_handsake(server_t* server, client_t* client)
-{
-    i32 ret;
-    client->ssl = SSL_new(server->ssl_ctx);
-    if (!client->ssl)
-    {
-        error("SSL_new() failed.\n");
-        return -1;
-    }
-    SSL_set_fd(client->ssl, client->addr.sock);
-    ret = SSL_accept(client->ssl);
-    if (ret == 1)
-        return 0;
-    server_set_client_err(client, CLIENT_ERR_SSL);
-    return 0;
 }
 
 void 

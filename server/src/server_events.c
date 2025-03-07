@@ -73,6 +73,32 @@ se_accept_conn(eworker_t* th, server_event_t* ev)
 }
 
 enum se_status
+se_ssl_accept(UNUSED eworker_t* th, server_event_t* ev)
+{
+    client_t* client = ev->data;
+    i32 ret;
+
+    ret = SSL_accept(client->ssl);
+    if (ret == 1)
+    {
+        verbose("%s SSL handshake completed.\n", client->addr.ip_str);
+        ev->read = se_read_client;
+        client->state &= ~CLIENT_STATE_SSL_HANDSHAKE;
+        fcntl(client->addr.sock, F_SETFL, 0);
+        return SE_OK;
+    }
+    else if (ret == 0)
+        goto failed;
+    else if (SSL_get_error(client->ssl, ret) == SSL_ERROR_WANT_READ)
+            return SE_OK;
+
+failed:
+    debug("%s:%s SSL handshake failed. ssl_error: %d\n", client->addr.ip_str, client->addr.serv, SSL_get_error(client->ssl, ret));
+    server_set_client_err(client, CLIENT_ERR_SSL);
+    return SE_ERROR;
+}
+
+enum se_status
 se_read_client(eworker_t* th, server_event_t* ev)
 {
     ssize_t bytes_recv;
@@ -180,8 +206,8 @@ server_new_event(server_t* server,
 
     if (server_ght_insert(&server->event_ht, fd, se) == false)
     {
-        error("new_event(): Failed to insert.\n");
-        goto err;
+        // error("new_event(): Failed to insert.\n");
+        // goto err;
     }
     if (server_event_add(server, se) == -1)
     {
