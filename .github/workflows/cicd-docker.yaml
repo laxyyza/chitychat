@@ -12,6 +12,7 @@ on:
       - 'meson.build'
       - '.dockerignore'
       - 'client/public/**'
+      - 'scripts/**'
   pull_request:
     branches: [ "main", "dev" ]
 
