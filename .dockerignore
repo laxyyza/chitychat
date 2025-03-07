@@ -7,4 +7,5 @@
 !server/lib
 !server/sql
 !client/public
+!scripts/run.sh
 client/public/upload
