@@ -94,13 +94,20 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
         return RECV_ERROR;
     }
     content_len = fdsize(fd);
-    content = malloc(content_len);
-    if (read(fd, content, content_len) == -1)
+    
+    if (!HTTP_CMP_METHOD("HEAD"))
+        content = NULL;
+    else
     {
-        error("read '%s' failed: %s\n", path, ERRSTR);
-        close(fd);
-        server_http_resp_404_not_found(client);
-        return RECV_ERROR;
+        content = malloc(content_len);
+        if (read(fd, content, content_len) == -1)
+        {
+            error("read '%s' failed: %s\n", path, ERRSTR);
+            close(fd);
+            free(content);
+            server_http_resp_404_not_found(client);
+            return RECV_ERROR;
+        }
     }
     close(fd);
 

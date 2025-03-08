@@ -43,6 +43,8 @@
 #define HTTP_HEAD_CONN_UPGRADE "Upgrade"
 #define HTTP_HEAD_CONTENT_TYPE "Content-Type"
 
+#define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
+
 enum http_keep_alive
 {
     HTTP_CONN_UNKNOWN = 0,
