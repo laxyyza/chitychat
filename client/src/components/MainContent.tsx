@@ -1,7 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import Input from './Input';
-import Message from './Message';
-import User from './User';
+import MessageComponent from './Message';
+// import User from './User';
+import { useApp } from './AppProvider';
+import { ChannelType, Hub, Message, TextChannel } from './Hub';
+import { BsEmojiTear } from 'react-icons/bs';
 
 interface ChatWindowProp {
     children: ReactNode[];
@@ -22,39 +25,30 @@ const ChatWindow = ({ children }: ChatWindowProp) => {
 };
 
 const MainContent = () => {
-    const user: User = {
-        id: 51,
-        username: 'username',
-        displayname: 'Display Name',
-        created_at: '16 December 2025, 5:15 pm',
-        about_me: 'ABOUT ME',
-        pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg'
-    };
+    const { app } = useApp();
+    const [messages, setMessages] = useState<Message[]>([]);
 
-    const messages = [
-        'Message test',
-        'Message test',
-        'Message test',
-        'Message test',
-        'Message test',
-        'Message test',
-        'Message test',
-        'Message ok',
-        'Message ok',
-        'Message ok',
-        'Message ok',
-        'Message ok',
-        'Message ok',
-        'Message ok',
-        'Message ok'
-    ];
+    useEffect(() => {
+        const hub: Hub = app.hubs[app.hubIndex];
+        if (!hub) return;
+
+        const channel = hub.channels.get(app.selectedChannelID);
+        if (channel && channel.type === ChannelType.TEXT) {
+            setMessages(channel.messages);
+        } else {
+            setMessages([]);
+        }
+    }, [app.selectedChannelID]);
 
     return (
         <div className="flex flex-col flex-1 h-screen bg-gray-700">
             <HeaderBar name="Text Channel Name"></HeaderBar>
             <ChatWindow>
-                {messages.map((msg, index) => (
-                    <Message user={user} content={msg}></Message>
+                {messages.map((msg) => (
+                    <MessageComponent
+                        user={app.users.get(msg.user_id)}
+                        content={msg.content}
+                    ></MessageComponent>
                 ))}
             </ChatWindow>
             <div className="bg-gray-900 m-3 rounded-2xl text-white max-h-[50%] overflow-auto">

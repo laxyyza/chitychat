@@ -1,26 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useApp, Action } from './AppProvider';
+import { Hub, Category, Channel } from './Hub';
 
-interface ListProp {
-    title: string;
-    items: string[];
+interface CategoryProp {
+    category: Category;
+    hub: Hub;
 }
 
 interface ChannelProp {
-    name: string;
+    channel: Channel | undefined;
 }
 
-const Channel = ({ name }: ChannelProp) => {
+const ChannelComponent = ({ channel }: ChannelProp) => {
+    if (channel === undefined) return null;
+
+    const { app, dispatch } = useApp();
+
     return (
         <li
-            className="hover:bg-gray-400 pl-2 pr-2 m-1 rounded-xl select-none"
-            key={name}
+            onClick={() =>
+                dispatch({ type: Action.SELECT_CHANNEL, payload: channel.id })
+            }
+            className={`hover:bg-gray-400 pl-2 pr-2 m-1 rounded-xl select-none ${
+                app.selectedChannelID === channel.id ? 'bg-gray-500' : ''
+            }`}
         >
-            {name}
+            {channel.name}
         </li>
     );
 };
 
-const List = ({ title, items }: ListProp) => {
+const CategoryComponent = ({ category, hub }: CategoryProp) => {
     const [open, setOpen] = useState(true);
 
     return (
@@ -29,13 +39,15 @@ const List = ({ title, items }: ListProp) => {
                 onClick={() => setOpen(!open)}
                 className="cursor-pointer select-none hover:bg-gray-400"
             >
-                {open ? '▼' : '▶'} {title}
+                {open ? '▼' : '▶'} {category.name}
             </div>
 
             {open && (
                 <ul>
-                    {items.map((item) => (
-                        <Channel name={item} />
+                    {category.channelIDs.map((channelID) => (
+                        <ChannelComponent
+                            channel={hub.channels.get(channelID)}
+                        />
                     ))}
                 </ul>
             )}
@@ -44,17 +56,36 @@ const List = ({ title, items }: ListProp) => {
 };
 
 const ChannelList = () => {
-    const items1 = ['General', 'Clips'];
-    const items2 = ['General', 'Meeting'];
+    const { app } = useApp();
+    let hub: Hub | null = app.hubs[app.hubIndex];
+    const [categories, setCategories] = useState<Map<number, Category> | null>(
+        null
+    );
+
+    useEffect(() => {
+        hub = app.hubs[app.hubIndex];
+        if (hub) {
+            setCategories(hub.categories);
+        } else {
+            setCategories(null);
+        }
+    }, [app.hubIndex]);
 
     return (
         <div className="flex-1 bg-gray-800 text-white">
             <div className="bg-gray-800 text-center shadow-md">
                 Hub Settings
             </div>
-            <Channel name="Filesystem"></Channel>
-            <List title="Text Channels" items={items1}></List>
-            <List title="Voice Channels" items={items2}></List>
+            {categories &&
+                Array.from(categories.entries()).map(
+                    ([id, category]) =>
+                        hub && (
+                            <CategoryComponent
+                                category={category}
+                                hub={hub}
+                            ></CategoryComponent>
+                        )
+                )}
         </div>
     );
 };

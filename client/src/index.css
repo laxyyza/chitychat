@@ -28,7 +28,7 @@
     .hub-tooltip {
         @apply absolute w-auto p-2 m-2 min-w-max left-12 rounded-md
             shadow-md text-white bg-gray-900 
-            text-xl font-bold transition-all 
+            text-[15px] font-bold transition-all border-1 border-black
             duration-100 origin-left scale-0 z-1000;
     }
 

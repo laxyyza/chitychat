@@ -2,7 +2,7 @@ import User from './User';
 import UserIcon from './UserIcon';
 
 interface Prop {
-    user: User;
+    user: User | undefined;
     content?: string;
     attachments?: string[];
 }
@@ -43,7 +43,9 @@ const Attachment = ({ url, type }: AttachmentProp) => {
     else return <h1>Unknown type: {type}</h1>;
 };
 
-const Message = ({ user, content, attachments }: Prop) => {
+const MessageComponent = ({ user, content, attachments }: Prop) => {
+    if (!user) return null;
+
     return (
         <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-600 text-white flex-col max-w-full">
             <div className="flex">
@@ -73,4 +75,4 @@ const Message = ({ user, content, attachments }: Prop) => {
     );
 };
 
-export default Message;
+export default MessageComponent;

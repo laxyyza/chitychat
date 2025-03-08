@@ -14,21 +14,21 @@ const Member = (user: User) => {
 };
 
 const MemberList = () => {
-    const users = [
-        {
-            id: 14,
-            username: 'username',
-            displayname: 'Display Name',
-            pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg'
-        }
-    ];
+    // const users = [
+    //     {
+    //         id: 14,
+    //         username: 'username',
+    //         displayname: 'Display Name',
+    //         pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg'
+    //     }
+    // ];
 
     return (
         <div className="relative max-h-screen w-60 bg-gray-800 overflow-auto">
             <div className="text-center text-white font-bold shadow-xl bg-gray-900">
-                {users.length} members
+                {/* {users.length} members */}
             </div>
-            {users.map((user) => Member(user))}
+            {/* {users.map((user) => Member(user))} */}
         </div>
     );
 };

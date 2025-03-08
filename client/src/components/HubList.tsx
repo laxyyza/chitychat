@@ -1,11 +1,10 @@
-import { useContext, useState } from 'react';
-import { AppCtx } from './AppProvider';
+import { useState } from 'react';
+import { useApp, Action } from './AppProvider';
 import { HubComponent, Hub } from './Hub';
 
 const HubList = () => {
-    const app = useContext(AppCtx);
+    const { app, dispatch } = useApp();
     const hubs = app.hubs;
-    const [selectedHub, setSelectHub] = useState<Hub>(hubs[0]);
 
     return (
         <div className="flex flex-col bg-gray-900">
@@ -14,12 +13,21 @@ const HubList = () => {
                     <div
                         key={index}
                         className={`hub-icon group ${
-                            selectedHub === hub ? 'hub-selected' : ''
+                            app.hubIndex === index ? 'hub-selected' : ''
                         }`}
-                        onClick={() => setSelectHub(hub)}
+                        onClick={() => {
+                            dispatch({
+                                type: Action.SELECT_HUB,
+                                payload: index
+                            });
+                            dispatch({
+                                type: Action.SELECT_CHANNEL,
+                                payload: -1
+                            });
+                        }}
                     >
                         <HubComponent
-                            selected={selectedHub === hub}
+                            selected={app.hubIndex === index}
                             hub={hub}
                         ></HubComponent>
                     </div>
