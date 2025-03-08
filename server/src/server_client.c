@@ -23,15 +23,12 @@ server_accept_client(eworker_t* th, server_event_t* ev)
     client->addr.len = server->addr_len;
     client->addr.version = server->conf.addr_version;
     client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
-    client->addr.sock = accept(server->sock, client->addr.addr_ptr, &client->addr.len);
-    server_event_rearm(server, ev);
+    client->addr.sock = accept4(ev->fd, client->addr.addr_ptr, &client->addr.len, SOCK_NONBLOCK);
     if (client->addr.sock == -1)
     {
         error("accept: %s", ERRSTR);
         goto err;
     }
-
-    fcntl(client->addr.sock, F_SETFL, O_NONBLOCK);
 
     client->ssl = SSL_new(server->ssl_ctx);
     SSL_set_fd(client->ssl, client->addr.sock);

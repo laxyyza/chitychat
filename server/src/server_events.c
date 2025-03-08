@@ -42,15 +42,11 @@ server_event_rearm(const server_t* server, server_event_t* se)
 {
     i32 ret;
 
-    if (se->armed)
-        return 0;
-
     struct epoll_event ev = {
         .data.ptr = (void*)se,
         .events = se->listen_events
     };
 
-    se->armed = true;
     ret = epoll_ctl(server->epfd, EPOLL_CTL_MOD, se->fd, &ev);
     if (ret == -1)
         error("server_event_rearm() on fd: %d\n", se->fd);
@@ -90,7 +86,7 @@ se_ssl_accept(UNUSED eworker_t* th, server_event_t* ev)
     else if (ret == 0)
         goto failed;
     else if (SSL_get_error(client->ssl, ret) == SSL_ERROR_WANT_READ)
-            return SE_OK;
+        return SE_OK;
 
 failed:
     debug("%s:%s SSL handshake failed. ssl_error: %d\n", client->addr.ip_str, client->addr.serv, SSL_get_error(client->ssl, ret));
@@ -201,7 +197,6 @@ server_new_event(server_t* server,
     se->read = read_callback;
     se->close = close_callback;
     se->listen_events = DEFAULT_EPEV;
-    se->armed = false;
     se->keep_data = false;
 
     if (server_ght_insert(&server->event_ht, fd, se) == false)

@@ -11,8 +11,6 @@
 #include <stdlib.h>
 #include <sys/eventfd.h>
 
-#define LISTEN_BACKLOG 100
-
 static void 
 server_chdir(const char* exe_path)
 {
@@ -200,13 +198,11 @@ server_load_config(server_t* server, int argc, char* const* argv)
 }
 
 static bool 
-server_init_socket(server_t* server)
+server_set_address(server_t* server)
 {
-    int domain;
-
     if (server->conf.addr_version == IPv4)
     {
-        domain = AF_INET;
+        server->domain = AF_INET;
         server->addr_len = sizeof(struct sockaddr_in);
         server->addr_in.sin_family = AF_INET;
         server->addr_in.sin_port = htons(server->conf.addr_port);
@@ -225,7 +221,7 @@ server_init_socket(server_t* server)
     }
     else
     {
-        domain = AF_INET6;
+        server->domain = AF_INET6;
         server->addr_len = sizeof(struct sockaddr_in6);
         server->addr_in6.sin6_family = AF_INET6;
         server->addr_in6.sin6_port = htons(server->conf.addr_port);
@@ -243,29 +239,6 @@ server_init_socket(server_t* server)
 
     server->addr = (struct sockaddr*)&server->addr_in;
 
-    server->sock = socket(domain, SOCK_STREAM, 0);
-    if (server->sock == -1)
-    {
-        fatal("socket: %s\n", strerror(errno));
-        return false;
-    }
-
-    int opt = 1;
-    if (setsockopt(server->sock, SOL_SOCKET, SO_REUSEADDR, &opt, server->addr_len) == -1)
-        error("setsockopt: %s\n", strerror(errno));
-
-    if (bind(server->sock, server->addr, server->addr_len) == -1)
-    {   
-        fatal("bind: %s\n", strerror(errno));
-        return false;
-    }
-
-    if (listen(server->sock, LISTEN_BACKLOG) == -1)
-    {
-        fatal("listen: %s\n", strerror(errno)); 
-        return false;
-    }
-
     return true;
 }
 
@@ -278,9 +251,6 @@ server_init_epoll(server_t* server)
         fatal("epoll_create1: %s\n", ERRSTR);
         return false;
     }
-
-    if ((server->server_event = server_new_event(server, server->sock, NULL, se_accept_conn, NULL)) == NULL)
-        return false;
     
     return true;
 }
@@ -410,8 +380,7 @@ server_init(int argc, char* const* argv)
         }
     }
 
-    // Self-Explanatory
-    if (!server_init_socket(server))
+    if (!server_set_address(server))
         goto error;
 
     // Init Hash Tables

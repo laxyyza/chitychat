@@ -79,8 +79,6 @@ server_cleanup(server_t* server)
         close(server->sigfd);
     if (server->epfd)
         close(server->epfd);
-    if (server->sock)
-        close(server->sock);
 
     debug("Server stopped.\n");
 
