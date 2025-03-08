@@ -7,6 +7,8 @@ import os
 import pprint
 from packaging import version
 
+print("WebSockets version: ", websockets.version.version)
+
 def good(msg: str) -> None:
     print(f"GOOD: {msg}.")
 
