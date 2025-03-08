@@ -15,14 +15,14 @@
 }
 
 @layer components {
-
     .hub-icon {
         @apply relative flex
         justify-center items-center 
         bg-gray-800 rounded-3xl
         hover:rounded-xl transition-all 
         duration-100 cursor-pointer ease-linear
-        h-12 w-12 mb-1 mt-1 mr-1 ml-1 mx-auto shadow-lg text-white;
+        h-12 w-12 mb-1 mt-1 mr-2 ml-2 mx-auto shadow-lg text-white 
+        select-none hover:bg-blue-400;
     }
 
     .hub-tooltip {
@@ -30,6 +30,30 @@
             shadow-md text-white bg-gray-900 
             text-xl font-bold transition-all 
             duration-100 origin-left scale-0 z-1000;
+    }
+
+    .hub-highlight {
+        @apply absolute -left-2 shadow-md bg-white  
+            transition-all w-[3px] h-4 
+            group-active:h-8 
+            group-active:w-[10px]
+            group-hover:scale-100
+            rounded-r-[5px]
+            duration-100 scale-0 z-1000;
+    }
+
+    .hub-highlight-selected {
+        @apply h-8 
+        	scale-100
+            w-[5px];
+    }
+
+    .hub-selected {
+        @apply rounded-xl bg-blue-400;
+    }
+
+    .custom-rounded-inherit {
+        border-radius: inherit;
     }
 }
 

@@ -2,6 +2,7 @@ import { FaBeer } from 'react-icons/fa';
 
 interface Prop {
     hub: Hub;
+    selected: boolean;
 }
 
 interface Message {
@@ -64,7 +65,7 @@ export class Hub {
 
 const HubIcon = (hub: Hub) => {
     if (hub.pfp) {
-        return <img className="hub-icon" src={hub.pfp} />;
+        return <img className="custom-rounded-inherit" src={hub.pfp} />;
     } else {
         let letters: string = '';
         const words = hub.name.split(' ');
@@ -78,15 +79,19 @@ const HubIcon = (hub: Hub) => {
     }
 };
 
-export const HubComponent = ({ hub }: Prop) => {
+export const HubComponent = ({ hub, selected }: Prop) => {
     return (
-        <div key={hub.id} className="hub-icon group">
+        <>
             {HubIcon(hub)}
-
             <span className="hub-tooltip group-hover:scale-100">
                 {hub.name}
             </span>
-        </div>
+            <span
+                className={`hub-highlight ${
+                    selected ? 'hub-highlight-selected' : ''
+                }`}
+            ></span>
+        </>
     );
 };
 
