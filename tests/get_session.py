@@ -13,7 +13,7 @@ async def run(username: str, password: str) -> str | None:
         resp: dict = await test.login(username, password)
         tmptoken = resp['id']
 
-        get_uri = f"https://{test.host}:{test.port}/set-session?token={tmptoken}"
+        get_uri = f"https://{host}:{port}/set-session?token={tmptoken}"
 
         print(f"GET {get_uri} ... ", end='')
 

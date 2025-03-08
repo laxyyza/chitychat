@@ -18,12 +18,12 @@ def info(msg: str) -> None:
 def bad(msg: str) -> None:
     print(f"BAD: {msg}.")
 
+host = os.getenv("HOST", "127.0.0.1")
+port = os.getenv("PORT", "8080")
 
 class CTTest:
     def __init__(self, session_uuid = None, do_session: bool=True):
         self.do_session: bool = do_session
-        self.host: str = os.getenv("CT_HOST", "127.0.0.1")
-        self.port: str = os.getenv("CT_PORT", "8080")
         self.session_uuid = session_uuid
         if session_uuid:
             self.path: str = '/'
@@ -38,7 +38,7 @@ class CTTest:
     def set_uri(self, path = None) -> None:
         if path:
             self.path = path
-        self.uri: str = os.getenv("CT_URI", f"wss://{self.host}:{self.port}{self.path}")
+        self.uri: str = os.getenv("URI", f"wss://{host}:{port}{self.path}")
     
     async def request(self, request: dict) -> None:
         print("Sending ", str(request))
