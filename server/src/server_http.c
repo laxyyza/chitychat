@@ -3,14 +3,13 @@
 #include "server_log.h"
 
 #define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
+#define HEADER_LINE_LEN (sizeof(http_header_t) + sizeof(HTTP_NL) + sizeof(": "))
 
 http_to_str_t 
 http_to_str(const http_t* http)
 {
     http_to_str_t to_str;
     size_t size;
-
-#define HEADER_LINE_LEN (sizeof(http_header_t) + sizeof(HTTP_NL) + sizeof(": "))
 
     size = (HEADER_LINE_LEN * http->n_headers) + sizeof(HTTP_END);
     if (http->type == HTTP_REQUEST)
@@ -557,10 +556,9 @@ server_http_url_checks(http_t* http)
 static enum client_recv_status 
 server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
-#define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
     enum client_recv_status ret = RECV_OK;
 
-    if (!HTTP_CMP_METHOD("GET"))
+    if (!HTTP_CMP_METHOD("GET") || !HTTP_CMP_METHOD("HEAD"))
         ret = server_handle_http_get(th->server, client, http);
     else if (!HTTP_CMP_METHOD("POST"))
         ret = server_handle_http_post(th, client, http);

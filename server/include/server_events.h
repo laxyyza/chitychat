@@ -44,11 +44,12 @@ void            server_wait_for_events(eworker_t* ew);
 
 i32 server_event_add(const server_t* server, server_event_t* ev);
 i32 server_event_remove(const server_t* server, const server_event_t* ev);
-i32 server_event_rearm(const server_t* server, const server_event_t* ev);
+i32 server_event_rearm(const server_t* server, server_event_t* ev);
 
 // Handlers 
 enum se_status se_accept_conn(eworker_t* ew, server_event_t* ev);
 enum se_status se_read_client(eworker_t* ew, server_event_t* ev);
+enum se_status se_ssl_accept(UNUSED eworker_t* th, server_event_t* ev);
 enum se_status se_close_client(eworker_t* ew, server_event_t* ev);
 
 #endif // _SERVER_EVENTS_H_

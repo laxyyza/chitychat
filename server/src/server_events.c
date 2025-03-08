@@ -38,7 +38,7 @@ server_event_remove(const server_t* server, const server_event_t* se)
 }
 
 i32 
-server_event_rearm(const server_t* server, const server_event_t* se)
+server_event_rearm(const server_t* server, server_event_t* se)
 {
     i32 ret;
 
@@ -55,17 +55,43 @@ server_event_rearm(const server_t* server, const server_event_t* se)
 }
 
 enum se_status
-se_accept_conn(eworker_t* th, UNUSED server_event_t* ev)
+se_accept_conn(eworker_t* th, server_event_t* ev)
 {
     client_t* client;
 
-    if ((client = server_accept_client(th)) == NULL)
+    if ((client = server_accept_client(th, ev)) == NULL)
         return SE_ERROR;
 
     debug("Client (fd:%d, IP: %s:%s) connected.\n", 
         client->addr.sock, client->addr.ip_str, client->addr.serv);
 
     return SE_OK;
+}
+
+enum se_status
+se_ssl_accept(UNUSED eworker_t* th, server_event_t* ev)
+{
+    client_t* client = ev->data;
+    i32 ret;
+
+    ret = SSL_accept(client->ssl);
+    if (ret == 1)
+    {
+        verbose("%s SSL handshake completed.\n", client->addr.ip_str);
+        ev->read = se_read_client;
+        client->state &= ~CLIENT_STATE_SSL_HANDSHAKE;
+        fcntl(client->addr.sock, F_SETFL, 0);
+        return SE_OK;
+    }
+    else if (ret == 0)
+        goto failed;
+    else if (SSL_get_error(client->ssl, ret) == SSL_ERROR_WANT_READ)
+        return SE_OK;
+
+failed:
+    debug("%s:%s SSL handshake failed. ssl_error: %d\n", client->addr.ip_str, client->addr.serv, SSL_get_error(client->ssl, ret));
+    server_set_client_err(client, CLIENT_ERR_SSL);
+    return SE_ERROR;
 }
 
 enum se_status
@@ -165,17 +191,18 @@ server_new_event(server_t* server,
         return NULL;
     }
     
-    se = calloc(1, sizeof(server_event_t));
+    se = malloc(sizeof(server_event_t));
     se->fd = fd;
     se->data = data;
     se->read = read_callback;
     se->close = close_callback;
     se->listen_events = DEFAULT_EPEV;
+    se->keep_data = false;
 
     if (server_ght_insert(&server->event_ht, fd, se) == false)
     {
-        error("new_event(): Failed to insert.\n");
-        goto err;
+        // error("new_event(): Failed to insert.\n");
+        // goto err;
     }
     if (server_event_add(server, se) == -1)
     {

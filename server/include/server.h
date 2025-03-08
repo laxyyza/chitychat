@@ -53,7 +53,6 @@ typedef struct server_config
 typedef struct server
 {
     struct {
-        i32 sock;       /* Server socket fd */
         i32 epfd;       /* epoll fd */
         i32 eventfd;    /* eventfd (used to wake up threads from epoll_wait()) */
         i32 sigfd;      /* signalfd */
@@ -65,6 +64,7 @@ typedef struct server
     magic_t magic_cookie;
     SSL_CTX* ssl_ctx;
 
+    i32 domain;
     struct sockaddr* addr;
     union {
         struct sockaddr_in addr_in;
@@ -79,6 +79,7 @@ typedef struct server
     server_ght_t user_ht;
     server_ght_t upload_token_ht;
     server_ght_t chat_cmd_ht;
+    server_event_t* server_event;
     bool running;
 } server_t;
 

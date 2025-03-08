@@ -7,6 +7,9 @@
 #include "server.h"
 #include <libpq-fe.h>
 #include <poll.h>
+#include <netinet/tcp.h>
+
+#define LISTEN_BACKLOG 100
 
 static void*
 eworker_main(void* arg)
@@ -71,6 +74,48 @@ server_create_eworker(server_t* server, eworker_t* ew, size_t i)
     return true;
 }
 
+static bool 
+eworker_create_socket(server_t* server)
+{
+    i32 sock;
+
+    sock = socket(server->domain, SOCK_STREAM, 0);
+    if (sock == -1)
+    {
+        fatal("socket: %s\n", strerror(errno));
+        return false;
+    }
+
+    int opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, server->addr_len) == -1)
+        error("setsockopt: %s\n", strerror(errno));
+
+    opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(i32)) == -1)
+        error("setsockopt: %s\n", strerror(errno));
+
+    opt = 1;
+    if (setsockopt(sock, SOL_TCP, TCP_NODELAY, &opt, sizeof(i32)) == -1)
+        error("setsockopt: %s\n", strerror(errno));
+
+    if (bind(sock, server->addr, server->addr_len) == -1)
+    {   
+        fatal("bind: %s\n", strerror(errno));
+        return false;
+    }
+
+    if (listen(sock, LISTEN_BACKLOG) == -1)
+    {
+        fatal("listen: %s\n", strerror(errno)); 
+        return false;
+    }
+
+    if (server_new_event(server, sock, NULL, se_accept_conn, NULL) == NULL)
+        return false;
+
+    return true;
+}
+
 bool 
 server_eworker_init(eworker_t* ew)
 {
@@ -81,6 +126,9 @@ server_eworker_init(eworker_t* ew)
 
     PQpipelineSync(ew->db.conn);
     db_process_results(ew);
+
+    if (eworker_create_socket(ew->server) == false)
+        return false;
 
     debug("%s up & running!\n", ew->name);
     return true;

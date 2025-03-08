@@ -25,9 +25,9 @@ RUN meson setup build --debug --buildtype plain
 RUN ninja -C build
 RUN apk del musl-dev pkgconfig gcc meson openssl-dev json-c-dev libpq-dev file-dev linux-headers cmake
 RUN mkdir bin coredumps &&\
-    cp -v build/chitychat bin/ &&\
-    rm -rvf build meson.build VERSION
+    cp -v build/chitychat scripts/run.sh bin/ &&\
+    rm -rvf build meson.build VERSION scripts
 
 EXPOSE 8080
 
-CMD ./bin/chitychat -R
+CMD ./bin/run.sh

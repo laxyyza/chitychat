@@ -14,7 +14,7 @@ server_get_client_user_id(server_t* server, u64 id)
 }
 
 client_t*
-server_accept_client(eworker_t* th)
+server_accept_client(eworker_t* th, server_event_t* ev)
 {
     client_t* client;
     server_t* server = th->server;
@@ -23,19 +23,21 @@ server_accept_client(eworker_t* th)
     client->addr.len = server->addr_len;
     client->addr.version = server->conf.addr_version;
     client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
-    client->addr.sock = accept(server->sock, client->addr.addr_ptr, &client->addr.len);
+    client->addr.sock = accept4(ev->fd, client->addr.addr_ptr, &client->addr.len, SOCK_NONBLOCK);
     if (client->addr.sock == -1)
     {
         error("accept: %s", ERRSTR);
         goto err;
     }
-    if (server_client_ssl_handsake(server, client) == -1)
-        goto err;
+
+    client->ssl = SSL_new(server->ssl_ctx);
+    SSL_set_fd(client->ssl, client->addr.sock);
+
     server_get_client_info(client);
     pthread_mutex_init(&client->ssl_mutex, NULL);
     server_ght_insert(&server->client_ht, client->addr.sock, client);
     if (server_new_event(server, client->addr.sock, client, 
-                         se_read_client, se_close_client) == NULL)
+                         se_ssl_accept, se_close_client) == NULL)
         goto err;
 
     return client;
@@ -95,24 +97,6 @@ server_free_client(eworker_t* ew, client_t* client)
 
     pthread_mutex_destroy(&client->ssl_mutex);
     free(client);
-}
-
-int 
-server_client_ssl_handsake(server_t* server, client_t* client)
-{
-    i32 ret;
-    client->ssl = SSL_new(server->ssl_ctx);
-    if (!client->ssl)
-    {
-        error("SSL_new() failed.\n");
-        return -1;
-    }
-    SSL_set_fd(client->ssl, client->addr.sock);
-    ret = SSL_accept(client->ssl);
-    if (ret == 1)
-        return 0;
-    server_set_client_err(client, CLIENT_ERR_SSL);
-    return 0;
 }
 
 void 

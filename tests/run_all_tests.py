@@ -13,11 +13,21 @@ import delete_msg
 import group_access
 import login
 import get_session
+import requests
+import time
 from common import *
 
 username = "test1"
 displayname = "Test"
 password = "test_pass"
+
+def get_req() -> None:
+    url = f"https://{host}:{port}"
+    print("HTTP GET", url, "...")
+    resp = requests.get(url, verify=False)
+    
+    print(resp.status_code)
+    print(resp.text)
 
 """
 Register a new account. 
@@ -76,7 +86,22 @@ async def test_send_msg(session: str, groups: dict) -> dict:
 async def test_delete_msg(session: str, msg) -> None:
     await delete_msg.run(session, msg)
 
+def get_test() -> None:
+    exception = None
+    for _ in range(3):
+        try:
+            get_req()
+            exception = None
+            break
+        except Exception as e:
+            time.sleep(1)
+            exception = e
+    if exception:
+        raise exception
+
 async def do_tests() -> None:
+    get_test()
+
     # Register 
     await test_register()
 

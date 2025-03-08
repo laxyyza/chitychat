@@ -12,6 +12,7 @@ on:
       - 'meson.build'
       - '.dockerignore'
       - 'client/public/**'
+      - 'scripts/**'
   pull_request:
     branches: [ "main", "dev" ]
 
@@ -34,10 +35,8 @@ jobs:
           sudo apt-get install -y docker-compose python3-websockets
       
       - name: Create `.env` file for database credentials
-        run: |
-          echo "DB_USER=test_user" > .env
-          echo "DB_PASSWORD=test_pass" >> .env
-      
+        run: cp .env-example .env
+
       - name: Create SSL certs
         run: openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes -subj "/CN=localhost"
 
@@ -46,9 +45,9 @@ jobs:
       
       - name: Start containers using docker-compose
         run: docker-compose up -d
-      
+
       - name: Run Chat Server tests
-        run: timeout -v 10s tests/run_all_tests.py || { docker-compose logs app && exit -1; }
+        run: timeout -v 10s tests/run_all_tests.py || { docker-compose logs app; exit -2; }
       
       - name: Stop and remove containers
         run: docker-compose down --volumes
