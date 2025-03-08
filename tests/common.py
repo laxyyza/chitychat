@@ -72,14 +72,14 @@ class CTTest:
             cookie_headers = [('Cookie', f'session_id={self.session_uuid}')]
         print("Connecting to ", self.uri)
 
-        # if version.parse(websockets.version.version) >= version.parse("14"):
-        self.ws = await websockets.connect(self.uri, 
-                                           ssl=self.ssl_context, 
-                                           additional_headers=cookie_headers) 
-        # else:
-        #     self.ws = await websockets.connect(self.uri, 
-        #                                        ssl=self.ssl_context, 
-        #                                        extra_headers=cookie_headers) 
+        if version.parse(websockets.version.version) >= version.parse("14"):
+            self.ws = await websockets.connect(self.uri, 
+                                               ssl=self.ssl_context, 
+                                               additional_headers=cookie_headers) 
+        else:
+            self.ws = await websockets.connect(self.uri, 
+                                               ssl=self.ssl_context, 
+                                               extra_headers=cookie_headers) 
 
 
     async def close(self) -> None:

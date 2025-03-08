@@ -45,6 +45,9 @@ jobs:
       
       - name: Start containers using docker-compose
         run: docker-compose up -d
+
+      - name: App logs
+        run: docker-compose logs app
       
       - name: Run Chat Server tests
         run: timeout -v 10s tests/run_all_tests.py || { docker-compose logs app; exit -2; }
