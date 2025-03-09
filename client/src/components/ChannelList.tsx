@@ -64,11 +64,7 @@ const ChannelList = () => {
 
     useEffect(() => {
         hub = app.hubs[app.hubIndex];
-        if (hub) {
-            setCategories(hub.categories);
-        } else {
-            setCategories(null);
-        }
+        setCategories(hub ? hub.categories : null);
     }, [app.hubIndex]);
 
     return (

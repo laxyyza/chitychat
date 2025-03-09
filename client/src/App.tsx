@@ -34,6 +34,8 @@ function MainApp() {
         about_me: ''
     });
 
+    app.hubs[0].memberIDs.push(2);
+
     app.hubs[0].channels.set(1, {
         type: ChannelType.TEXT,
         id: 1,
