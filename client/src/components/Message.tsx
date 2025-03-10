@@ -1,10 +1,9 @@
-import User from './User';
 import UserIcon from './UserIcon';
+import { Message } from './Hub';
+import { useApp } from './AppProvider';
 
 interface Prop {
-    user: User | undefined;
-    content?: string;
-    attachments?: string[];
+    message: Message;
 }
 
 interface ImgProp {
@@ -43,7 +42,10 @@ const Attachment = ({ url, type }: AttachmentProp) => {
     else return <h1>Unknown type: {type}</h1>;
 };
 
-const MessageComponent = ({ user, content, attachments }: Prop) => {
+const MessageComponent = ({message}: Prop) => {
+    const {app} = useApp();
+    const user = app.users.get(message.user_id);
+
     if (!user) return null;
 
     return (
@@ -61,10 +63,10 @@ const MessageComponent = ({ user, content, attachments }: Prop) => {
                 </div>
                 {/* <div className="bg-black">yo</div> */}
             </div>
-            <div className="m-1">{content}</div>
+            <div className="m-1">{message.content}</div>
             <div className="flex flex-wrap">
-                {attachments &&
-                    attachments.map((url) => (
+                {message.attachments &&
+                    message.attachments.map((url) => (
                         <Attachment
                             url={url}
                             type={url.endsWith('.mp4') ? 'video' : 'image'}
