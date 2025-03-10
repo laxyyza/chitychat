@@ -7,13 +7,15 @@ const Member = (user?: User) => {
     if (!user) return null;
 
     return (
-        <div className="relative hover:bg-gray-700 p-1 m-1 mb-2 mt-2 rounded-2xl text-white flex active:bg-gray-600">
-            <UserIcon user={user}></UserIcon>
-            <div className="flex-1 ml-2">
-                <div className="font-bold text-xl">{user.displayname}</div>
-                <div>{user.username}</div>
+        <li key={user.id}>
+            <div className="relative hover:bg-gray-700 p-1 m-1 mb-2 mt-2 rounded-2xl text-white flex active:bg-gray-600">
+                <UserIcon user={user}></UserIcon>
+                <div className="flex-1 ml-2">
+                    <div className="font-bold text-xl">{user.displayname}</div>
+                    <div>{user.username}</div>
+                </div>
             </div>
-        </div>
+        </li>
     );
 };
 

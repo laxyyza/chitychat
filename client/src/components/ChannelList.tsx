@@ -17,7 +17,7 @@ const ChannelComponent = ({ channel }: ChannelProp) => {
     const { app, dispatch } = useApp();
 
     return (
-        <li
+        <div
             onClick={() =>
                 dispatch({ type: Action.SELECT_CHANNEL, payload: channel.id })
             }
@@ -26,7 +26,7 @@ const ChannelComponent = ({ channel }: ChannelProp) => {
             }`}
         >
             {channel.name}
-        </li>
+        </div>
     );
 };
 
@@ -34,7 +34,7 @@ const CategoryComponent = ({ category, hub }: CategoryProp) => {
     const [open, setOpen] = useState(true);
 
     return (
-        <div>
+        <>
             <div
                 onClick={() => setOpen(!open)}
                 className="cursor-pointer select-none hover:bg-gray-400"
@@ -45,13 +45,15 @@ const CategoryComponent = ({ category, hub }: CategoryProp) => {
             {open && (
                 <ul>
                     {category.channelIDs.map((channelID) => (
-                        <ChannelComponent
-                            channel={hub.channels.get(channelID)}
-                        />
+                        <li key={channelID}>
+                            <ChannelComponent
+                                channel={hub.channels.get(channelID)}
+                            />
+                        </li>
                     ))}
                 </ul>
             )}
-        </div>
+        </>
     );
 };
 
@@ -72,16 +74,20 @@ const ChannelList = () => {
             <div className="bg-gray-800 text-center shadow-md">
                 Hub Settings
             </div>
-            {categories &&
-                Array.from(categories.entries()).map(
-                    ([id, category]) =>
-                        hub && (
-                            <CategoryComponent
-                                category={category}
-                                hub={hub}
-                            ></CategoryComponent>
-                        )
-                )}
+            <ul>
+                {categories &&
+                    Array.from(categories.entries()).map(
+                        ([id, category]) =>
+                            hub && (
+                                <li key={id}>
+                                    <CategoryComponent
+                                        category={category}
+                                        hub={hub}
+                                    ></CategoryComponent>
+                                </li>
+                            )
+                    )}
+            </ul>
         </div>
     );
 };
