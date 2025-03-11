@@ -1,5 +1,4 @@
 import MessageComponent from './Message';
-import { useEffect, useRef } from 'react';
 import { Message } from './Hub';
 
 interface Prop {

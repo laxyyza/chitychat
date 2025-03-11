@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface PopupProps {
-    targetRef: React.RefObject<HTMLElement>; // The element the popup should be next to
+    targetRef: React.RefObject<HTMLElement | null>; // The element the popup should be next to
     children: React.ReactNode;
     className?: string;
     onClose?: () => void;
@@ -14,10 +14,10 @@ export default function Popup({
     onClose,
     className = ''
 }: PopupProps) {
-    const popupRef = useRef<HTMLDivElement>(null);
+    const popupRef = useRef<HTMLDivElement | null>(null);
     const [position, setPosition] = useState({
-        top: targetRef.current.style.top,
-        left: targetRef.current.style.left
+        top: targetRef.current?.style.top,
+        left: targetRef.current?.style.left
     });
 
     useEffect(() => {
@@ -53,8 +53,8 @@ export default function Popup({
                 // popupRef.current.getBoundingClientRect().width // Align left
 
                 setPosition({
-                    top: newTop,
-                    left: newLeft
+                    top: String(newTop),
+                    left: String(newLeft)
                 });
             }
         }
@@ -83,7 +83,7 @@ export default function Popup({
         }
         document.addEventListener('mouseup', handleClickOutside);
 
-        const handleKeyEvent = (event) => {
+        const handleKeyEvent = (event: globalThis.KeyboardEvent) => {
             if (event.key == 'Escape') if (onClose) onClose();
         };
 

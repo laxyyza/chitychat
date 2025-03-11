@@ -1,4 +1,6 @@
-import { ChangeEvent, ChangeEventHandler, useState } from 'react';
+import { useApp } from './AppProvider';
+import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 
 interface LoginToggleProp {
     type: 'login' | 'register' | 'checkbox';
@@ -54,6 +56,7 @@ const Input = ({ name, type, onChange, value, placeholder }: InputProp) => {
 };
 
 const Login = () => {
+    const { app } = useApp();
     const [doRegister, setDoRegister] = useState(false);
     const [username, setUsername] = useState('');
     const [displayName, setDisplayName] = useState('');
@@ -62,11 +65,34 @@ const Login = () => {
         type: 'info',
         msg: ''
     });
+    const navigate = useNavigate();
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        setStatusMsg({ type: 'info', msg: 'Connecting...' });
+        setStatusMsg({
+            type: 'info',
+            msg: '🐹 Feeding your data to the cyber hamsters...'
+        });
     };
+
+    // Uh-oh! The hamsters couldn't find a match. Double-check your username and password!
+    useEffect(() => {
+        if (app.connection_status === 'connecting') {
+            setStatusMsg({ type: 'info', msg: 'Connecting...' });
+        } else if (app.connection_status === 'error') {
+            setStatusMsg({ type: 'error', msg: 'Failed to connect to server' });
+        } else if (app.connection_status === 'open') {
+            setStatusMsg({ type: 'info', msg: '' });
+        } else if (app.connection_status === 'close') {
+            setStatusMsg({
+                type: 'error',
+                msg: 'Connection to server closed. Reconnecting...'
+            });
+            // dispatch({ type: Action.RECONNECT });
+            navigate('/ ');
+        }
+        console.log('Connection status: ', app.connection_status);
+    }, [app.connection_status]);
 
     return (
         <div className="flex flex-col w-screen h-screen bg-gray-700 justify-center items-center text-white">

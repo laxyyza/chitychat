@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
+import { Action, useApp } from './AppProvider';
+import { useNavigate } from 'react-router-dom';
 
 const Loading = () => {
     const [animation, setAnimation] = useState('animate-bounce');
     const emotes = ['>_<', ':3', ':)', ':(', '^_^', '>:(', '>:)'];
     const [emote, setEmote] = useState(emotes[0]);
+    const { app, dispatch } = useApp();
+    const [status, setStatus] = useState(app.connection_status);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -21,6 +26,17 @@ const Loading = () => {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        setStatus(app.connection_status);
+        if (app.connection_status === 'open') {
+            navigate('/app');
+        } else if (app.connection_status === 'close') {
+            dispatch({ type: Action.RECONNECT });
+        } else if (app.connection_status !== 'connecting') {
+            navigate('/login');
+        }
+    }, [app.connection_status]);
+
     return (
         <>
             <div className="flex justify-center items-center w-screen h-screen bg-black">
@@ -37,9 +53,7 @@ const Loading = () => {
                         {emote}
                     </div>
                 </div>
-                <span className="ml-4 top-0 bottom-0 text-white">
-                    Connecting...
-                </span>
+                <span className="ml-4 top-0 bottom-0 text-white">{status}</span>
             </div>
         </>
     );

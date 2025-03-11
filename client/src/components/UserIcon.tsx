@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import Popup from './Popup';
 import User from './User';
 import Input from './Input';
@@ -61,7 +61,7 @@ const UserIcon = ({ user }: Prop) => {
             className="max-w-13 max-h-13"
         >
             <img src={user.pfp} className="w-full h-full rounded-full" />
-            {showDetails && (
+            {showDetails && ref.current && (
                 <Popup
                     targetRef={ref}
                     onClose={() => {

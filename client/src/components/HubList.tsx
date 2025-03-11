@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useApp, Action } from './AppProvider';
-import { HubComponent, Hub } from './Hub';
+import { HubComponent } from './Hub';
 import CreateHub from './CreateHub';
 
 const HubList = () => {

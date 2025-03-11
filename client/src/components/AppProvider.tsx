@@ -1,5 +1,11 @@
-import { createContext, useContext, useReducer, ReactNode } from 'react';
-import { Channel, ChannelType, Hub, Message, TextChannel, Group } from './Hub';
+import {
+    createContext,
+    useContext,
+    useReducer,
+    ReactNode,
+    useEffect
+} from 'react';
+import { ChannelType, Hub, Message, TextChannel } from './Hub';
 import User from './User';
 
 export interface App {
@@ -10,6 +16,9 @@ export interface App {
     textChannels: Map<number, TextChannel>;
     currentHubID: number;
     currentChannelID: number;
+    connected: boolean;
+    connection_status: 'open' | 'error' | 'close' | 'connecting';
+    ws: WebSocket;
 }
 
 interface Prop {
@@ -26,7 +35,9 @@ enum Action {
     SET_LOGIN_USER,
     SELECT_CHANNEL,
     ADD_MSG,
-    ADD_HUB
+    ADD_HUB,
+    RECONNECT,
+    SET_CONNECT
 }
 
 type DispatchAction =
@@ -34,7 +45,12 @@ type DispatchAction =
     | { type: Action.SELECT_CHANNEL; payload: number }
     | { type: Action.SET_LOGIN_USER; payload: User }
     | { type: Action.ADD_MSG; payload: Message }
-    | { type: Action.ADD_HUB; payload: string };
+    | { type: Action.ADD_HUB; payload: string }
+    | { type: Action.RECONNECT }
+    | {
+          type: Action.SET_CONNECT;
+          payload: 'open' | 'error' | 'close' | 'connecting';
+      };
 
 const AppCtx = createContext<AppContextProps | undefined>(undefined);
 
@@ -92,6 +108,18 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 )
             };
         }
+        case Action.SET_CONNECT: {
+            return {
+                ...state,
+                connection_status: action.payload,
+                connected: action.payload === 'open' ? true : false
+            };
+        }
+        case Action.RECONNECT:
+            return {
+                ...state,
+                ws: new WebSocket('wss://localhost:8080')
+            };
         default:
             return state;
     }
@@ -122,8 +150,25 @@ const AppProvider = ({ children }: Prop) => {
         hubs: new Map(),
         textChannels: new Map(),
         currentHubID: -1,
-        currentChannelID: -1
+        currentChannelID: -1,
+        connected: false,
+        connection_status: 'connecting',
+        ws: new WebSocket('wss://localhost:8080')
     });
+
+    useEffect(() => {
+        state.ws.addEventListener('open', () => {
+            dispatch({ type: Action.SET_CONNECT, payload: 'open' });
+        });
+        state.ws.addEventListener('error', () => {
+            dispatch({ type: Action.SET_CONNECT, payload: 'error' });
+        });
+        state.ws.addEventListener('close', () => {
+            dispatch({ type: Action.SET_CONNECT, payload: 'close' });
+        });
+
+        return () => state.ws.close();
+    }, []);
 
     return (
         <AppCtx.Provider value={{ app: state, dispatch: dispatch }}>

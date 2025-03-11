@@ -2,12 +2,22 @@ import SideBar from './components/SideBar';
 import MainContent from './components/MainContent';
 import MemberList from './components/MemberList';
 import { Action, useApp } from './components/AppProvider';
-import { Hub, ChannelType } from './components/Hub';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function MainApp() {
     const { app, dispatch } = useApp();
     const [test, setTest] = useState(0);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        console.log('app: ', app.connection_status);
+        if (app.connection_status === 'error') {
+            navigate('/login');
+        } else if (app.connection_status === 'close') {
+            navigate('/');
+        }
+    }, [app.connection_status]);
 
     useEffect(() => {
         // app.hubs.set(
