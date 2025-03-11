@@ -7,15 +7,18 @@ import { Hub, ChannelType } from './components/Hub';
 function MainApp() {
     const { app } = useApp();
 
-    app.hubs = [
+    app.hubs.set(
+        1,
         new Hub(
             1,
             1,
             "McDonald's",
-            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-Xzk84KtRUPnOh9AKiA_kJgqqnYocZtZJ7GCw6OzmuxPuXOIozxBwrR5fHmzqbXzeHQc&usqp=CAU'
-        ),
-        new Hub(1, 1, "Laxyy's Hub")
-    ];
+            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-Xzk84KtRUPnOh9AKiA_kJgqqnYocZtZJ7GCw6OzmuxPuXOIozxBwrR5fHmzqbXzeHQc&usqp=CAU',
+            [1, 2]
+        )
+    );
+    app.hubs.set(2, new Hub(2, 1, "Laxyy's Hub"));
+
     app.login_user = {
         id: 1,
         username: 'username',
@@ -34,33 +37,19 @@ function MainApp() {
         about_me: ''
     });
 
-    app.hubs[0].memberIDs.push(2);
-
-    app.hubs[0].channels.set(1, {
+    app.hubs.get(1)?.memberIDs.push(2);
+    app.textChannels.set(1, {
         type: ChannelType.TEXT,
         id: 1,
         name: 'General',
-        messages: [
-            {
-                id: 1,
-                user_id: 1,
-                channel_id: 1,
-                content: 'Test message from TS',
-                attachments: []
-            },
-            {
-                id: 2,
-                user_id: 2,
-                channel_id: 1,
-                content: 'Test message from TS',
-                attachments: []
-            }
-        ]
+        hub_id: 1,
+        messages: []
     });
-    app.hubs[0].channels.set(2, {
+    app.textChannels.set(2, {
         type: ChannelType.TEXT,
         id: 2,
         name: 'Vent',
+        hub_id: 1,
         messages: [
             {
                 id: 3,
@@ -72,7 +61,7 @@ function MainApp() {
         ]
     });
 
-    app.hubs[0].categories.set(1, {
+    app.hubs.get(1)?.categories.push({
         id: 1,
         name: 'Text Channels',
         channelIDs: [1, 2]

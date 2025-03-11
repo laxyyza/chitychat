@@ -4,7 +4,6 @@ import { Hub, Category, Channel } from './Hub';
 
 interface CategoryProp {
     category: Category;
-    hub: Hub;
 }
 
 interface ChannelProp {
@@ -22,7 +21,7 @@ const ChannelComponent = ({ channel }: ChannelProp) => {
                 dispatch({ type: Action.SELECT_CHANNEL, payload: channel.id })
             }
             className={`hover:bg-gray-400 pl-2 pr-2 m-1 rounded-xl select-none ${
-                app.selectedChannelID === channel.id ? 'bg-gray-500' : ''
+                app.currentChannelID === channel.id ? 'bg-gray-500' : ''
             }`}
         >
             {channel.name}
@@ -30,8 +29,9 @@ const ChannelComponent = ({ channel }: ChannelProp) => {
     );
 };
 
-const CategoryComponent = ({ category, hub }: CategoryProp) => {
+const CategoryComponent = ({ category }: CategoryProp) => {
     const [open, setOpen] = useState(true);
+    const { app } = useApp();
 
     return (
         <>
@@ -47,7 +47,7 @@ const CategoryComponent = ({ category, hub }: CategoryProp) => {
                     {category.channelIDs.map((channelID) => (
                         <li key={channelID}>
                             <ChannelComponent
-                                channel={hub.channels.get(channelID)}
+                                channel={app.textChannels.get(channelID)}
                             />
                         </li>
                     ))}
@@ -59,15 +59,13 @@ const CategoryComponent = ({ category, hub }: CategoryProp) => {
 
 const ChannelList = () => {
     const { app } = useApp();
-    let hub: Hub | null = app.hubs[app.hubIndex];
-    const [categories, setCategories] = useState<Map<number, Category> | null>(
-        null
-    );
+    let hub: Hub | undefined = app.hubs.get(app.currentHubID);
+    const [categories, setCategories] = useState<Category[] | null>(null);
 
     useEffect(() => {
-        hub = app.hubs[app.hubIndex];
+        hub = app.hubs.get(app.currentHubID);
         setCategories(hub ? hub.categories : null);
-    }, [app.hubIndex]);
+    }, [app.currentChannelID, app.currentHubID]);
 
     return (
         <div className="flex-1 bg-gray-800 text-white">
@@ -82,7 +80,6 @@ const ChannelList = () => {
                                 <li key={id}>
                                     <CategoryComponent
                                         category={category}
-                                        hub={hub}
                                     ></CategoryComponent>
                                 </li>
                             )

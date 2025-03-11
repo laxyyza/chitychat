@@ -4,21 +4,21 @@ import { HubComponent, Hub } from './Hub';
 
 const HubList = () => {
     const { app, dispatch } = useApp();
-    const hubs = app.hubs;
+    const hubs = Array.from(app.hubs.values());
 
     return (
         <div className="flex flex-col bg-gray-900">
             <div className="flex-1">
-                {hubs.map((hub, index) => (
+                {hubs.map((hub) => (
                     <div
-                        key={index}
+                        key={hub.id}
                         className={`hub-icon group ${
-                            app.hubIndex === index ? 'hub-selected' : ''
+                            app.currentHubID === hub.id ? 'hub-selected' : ''
                         }`}
                         onClick={() => {
                             dispatch({
                                 type: Action.SELECT_HUB,
-                                payload: index
+                                payload: hub.id
                             });
                             dispatch({
                                 type: Action.SELECT_CHANNEL,
@@ -27,7 +27,7 @@ const HubList = () => {
                         }}
                     >
                         <HubComponent
-                            selected={app.hubIndex === index}
+                            selected={app.currentHubID === hub.id}
                             hub={hub}
                         ></HubComponent>
                     </div>

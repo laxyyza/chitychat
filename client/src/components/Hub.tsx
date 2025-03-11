@@ -16,6 +16,7 @@ interface Message {
 interface BaseChannel {
     id: number;
     name: string;
+    hub_id: number;
 }
 
 export enum ChannelType {
@@ -40,30 +41,36 @@ interface Category {
     channelIDs: number[];
 }
 
+interface Group {
+    id: number;
+    name: string;
+    messages: Message[];
+}
+
 export class Hub {
     readonly id: number;
     readonly owner_id: number;
     name: string;
     pfp: string | null;
-    categories: Map<number, Category>;
-    channels: Map<number, Channel>;
+    categories: Category[];
+    channelIDs: number[];
     memberIDs: number[];
 
     constructor(
         id: number,
         owner_id: number,
         name: string,
-        pfp: string | null = null
+        pfp: string | null = null,
+        channelIDs: number[] = []
     ) {
         this.id = id;
         this.owner_id = owner_id;
         this.name = name;
         this.pfp = pfp;
-        this.categories = new Map();
-        this.categories.set(1, { id: 1, name: 'General', channelIDs: [] });
+        this.categories = [{ id: 1, name: 'General', channelIDs: [] }];
 
         this.memberIDs = [this.owner_id];
-        this.channels = new Map();
+        this.channelIDs = channelIDs;
     }
 }
 
@@ -99,4 +106,4 @@ export const HubComponent = ({ hub, selected }: Prop) => {
     );
 };
 
-export type { TextChannel, Channel, Message, Category };
+export type { Group, TextChannel, Channel, Message, Category };

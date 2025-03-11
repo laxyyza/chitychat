@@ -24,10 +24,10 @@ const MemberList = () => {
     const [memberIDs, setMemberIDs] = useState<number[]>([]);
 
     useEffect(() => {
-        const hub = app.hubs[app.hubIndex];
+        const hub = app.hubs.get(app.currentHubID);
 
         setMemberIDs(hub ? hub.memberIDs : []);
-    }, [app.hubIndex]);
+    }, [app.currentHubID]);
 
     return (
         <div className="relative max-h-screen w-60 bg-gray-800 overflow-auto">

@@ -1,5 +1,6 @@
 import { IoAddCircleOutline } from 'react-icons/io5';
 import React, { useState, useRef } from 'react';
+import { Action, useApp } from './AppProvider';
 
 interface Prop {
     placeholder?: string;
@@ -27,6 +28,8 @@ const Input = ({
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const divRef = useRef<HTMLDivElement | null>(null);
     const [showPopup, setShowPopup] = useState(false);
+    const { app, dispatch } = useApp();
+    const [counter, setCounter] = useState(4);
 
     const adjustHeight = () => {
         const textarea = textareaRef.current;
@@ -42,7 +45,6 @@ const Input = ({
     };
 
     const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        console.log('Change: ', event.target.value);
         setMessage(event.target.value);
         adjustHeight();
         setShowPopup(false);
@@ -57,9 +59,22 @@ const Input = ({
 
     const sendMessage = () => {
         if (!message.trim()) return; // Prevent sending empty messages
+
+        setCounter(counter + 1);
+        dispatch({
+            type: Action.ADD_MSG,
+            payload: {
+                id: counter,
+                user_id: app.login_user.id,
+                channel_id: app.currentChannelID,
+                content: message,
+                attachments: []
+            }
+        });
+
         console.log('Sent:', message);
         setMessage(''); // Clear input after sending
-        textareaRef.current.value = '';
+        if (textareaRef.current) textareaRef.current.value = '';
         adjustHeight(); // Reset height
     };
 
