@@ -1,8 +1,8 @@
-import { FaBeer } from 'react-icons/fa';
-
 interface Prop {
-    hub: Hub;
+    tooltip: string;
+    pfp: string | null;
     selected: boolean;
+    children: string;
 }
 
 interface Message {
@@ -68,7 +68,9 @@ export class Hub {
         this.owner_id = owner_id;
         this.name = name;
         this.pfp = pfp;
-        this.categories = [];
+        this.categories = [
+            { id: 1, name: 'Text Channels', channelIDs: channelIDs }
+        ];
 
         this.memberIDs = [this.owner_id];
         this.channelIDs = channelIDs;
@@ -76,13 +78,13 @@ export class Hub {
     }
 }
 
-const HubIcon = (hub: Hub) => {
-    if (hub.pfp) {
-        return <img className="custom-rounded-inherit" src={hub.pfp} />;
+const HubIcon = (name: string, pfp: string | null) => {
+    if (pfp) {
+        return <img className="custom-rounded-inherit" src={pfp} />;
     } else {
         let letters: string = '';
-        const words = hub.name.split(' ');
-        const className = words.length >= 3 ? 'text-2xl' : 'text-3xl';
+        const words = name.split(' ');
+        const className = words.length >= 3 ? 'text-xl' : 'text-3xl';
 
         for (let i = 0; i < Math.min(3, words.length); i++) {
             letters += words[i][0];
@@ -92,12 +94,12 @@ const HubIcon = (hub: Hub) => {
     }
 };
 
-export const HubComponent = ({ hub, selected }: Prop) => {
+export const HubComponent = ({ tooltip, selected, pfp, children }: Prop) => {
     return (
         <>
-            {HubIcon(hub)}
+            {HubIcon(children, pfp)}
             <span className="hub-tooltip group-hover:scale-100 pointer-events-none">
-                {hub.name}
+                {tooltip}
             </span>
             <span
                 className={`hub-highlight ${

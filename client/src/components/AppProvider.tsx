@@ -25,14 +25,16 @@ enum Action {
     SELECT_HUB,
     SET_LOGIN_USER,
     SELECT_CHANNEL,
-    ADD_MSG
+    ADD_MSG,
+    ADD_HUB
 }
 
 type DispatchAction =
     | { type: Action.SELECT_HUB; payload: number }
     | { type: Action.SELECT_CHANNEL; payload: number }
     | { type: Action.SET_LOGIN_USER; payload: User }
-    | { type: Action.ADD_MSG; payload: Message };
+    | { type: Action.ADD_MSG; payload: Message }
+    | { type: Action.ADD_HUB; payload: string };
 
 const AppCtx = createContext<AppContextProps | undefined>(undefined);
 
@@ -69,6 +71,26 @@ const appReducer = (state: App, action: DispatchAction): App => {
             );
 
             return { ...state, textChannels: newTextChannels };
+        }
+        case Action.ADD_HUB: {
+            const hubID = state.hubs.size;
+            const channelID = state.textChannels.size;
+            return {
+                ...state,
+                textChannels: new Map(state.textChannels).set(channelID, {
+                    id: channelID,
+                    hub_id: hubID,
+                    name: 'General',
+                    messages: [],
+                    type: ChannelType.TEXT
+                }),
+                hubs: new Map(state.hubs).set(
+                    hubID,
+                    new Hub(hubID, state.login_user.id, action.payload, null, [
+                        channelID
+                    ])
+                )
+            };
         }
         default:
             return state;
