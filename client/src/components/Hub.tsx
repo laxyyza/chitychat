@@ -67,7 +67,7 @@ export class Hub {
         this.owner_id = owner_id;
         this.name = name;
         this.pfp = pfp;
-        this.categories = [{ id: 1, name: 'General', channelIDs: [] }];
+        this.categories = [];
 
         this.memberIDs = [this.owner_id];
         this.channelIDs = channelIDs;

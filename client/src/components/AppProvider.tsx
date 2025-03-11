@@ -8,7 +8,6 @@ export interface App {
     users: Map<number, User>;
     hubs: Map<number, Hub>;
     textChannels: Map<number, TextChannel>;
-    groups: Map<number, Group>;
     currentHubID: number;
     currentChannelID: number;
 }
@@ -55,21 +54,6 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return { ...state, login_user: action.payload };
         case Action.ADD_MSG: {
             const msg = action.payload;
-            const newGroups = new Map(
-                [...state.groups].map(([id, group]) => {
-                    if (group.id === msg.channel_id) {
-                        return [
-                            id,
-                            { ...group, messages: [...group.messages, msg] }
-                        ];
-                    }
-                    return [id, group];
-                })
-            );
-            console.log('newGroups: ', newGroups);
-
-            return { ...state, groups: newGroups };
-
             const newTextChannels = new Map(
                 [...state.textChannels].map(([id, channel]) => {
                     if (channel.id === msg.channel_id) {
@@ -114,11 +98,6 @@ const AppProvider = ({ children }: Prop) => {
         users: new Map(),
         hubs: new Map(),
         textChannels: new Map(),
-        groups: new Map().set(1, {
-            id: 1,
-            name: 'General',
-            messages: []
-        }),
         currentHubID: -1,
         currentChannelID: -1
     });
