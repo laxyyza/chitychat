@@ -1,12 +1,12 @@
 import SideBar from './components/SideBar';
 import MainContent from './components/MainContent';
 import MemberList from './components/MemberList';
-import { useApp } from './components/AppProvider';
+import { Action, useApp } from './components/AppProvider';
 import { Hub, ChannelType } from './components/Hub';
 import { useEffect, useState } from 'react';
 
 function MainApp() {
-    const { app } = useApp();
+    const { app, dispatch } = useApp();
     const [test, setTest] = useState(0);
 
     useEffect(() => {
@@ -39,6 +39,8 @@ function MainApp() {
             created_at: '?',
             about_me: ''
         });
+
+        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
 
         // app.hubs.get(1)?.memberIDs.push(2);
         // app.textChannels.set(1, {
