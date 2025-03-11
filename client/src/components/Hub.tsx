@@ -55,6 +55,7 @@ export class Hub {
     categories: Category[];
     channelIDs: number[];
     memberIDs: number[];
+    channelIDIndex: number;
 
     constructor(
         id: number,
@@ -71,6 +72,7 @@ export class Hub {
 
         this.memberIDs = [this.owner_id];
         this.channelIDs = channelIDs;
+        this.channelIDIndex = 0;
     }
 }
 

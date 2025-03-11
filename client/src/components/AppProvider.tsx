@@ -43,11 +43,13 @@ const appReducer = (state: App, action: DispatchAction): App => {
             if (hub) {
                 return {
                     ...state,
-                    currentHubID: action.payload,
-                    currentChannelID: hub.channelIDs[0]
+                    currentHubID: action.payload
                 };
             }
-            return { ...state, currentHubID: action.payload };
+            return {
+                ...state,
+                currentHubID: action.payload
+            };
         case Action.SELECT_CHANNEL:
             return { ...state, currentChannelID: action.payload };
         case Action.SET_LOGIN_USER:

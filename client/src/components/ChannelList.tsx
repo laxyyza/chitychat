@@ -15,16 +15,31 @@ const ChannelComponent = ({ channel }: ChannelProp) => {
 
     const { app, dispatch } = useApp();
 
+    useEffect(() => {
+        const hub = app.hubs.get(app.currentHubID);
+        dispatch({
+            type: Action.SELECT_CHANNEL,
+            payload: hub ? hub.channelIDs[hub.channelIDIndex] : -1
+        });
+    }, [app.currentHubID]);
+
     return (
         <div
-            onClick={() =>
-                dispatch({ type: Action.SELECT_CHANNEL, payload: channel.id })
-            }
+            onClick={() => {
+                const hub = app.hubs.get(app.currentHubID);
+                if (hub) {
+                    hub.channelIDIndex =
+                        hub.channelIDs.findIndex((id) => id === channel.id) ||
+                        0;
+                }
+                dispatch({ type: Action.SELECT_CHANNEL, payload: channel.id });
+            }}
             className={`hover:bg-gray-400 pl-2 pr-2 m-1 rounded-xl select-none ${
                 app.currentChannelID === channel.id ? 'bg-gray-500' : ''
             }`}
         >
             {channel.name}
+            {app.currentChannelID}
         </div>
     );
 };

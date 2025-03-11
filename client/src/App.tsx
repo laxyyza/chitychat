@@ -20,7 +20,7 @@ function MainApp() {
                 [1, 2]
             )
         );
-        app.hubs.set(2, new Hub(2, 1, "Laxyy's Hub"));
+        app.hubs.set(2, new Hub(2, 1, "Laxyy's Hub", null, [3]));
 
         app.login_user = {
             id: 1,
@@ -46,7 +46,15 @@ function MainApp() {
             id: 1,
             name: 'General',
             hub_id: 1,
-            messages: []
+            messages: [
+                {
+                    id: 1,
+                    user_id: 1,
+                    channel_id: 2,
+                    content: 'Test message from TS',
+                    attachments: []
+                }
+            ]
         });
         app.textChannels.set(2, {
             type: ChannelType.TEXT,

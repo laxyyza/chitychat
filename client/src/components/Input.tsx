@@ -78,6 +78,12 @@ const Input = ({
         adjustHeight(); // Reset height
     };
 
+    if (
+        !app.hubs.has(app.currentHubID) ||
+        !app.textChannels.has(app.currentChannelID)
+    )
+        return null;
+
     return (
         <div className="relative h-10" ref={divRef}>
             <div className="flex">
