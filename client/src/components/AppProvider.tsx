@@ -67,7 +67,6 @@ const appReducer = (state: App, action: DispatchAction): App => {
                     return [id, channel];
                 })
             );
-            console.log('newTextChannels: ', newTextChannels);
 
             return { ...state, textChannels: newTextChannels };
         }

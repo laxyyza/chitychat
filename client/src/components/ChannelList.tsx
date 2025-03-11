@@ -39,7 +39,6 @@ const ChannelComponent = ({ channel }: ChannelProp) => {
             }`}
         >
             {channel.name}
-            {app.currentChannelID}
         </div>
     );
 };

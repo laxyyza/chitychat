@@ -96,7 +96,7 @@ export const HubComponent = ({ hub, selected }: Prop) => {
     return (
         <>
             {HubIcon(hub)}
-            <span className="hub-tooltip group-hover:scale-100">
+            <span className="hub-tooltip group-hover:scale-100 pointer-events-none">
                 {hub.name}
             </span>
             <span

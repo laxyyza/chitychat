@@ -1,21 +1,28 @@
 import MessageComponent from './Message';
-import { useApp } from './AppProvider';
+import { useEffect, useRef } from 'react';
+import { Message } from './Hub';
 
-const ChannelMessages = () => {
-    const { app } = useApp();
-    const hub = app.hubs.get(app.currentHubID);
-    if (!hub) return null;
+interface Prop {
+    messages: Message[] | undefined;
+}
 
-    const channel = app.textChannels.get(app.currentChannelID);
-    if (!channel) return null;
+const ChannelMessages = ({ messages }: Prop) => {
+    const bottomRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+    }, [messages]);
+
+    if (!messages) return null;
 
     return (
         <>
-            {channel.messages.map((msg) => (
+            {messages.map((msg) => (
                 <li key={msg.id}>
                     <MessageComponent message={msg} />
                 </li>
             ))}
+            <div ref={bottomRef} />
         </>
     );
 };
