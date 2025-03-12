@@ -4,20 +4,12 @@ import MemberList from './components/MemberList';
 import { Action, useApp } from './components/AppProvider';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import websocketClient from './services/websocketClient';
 
 function MainApp() {
     const { app, dispatch } = useApp();
     const [test, setTest] = useState(0);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        console.log('app: ', app.connection_status);
-        if (app.connection_status === 'error') {
-            navigate('/login');
-        } else if (app.connection_status === 'close') {
-            navigate('/');
-        }
-    }, [app.connection_status]);
 
     useEffect(() => {
         // app.hubs.set(
@@ -31,6 +23,12 @@ function MainApp() {
         //     )
         // );
         // app.hubs.set(2, new Hub(2, 1, "Laxyy's Hub", null, [3]));
+
+        websocketClient.onStateChange((state: string) => {
+            if (state === 'error' || state === 'close') {
+                navigate('/login');
+            }
+        });
 
         app.login_user = {
             id: 1,
@@ -103,6 +101,8 @@ function MainApp() {
         // });
 
         setTest(test + 1);
+
+        return () => websocketClient.onStateChange(undefined);
     }, []);
 
     return (

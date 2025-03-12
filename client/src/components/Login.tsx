@@ -1,6 +1,7 @@
-import { useApp } from './AppProvider';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import useWebsocket from './WebSocket';
+import websocketClient from '../services/websocketClient';
 
 interface LoginToggleProp {
     type: 'login' | 'register' | 'checkbox';
@@ -56,43 +57,86 @@ const Input = ({ name, type, onChange, value, placeholder }: InputProp) => {
 };
 
 const Login = () => {
-    const { app } = useApp();
     const [doRegister, setDoRegister] = useState(false);
     const [username, setUsername] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [password, setPassword] = useState('');
+    const [doSession, setDoSession] = useState(false);
     const [statusMsg, setStatusMsg] = useState<StatusMsg>({
         type: 'info',
         msg: ''
     });
     const navigate = useNavigate();
+    const [sessionToken, setSessionToken] = useState<string>('');
+
+    if (websocketClient.state === 'close') {
+        websocketClient.connect('/login');
+    }
+
+    useEffect(() => {
+        if (sessionToken) {
+            fetch('https://localhost:8080/set-session?token=' + sessionToken);
+        }
+    }, [sessionToken]);
+
+    useEffect(() => {
+        websocketClient.onStateChange((state: string) => {
+            if (state === 'close' || state === 'error') {
+                setStatusMsg({
+                    type: 'error',
+                    msg: 'Failed to connect to server.'
+                });
+            } else if (state === 'connecting') {
+                setStatusMsg({ type: 'info', msg: 'Connecting...' });
+            } else {
+                setStatusMsg({ type: 'info', msg: '' });
+            }
+
+            return () => websocketClient.onStateChange(undefined);
+        });
+    }, []);
+
+    const { send } = useWebsocket((event) => {
+        const packet = JSON.parse(event.data);
+
+        if (packet['cmd'] === 'error') {
+            setStatusMsg({ type: 'error', msg: packet['error_msg'] });
+        } else if (packet['cmd'] === 'session') {
+            if (packet['id'] !== '0') {
+                setSessionToken(packet['id']);
+            }
+
+            navigate('/app');
+        } else {
+            setStatusMsg({ type: 'info', msg: packet });
+        }
+    });
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (doRegister) {
+            send({
+                cmd: 'register',
+                username: username,
+                password: password,
+                displayname: displayName,
+                session: doSession
+            });
+        } else {
+            send({
+                cmd: 'login',
+                username: username,
+                password: password,
+                session: doSession
+            });
+        }
+
         setStatusMsg({
             type: 'info',
             msg: '🐹 Feeding your data to the cyber hamsters...'
         });
     };
-
-    // Uh-oh! The hamsters couldn't find a match. Double-check your username and password!
-    useEffect(() => {
-        if (app.connection_status === 'connecting') {
-            setStatusMsg({ type: 'info', msg: 'Connecting...' });
-        } else if (app.connection_status === 'error') {
-            setStatusMsg({ type: 'error', msg: 'Failed to connect to server' });
-        } else if (app.connection_status === 'open') {
-            setStatusMsg({ type: 'info', msg: '' });
-        } else if (app.connection_status === 'close') {
-            setStatusMsg({
-                type: 'error',
-                msg: 'Connection to server closed. Reconnecting...'
-            });
-            // dispatch({ type: Action.RECONNECT });
-            navigate('/ ');
-        }
-        console.log('Connection status: ', app.connection_status);
-    }, [app.connection_status]);
 
     return (
         <div className="flex flex-col w-screen h-screen bg-gray-700 justify-center items-center text-white">
@@ -157,7 +201,14 @@ const Login = () => {
                             <label className="font-bold mr-2">
                                 Keep me logged in?
                             </label>
-                            <input className="w-5 h-5" type="checkbox" />
+                            <input
+                                className="w-5 h-5"
+                                type="checkbox"
+                                checked={doSession}
+                                onChange={(event) =>
+                                    setDoSession(event.target.checked)
+                                }
+                            />
                         </div>
                         <button
                             type="submit"

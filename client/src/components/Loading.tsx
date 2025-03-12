@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Action, useApp } from './AppProvider';
 import { useNavigate } from 'react-router-dom';
+import websocketClient from '../services/websocketClient';
 
 const Loading = () => {
     const [animation, setAnimation] = useState('animate-bounce');
     const emotes = ['>_<', ':3', ':)', ':(', '^_^', '>:(', '>:)'];
     const [emote, setEmote] = useState(emotes[0]);
-    const { app, dispatch } = useApp();
-    const [status, setStatus] = useState(app.connection_status);
+    const [status, setStatus] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -27,15 +26,17 @@ const Loading = () => {
     }, []);
 
     useEffect(() => {
-        setStatus(app.connection_status);
-        if (app.connection_status === 'open') {
-            navigate('/app');
-        } else if (app.connection_status === 'close') {
-            dispatch({ type: Action.RECONNECT });
-        } else if (app.connection_status !== 'connecting') {
-            navigate('/login');
-        }
-    }, [app.connection_status]);
+        websocketClient.onStateChange((state: string) => {
+            setStatus(state);
+            if (state === 'open') {
+                navigate('/app');
+            } else if (state === 'close' || state === 'error') {
+                navigate('/login');
+            }
+        });
+
+        return () => websocketClient.onStateChange(undefined);
+    }, []);
 
     return (
         <>
