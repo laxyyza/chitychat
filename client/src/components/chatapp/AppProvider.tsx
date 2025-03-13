@@ -1,6 +1,8 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
-import { ChannelType, Hub, Message, TextChannel } from './Hub';
 import User from './User';
+import { Hub } from '../../models/hub';
+import { TextChannel, ChannelType } from '../../models/channel';
+import Message from '../../models/message';
 
 export interface App {
     logged_in: boolean;

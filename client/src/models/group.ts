@@ -1,6 +1,7 @@
-import { Message } from './Hub';
+import Message from "./message";
 
-class Group {
+class Group 
+{
     id: number;
     owner_id: number;
     name: string;
@@ -28,4 +29,4 @@ class Group {
     }
 }
 
-export type { Group };
+export default Group;

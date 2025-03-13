@@ -1,5 +1,5 @@
 import MessageComponent from './Message';
-import { Message } from './Hub';
+import { Message } from '../../models/hub';
 
 interface Prop {
     messages: Message[] | undefined;

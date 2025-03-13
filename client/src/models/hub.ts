@@ -1,53 +1,10 @@
-interface Prop {
-    tooltip: string;
-    pfp: string | null;
-    selected: boolean;
-    children: string;
-}
-
-interface Message {
-    id: number;
-    user_id: number;
-    channel_id: number;
-    content?: string;
-    attachments?: string[];
-}
-
-interface BaseChannel {
-    id: number;
-    name: string;
-    hub_id: number;
-}
-
-export enum ChannelType {
-    TEXT,
-    VOICE
-}
-
-interface TextChannel extends BaseChannel {
-    type: ChannelType.TEXT;
-    messages: Message[];
-}
-
-interface VoiceChannel extends BaseChannel {
-    type: ChannelType.VOICE;
-}
-
-type Channel = TextChannel | VoiceChannel;
-
 interface Category {
     id: number;
     name: string;
     channelIDs: number[];
 }
 
-interface Group {
-    id: number;
-    name: string;
-    messages: Message[];
-}
-
-export class Hub {
+class Hub {
     readonly id: number;
     readonly owner_id: number;
     name: string;
@@ -78,4 +35,5 @@ export class Hub {
     }
 }
 
-export type { Group, TextChannel, Channel, Message, Category };
+export {Hub};
+export type { Category };

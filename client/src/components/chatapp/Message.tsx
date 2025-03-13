@@ -1,5 +1,5 @@
 import UserIcon from './UserIcon';
-import { Message } from './Hub';
+import { Message } from '../../models/hub';
 import { useApp } from './AppProvider';
 
 interface Prop {

@@ -1,5 +1,5 @@
 import SideBarList from './SideBarList';
-import ChannelList from './ChannelList';
+import ContentSideBar from './ContentSideBar';
 import UserProfile from './UserProfile';
 import { useApp } from '../AppProvider';
 
@@ -10,7 +10,7 @@ const SideBar = () => {
         <div className="sidebar">
             <div className="flex flex-1">
                 <SideBarList />
-                <ChannelList />
+                <ContentSideBar />
             </div>
             <UserProfile user={app.login_user} />
         </div>

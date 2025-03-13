@@ -21,7 +21,7 @@ const SideBarList = () => {
                 onClick={() => {
                     dispatch({ type: Action.SELECT_HUB, payload: -1 });
                 }}
-                tooltip="Direct Messages"
+                tooltip="Groups"
                 selected={app.currentHubID === -1}
                 pfp={logo}
             />

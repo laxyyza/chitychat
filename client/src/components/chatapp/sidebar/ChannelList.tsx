@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp, Action } from '../AppProvider';
-import { Hub, Category, Channel } from '../Hub';
+import { Hub, Category } from '../../../models/hub';
+import { Channel } from '../../../models/channel';
 
 interface CategoryProp {
     category: Category;
@@ -82,24 +83,19 @@ const ChannelList = () => {
     }, [app.currentChannelID, app.currentHubID]);
 
     return (
-        <div className="flex-1 bg-gray-800 text-white">
-            <div className="bg-gray-800 text-center shadow-md">
-                Hub Settings
-            </div>
-            <ul>
-                {categories &&
-                    Array.from(categories.entries()).map(
-                        ([id, category]) =>
-                            hub && (
-                                <li key={id}>
-                                    <CategoryComponent
-                                        category={category}
-                                    ></CategoryComponent>
-                                </li>
-                            )
-                    )}
-            </ul>
-        </div>
+        <>
+            {categories &&
+                Array.from(categories.entries()).map(
+                    ([id, category]) =>
+                        hub && (
+                            <li key={id}>
+                                <CategoryComponent
+                                    category={category}
+                                ></CategoryComponent>
+                            </li>
+                        )
+                )}
+        </>
     );
 };
 
