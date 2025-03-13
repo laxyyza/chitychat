@@ -56,8 +56,7 @@ const appReducer = (state: App, action: DispatchAction): App => {
             if (hub) {
                 return {
                     ...state,
-                    currentHubID: action.payload,
-                    currentGroupID: -1
+                    currentHubID: action.payload
                 };
             }
             return {
@@ -77,19 +76,38 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return { ...state, login_user: action.payload };
         case Action.ADD_MSG: {
             const msg = action.payload;
-            const newTextChannels = new Map(
-                [...state.textChannels].map(([id, channel]) => {
-                    if (channel.id === msg.channel_id) {
-                        return [
-                            id,
-                            { ...channel, messages: [...channel.messages, msg] }
-                        ];
-                    }
-                    return [id, channel];
-                })
-            );
+            if (msg.channel_type === 'hub') {
+                const newTextChannels = new Map(
+                    [...state.textChannels].map(([id, channel]) => {
+                        if (channel.id === msg.channel_id) {
+                            return [
+                                id,
+                                {
+                                    ...channel,
+                                    messages: [...channel.messages, msg]
+                                }
+                            ];
+                        }
+                        return [id, channel];
+                    })
+                );
+                return { ...state, textChannels: newTextChannels };
+            } else if (msg.channel_type === 'group') {
+                const newGroups = new Map(
+                    [...state.groups].map(([id, group]) => {
+                        if (msg.channel_id === id) {
+                            return [
+                                id,
+                                { ...group, messages: [...group.messages, msg] }
+                            ];
+                        }
+                        return [id, group];
+                    })
+                );
+                return { ...state, groups: newGroups };
+            }
 
-            return { ...state, textChannels: newTextChannels };
+            return { ...state };
         }
         case Action.ADD_HUB: {
             const hubID = state.hubs.size;

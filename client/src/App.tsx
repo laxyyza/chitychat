@@ -9,7 +9,7 @@ import useWebsocket from './components/WebSocket';
 import Group from './models/group';
 
 function MainApp() {
-    const { dispatch } = useApp();
+    const { app, dispatch } = useApp();
     // const [test, setTest] = useState(0);
     const navigate = useNavigate();
 
@@ -58,15 +58,15 @@ function MainApp() {
             });
         }
 
-        // app.login_user = {
-        //     id: 1,
-        //     username: 'username',
-        //     displayname: 'Display Name',
-        //     pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg',
-        //     created_at: '15 January 2025, 12:30 PM',
-        //     about_me: 'About me'
-        // };
-        // app.users.set(app.login_user.id, app.login_user);
+        app.login_user = {
+            id: 1,
+            username: 'username',
+            displayname: 'Display Name',
+            pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg',
+            created_at: '15 January 2025, 12:30 PM',
+            about_me: 'About me'
+        };
+        app.users.set(app.login_user.id, app.login_user);
         // app.users.set(2, {
         //     id: 2,
         //     username: 'laxyyza',
@@ -88,7 +88,7 @@ function MainApp() {
                 type: Action.ADD_GROUP,
                 payload: new Group(
                     id,
-                    id,
+                    app.login_user.id,
                     'Test Group Testing ' + id,
                     '13 Mar',
                     false

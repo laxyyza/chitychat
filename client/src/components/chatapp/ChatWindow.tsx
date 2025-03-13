@@ -2,13 +2,32 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from './AppProvider';
 import ChannelMessages from './ChannelMessages';
 import { FaArrowDown } from 'react-icons/fa';
+import Message from '../../models/message';
+
+const getMessages = (): Message[] => {
+    const { app } = useApp();
+
+    if (app.currentHubID !== -1) {
+        const channel = app.textChannels.get(app.currentChannelID);
+        if (channel) {
+            return channel.messages;
+        }
+    } else if (app.currentGroupID !== -1) {
+        const group = app.groups.get(app.currentGroupID);
+        if (group) {
+            return group.messages;
+        }
+    }
+
+    return [];
+};
 
 const ChatWindow = () => {
     const { app } = useApp();
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isBottom, setIsBottom] = useState(true);
-    const channel = app.textChannels.get(app.currentChannelID);
     const bottomRef = useRef<HTMLDivElement | null>(null);
+    const messages = getMessages();
 
     const handleScroll = () => {
         const container = containerRef.current;
@@ -31,12 +50,12 @@ const ChatWindow = () => {
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'instant' });
-    }, [channel?.messages]);
+    }, [app.currentHubID, app.currentGroupID, app.currentChannelID]);
 
     return (
         <>
             <div className="flex-1 overflow-y-auto" ref={containerRef}>
-                <ChannelMessages messages={channel?.messages} />
+                <ChannelMessages messages={messages} />
                 <div ref={bottomRef} />
             </div>
             {isBottom || (

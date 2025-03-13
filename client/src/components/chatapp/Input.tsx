@@ -60,13 +60,18 @@ const Input = ({
     const sendMessage = () => {
         if (!message.trim()) return; // Prevent sending empty messages
 
+        const channel_type = app.currentHubID === -1 ? 'group' : 'hub';
+        const channel_id =
+            channel_type === 'hub' ? app.currentChannelID : app.currentGroupID;
+
         setCounter(counter + 1);
         dispatch({
             type: Action.ADD_MSG,
             payload: {
                 id: counter,
                 user_id: app.login_user.id,
-                channel_id: app.currentChannelID,
+                channel_id: channel_id,
+                channel_type: channel_type,
                 content: message,
                 attachments: []
             }
@@ -79,8 +84,9 @@ const Input = ({
     };
 
     if (
-        !app.hubs.has(app.currentHubID) ||
-        !app.textChannels.has(app.currentChannelID)
+        !app.hubs.has(app.currentHubID) &&
+        !app.textChannels.has(app.currentChannelID) &&
+        !app.groups.get(app.currentGroupID)
     )
         return null;
 

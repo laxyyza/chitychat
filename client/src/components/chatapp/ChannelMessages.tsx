@@ -1,14 +1,14 @@
 import MessageComponent from './Message';
-import { Message } from '../../models/hub';
+import Message from '../../models/message';
 
 interface Prop {
-    messages: Message[] | undefined;
+    messages: Message[];
 }
 
 const ChannelMessages = ({ messages }: Prop) => {
     return (
         <>
-            {messages?.map((msg) => (
+            {messages.map((msg) => (
                 <li key={msg.id}>
                     <MessageComponent message={msg} />
                 </li>

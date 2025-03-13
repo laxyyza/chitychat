@@ -25,9 +25,13 @@ const MemberList = () => {
 
     useEffect(() => {
         const hub = app.hubs.get(app.currentHubID);
-
-        setMemberIDs(hub ? hub.memberIDs : []);
-    }, [app.currentHubID]);
+        if (hub) {
+            setMemberIDs(hub.memberIDs);
+        } else {
+            const group = app.groups.get(app.currentGroupID);
+            setMemberIDs(group ? group.memberIDs : []);
+        }
+    }, [app.currentHubID, app.currentGroupID]);
 
     return (
         <div className="relative max-h-screen w-60 bg-gray-800 overflow-auto">

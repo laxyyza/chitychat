@@ -24,7 +24,7 @@ class Group
         this.created_at = created_at;
         this.public = is_public;
         this.desc = '';
-        this.messages = [];
+        this.messages = [{id: 1, user_id: this.owner_id, channel_id: 0, content: 'test message', attachments: []}];
         this.memberIDs = [this.owner_id];
     }
 }
