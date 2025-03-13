@@ -2,7 +2,7 @@ class WebSocketClient
 {
     private baseurl: string;
     private ws?: WebSocket;
-    private listeners: Set<(event: MessageEvent<any>) => void>;
+    private listeners: Set<(cmd: string, data: any) => void>;
     private onStateChangeCallback?: (state: 'open' | 'close' | 'error') => void;
     public state: 'connecting' | 'open' | 'close' | 'error';
 
@@ -31,7 +31,9 @@ class WebSocketClient
 
         this.ws.onmessage = (event) => {
             console.log(event.data);
-            this.listeners.forEach((callback) => callback(event));
+            const data = JSON.parse(event.data);
+            const cmd = data.cmd;
+            this.listeners.forEach((callback) => callback(cmd, data));
         }
         
         this.ws.onclose = () => {
@@ -58,12 +60,12 @@ class WebSocketClient
         }
     }
 
-    subscribe(callback: (event: MessageEvent<any>) => void)
+    subscribe(callback: (cmd: string, data: any) => void)
     {
         this.listeners.add(callback);
     }
 
-    unsubscribe(callback: (event: MessageEvent<any>) => void) 
+    unsubscribe(callback: (cmd: string, data: any) => void) 
     {
         this.listeners.delete(callback);
     }

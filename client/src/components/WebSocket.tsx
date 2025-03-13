@@ -1,9 +1,7 @@
 import websocketClient from '../services/websocketClient';
 import { useEffect } from 'react';
 
-const useWebsocket = (
-    onMessage: (event: MessageEvent<any>) => void | undefined
-) => {
+const useWebsocket = (onMessage?: (cmd: string, data: any) => void) => {
     useEffect(() => {
         if (!onMessage) return;
 

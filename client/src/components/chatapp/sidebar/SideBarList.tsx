@@ -29,18 +29,20 @@ const SideBarList = () => {
 
             <div className="flex-1">
                 {hubs.map((hub) => (
-                    <SideBarButton
-                        onClick={() => {
-                            dispatch({
-                                type: Action.SELECT_HUB,
-                                payload: hub.id
-                            });
-                        }}
-                        tooltip={hub.name}
-                        pfp={hub.pfp}
-                        selected={app.currentHubID === hub.id}
-                        name={hub.name}
-                    />
+                    <li key={hub.id}>
+                        <SideBarButton
+                            onClick={() => {
+                                dispatch({
+                                    type: Action.SELECT_HUB,
+                                    payload: hub.id
+                                });
+                            }}
+                            tooltip={hub.name}
+                            pfp={hub.pfp}
+                            selected={app.currentHubID === hub.id}
+                            name={hub.name}
+                        />
+                    </li>
                 ))}
             </div>
 

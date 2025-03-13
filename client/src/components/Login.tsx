@@ -96,12 +96,10 @@ const Login = () => {
         });
     }, []);
 
-    const { send } = useWebsocket((event) => {
-        const packet = JSON.parse(event.data);
-
-        if (packet['cmd'] === 'error') {
+    const { send } = useWebsocket((cmd, packet) => {
+        if (cmd === 'error') {
             setStatusMsg({ type: 'error', msg: packet['error_msg'] });
-        } else if (packet['cmd'] === 'session') {
+        } else if (cmd === 'session') {
             if (packet['id'] !== '0') {
                 setSessionToken(packet['id']);
             }

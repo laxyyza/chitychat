@@ -10,6 +10,7 @@ class Group
     desc?: string;
     messages: Message[];
     memberIDs: number[];
+    public gotMemberIDs: boolean;
 
     constructor(
         id: number,
@@ -24,8 +25,15 @@ class Group
         this.created_at = created_at;
         this.public = is_public;
         this.desc = '';
-        this.messages = [{id: 1, user_id: this.owner_id, channel_id: 0, content: 'test message', attachments: []}];
+        this.messages = [];
         this.memberIDs = [this.owner_id];
+        this.gotMemberIDs = false;
+    }
+
+    addMemberIDs(newMemberIDs: number[]) 
+    {
+        this.memberIDs = [...new Set<number>([...this.memberIDs, ...newMemberIDs])];
+        this.gotMemberIDs = true;
     }
 }
 

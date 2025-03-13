@@ -9,14 +9,11 @@ import useWebsocket from './components/WebSocket';
 import Group from './models/group';
 
 function MainApp() {
-    const { app, dispatch } = useApp();
+    const { dispatch } = useApp();
     // const [test, setTest] = useState(0);
     const navigate = useNavigate();
 
-    const { send } = useWebsocket((event) => {
-        const packet = JSON.parse(event.data);
-        const cmd = packet['cmd'];
-
+    const { send } = useWebsocket((cmd, packet) => {
         switch (cmd) {
             case 'client_user_info': {
                 dispatch({
@@ -30,6 +27,40 @@ function MainApp() {
                         pfp: ''
                     }
                 });
+                break;
+            }
+            case 'client_groups': {
+                const groups: any[] = packet['groups'];
+                groups.forEach((group) => {
+                    dispatch({
+                        type: Action.ADD_GROUP,
+                        payload: new Group(
+                            group['group_id'],
+                            group['owner_id'],
+                            group['name'],
+                            '',
+                            group['public']
+                        )
+                    });
+                });
+                break;
+            }
+            case 'get_user': {
+                const users: any[] = packet['users'];
+                users.forEach((user) => {
+                    dispatch({
+                        type: Action.ADD_USER,
+                        payload: {
+                            id: user['user_id'],
+                            username: user['username'],
+                            displayname: user['displayname'],
+                            about_me: user['bio'],
+                            pfp: '',
+                            created_at: user['created_at']
+                        }
+                    });
+                });
+                break;
             }
         }
     });
@@ -58,15 +89,15 @@ function MainApp() {
             });
         }
 
-        app.login_user = {
-            id: 1,
-            username: 'username',
-            displayname: 'Display Name',
-            pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg',
-            created_at: '15 January 2025, 12:30 PM',
-            about_me: 'About me'
-        };
-        app.users.set(app.login_user.id, app.login_user);
+        // app.login_user = {
+        //     id: 1,
+        //     username: 'username',
+        //     displayname: 'Display Name',
+        //     pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg',
+        //     created_at: '15 January 2025, 12:30 PM',
+        //     about_me: 'About me'
+        // };
+        // app.users.set(app.login_user.id, app.login_user);
         // app.users.set(2, {
         //     id: 2,
         //     username: 'laxyyza',
@@ -76,25 +107,25 @@ function MainApp() {
         //     about_me: ''
         // });
 
-        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
 
-        for (let i = 0; i < 10; i++) {
-            const id = i + 1;
-            dispatch({
-                type: Action.ADD_GROUP,
-                payload: new Group(
-                    id,
-                    app.login_user.id,
-                    'Test Group Testing ' + id,
-                    '13 Mar',
-                    false
-                )
-            });
-        }
+        // for (let i = 0; i < 10; i++) {
+        //     const id = i + 1;
+        //     dispatch({
+        //         type: Action.ADD_GROUP,
+        //         payload: new Group(
+        //             id,
+        //             app.login_user.id,
+        //             'Test Group Testing ' + id,
+        //             '13 Mar',
+        //             false
+        //         )
+        //     });
+        // }
 
         // app.hubs.get(1)?.memberIDs.push(2);
         // app.textChannels.set(1, {

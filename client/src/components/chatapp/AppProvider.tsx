@@ -4,6 +4,7 @@ import { Hub } from '../../models/hub';
 import { TextChannel, ChannelType } from '../../models/channel';
 import Message from '../../models/message';
 import Group from '../../models/group';
+import useWebsocket from '../WebSocket';
 
 export interface App {
     logged_in: boolean;
@@ -33,6 +34,7 @@ enum Action {
     SELECT_CHANNEL,
     ADD_MSG,
     ADD_HUB,
+    ADD_USER,
     ADD_GROUP,
     RECONNECT,
     SET_CONNECT
@@ -43,6 +45,7 @@ type DispatchAction =
     | { type: Action.SELECT_GROUP; payload: number }
     | { type: Action.SELECT_CHANNEL; payload: number }
     | { type: Action.SET_LOGIN_USER; payload: User }
+    | { type: Action.ADD_USER; payload: User }
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUP; payload: Group };
@@ -72,8 +75,21 @@ const appReducer = (state: App, action: DispatchAction): App => {
         }
         case Action.SELECT_CHANNEL:
             return { ...state, currentChannelID: action.payload };
-        case Action.SET_LOGIN_USER:
-            return { ...state, login_user: action.payload };
+        case Action.SET_LOGIN_USER: {
+            const user = action.payload;
+            return {
+                ...state,
+                login_user: user,
+                users: new Map(state.users).set(user.id, user)
+            };
+        }
+        case Action.ADD_USER: {
+            const user = action.payload;
+            return {
+                ...state,
+                users: new Map(state.users).set(user.id, user)
+            };
+        }
         case Action.ADD_MSG: {
             const msg = action.payload;
             if (msg.channel_type === 'hub') {
