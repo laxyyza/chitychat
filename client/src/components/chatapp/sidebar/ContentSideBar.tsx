@@ -6,7 +6,7 @@ const ContentSideBar = () => {
     const { app } = useApp();
 
     return (
-        <div className="flex-1 bg-gray-800 text-white">
+        <div className="flex-1 bg-gray-800 text-white overflow-hidden box-border p-1">
             {app.currentHubID === -1 ? <DMList /> : <ChannelList />}
         </div>
     );

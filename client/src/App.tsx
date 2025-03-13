@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import websocketClient from './services/websocketClient';
 import useWebsocket from './components/WebSocket';
+import Group from './models/group';
 
 function MainApp() {
     const { dispatch } = useApp();
@@ -80,6 +81,20 @@ function MainApp() {
         dispatch({ type: Action.ADD_HUB, payload: 'Test' });
         dispatch({ type: Action.ADD_HUB, payload: 'Test' });
         dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+
+        for (let i = 0; i < 10; i++) {
+            const id = i + 1;
+            dispatch({
+                type: Action.ADD_GROUP,
+                payload: new Group(
+                    id,
+                    id,
+                    'Test Group Testing ' + id,
+                    '13 Mar',
+                    false
+                )
+            });
+        }
 
         // app.hubs.get(1)?.memberIDs.push(2);
         // app.textChannels.set(1, {
