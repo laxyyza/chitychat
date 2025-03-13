@@ -49,11 +49,13 @@ function MainApp() {
         // );
         // app.hubs.set(2, new Hub(2, 1, "Laxyy's Hub", null, [3]));
 
-        websocketClient.onStateChange((state: string) => {
-            if (state === 'error' || state === 'close') {
-                navigate('/login');
-            }
-        });
+        if (process.env.NODE_ENV !== 'development') {
+            websocketClient.onStateChange((state: string) => {
+                if (state === 'error' || state === 'close') {
+                    navigate('/login');
+                }
+            });
+        }
 
         // app.login_user = {
         //     id: 1,
@@ -73,7 +75,11 @@ function MainApp() {
         //     about_me: ''
         // });
 
-        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
+        dispatch({ type: Action.ADD_HUB, payload: 'Test' });
 
         // app.hubs.get(1)?.memberIDs.push(2);
         // app.textChannels.set(1, {

@@ -2,6 +2,11 @@ import { useRef, useState } from 'react';
 import { useApp, Action } from './AppProvider';
 import { HubComponent } from './Hub';
 import CreateHub from './CreateHub';
+import logo from '../assets/logo.svg';
+
+const Divider = () => {
+    return <div className="w-[80%] h-[1px] bg-gray-600 self-center m-1"></div>;
+};
 
 const HubList = () => {
     const { app, dispatch } = useApp();
@@ -11,6 +16,23 @@ const HubList = () => {
 
     return (
         <div className="flex flex-col bg-gray-900">
+            <div
+                ref={divref}
+                className="hub-icon group"
+                onClick={() => {
+                    dispatch({ type: Action.SELECT_HUB, payload: -1 });
+                }}
+            >
+                <HubComponent
+                    tooltip="Direct Messages"
+                    pfp={logo}
+                    selected={app.currentHubID === -1}
+                >
+                    {' '}
+                </HubComponent>
+            </div>
+            <Divider />
+
             <div className="flex-1">
                 {hubs.map((hub) => (
                     <div
@@ -35,6 +57,7 @@ const HubList = () => {
                     </div>
                 ))}
             </div>
+            <Divider />
             <div
                 ref={divref}
                 className="hub-icon group"
