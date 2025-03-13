@@ -1,7 +1,7 @@
-import SideBar from './components/SideBar';
-import MainContent from './components/MainContent';
-import MemberList from './components/MemberList';
-import { Action, useApp } from './components/AppProvider';
+import SideBar from './components/chatapp/sidebar/SideBar';
+import MainContent from './components/chatapp/MainContent';
+import MemberList from './components/chatapp/MemberList';
+import { Action, useApp } from './components/chatapp/AppProvider';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import websocketClient from './services/websocketClient';

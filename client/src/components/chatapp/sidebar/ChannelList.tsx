@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useApp, Action } from './AppProvider';
-import { Hub, Category, Channel } from './Hub';
+import { useApp, Action } from '../AppProvider';
+import { Hub, Category, Channel } from '../Hub';
 
 interface CategoryProp {
     category: Category;

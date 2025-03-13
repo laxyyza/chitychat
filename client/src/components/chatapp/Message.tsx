@@ -42,8 +42,8 @@ const Attachment = ({ url, type }: AttachmentProp) => {
     else return <h1>Unknown type: {type}</h1>;
 };
 
-const MessageComponent = ({message}: Prop) => {
-    const {app} = useApp();
+const MessageComponent = ({ message }: Prop) => {
+    const { app } = useApp();
     const user = app.users.get(message.user_id);
 
     if (!user) return null;

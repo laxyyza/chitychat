@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react';
-import { useApp, Action } from './AppProvider';
-import CreateHub from './CreateHub';
-import logo from '../assets/logo.svg';
+import { useApp, Action } from '../AppProvider';
+import CreateHub from '../CreateHub';
+import logo from '../../../assets/logo.svg';
 import SideBarButton from './SideBarButton';
 
 const Divider = () => {
     return <div className="w-[80%] h-[1px] bg-gray-600 self-center m-1" />;
 };
 
-const HubList = () => {
+const SideBarList = () => {
     const { app, dispatch } = useApp();
     const hubs = Array.from(app.hubs.values());
     const divref = useRef<HTMLDivElement | null>(null);
@@ -64,4 +64,4 @@ const HubList = () => {
     );
 };
 
-export default HubList;
+export default SideBarList;

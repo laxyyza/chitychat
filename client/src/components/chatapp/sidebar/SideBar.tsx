@@ -1,7 +1,7 @@
-import HubList from './HubList';
+import SideBarList from './SideBarList';
 import ChannelList from './ChannelList';
 import UserProfile from './UserProfile';
-import { useApp } from './AppProvider';
+import { useApp } from '../AppProvider';
 
 const SideBar = () => {
     const { app } = useApp();
@@ -9,7 +9,7 @@ const SideBar = () => {
     return (
         <div className="sidebar">
             <div className="flex flex-1">
-                <HubList />
+                <SideBarList />
                 <ChannelList />
             </div>
             <UserProfile user={app.login_user} />

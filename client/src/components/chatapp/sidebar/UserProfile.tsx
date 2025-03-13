@@ -1,6 +1,6 @@
 import { CiSettings } from 'react-icons/ci';
-import UserIcon from './UserIcon';
-import User from './User';
+import UserIcon from '../UserIcon';
+import User from '../User';
 
 interface Prop {
     user: User;
