@@ -78,36 +78,4 @@ export class Hub {
     }
 }
 
-const HubIcon = (name: string, pfp: string | null) => {
-    if (pfp) {
-        return <img className="custom-rounded-inherit" src={pfp} />;
-    } else {
-        let letters: string = '';
-        const words = name.split(' ');
-        const className = words.length >= 3 ? 'text-xl' : 'text-3xl';
-
-        for (let i = 0; i < Math.min(3, words.length); i++) {
-            letters += words[i][0];
-        }
-
-        return <div className={className}>{letters}</div>;
-    }
-};
-
-export const HubComponent = ({ tooltip, selected, pfp, children }: Prop) => {
-    return (
-        <>
-            {HubIcon(children, pfp)}
-            <span className="hub-tooltip group-hover:scale-100 pointer-events-none">
-                {tooltip}
-            </span>
-            <span
-                className={`hub-highlight ${
-                    selected ? 'hub-highlight-selected' : ''
-                }`}
-            ></span>
-        </>
-    );
-};
-
 export type { Group, TextChannel, Channel, Message, Category };

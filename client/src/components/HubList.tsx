@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { useApp, Action } from './AppProvider';
-import { HubComponent } from './Hub';
 import CreateHub from './CreateHub';
 import logo from '../assets/logo.svg';
+import SideBarButton from './SideBarButton';
 
 const Divider = () => {
-    return <div className="w-[80%] h-[1px] bg-gray-600 self-center m-1"></div>;
+    return <div className="w-[80%] h-[1px] bg-gray-600 self-center m-1" />;
 };
 
 const HubList = () => {
@@ -16,63 +16,43 @@ const HubList = () => {
 
     return (
         <div className="flex flex-col bg-gray-900">
-            <div
+            <SideBarButton
                 ref={divref}
-                className="hub-icon group"
                 onClick={() => {
                     dispatch({ type: Action.SELECT_HUB, payload: -1 });
                 }}
-            >
-                <HubComponent
-                    tooltip="Direct Messages"
-                    pfp={logo}
-                    selected={app.currentHubID === -1}
-                >
-                    {' '}
-                </HubComponent>
-            </div>
+                tooltip="Direct Messages"
+                selected={app.currentHubID === -1}
+                pfp={logo}
+            />
             <Divider />
 
             <div className="flex-1">
                 {hubs.map((hub) => (
-                    <div
-                        key={hub.id}
-                        className={`hub-icon group ${
-                            app.currentHubID === hub.id ? 'hub-selected' : ''
-                        }`}
+                    <SideBarButton
                         onClick={() => {
                             dispatch({
                                 type: Action.SELECT_HUB,
                                 payload: hub.id
                             });
                         }}
-                    >
-                        <HubComponent
-                            tooltip={hub.name}
-                            pfp={hub.pfp}
-                            selected={app.currentHubID === hub.id}
-                        >
-                            {hub.name}
-                        </HubComponent>
-                    </div>
+                        tooltip={hub.name}
+                        pfp={hub.pfp}
+                        selected={app.currentHubID === hub.id}
+                        name={hub.name}
+                    />
                 ))}
             </div>
+
             <Divider />
-            <div
-                ref={divref}
-                className="hub-icon group"
-                onClick={() => {
-                    setShow(true);
-                }}
-            >
-                <HubComponent
-                    tooltip="Create a Hub"
-                    pfp={null}
-                    selected={false}
-                >
-                    +
-                </HubComponent>
-            </div>
+
+            <SideBarButton
+                onClick={() => setShow(true)}
+                tooltip="Create a Hub"
+                pfp={null}
+                selected={false}
+                name="+"
+            />
             {show && (
                 <CreateHub
                     onClose={() => {
