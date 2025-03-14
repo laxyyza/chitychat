@@ -15,10 +15,15 @@ export default function Popup({
     className = ''
 }: PopupProps) {
     const popupRef = useRef<HTMLDivElement | null>(null);
-    const [position, setPosition] = useState({
+    const [position, setPosition] = useState<{
+        top: number | string | undefined;
+        left: number | string | undefined;
+    }>({
         top: targetRef.current?.style.top,
         left: targetRef.current?.style.left
     });
+
+    console.log('position ', position);
 
     useEffect(() => {
         function updatePosition() {
@@ -53,8 +58,8 @@ export default function Popup({
                 // popupRef.current.getBoundingClientRect().width // Align left
 
                 setPosition({
-                    top: String(newTop),
-                    left: String(newLeft)
+                    top: newTop,
+                    left: newLeft
                 });
             }
         }
