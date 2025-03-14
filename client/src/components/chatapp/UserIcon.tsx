@@ -2,32 +2,70 @@ import { useState, useRef } from 'react';
 import Popup from './Popup';
 import User from './User';
 import Input from './Input';
+import { FaUserAlt } from 'react-icons/fa';
 
 interface Prop {
     user: User;
 }
 
-const UserDetails = ({ user }: Prop) => {
+interface IconImgProp {
+    pfp: string;
+    profile: boolean;
+}
+
+const IconImgChooser = ({ pfp, profile }: IconImgProp) => {
     const [big, setBig] = useState(false);
 
     const addClass = () => {
         return big ? 'w-full h-full rounded-xl' : 'rounded-[40px] h-20 w-20';
     };
 
-    return (
-        <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
-            <div>
+    if (profile) {
+        if (pfp) {
+            return (
                 <img
                     onClick={() => {
                         setBig(!big);
                     }}
-                    src={user.pfp}
+                    src={pfp}
                     className={
                         ' bg-gray-800 transition-all duration-200 cursor-pointer ease-linear mb-1 shadow-lg text-white ' +
                         addClass()
                     }
                 />
-            </div>
+            );
+        } else {
+            return (
+                <div
+                    onClick={() => {
+                        setBig(!big);
+                    }}
+                    className={
+                        ' bg-gray-400 p-4 transition-all duration-200 cursor-pointer ease-linear mb-1 shadow-lg text-white overflow-hidden ' +
+                        addClass()
+                    }
+                >
+                    <FaUserAlt size="full" />
+                </div>
+            );
+        }
+    } else {
+        if (pfp) {
+            return <img src={pfp} className="w-full h-full rounded-full" />;
+        } else {
+            return (
+                <div className="p-2.5 rounded-full bg-gray-400 flex items-center justify-center">
+                    <FaUserAlt size="32" />
+                </div>
+            );
+        }
+    }
+};
+
+const UserDetails = ({ user }: Prop) => {
+    return (
+        <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
+            <IconImgChooser pfp={user.pfp} profile={true} />
             <div className="">
                 <div className="font-bold text-2xl text-left">
                     {user.displayname}
@@ -60,7 +98,7 @@ const UserIcon = ({ user }: Prop) => {
             ref={ref}
             className="max-w-13 max-h-13"
         >
-            <img src={user.pfp} className="w-full h-full rounded-full" />
+            <IconImgChooser pfp={user.pfp} profile={false} />
             {showDetails && ref.current && (
                 <Popup
                     targetRef={ref}

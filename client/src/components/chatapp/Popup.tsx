@@ -23,8 +23,6 @@ export default function Popup({
         left: targetRef.current?.style.left
     });
 
-    console.log('position ', position);
-
     useEffect(() => {
         function updatePosition() {
             if (targetRef.current && popupRef.current) {
