@@ -4,7 +4,6 @@ import { Hub } from '../../models/hub';
 import { TextChannel, ChannelType } from '../../models/channel';
 import Message from '../../models/message';
 import Group from '../../models/group';
-import useWebsocket from '../WebSocket';
 
 export interface App {
     logged_in: boolean;
@@ -109,13 +108,10 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 );
                 return { ...state, textChannels: newTextChannels };
             } else if (msg.channel_type === 'group') {
-                const newGroups = new Map(
+                const newGroups: Map<number, Group> = new Map(
                     [...state.groups].map(([id, group]) => {
                         if (msg.channel_id === id) {
-                            return [
-                                id,
-                                { ...group, messages: [...group.messages, msg] }
-                            ];
+                            return [id, Group.fromAddMessage(group, msg)];
                         }
                         return [id, group];
                     })

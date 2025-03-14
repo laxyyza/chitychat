@@ -1,7 +1,6 @@
 import Message from "./message";
 
-class Group 
-{
+class Group {
     id: number;
     owner_id: number;
     name: string;
@@ -30,10 +29,18 @@ class Group
         this.gotMemberIDs = false;
     }
 
-    addMemberIDs(newMemberIDs: number[]) 
-    {
+    addMemberIDs(newMemberIDs: number[]) {
         this.memberIDs = [...new Set<number>([...this.memberIDs, ...newMemberIDs])];
         this.gotMemberIDs = true;
+    }
+
+    static fromAddMessage(group: Group, msg: Message): Group {
+        const newGroup = new Group(group.id, group.owner_id, group.name, group.created_at, group.public);
+        newGroup.messages = [...group.messages, msg];
+        newGroup.memberIDs = group.memberIDs;
+        newGroup.gotMemberIDs = group.gotMemberIDs;
+
+        return newGroup;
     }
 }
 
