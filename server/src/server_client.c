@@ -23,21 +23,25 @@ server_accept_client(eworker_t* th, server_event_t* ev)
     client->addr.len = server->addr_len;
     client->addr.version = server->conf.addr_version;
     client->addr.addr_ptr = (struct sockaddr*)&client->addr.ipv4;
-    client->addr.sock = accept4(ev->fd, client->addr.addr_ptr, &client->addr.len, SOCK_NONBLOCK);
+    client->addr.sock = accept4(ev->fd, client->addr.addr_ptr, &client->addr.len, (server->conf.disable_tls) ? 0 : SOCK_NONBLOCK);
     if (client->addr.sock == -1)
     {
-        error("accept: %s", ERRSTR);
+        error("accept: %s\n", ERRSTR);
         goto err;
     }
 
-    client->ssl = SSL_new(server->ssl_ctx);
-    SSL_set_fd(client->ssl, client->addr.sock);
-
     server_get_client_info(client);
-    pthread_mutex_init(&client->ssl_mutex, NULL);
     server_ght_insert(&server->client_ht, client->addr.sock, client);
+
+    if (server->conf.disable_tls == false)
+    {
+        client->ssl = SSL_new(server->ssl_ctx);
+        SSL_set_fd(client->ssl, client->addr.sock);
+        pthread_mutex_init(&client->ssl_mutex, NULL);
+    }
+
     if (server_new_event(server, client->addr.sock, client, 
-                         se_ssl_accept, se_close_client) == NULL)
+                         (server->conf.disable_tls) ? se_read_client : se_ssl_accept, se_close_client) == NULL)
         goto err;
 
     return client;
@@ -71,6 +75,7 @@ server_free_client(eworker_t* ew, client_t* client)
         if (client->err == CLIENT_ERR_NONE)
             SSL_shutdown(client->ssl);
         SSL_free(client->ssl);
+        pthread_mutex_destroy(&client->ssl_mutex);
     }
 
     if (client->recv.data)
@@ -95,7 +100,6 @@ server_free_client(eworker_t* ew, client_t* client)
     }
     close(client->addr.sock);
 
-    pthread_mutex_destroy(&client->ssl_mutex);
     free(client);
 }
 

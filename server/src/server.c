@@ -16,8 +16,9 @@ server_print_sockerr(i32 fd)
 void
 server_run(server_t* server)
 {
-    info("Server listening on IP: %s, port: %u, thread pool: %zu\n", 
-         server->conf.addr_ip, server->conf.addr_port, server->tm.n_workers);
+    info("Server listening on IP: %s, port: %u, thread pool: %zu, using %s\n", 
+         server->conf.addr_ip, server->conf.addr_port, server->tm.n_workers,
+        (server->conf.disable_tls) ? "HTTP/WS" : "HTTPS/WSS");
 
     server_wait_for_signals(server);
 }
@@ -99,17 +100,27 @@ server_send(client_t* client, const void* buf, size_t len)
 {
     ssize_t bytes_sent = -1;
 
-    pthread_mutex_lock(&client->ssl_mutex);
-    if (client->err != CLIENT_ERR_SSL)
+    if (client->ssl)
     {
-        bytes_sent = SSL_write(client->ssl, buf, len);
-        if (bytes_sent <= 0)
+        pthread_mutex_lock(&client->ssl_mutex);
+        if (client->err != CLIENT_ERR_SSL)
         {
-            server_print_ssl_error(client, bytes_sent, "write");
-            server_set_client_err(client, CLIENT_ERR_SSL);
+            bytes_sent = SSL_write(client->ssl, buf, len);
+            if (bytes_sent <= 0)
+            {
+                server_print_ssl_error(client, bytes_sent, "write");
+                server_set_client_err(client, CLIENT_ERR_SSL);
+            }
         }
+        pthread_mutex_unlock(&client->ssl_mutex);
     }
-    pthread_mutex_unlock(&client->ssl_mutex);
+    else 
+    {
+        bytes_sent = send(client->addr.sock, buf, len, 0);
+        if (bytes_sent == -1)
+            error("send (%s:%s): %s\n", client->addr.ip_str, client->addr.serv, ERRSTR);
+    }
+
     return bytes_sent;
 }
 
@@ -118,16 +129,26 @@ server_recv(client_t* client, void* buf, size_t len)
 {
     ssize_t bytes_recv = -1;
 
-    pthread_mutex_lock(&client->ssl_mutex);
-    if (client->err != CLIENT_ERR_SSL)
+    if (client->ssl)
     {
-        bytes_recv = SSL_read(client->ssl, buf, len);
-        if (bytes_recv <= 0)
+        pthread_mutex_lock(&client->ssl_mutex);
+        if (client->err != CLIENT_ERR_SSL)
         {
-            server_print_ssl_error(client, bytes_recv, "read");
-            server_set_client_err(client, CLIENT_ERR_SSL);
+            bytes_recv = SSL_read(client->ssl, buf, len);
+            if (bytes_recv <= 0)
+            {
+                server_print_ssl_error(client, bytes_recv, "read");
+                server_set_client_err(client, CLIENT_ERR_SSL);
+            }
         }
+        pthread_mutex_unlock(&client->ssl_mutex);
     }
-    pthread_mutex_unlock(&client->ssl_mutex);
+    else  
+    {
+        bytes_recv = recv(client->addr.sock, buf, len, 0);
+        if (bytes_recv == -1)
+            error("recv (%s:%s): %s\n", client->addr.ip_str, client->addr.serv, ERRSTR);
+    }
+
     return bytes_recv;
 }

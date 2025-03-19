@@ -57,10 +57,11 @@ server_argv(server_t* server, int argc, char* const* argv)
         {"help", 0, NULL, 'h'},
         {"thread-pool", required_argument, NULL, 'T'},
         {"retry-db-connect", 0, NULL, 'R'},
+        {"disable-tls", 0, NULL, 'D'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "T:p:d:v46hfR", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "T:p:d:v46hfRD", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
@@ -101,6 +102,9 @@ server_argv(server_t* server, int argc, char* const* argv)
             case 'R':
                 server->conf.retry_db_connect = true;
                 break;
+            case 'D':
+                server->conf.disable_tls = true;
+                break;
             case '?':
                 error("Unknown or missing argument\n");
                 return false;
@@ -124,6 +128,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* loglevel_str;
     const char* thread_pool_str;
     const char* port_str;
+    const char* disable_tls_str;
     i32 port;
     enum server_log_level log_level = SERVER_DEBUG;
 
@@ -152,6 +157,12 @@ server_load_config(server_t* server, int argc, char* const* argv)
         return false;
     }
     server->conf.addr_port = port;
+
+    disable_tls_str = getenvd("APP_DISABLE_TLS", "0");
+    if (strcmp(disable_tls_str, "1") == 0 || strcmp(disable_tls_str, "true") == 0)
+        server->conf.disable_tls = true;
+    else
+        server->conf.disable_tls = false;
 
     addr_version_str = getenvd("APP_IP_VERSION", "ipv6");
     if (!strcmp(addr_version_str, "ipv4"))
@@ -353,6 +364,31 @@ server_init_eventfd(server_t* server)
     return true;
 }
 
+static bool 
+server_test_bind(server_t* server)
+{
+    i32 sock;
+    bool ret;
+
+    if ((sock = socket(server->domain, SOCK_STREAM, 0)) == -1)
+    {
+        fatal("socket: %s\n", ERRSTR);
+        return false;
+    }
+
+    if (bind(sock, server->addr, server->addr_len) == -1)
+    {
+        fatal("bind: %s\n", ERRSTR);
+        ret = false;
+    }
+    else
+        ret = true;
+
+    close(sock);
+
+    return ret;
+}
+
 server_t*   
 server_init(int argc, char* const* argv)
 {
@@ -369,18 +405,10 @@ server_init(int argc, char* const* argv)
     if (!server_load_config(server, argc, argv))
         goto error;
 
-    // if --fork is used, fork and exit parent process 
-    // e.i. becomes a background process
-    if (server->conf.fork)
-    {
-        if (fork() != 0)
-        {
-            // Parent
-            exit(0);
-        }
-    }
-
     if (!server_set_address(server))
+        goto error;
+
+    if (!server_test_bind(server))
         goto error;
 
     // Init Hash Tables
@@ -400,8 +428,11 @@ server_init(int argc, char* const* argv)
         goto error;
 
     // Init OpenSSL
-    if (!server_init_ssl(server))
-        goto error;
+    if (server->conf.disable_tls == false)
+    {
+        if (!server_init_ssl(server))
+            goto error;
+    }
 
     // Init EventFD (to wake up threads from epoll_wait())
     if (!server_init_eventfd(server))
@@ -413,6 +444,17 @@ server_init(int argc, char* const* argv)
     // Init Thread Manager
     if (!server_init_tm(server, server->conf.thread_pool))
         goto error;
+
+    // if --fork is used, fork and exit parent process 
+    // e.i. becomes a background process
+    if (server->conf.fork)
+    {
+        if (fork() != 0)
+        {
+            // Parent
+            exit(0);
+        }
+    }
 
     server->running = true;
 

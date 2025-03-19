@@ -48,6 +48,7 @@ typedef struct server_config
     i32  thread_pool;
 
     bool retry_db_connect;
+    bool disable_tls;
 } server_config_t;
  
 typedef struct server
