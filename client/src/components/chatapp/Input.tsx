@@ -1,6 +1,8 @@
 import { IoAddCircleOutline } from 'react-icons/io5';
 import React, { useState, useRef } from 'react';
 import { Action, useApp } from './AppProvider';
+import useWebsocket from '../WebSocket';
+import { group } from 'console';
 
 interface Prop {
     placeholder?: string;
@@ -30,6 +32,8 @@ const Input = ({
     const [showPopup, setShowPopup] = useState(false);
     const { app, dispatch } = useApp();
     const [counter, setCounter] = useState(4);
+
+    const { send } = useWebsocket();
 
     const adjustHeight = () => {
         const textarea = textareaRef.current;
@@ -64,18 +68,28 @@ const Input = ({
         const channel_id =
             channel_type === 'hub' ? app.currentChannelID : app.currentGroupID;
 
-        setCounter(counter + 1);
-        dispatch({
-            type: Action.ADD_MSG,
-            payload: {
-                id: counter,
-                user_id: app.login_user.id,
-                channel_id: channel_id,
-                channel_type: channel_type,
+        if (channel_type === 'hub') {
+            setCounter(counter + 1);
+            dispatch({
+                type: Action.ADD_MSG,
+                payload: {
+                    id: counter,
+                    user_id: app.login_user.id,
+                    channel_id: channel_id,
+                    channel_type: channel_type,
+                    content: message,
+                    attachments: [],
+                    timestamp: '<timestamp>'
+                }
+            });
+        } else {
+            send({
+                cmd: 'group_msg',
+                group_id: channel_id,
                 content: message,
                 attachments: []
-            }
-        });
+            });
+        }
 
         console.log('Sent:', message);
         setMessage(''); // Clear input after sending

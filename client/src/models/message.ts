@@ -3,8 +3,9 @@ interface Message {
     user_id: number;
     channel_id: number;
     channel_type: 'hub' | 'group';
-    content?: string;
-    attachments?: string[];
+    content: string;
+    attachments: string[];
+    timestamp: string;
 }
 
 export default Message;

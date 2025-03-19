@@ -62,6 +62,21 @@ function MainApp() {
                 });
                 break;
             }
+            case 'group_msg': {
+                dispatch({
+                    type: Action.ADD_MSG,
+                    payload: {
+                        id: packet.msg_id,
+                        channel_id: packet.group_id,
+                        channel_type: 'group',
+                        user_id: packet.user_id,
+                        content: packet.content,
+                        attachments: packet.attachments,
+                        timestamp: packet.timestamp
+                    }
+                });
+                break;
+            }
         }
     });
 

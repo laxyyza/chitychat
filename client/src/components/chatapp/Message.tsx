@@ -56,7 +56,7 @@ const MessageComponent = ({ message }: Prop) => {
                     <div className="font-bold text-[18px]">
                         {user.displayname}
                         <span className="m-6 text-[14px] font-normal">
-                            Today at 10:30 am
+                            {message.timestamp}
                         </span>
                     </div>
                     <div className="text-[15px]">{user.username}</div>

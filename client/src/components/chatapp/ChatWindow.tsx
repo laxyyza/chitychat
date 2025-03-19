@@ -53,7 +53,10 @@ const ChatWindow = () => {
     }, [app.currentHubID, app.currentGroupID, app.currentChannelID]);
 
     useEffect(() => {
-        if (isBottom) {
+        if (
+            isBottom ||
+            messages.at(messages.length - 1)?.user_id === app.login_user.id
+        ) {
             bottomRef.current?.scrollIntoView({ behavior: 'instant' });
         }
     }, [messages]);
