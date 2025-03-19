@@ -57,10 +57,11 @@ server_argv(server_t* server, int argc, char* const* argv)
         {"help", 0, NULL, 'h'},
         {"thread-pool", required_argument, NULL, 'T'},
         {"retry-db-connect", 0, NULL, 'R'},
+        {"disable-tls", 0, NULL, 'D'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "T:p:d:v46hfR", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "T:p:d:v46hfRD", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
@@ -101,6 +102,9 @@ server_argv(server_t* server, int argc, char* const* argv)
             case 'R':
                 server->conf.retry_db_connect = true;
                 break;
+            case 'D':
+                server->conf.disable_tls = true;
+                break;
             case '?':
                 error("Unknown or missing argument\n");
                 return false;
@@ -124,6 +128,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* loglevel_str;
     const char* thread_pool_str;
     const char* port_str;
+    const char* disable_tls_str;
     i32 port;
     enum server_log_level log_level = SERVER_DEBUG;
 
@@ -152,6 +157,12 @@ server_load_config(server_t* server, int argc, char* const* argv)
         return false;
     }
     server->conf.addr_port = port;
+
+    disable_tls_str = getenvd("APP_DISABLE_TLS", "0");
+    if (strcmp(disable_tls_str, "1") == 0 || strcmp(disable_tls_str, "true") == 0)
+        server->conf.disable_tls = true;
+    else
+        server->conf.disable_tls = false;
 
     addr_version_str = getenvd("APP_IP_VERSION", "ipv6");
     if (!strcmp(addr_version_str, "ipv4"))
@@ -417,8 +428,11 @@ server_init(int argc, char* const* argv)
         goto error;
 
     // Init OpenSSL
-    if (!server_init_ssl(server))
-        goto error;
+    if (server->conf.disable_tls == false)
+    {
+        if (!server_init_ssl(server))
+            goto error;
+    }
 
     // Init EventFD (to wake up threads from epoll_wait())
     if (!server_init_eventfd(server))
