@@ -36,7 +36,8 @@ enum Action {
     ADD_USER,
     ADD_GROUP,
     RECONNECT,
-    SET_CONNECT
+    SET_CONNECT,
+    LOAD_GROUP_MSGS
 }
 
 type DispatchAction =
@@ -47,7 +48,11 @@ type DispatchAction =
     | { type: Action.ADD_USER; payload: User }
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_HUB; payload: string }
-    | { type: Action.ADD_GROUP; payload: Group };
+    | { type: Action.ADD_GROUP; payload: Group }
+    | {
+          type: Action.LOAD_GROUP_MSGS;
+          payload: { group_id: number; msgs: Message[] };
+      };
 
 const AppCtx = createContext<AppContextProps | undefined>(undefined);
 
@@ -147,6 +152,19 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 ...state,
                 groups: new Map(state.groups).set(group.id, group)
             };
+        }
+        case Action.LOAD_GROUP_MSGS: {
+            const group = state.groups.get(action.payload.group_id);
+            if (group) {
+                return {
+                    ...state,
+                    groups: new Map(state.groups).set(
+                        group.id,
+                        Group.loadMessages(group, action.payload.msgs)
+                    )
+                };
+            }
+            return state;
         }
         default:
             return state;

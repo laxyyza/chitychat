@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useApp } from './AppProvider';
+import { Action, App, useApp } from './AppProvider';
 import User from './User';
 import UserIcon from './UserIcon';
 import useWebsocket from '../WebSocket';
@@ -20,9 +20,26 @@ const Member = (user?: User) => {
     );
 };
 
+const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
+    const group = app.groups.get(app.currentGroupID);
+    if (group) {
+        if (group.detailsLoaded === false) {
+            send({ cmd: 'get_member_ids', group_id: group.id });
+            send({
+                cmd: 'get_group_msgs',
+                group_id: group.id,
+                limit: 30,
+                offset: group.msgOffset
+            });
+            group.detailsLoaded = true;
+        }
+        return group.memberIDs;
+    }
+    return [];
+};
+
 const MemberList = () => {
-    const { app } = useApp();
-    const [memberIDs, setMemberIDs] = useState<number[]>([]);
+    const { app, dispatch } = useApp();
 
     const { send } = useWebsocket((cmd, packet) => {
         if (cmd === 'get_member_ids') {
@@ -36,23 +53,15 @@ const MemberList = () => {
             if (donthaveIDs.length) {
                 send({ cmd: 'get_user', user_ids: donthaveIDs });
             }
+        } else if (cmd === 'get_group_msgs') {
+            dispatch({
+                type: Action.LOAD_GROUP_MSGS,
+                payload: { group_id: packet.group_id, msgs: packet.messages }
+            });
         }
     });
 
-    useEffect(() => {
-        const hub = app.hubs.get(app.currentHubID);
-        if (hub) {
-            setMemberIDs(hub.memberIDs);
-        } else {
-            const group = app.groups.get(app.currentGroupID);
-            if (group) {
-                setMemberIDs(group.memberIDs);
-                if (group.gotMemberIDs === false) {
-                    send({ cmd: 'get_member_ids', group_id: group.id });
-                }
-            } else setMemberIDs([]);
-        }
-    }, [app.currentHubID, app.currentGroupID, app.users]);
+    const memberIDs = getMemberIDs(app, send);
 
     return (
         <div className="relative max-h-screen w-60 bg-gray-800 overflow-auto">

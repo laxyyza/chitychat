@@ -52,6 +52,12 @@ const ChatWindow = () => {
         bottomRef.current?.scrollIntoView({ behavior: 'instant' });
     }, [app.currentHubID, app.currentGroupID, app.currentChannelID]);
 
+    useEffect(() => {
+        if (isBottom) {
+            bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+        }
+    }, [messages]);
+
     return (
         <>
             <div className="flex-1 overflow-y-auto" ref={containerRef}>
