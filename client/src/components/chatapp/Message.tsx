@@ -1,6 +1,7 @@
 import UserIcon from './UserIcon';
 import Message from '../../models/message';
 import { useApp } from './AppProvider';
+import Text from './Text';
 
 interface Prop {
     message: Message;
@@ -63,7 +64,9 @@ const MessageComponent = ({ message }: Prop) => {
                 </div>
                 {/* <div className="bg-black">yo</div> */}
             </div>
-            <div className="m-1">{message.content}</div>
+            <div className="whitespace-pre-wrap">
+                <Text>{message.content}</Text>
+            </div>
             <div className="flex flex-wrap">
                 {message.attachments &&
                     message.attachments.map((url) => (

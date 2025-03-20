@@ -129,7 +129,6 @@ const ChatWindow = () => {
 
     useEffect(() => {
         const group = appRef.current.groups.get(appRef.current.currentGroupID);
-        console.log("scroll TOP: ", group?.scrollTop);
         if (group && group.scrollTop !== -1 && containerRef.current) {
             containerRef.current.scrollTop = group.scrollTop;
         }

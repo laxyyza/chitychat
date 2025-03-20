@@ -2,7 +2,6 @@ import { IoAddCircleOutline } from 'react-icons/io5';
 import React, { useState, useRef } from 'react';
 import { Action, useApp } from './AppProvider';
 import useWebsocket from '../WebSocket';
-import { group } from 'console';
 
 interface Prop {
     placeholder?: string;
