@@ -43,6 +43,34 @@ const Attachment = ({ url, type }: AttachmentProp) => {
     else return <h1>Unknown type: {type}</h1>;
 };
 
+const Timestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+
+    // Check if it's today
+    const isToday = date.toDateString() === now.toDateString();
+
+    if (isToday) {
+        const timeString = date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        return `Today at ${timeString}`;
+    } else {
+        // Fallback for other dates
+        return date.toLocaleString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    }
+};
+
 const MessageComponent = ({ message }: Prop) => {
     const { app } = useApp();
     const user = app.users.get(message.user_id);
@@ -54,15 +82,16 @@ const MessageComponent = ({ message }: Prop) => {
             <div className="flex">
                 <UserIcon user={user}></UserIcon>
                 <div className="ml-2 m-0 p-0 flex-1">
-                    <div className="font-bold text-[18px]">
-                        {user.displayname}
-                        <span className="m-6 text-[14px] font-normal">
-                            {message.timestamp}
+                    <div>
+                        <span className="font-bold text-xl align-middle">
+                            {user.displayname}
+                        </span>
+                        <span className="ml-4 text-xs font-normal align-middle">
+                            {Timestamp(message.timestamp)}
                         </span>
                     </div>
-                    <div className="text-[15px]">{user.username}</div>
+                    <div className="text-xs align-top">{user.username}</div>
                 </div>
-                {/* <div className="bg-black">yo</div> */}
             </div>
             <div className="whitespace-pre-wrap">
                 <Text>{message.content}</Text>
