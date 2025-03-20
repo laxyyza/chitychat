@@ -8,11 +8,13 @@ interface Prop {
 const ChannelMessages = ({ messages }: Prop) => {
     return (
         <>
-            {messages.map((msg) => (
-                <li key={msg.id}>
-                    <MessageComponent message={msg} />
-                </li>
-            ))}
+            {messages.map((msg) => {
+                return (
+                    <li key={msg.id}>
+                        <MessageComponent message={msg} />
+                    </li>
+                );
+            })}
         </>
     );
 };

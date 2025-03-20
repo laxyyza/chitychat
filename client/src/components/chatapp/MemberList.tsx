@@ -28,7 +28,7 @@ const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
             send({
                 cmd: 'get_group_msgs',
                 group_id: group.id,
-                limit: 30,
+                limit: 15,
                 offset: group.msgOffset
             });
             group.detailsLoaded = true;
@@ -39,7 +39,7 @@ const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
 };
 
 const MemberList = () => {
-    const { app, dispatch } = useApp();
+    const { app } = useApp();
 
     const { send } = useWebsocket((cmd, packet) => {
         if (cmd === 'get_member_ids') {
@@ -53,11 +53,6 @@ const MemberList = () => {
             if (donthaveIDs.length) {
                 send({ cmd: 'get_user', user_ids: donthaveIDs });
             }
-        } else if (cmd === 'get_group_msgs') {
-            dispatch({
-                type: Action.LOAD_GROUP_MSGS,
-                payload: { group_id: packet.group_id, msgs: packet.messages }
-            });
         }
     });
 

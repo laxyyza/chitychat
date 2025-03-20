@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useApp } from './AppProvider';
+import { Action, useApp } from './AppProvider';
 import ChannelMessages from './ChannelMessages';
 import { FaArrowDown } from 'react-icons/fa';
 import Message from '../../models/message';
+import useWebsocket from '../WebSocket';
+import { RiGroupFill } from 'react-icons/ri';
 
 const getMessages = (): Message[] => {
     const { app } = useApp();
@@ -15,7 +17,11 @@ const getMessages = (): Message[] => {
     } else if (app.currentGroupID !== -1) {
         const group = app.groups.get(app.currentGroupID);
         if (group) {
-            return group.messages;
+            return Array.from(group.messages.entries())
+                .map(([_, msg]) => {
+                    return msg;
+                })
+                .sort((a, b) => a.id - b.id);
         }
     }
 
@@ -23,11 +29,58 @@ const getMessages = (): Message[] => {
 };
 
 const ChatWindow = () => {
-    const { app } = useApp();
+    const { app, dispatch } = useApp();
+    const appRef = useRef(app);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isBottom, setIsBottom] = useState(true);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const messages = getMessages();
+    const [isTop, setIsTop] = useState(false);
+    const [oldScroll, setOldScroll] = useState(0);
+
+    useEffect(() => {
+        appRef.current = app;
+    }, [app]);
+
+    const { send } = useWebsocket((cmd, packet) => {
+        if (cmd === 'get_group_msgs') {
+            const packet_msgs: any[] = packet.messages;
+            const msgs: Message[] = packet_msgs.map((msg) => ({
+                id: msg.msg_id,
+                user_id: msg.user_id,
+                channel_id: msg.group_id,
+                channel_type: 'group',
+                content: msg.content,
+                attachments: msg.attachments,
+                timestamp: msg.timestamp
+            }));
+
+            dispatch({
+                type: Action.LOAD_GROUP_MSGS,
+                payload: { group_id: packet.group_id, msgs: msgs }
+            });
+        }
+    });
+
+    function fetchMoreMessages(container: HTMLDivElement) {
+        if (oldScroll === container.scrollHeight) {
+            return;
+        }
+
+        setOldScroll(container.scrollHeight);
+
+        const group = appRef.current.groups.get(appRef.current.currentGroupID);
+        console.log('fetch message for ', group);
+
+        if (group && group.detailsLoaded) {
+            send({
+                cmd: 'get_group_msgs',
+                group_id: group.id,
+                limit: 10,
+                offset: group.msgOffset
+            });
+        }
+    }
 
     const handleScroll = () => {
         const container = containerRef.current;
@@ -38,6 +91,16 @@ const ChatWindow = () => {
             container.scrollHeight -
                 (container.scrollTop + container.clientHeight) <
             threshold;
+        const group = appRef.current.groups.get(appRef.current.currentGroupID);
+        if (group) {
+            group.scrollTop = container.scrollTop;
+        }
+
+        setIsTop(container.scrollTop === 0);
+        if (container.scrollTop === 0) {
+            console.log('Fetch messages!');
+            fetchMoreMessages(container);
+        }
 
         setIsBottom(bottom);
     };
@@ -49,17 +112,28 @@ const ChatWindow = () => {
     }, []);
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'instant' });
-    }, [app.currentHubID, app.currentGroupID, app.currentChannelID]);
+        if (isTop) {
+            requestAnimationFrame(() => {
+                if (containerRef.current) {
+                    const newHeight = containerRef.current?.scrollHeight;
+                    const diff = newHeight - oldScroll;
 
-    useEffect(() => {
-        if (
-            isBottom ||
-            messages.at(messages.length - 1)?.user_id === app.login_user.id
-        ) {
+                    containerRef.current.scrollTop = diff;
+                    setIsTop(false);
+                }
+            });
+        } else if (isBottom) {
             bottomRef.current?.scrollIntoView({ behavior: 'instant' });
         }
     }, [messages]);
+
+    useEffect(() => {
+        const group = appRef.current.groups.get(appRef.current.currentGroupID);
+        console.log("scroll TOP: ", group?.scrollTop);
+        if (group && group.scrollTop !== -1 && containerRef.current) {
+            containerRef.current.scrollTop = group.scrollTop;
+        }
+    }, [app.currentGroupID]);
 
     return (
         <>

@@ -376,6 +376,10 @@ server_test_bind(server_t* server)
         return false;
     }
 
+    i32 opt = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(i32)) == -1) 
+        error("setsockopt SO_REUSEADDR: %s\n", ERRSTR);
+
     if (bind(sock, server->addr, server->addr_len) == -1)
     {
         fatal("bind: %s\n", ERRSTR);

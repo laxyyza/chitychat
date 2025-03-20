@@ -8,7 +8,7 @@ class WebSocketClient
 
     constructor () 
     {
-        this.baseurl = "wss://localhost:8080";
+        this.baseurl = "ws://localhost:8080";
         this.listeners = new Set();
         this.state = 'close';
         this.onStateChangeCallback = undefined;
