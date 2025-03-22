@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Action, App, useApp } from './AppProvider';
+import { App, useApp } from './AppProvider';
 import User from './User';
 import UserIcon from './UserIcon';
 import useWebsocket from '../WebSocket';

@@ -12,11 +12,10 @@ const Text = ({ children }: Prop) => {
             children={children}
             components={{
                 code(props) {
-                    const { children, className, node, ...rest } = props;
+                    const { children, className } = props;
                     const match = /language-(\w+)/.exec(className || '');
                     return (
                         <SyntaxHighlighter
-                            {...rest}
                             PreTag="div"
                             children={String(children).replace(/\n$/, '')}
                             language={match ? match[1] : ''}

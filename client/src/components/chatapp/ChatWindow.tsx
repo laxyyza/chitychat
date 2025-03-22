@@ -4,7 +4,6 @@ import ChannelMessages from './ChannelMessages';
 import { FaArrowDown } from 'react-icons/fa';
 import Message from '../../models/message';
 import useWebsocket from '../WebSocket';
-import { RiGroupFill } from 'react-icons/ri';
 
 const getMessages = (): Message[] => {
     const { app } = useApp();
