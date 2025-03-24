@@ -558,6 +558,9 @@ server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
     enum client_recv_status ret = RECV_OK;
 
+    if (backend_route(th->server, client, http))
+        return RECV_OK;
+
     if (!HTTP_CMP_METHOD("GET") || !HTTP_CMP_METHOD("HEAD"))
         ret = server_handle_http_get(th->server, client, http);
     else if (!HTTP_CMP_METHOD("POST"))

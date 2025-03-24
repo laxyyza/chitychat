@@ -21,7 +21,7 @@ backend_service_send(backend_service_t* bs, json_object* json)
         return;
     }
 
-    info("Sending to bs:%s: %s\n", bs->addr.ip_str, json_str);
+    info("Sending to bs:%s: %s\n", bs->name, json_str);
 
     buf = malloc(buf_len);
     memcpy(buf, &len, sizeof(u32));
@@ -89,8 +89,40 @@ backend_service_send(backend_service_t* bs, json_object* json)
 
 */
 static enum se_status 
-registered_backend_read(UNUSED eworker_t* ew, UNUSED backend_service_t* service, UNUSED json_object* json)
+registered_backend_read(eworker_t* ew, backend_service_t* service, json_object* json)
 {
+    json_object* json_fd = json_object_object_get(json, "fd");
+    json_object* json_headers = json_object_object_get(json, "headers");
+    json_object* json_payload = json_object_object_get(json, "payload");
+    json_object* json_status = json_object_object_get(json, "status");
+    i32 fd;
+    i32 status;
+    const char* payload;
+    size_t payload_len;
+    client_t* client;
+    http_t* http;
+
+    fd = json_object_get_int(json_fd);
+    client = server_ght_get(&ew->server->client_ht, fd);
+    if (client == NULL)
+    {
+        warn("bs:%s read: Client fd:%d not found\n", service->name, fd);
+        return SE_OK;
+    }
+
+    status = json_object_get_int(json_status);
+    payload = json_object_to_json_string_length(json_payload, JSON_C_TO_STRING_NOSLASHESCAPE | JSON_C_TO_STRING_PLAIN, &payload_len);
+
+    http = http_new_resp(status, "OK", payload, payload_len);
+
+    json_object_object_foreach(json_headers, key, val) {
+        http_add_header(http, key, json_object_to_json_string(val));
+    }
+
+    http_send(client, http);
+
+    http_free(http);
+
     // TODO
     return SE_OK;
 }
@@ -106,7 +138,7 @@ registered_backend_read(UNUSED eworker_t* ew, UNUSED backend_service_t* service,
 
 */
 static enum se_status 
-unknown_backend_read(UNUSED eworker_t* ew, backend_service_t* service, json_object* json)
+unknown_backend_read(eworker_t* ew, backend_service_t* service, json_object* json)
 {
     // TODO
     json_object* json_register_paths = json_object_object_get(json, "register_paths");
@@ -135,6 +167,22 @@ unknown_backend_read(UNUSED eworker_t* ew, backend_service_t* service, json_obje
 
     strncpy(service->name, name, SERVICE_NAME_MAX);
 
+    if (json_register_paths)
+    {
+        u32 len = json_object_array_length(json_register_paths);
+        for (u32 i = 0; i < len; i++)
+        {
+            json_object* json_path = json_object_array_get_idx(json_register_paths, i);
+            if (json_path) 
+            {
+                const char* path = json_object_get_string(json_path);
+                if (path)
+                    backend_route_add(&ew->server->backend_routes, path, service);
+            }
+        }
+    }
+
+    service->registered = true;
     backend_service_send(service, json);
 
     return SE_OK;
@@ -257,11 +305,26 @@ backend_socket_init(server_t* server)
 
     server_new_event(server, sock, NULL, se_accept_backend, NULL);
 
+    backend_route_init(&server->backend_routes);
+
     return true;
 }
 
 void 
-backend_services_close(UNUSED server_t* server)
+backend_services_close(server_t* server)
 {
-    
+    backend_route_deinit(&server->backend_routes);
+}
+
+void 
+backend_send_http(UNUSED server_t* server, backend_service_t* bs, client_t* client, http_t* http)
+{
+    json_object* json = json_object_new_object();
+    json_object_object_add(json, "type", json_object_new_string(http->req.method));
+    json_object_object_add(json, "fd", json_object_new_int(client->addr.sock));
+    json_object_object_add(json, "path", json_object_new_string(http->req.url));
+
+    backend_service_send(bs, json);
+
+    json_object_put(json);
 }

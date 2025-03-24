@@ -27,4 +27,26 @@ func main() {
 		return
 	}
 	fmt.Println("Resp: %w", resp)
+	
+	for {
+		resp, err := server.Recv(conn)	
+		if err != nil {
+			return
+		}
+
+		friend_ids := [...]uint32{69, 420, 21, 666}
+
+		fmt.Println("Resp: %w", resp)
+		err = server.Send(conn, map[string]interface{}{
+			"type": resp["type"],
+			"fd": resp["fd"],
+			"status": 200,
+			"headers": map[string]interface{}{
+				"Content-Type": "application/json",
+			},
+			"payload": map[string]interface{}{
+				"friends": friend_ids,
+			},
+		})
+	}
 }
