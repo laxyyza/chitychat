@@ -26,17 +26,32 @@ backend_route_add(backend_route_table_t* brt, const char* path_prefix, backend_s
 	info("BS '%s' registered: %s\n", bs->name, path_prefix);
 }
 
+void 
+backend_route_del(backend_route_table_t* brt, const backend_service_t* bs)
+{
+	array_t* routes = &brt->routes;
+
+	for (u32 i = 0; i < routes->count; i++)
+	{
+		const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
+
+        if (route->service == bs)
+        {
+            info("Unregister: %s from bs:%s\n", route->path_prefix, bs->name);
+            array_erase(routes, i);
+            return;
+        }
+	}
+}
+
 bool 
 backend_route(server_t* server, client_t* client, http_t* http)
 {
 	const array_t* routes = &server->backend_routes.routes;
 
-	info("Routes: %u\n", routes->count);
-
 	for (u32 i = 0; i < routes->count; i++)
 	{
 		const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
-		info("Found route: %s for bs:%s\n", route->path_prefix, route->service->name);
 
 		if (strncmp(route->path_prefix, http->req.url, route->path_len) == 0)
 		{

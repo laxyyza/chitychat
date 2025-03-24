@@ -78,6 +78,11 @@ server_free_client(eworker_t* ew, client_t* client)
         pthread_mutex_destroy(&client->ssl_mutex);
     }
 
+    if (client->session_uuid[0])
+    {
+        server_ght_del(&ew->server->client_by_session_ht, server_ght_hash_uuid(client->session_uuid));
+    }
+
     if (client->recv.data)
         free(client->recv.data);
     if (client->dbuser)

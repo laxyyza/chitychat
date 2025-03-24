@@ -228,9 +228,11 @@ se_backend_close(eworker_t* ew, server_event_t* ev)
 {
     backend_service_t* service = ev->data;
 
-    warn("Backend '%s' (%s, fd: %d) disconnected!\n", service->name, service->addr.ip_str, service->addr.sock);
+    backend_route_del(&ew->server->backend_routes, service);
 
     close(service->addr.sock);
+
+    warn("Backend '%s' (%s, fd: %d) disconnected!\n", service->name, service->addr.ip_str, service->addr.sock);
 
     server_ght_del(&ew->server->bservices_ht, service->addr.sock);
 

@@ -248,3 +248,22 @@ getenvd(const char* var, const char* default_val)
     const char* ret = getenv(var);
     return (ret) ? ret : default_val;
 }
+
+void 
+uuid_to_u64_2(const char* uuid_str, u64 out[2])
+{
+    u8 bytes[16];
+    sscanf(uuid_str, "%8" SCNx32 "-%4" SCNx16 "-%4" SCNx16 "-%4" SCNx16 "-%12" SCNx64,
+           (u32 *)&bytes[0], (u16 *)&bytes[4], (u16 *)&bytes[6],
+           (u16 *)&bytes[8], (u64 *)&bytes[10]);
+
+    out[0] = ((u64)bytes[0] << 56) | ((u64)bytes[1] << 48) |
+             ((u64)bytes[2] << 40) | ((u64)bytes[3] << 32) |
+             ((u64)bytes[4] << 24) | ((u64)bytes[5] << 16) |
+             ((u64)bytes[6] << 8)  | ((u64)bytes[7]);
+
+    out[1] = ((u64)bytes[8] << 56) | ((u64)bytes[9] << 48) |
+             ((u64)bytes[10] << 40) | ((u64)bytes[11] << 32) |
+             ((u64)bytes[12] << 24) | ((u64)bytes[13] << 16) |
+             ((u64)bytes[14] << 8)  | ((u64)bytes[15]);
+}

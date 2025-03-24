@@ -1,4 +1,5 @@
 #include "server_ht.h"
+#include "server_util.h"
 
 /*
  * ght_* (without server_ prefix) will be only used here.
@@ -195,6 +196,14 @@ server_ght_hashstr(const char* str)
     while (*str)
         hash = ((hash << 5) + hash) + (*str++);
     return hash;
+}
+
+u64 
+server_ght_hash_uuid(const char* uuid_str)
+{
+    u64 uuid[2];
+    uuid_to_u64_2(uuid_str, uuid);
+    return uuid[0] ^ uuid[1];
 }
 
 bool    

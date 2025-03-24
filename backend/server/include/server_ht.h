@@ -57,6 +57,8 @@ bool    server_ght_init(server_ght_t* ht,
 /* Hash String */
 u64     server_ght_hashstr(const char* str);
 
+u64     server_ght_hash_uuid(const char* uuid_str);
+
 /* return: false if `key` already exists in table. */
 bool    server_ght_insert(server_ght_t* ht, u64 key, void* data);
 

@@ -23,6 +23,7 @@ typedef struct
 void backend_route_init(backend_route_table_t* brt);
 void backend_route_deinit(backend_route_table_t* brt);
 void backend_route_add(backend_route_table_t* brt, const char* path_prefix, backend_service_t* bs);
+void backend_route_del(backend_route_table_t* brt, const backend_service_t* bs);
 bool backend_route(server_t* server, client_t* client, http_t* http);
 
 #endif // _BACKEND_ROUTE_H_

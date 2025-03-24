@@ -30,6 +30,7 @@ server_set_client_logged_in(eworker_t* ew,
         client->state |= CLIENT_STATE_SESSION_PENDING;
         getrandom(&client->tmptoken, sizeof(u64), 0);
         server_ght_insert(&ew->server->client_by_tmptoken_ht, client->tmptoken, client);
+        server_ght_insert(&ew->server->client_by_session_ht, server_ght_hash_uuid(session->uuid), client);
         strncpy(client->session_uuid, session->uuid, UUID_LEN - 1);
     }
     else
@@ -89,6 +90,7 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
     dbsession_t* session  = ctx->data;
     dbuser_t* user;
     const char* errmsg = NULL;
+    ctx->data = NULL;
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
@@ -185,7 +187,7 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
     const char* errmsg = NULL;
     dbuser_t* user = ctx->data;
     const char* password = ctx->param.user_login.password;
-    const bool do_session = ctx->param.user_login.do_session;
+    // const bool do_session = ctx->param.user_login.do_session;
     dbsession_t* session;
     u8 hash_login[SERVER_HASH_SIZE];
 
@@ -201,18 +203,18 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
     {
-        if (do_session)
-        {
-            session = calloc(1, sizeof(dbsession_t));
-            session->user_id = user->user_id;
-            errmsg = async_create_session(ew, ctx->client, user, session);
-        }
-        else
-        {
-            json_object* resp = json_object_new_object();
-            errmsg = server_set_client_logged_in(ew, ctx->client, user, NULL, resp);
-            json_object_put(resp);
-        }
+        // if (do_session)
+        // {
+        session = calloc(1, sizeof(dbsession_t));
+        session->user_id = user->user_id;
+        errmsg = async_create_session(ew, ctx->client, user, session);
+        // }
+        // else
+        // {
+        //     json_object* resp = json_object_new_object();
+        //     errmsg = server_set_client_logged_in(ew, ctx->client, user, NULL, resp);
+        //     json_object_put(resp);
+        // }
     }
     else
         errmsg = INCORRECT_LOGIN_STR;
