@@ -9,18 +9,6 @@
 #include <sys/eventfd.h>
 #include "backend.h"
 
-static void 
-server_chdir(const char* exe_path)
-{
-    char realpath_str[PATH_MAX];
-    char* dir;
-    realpath(exe_path, realpath_str);
-    dir = dirname(dirname(realpath_str)); // Get the parent of the exe directory 
-
-    if (chdir(dir) == -1)
-        error("Failed to change directory to '%s': %s\n", dir, ERRSTR);
-}
-
 static void
 print_help(const char* exe_path)
 {
@@ -129,8 +117,6 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* disable_tls_str;
     i32 port;
     enum server_log_level log_level = SERVER_DEBUG;
-
-    server_chdir(argv[0]);
 
     root_dir_str = getenvd("APP_ROOT_DIR", "client/public");
     strncpy(server->conf.root_dir, root_dir_str, CONFIG_PATH_LEN - 1);
@@ -281,12 +267,12 @@ server_init_ssl(server_t* server)
 
     SSL_CTX_set_options(server->ssl_ctx, SSL_OP_SINGLE_DH_USE);
     SSL_CTX_set_ecdh_auto(server->ssl_ctx, 1);
-    if (SSL_CTX_use_certificate_file(server->ssl_ctx, "server/server.crt", SSL_FILETYPE_PEM) <= 0)
+    if (SSL_CTX_use_certificate_file(server->ssl_ctx, "backend/server/server.crt", SSL_FILETYPE_PEM) <= 0)
     {
         error("SSL cert failed: %s\n", ERRSTR);
         return false;
     }
-    if (SSL_CTX_use_PrivateKey_file(server->ssl_ctx, "server/server.key", SSL_FILETYPE_PEM) <= 0)   
+    if (SSL_CTX_use_PrivateKey_file(server->ssl_ctx, "backend/server/server.key", SSL_FILETYPE_PEM) <= 0)   
     {
         error("SSL private key failed: %s\n", ERRSTR);
         return false;

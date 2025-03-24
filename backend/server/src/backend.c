@@ -60,9 +60,10 @@
 
 */
 static enum se_status 
-registered_backend_read(eworker_t* ew, backend_service_t* service, json_object* json)
+registered_backend_read(UNUSED eworker_t* ew, UNUSED backend_service_t* service, UNUSED json_object* json)
 {
     // TODO
+    return SE_OK;
 }
 
 /*
@@ -75,9 +76,10 @@ registered_backend_read(eworker_t* ew, backend_service_t* service, json_object* 
 
 */
 static enum se_status 
-unknown_backend_read(eworker_t* ew, backend_service_t* service, json_object* json)
+unknown_backend_read(UNUSED eworker_t* ew, UNUSED backend_service_t* service, UNUSED json_object* json)
 {
     // TODO
+    return SE_OK;
 }
 
 static enum se_status

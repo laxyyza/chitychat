@@ -29,7 +29,7 @@ server_db_load_sql(const char* name)
     size_t len = 0;
     char* buffer = NULL;
     char path[PATH_MAX];
-    snprintf(path, PATH_MAX, "server/sql/%s.sql", name);
+    snprintf(path, PATH_MAX, "backend/server/sql/%s.sql", name);
 
     fd = open(path, O_RDONLY);
     if (fd == -1)
