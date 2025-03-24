@@ -1,15 +1,13 @@
 #include "server_init.h"
 #include "chat/db_def.h"
-#include "json_object.h"
 #include "server.h"
 #include "server_events.h"
 #include "server_ht.h"
 #include "chat/cmd.h"
 #include "server_log.h"
 #include "server_util.h"
-#include <netinet/in.h>
-#include <stdlib.h>
 #include <sys/eventfd.h>
+#include "backend.h"
 
 static void 
 server_chdir(const char* exe_path)
@@ -302,7 +300,7 @@ server_init_ht(server_t* server)
 {
     const size_t ht_size = 10;
 
-    if (server_ght_init(&server->event_ht, ht_size, NULL) == false)
+    if (server_ght_init(&server->event_ht, 40, NULL) == false)
         return false;
 
     if (server_ght_init(&server->client_ht, ht_size, NULL) == false)
@@ -318,6 +316,9 @@ server_init_ht(server_t* server)
         return false;
 
     if (server_ght_init(&server->upload_token_ht, ht_size, NULL) == false)
+        return false;
+
+    if (server_ght_init(&server->bservices_ht, ht_size, NULL) == false)
         return false;
 
     if (server_init_chatcmd(server) == false)
@@ -443,6 +444,9 @@ server_init(int argc, char* const* argv)
         goto error;
 
     if (!server_init_signal(server))
+        goto error;
+
+    if (!backend_socket_init(server))
         goto error;
 
     // Init Thread Manager

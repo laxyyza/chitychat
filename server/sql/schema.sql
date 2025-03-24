@@ -2,11 +2,16 @@ SET CONSTRAINTS ALL DEFERRED;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE IF NOT EXISTS UserFiles(
-    hash            text PRIMARY KEY UNIQUE,
-    size            bigint NOT null,
-    mime_type       text NOT null,
-    ref_count       int DEFAULT 1
+CREATE TABLE IF NOT EXISTS Attachments(
+    attachment_id   SERIAL PRIMARY KEY,
+    user_id         int NOT NULL,
+    file_name       text NOT NULL,
+    file_size       bigint NOT NULL,
+    mime_type       text NOT NULL,
+    storage_path    text NOT NULL,
+    created_at      TIMESTAMP DEFAULT NOW(),
+
+    FOREIGN KEY (user_id) REFERENCES Users(user_id)
 );
 
 CREATE TABLE IF NOT EXISTS Users(
@@ -18,7 +23,7 @@ CREATE TABLE IF NOT EXISTS Users(
     salt            bytea NOT null, 
     created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
     pfp             text,
-    FOREIGN KEY (pfp) REFERENCES UserFiles(hash)
+    FOREIGN KEY (pfp) REFERENCES Attachments(attachment_id)
 );
 
 CREATE TABLE IF NOT EXISTS Groups(
@@ -26,9 +31,8 @@ CREATE TABLE IF NOT EXISTS Groups(
     owner_id        int,
     name            varchar(50) NOT null,
     "desc"          text,
-    public          boolean DEFAULT false,
     created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES Users(user_id)
+    FOREIGN KEY (owner_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS GroupMembers(
@@ -37,21 +41,75 @@ CREATE TABLE IF NOT EXISTS GroupMembers(
     join_date       timestamp DEFAULT CURRENT_TIMESTAMP,
     flags           int DEFAULT 0,
     PRIMARY KEY (user_id, group_id),
-    FOREIGN KEY (user_id) REFERENCES Users(user_id),
-    FOREIGN KEY (group_id) REFERENCES Groups(group_id)
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES Groups(group_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Hubs(
+    hub_id      SERIAL PRIMARY KEY,
+    owner_id    int NOT NULL,
+    name        text NOT NULL,
+    public      boolean DEFAULT false,
+    settings    json DEFAULT '{}',
+    created_at  TIMESTAMP DEFAULT NOW(),
+
+    FOREIGN KEY (owner_id) REFERENCES Users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS HubMembers(
+    user_id     int,
+    hub_id      int,
+    roles       json DEFAULT '{}',
+    created_at  TIMESTAMP DEFAULT NOW(),
+
+    PRIMARY KEY (user_id, hub_id),
+    FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (hub_id)  REFERENCES Hubs(hub_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS DirectMessages(
+    dm_id       SERIAL PRIMARY KEY,
+    user1_id    int NOT NULL,
+    user2_id    int NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW(),
+
+	UNIQUE (user1_id, user2_id),
+    FOREIGN KEY (user1_id) REFERENCES Users(user_id),
+    FOREIGN KEY (user2_id) REFERENCES Users(user_id)
+);
+
+DO $$ BEGIN
+    CREATE TYPE channel_type AS ENUM ('DM', 'GROUP', 'HUB');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS TextChannels(
+    channel_id      SERIAL PRIMARY KEY,
+    type            channel_type NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS HubChannels(
+    channel_id      SERIAL PRIMARY KEY,
+    hub_id          int NOT NULL,
+    name            TEXT NOT NULL,
+    created_at      TIMESTAMP DEFAULT NOW(),
+    settings        json DEFAULT '{}',
+
+    FOREIGN KEY (channel_id) REFERENCES TextChannels(channel_id) ON DELETE CASCADE,
+    FOREIGN KEY (hub_id) REFERENCES Hubs(hub_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Messages(
     msg_id          SERIAL PRIMARY KEY,
     user_id         int,
-    group_id        int,
+    channel_id      int,
     content         text,
     timestamp       timestamp DEFAULT CURRENT_TIMESTAMP,
     attachments     json DEFAULT null,
     parent_msg_id   int DEFAULT null,
     FOREIGN KEY (user_id) REFERENCES Users(user_id),
-    FOREIGN KEY (group_id) REFERENCES Groups(group_id),
-    FOREIGN KEY (user_id, group_id) REFERENCES GroupMembers(user_id, group_id),
+    FOREIGN KEY (channel_id) REFERENCES TextChannels(channel_id) ON DELETE CASCADE,
     FOREIGN KEY (parent_msg_id) REFERENCES Messages(msg_id),
     CHECK (parent_msg_id != msg_id)
 );
@@ -61,7 +119,7 @@ CREATE TABLE IF NOT EXISTS GroupCodes(
     group_id    int NOT null,
     uses        int DEFAULT 0,
     max_uses    int NOT null,
-    FOREIGN KEY (group_id) REFERENCES Groups(group_id)
+    FOREIGN KEY (group_id) REFERENCES Groups(group_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS Sessions(
@@ -70,6 +128,22 @@ CREATE TABLE IF NOT EXISTS Sessions(
     created_at  TIMESTAMP DEFAULT now(),
     last_used   TIMESTAMP DEFAULT now(),
     expires_at  TIMESTAMP DEFAULT now() + INTERVAL '7 days'
+);
+
+DO $$ BEGIN
+    CREATE TYPE friendship_status AS ENUM ('PENDING', 'ACCEPTED', 'BLOCKED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE IF NOT EXISTS Friendships(
+    friendship_id   SERIAL PRIMARY KEY,
+    source_user_id  int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    target_user_id  int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    status          friendship_status NOT NULL DEFAULT 'pending',
+    created_at      TIMESTAMP DEFAULT NOW(),
+
+    UNIQUE (source_user_id, target_user_id)
 );
 
 CREATE OR REPLACE FUNCTION delete_groupcode_if_over_max()
