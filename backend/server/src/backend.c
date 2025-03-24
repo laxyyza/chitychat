@@ -6,6 +6,35 @@
 #define PORT 6000
 #define BUF_SIZE 4096
 
+static void 
+backend_service_send(backend_service_t* bs, json_object* json)
+{
+    size_t len64;
+    void* buf;
+    const char* json_str = json_object_to_json_string_length(json, 0, &len64);
+    const u32 len = len64;
+    u32 buf_len = sizeof(u32) + len;
+
+    if (json_str == NULL) 
+    {
+        error("json_object_to_json_string_length returned NULL!\n");
+        return;
+    }
+
+    info("Sending to bs:%s: %s\n", bs->addr.ip_str, json_str);
+
+    buf = malloc(buf_len);
+    memcpy(buf, &len, sizeof(u32));
+    memcpy(buf + sizeof(u32), json_str, len);
+
+    if (send(bs->addr.sock, buf, buf_len, 0) == -1)
+    {
+        error("backend_service_send (%s): %s\n", bs->addr.ip_str, ERRSTR);
+    }
+
+    free(buf);
+}
+
 /*
 >>> http client sends:
     HTTP GET /friends
@@ -71,20 +100,50 @@ registered_backend_read(UNUSED eworker_t* ew, UNUSED backend_service_t* service,
 {
     "register_paths": ["/friends"],
     "register_cmds": ["hub_msg"],
+    "name": "cc_friends",
     "key": "secret-backend-key-1234" (future me problem to implement)
 }
 
 */
 static enum se_status 
-unknown_backend_read(UNUSED eworker_t* ew, UNUSED backend_service_t* service, UNUSED json_object* json)
+unknown_backend_read(UNUSED eworker_t* ew, backend_service_t* service, json_object* json)
 {
     // TODO
+    json_object* json_register_paths = json_object_object_get(json, "register_paths");
+    json_object* json_register_cmds = json_object_object_get(json, "register_cmds");
+    json_object* json_name = json_object_object_get(json, "name");
+    const char* name;
+
+    if (json_register_paths == NULL && json_register_cmds == NULL) 
+    {
+        warn("Service %s has no register keys!\n", service->addr.ip_str);
+        return SE_CLOSE;
+    }
+
+    if (json_name == NULL)
+    {
+        warn("Service %s has no name!\n", service->addr.ip_str);
+        return SE_CLOSE;
+    }
+
+    name = json_object_get_string(json_name);
+    if (name == NULL)
+    {
+        warn("Service %s json_object_get_string for 'name' is NULL!\n", service->addr.ip_str);
+        return SE_CLOSE;
+    }
+
+    strncpy(service->name, name, SERVICE_NAME_MAX);
+
+    backend_service_send(service, json);
+
     return SE_OK;
 }
 
 static enum se_status
 se_backend_read(UNUSED eworker_t* ew, server_event_t* ev)
 {
+    enum se_status ret;
     backend_service_t* service = ev->data;
     char buffer[BUF_SIZE];
     char* offset = buffer;
@@ -107,9 +166,13 @@ se_backend_read(UNUSED eworker_t* ew, server_event_t* ev)
 
 
     if (service->registered)
-        return registered_backend_read(ew, service, json);
+        ret = registered_backend_read(ew, service, json);
     else 
-        return unknown_backend_read(ew, service, json);
+        ret = unknown_backend_read(ew, service, json);
+
+    json_object_put(json);
+
+    return ret;
 }
 
 static enum se_status
