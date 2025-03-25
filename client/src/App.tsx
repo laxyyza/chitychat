@@ -9,7 +9,7 @@ import useWebsocket from './components/WebSocket';
 import Group from './models/group';
 
 function MainApp() {
-    const { dispatch } = useApp();
+    const { app, dispatch } = useApp();
     // const [test, setTest] = useState(0);
     const navigate = useNavigate();
 
@@ -83,18 +83,20 @@ function MainApp() {
     useEffect(() => {
         send({ cmd: 'client_user_info' });
         send({ cmd: 'client_groups' });
+        fetch(window.location.origin + '/friends')
+            .then((response) => response.json())
+            .then((json) => {
+                const friendIDs: number[] = json.friends;
+                const donthaveIDs = friendIDs.filter(
+                    (id) => !app.users.get(id)
+                );
 
-        // app.hubs.set(
-        //     1,
-        //     new Hub(
-        //         1,
-        //         1,
-        //         "McDonald's",
-        //         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-Xzk84KtRUPnOh9AKiA_kJgqqnYocZtZJ7GCw6OzmuxPuXOIozxBwrR5fHmzqbXzeHQc&usqp=CAU',
-        //         [1, 2]
-        //     )
-        // );
-        // app.hubs.set(2, new Hub(2, 1, "Laxyy's Hub", null, [3]));
+                if (donthaveIDs.length) {
+                    send({ cmd: 'get_user', user_ids: donthaveIDs });
+                }
+                dispatch({ type: Action.ADD_FRIENDS, payload: json.friends });
+            })
+            .catch((error) => console.error('Error:', error));
 
         if (process.env.NODE_ENV !== 'development') {
             websocketClient.onStateChange((state: string) => {
@@ -103,94 +105,6 @@ function MainApp() {
                 }
             });
         }
-
-        // app.login_user = {
-        //     id: 1,
-        //     username: 'username',
-        //     displayname: 'Display Name',
-        //     pfp: 'https://www.oola.com/wp-content/uploads/2022/07/communityIcon_x4lqmqzu1hi81.jpeg',
-        //     created_at: '15 January 2025, 12:30 PM',
-        //     about_me: 'About me'
-        // };
-        // app.users.set(app.login_user.id, app.login_user);
-        // app.users.set(2, {
-        //     id: 2,
-        //     username: 'laxyyza',
-        //     displayname: 'Laxyy',
-        //     pfp: 'https://i.pinimg.com/236x/1a/ae/bc/1aaebcf79c6ef766603c655b3bef104f.jpg',
-        //     created_at: '?',
-        //     about_me: ''
-        // });
-
-        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-        // dispatch({ type: Action.ADD_HUB, payload: 'Test' });
-
-        // for (let i = 0; i < 10; i++) {
-        //     const id = i + 1;
-        //     dispatch({
-        //         type: Action.ADD_GROUP,
-        //         payload: new Group(
-        //             id,
-        //             app.login_user.id,
-        //             'Test Group Testing ' + id,
-        //             '13 Mar',
-        //             false
-        //         )
-        //     });
-        // }
-
-        // app.hubs.get(1)?.memberIDs.push(2);
-        // app.textChannels.set(1, {
-        //     type: ChannelType.TEXT,
-        //     id: 1,
-        //     name: 'General',
-        //     hub_id: 1,
-        //     messages: [
-        //         {
-        //             id: 1,
-        //             user_id: 1,
-        //             channel_id: 2,
-        //             content: 'Test message from TS',
-        //             attachments: []
-        //         }
-        //     ]
-        // });
-        // app.textChannels.set(2, {
-        //     type: ChannelType.TEXT,
-        //     id: 2,
-        //     name: 'Vent',
-        //     hub_id: 1,
-        //     messages: [
-        //         {
-        //             id: 3,
-        //             user_id: 1,
-        //             channel_id: 2,
-        //             content: 'Test message from TS VENT',
-        //             attachments: []
-        //         }
-        //     ]
-        // });
-        // app.textChannels.set(3, {
-        //     type: ChannelType.TEXT,
-        //     id: 3,
-        //     name: 'General',
-        //     hub_id: 2,
-        //     messages: []
-        // });
-
-        // app.hubs.get(1)?.categories.push({
-        //     id: 1,
-        //     name: 'Text Channels',
-        //     channelIDs: [1, 2]
-        // });
-        // app.hubs.get(2)?.categories.push({
-        //     id: 2,
-        //     name: 'Text Channels',
-        //     channelIDs: [3]
-        // });
 
         return () => websocketClient.onStateChange(undefined);
     }, []);

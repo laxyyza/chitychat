@@ -15,6 +15,7 @@ export interface App {
     currentHubID: number;
     currentGroupID: number;
     currentChannelID: number;
+    friendIDs: number[];
 }
 
 interface Prop {
@@ -37,7 +38,8 @@ enum Action {
     ADD_GROUP,
     RECONNECT,
     SET_CONNECT,
-    LOAD_GROUP_MSGS
+    LOAD_GROUP_MSGS,
+    ADD_FRIENDS
 }
 
 type DispatchAction =
@@ -49,6 +51,7 @@ type DispatchAction =
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUP; payload: Group }
+    | { type: Action.ADD_FRIENDS; payload: number[] }
     | {
           type: Action.LOAD_GROUP_MSGS;
           payload: { group_id: number; msgs: Message[] };
@@ -156,9 +159,22 @@ const appReducer = (state: App, action: DispatchAction): App => {
         case Action.LOAD_GROUP_MSGS: {
             const group = state.groups.get(action.payload.group_id);
             if (group) {
-                return {...state, groups: new Map(state.groups).set(group.id, Group.loadMessages(group, action.payload.msgs))};
+                return {
+                    ...state,
+                    groups: new Map(state.groups).set(
+                        group.id,
+                        Group.loadMessages(group, action.payload.msgs)
+                    )
+                };
             }
             return state;
+        }
+        case Action.ADD_FRIENDS: {
+            console.log('Friend IDs: ', action.payload);
+            return {
+                ...state,
+                friendIDs: [...state.friendIDs, ...action.payload]
+            };
         }
         default:
             return state;
@@ -192,7 +208,8 @@ const AppProvider = ({ children }: Prop) => {
         textChannels: new Map(),
         currentHubID: -1,
         currentGroupID: -1,
-        currentChannelID: -1
+        currentChannelID: -1,
+        friendIDs: []
     });
 
     return (

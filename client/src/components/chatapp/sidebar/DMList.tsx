@@ -2,12 +2,13 @@ import { ReactNode } from 'react';
 import { Action, useApp } from '../AppProvider';
 import { BiSolidGroup } from 'react-icons/bi';
 import { RiUserHeartFill } from 'react-icons/ri';
+import { FaUser } from 'react-icons/fa';
 
 interface DMProp {
     name?: string;
     onClick?: () => void;
     selected: boolean;
-    type: 'group' | 'dm' | 'other';
+    type: 'group' | 'user' | 'other';
     children?: ReactNode;
 }
 
@@ -18,8 +19,12 @@ const Icon = (type: string) => {
                 <BiSolidGroup />
             </div>
         );
-    } else if (type === 'dm') {
-        return <span>?</span>;
+    } else if (type === 'user') {
+        return (
+            <div className="bg-blue-500 rounded-full w-8 h-8 overflow-hidden flex items-center justify-center">
+                <FaUser />
+            </div>
+        );
     } else {
         return null;
     }
@@ -47,6 +52,7 @@ const DM = ({ name, onClick, selected, type, children }: DMProp) => {
 const DMList = () => {
     const { app, dispatch } = useApp();
     const groups = Array.from(app.groups.entries());
+    const friends = app.friendIDs.map((friend_id) => app.users.get(friend_id));
 
     return (
         <>
@@ -66,6 +72,21 @@ const DMList = () => {
             </DM>
             <div className="text-center text-xs font-bold">Direct Messages</div>
             <ul className="p-1">
+                {friends.map((friend) => {
+                    if (!friend) return null;
+                    else {
+                        return (
+                            <li key={'friend-' + friend.id}>
+                                <DM
+                                    name={friend.displayname}
+                                    selected={false}
+                                    type="user"
+                                    onClick={() => {}}
+                                />
+                            </li>
+                        );
+                    }
+                })}
                 {groups.map(([id, group]) => (
                     <li key={id}>
                         <DM
