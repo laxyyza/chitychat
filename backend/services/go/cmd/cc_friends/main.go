@@ -1,7 +1,9 @@
 package main
 
 import (
-	"cc_friends/internal/server"
+	"backend/services/go/internal/db"
+	"backend/services/go/internal/server"
+	"context"
 	"fmt"
 )
 
@@ -12,6 +14,11 @@ func main() {
 		return
 	}
 	defer conn.Close()
+	db, err := db.Connect()
+	if err != nil {
+		return
+	}
+	defer db.Close(context.Background())
 
 	err = server.Send(conn, map[string]interface{}{
 		"register_paths": [...]string{"/friends"},
