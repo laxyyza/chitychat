@@ -9,7 +9,12 @@ import (
 	"net"
 )
 
-func Connect(address string) (net.Conn, error) {	
+type Server struct {
+	conn net.Conn
+	address string
+}
+
+func (s* Server) connect(address string) (net.Conn, error) {	
 	conn, err := net.Dial("tcp", address)
 	if (err != nil) {
 		return nil, fmt.Errorf("failed to connect to server: %w", err)
@@ -18,7 +23,7 @@ func Connect(address string) (net.Conn, error) {
 	return conn, nil
 }
 
-func Send(conn net.Conn, data map[string]interface{}) error {
+func (s* Server) Send(data map[string]interface{}) error {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		fmt.Printf("Invalid data: %w\n", err)
@@ -31,15 +36,15 @@ func Send(conn net.Conn, data map[string]interface{}) error {
 
 	message := buf.Bytes()
 
-	_, err = conn.Write(message)
+	_, err = s.conn.Write(message)
 
 	return err
 }
 
-func Recv(conn net.Conn) (map[string]interface{}, error) {
+func (s* Server) Recv() (map[string]interface{}, error) {
 	buffer := make([]byte, 4096)
 
-	n, err := conn.Read(buffer)
+	n, err := s.conn.Read(buffer)
 	if err != nil {
 		return nil, fmt.Errorf("failed read: %w", err)
 	}
@@ -53,4 +58,18 @@ func Recv(conn net.Conn) (map[string]interface{}, error) {
 	}
 
 	return ret, nil
+}
+
+func New() (Server, error) {
+	var err error
+	var address string = "localhost:6000"
+	var server Server = Server{address: address}
+
+	server.conn, err = server.connect(address)
+
+	return server, err
+}
+
+func (s* Server) Close() {
+	s.conn.Close()
 }

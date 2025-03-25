@@ -1,42 +1,26 @@
 package main
 
 import (
-	"backend/services/go/internal/db"
-	"backend/services/go/internal/server"
-	"context"
+	"backend/services/go/internal/service"
 	"fmt"
+	"os"
 )
 
 func main() {
-	conn, err := server.Connect("localhost:6000")
+	service, err := service.New()
 	if err != nil {
-		fmt.Println("Connect: %w", err)
-		return
-	}
-	defer conn.Close()
-	db, err := db.Connect()
-	if err != nil {
-		return
-	}
-	defer db.Close(context.Background())
-
-	err = server.Send(conn, map[string]interface{}{
-		"register_paths": [...]string{"/friends"},
-		"name": "cc_friends",
-	})
-	if err != nil {
-		fmt.Println("Send register: %w", err)
-		return
+		fmt.Printf("Creating service: %v\n", err)
+		os.Exit(-1)
 	}
 
-	resp, err := server.Recv(conn)	
+	err = service.Register([]string{"/friends"})
 	if err != nil {
-		return
+		fmt.Printf("Register: %v\n", err)
+		os.Exit(-1)
 	}
-	fmt.Println("Resp: %w", resp)
 	
 	for {
-		resp, err := server.Recv(conn)	
+		resp, err := service.Recv()	
 		if err != nil {
 			return
 		}
@@ -44,7 +28,7 @@ func main() {
 		friend_ids := [...]uint32{69, 420, 21, 666}
 
 		fmt.Println("Resp: %w", resp)
-		err = server.Send(conn, map[string]interface{}{
+		err = service.Send(map[string]interface{}{
 			"type": resp["type"],
 			"fd": resp["fd"],
 			"status": 200,

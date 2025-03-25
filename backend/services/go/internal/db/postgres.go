@@ -2,18 +2,24 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func Connect() (*pgx.Conn, error) {
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))	
-	if err != nil {
-		fmt.Printf("Unable to connect to databse: %v\n", err)
-		return nil, err
+type DB struct {
+	conn* pgx.Conn
+}
+
+func New() (DB, error) {
+	var db DB = DB{}
+	var err error
+	var url string = os.Getenv("DATABASE_URL")
+	if url == "" {
+		url = "dbname=chitychat"
 	}
 
-	return conn, nil
+	db.conn, err = pgx.Connect(context.Background(), url)
+
+	return db, err
 }
