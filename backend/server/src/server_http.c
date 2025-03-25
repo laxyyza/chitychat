@@ -558,7 +558,7 @@ server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
     enum client_recv_status ret = RECV_OK;
 
-    if (backend_route(th->server, client, http))
+    if (backend_route(th, client, http))
         return RECV_OK;
 
     if (!HTTP_CMP_METHOD("GET") || !HTTP_CMP_METHOD("HEAD"))
@@ -601,7 +601,10 @@ server_handle_http(eworker_t* ew, client_t* client, http_t* http)
         }
     }
 
-    http_free(http);
+    if (ew->ignore_http_free)
+        ew->ignore_http_free = false;
+    else
+        http_free(http);
 
     return ret;
 }

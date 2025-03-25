@@ -9,6 +9,6 @@ typedef struct server server_t;
 
 bool backend_socket_init(server_t* server);
 void backend_services_close(server_t* server);
-void backend_send_http(server_t* server, backend_service_t* bs, client_t* client, http_t* http);
+void backend_send_http(server_t* server, backend_service_t* bs, client_t* client, http_t* http, u32 user_id);
 
 #endif // _BACKEND_H_

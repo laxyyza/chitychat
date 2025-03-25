@@ -4,6 +4,7 @@
 #include "common.h"
 #include "chat/group.h"
 #include "chat/user_login.h"
+#include "backend_route.h"
 
 #define DB_PIPELINE     0x01
 #define DB_NONBLOCK     0x02
@@ -72,6 +73,12 @@ typedef struct
     dbuser_t* user;
 } session_login_param_t;
 
+typedef struct 
+{
+    const backend_route_t* route;
+    http_t* http;
+} session_route_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
@@ -89,6 +96,7 @@ union cmd_param
     u32         user_id;
 	get_group_msgs_param_t get_group_msgs;
     session_login_param_t session_login;
+    session_route_t session_route;
 };
 
 typedef struct dbcmd_ctx

@@ -319,11 +319,12 @@ backend_services_close(server_t* server)
 }
 
 void 
-backend_send_http(UNUSED server_t* server, backend_service_t* bs, client_t* client, http_t* http)
+backend_send_http(UNUSED server_t* server, backend_service_t* bs, client_t* client, http_t* http, u32 user_id)
 {
     json_object* json = json_object_new_object();
     json_object_object_add(json, "type", json_object_new_string(http->req.method));
     json_object_object_add(json, "fd", json_object_new_int(client->addr.sock));
+    json_object_object_add(json, "user_id", json_object_new_uint64(user_id));
     json_object_object_add(json, "path", json_object_new_string(http->req.url));
 
     backend_service_send(bs, json);

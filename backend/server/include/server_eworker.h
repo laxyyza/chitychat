@@ -25,6 +25,7 @@ typedef struct eworker
     char        name[THREAD_NAME_LEN];
     server_t*   server;
     struct epoll_event ep_events[EWORKER_MAX_EVENTS];
+    bool        ignore_http_free;
 } server_eworker_t, eworker_t;
 
 bool server_create_eworker(server_t* server, eworker_t* ew, size_t i);
