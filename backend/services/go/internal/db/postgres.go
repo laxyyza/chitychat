@@ -8,7 +8,7 @@ import (
 )
 
 type DB struct {
-	conn* pgx.Conn
+	Conn* pgx.Conn
 }
 
 func New() (DB, error) {
@@ -19,7 +19,7 @@ func New() (DB, error) {
 		url = "dbname=chitychat"
 	}
 
-	db.conn, err = pgx.Connect(context.Background(), url)
+	db.Conn, err = pgx.Connect(context.Background(), url)
 
 	return db, err
 }

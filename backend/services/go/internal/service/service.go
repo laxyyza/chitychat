@@ -10,7 +10,7 @@ import (
 
 type Service struct {
 	server server.Server
-	db db.DB
+	Db db.DB
 	name string
 }
 
@@ -29,7 +29,7 @@ func New() (*Service, error) {
 		return nil, err
 	}
 
-	service.db, err = db.New()
+	service.Db, err = db.New()
 	if err != nil {
 		return nil, err
 	}

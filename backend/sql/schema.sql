@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS Friendships(
     friendship_id   SERIAL PRIMARY KEY,
     source_user_id  int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
     target_user_id  int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
-    status          friendship_status NOT NULL DEFAULT 'pending',
+    status          friendship_status NOT NULL DEFAULT 'PENDING',
     created_at      TIMESTAMP DEFAULT NOW(),
 
     UNIQUE (source_user_id, target_user_id)
