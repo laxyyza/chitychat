@@ -321,11 +321,28 @@ backend_services_close(server_t* server)
 void 
 backend_send_http(UNUSED server_t* server, backend_service_t* bs, client_t* client, http_t* http, u32 user_id)
 {
+    const http_header_t* content_type = http_get_header(http, "Content-Type");
     json_object* json = json_object_new_object();
     json_object_object_add(json, "type", json_object_new_string(http->req.method));
     json_object_object_add(json, "fd", json_object_new_int(client->addr.sock));
     json_object_object_add(json, "user_id", json_object_new_uint64(user_id));
     json_object_object_add(json, "path", json_object_new_string(http->req.url));
+
+    if (http->body)
+    {
+        if (content_type && 
+            strncmp(content_type->val, "application/json", HTTP_HEAD_VAL_LEN) == 0)
+        {
+            json_object_object_add(json, "body", json_tokener_parse(http->body));
+        }
+        else 
+        {
+            server_http_resp_error(client, HTTP_CODE_BAD_REQ, HTTP_BAD_REQ);
+            return;
+        }
+    }
+    else
+        json_object_object_add(json, "body", json_object_new_null());
 
     backend_service_send(bs, json);
 

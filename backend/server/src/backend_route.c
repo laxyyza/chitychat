@@ -40,7 +40,7 @@ backend_route_del(backend_route_table_t* brt, const backend_service_t* bs)
         {
             info("Unregister: %s from bs:%s\n", route->path_prefix, bs->name);
             array_erase(routes, i);
-            return;
+            i--;
         }
 	}
 }
