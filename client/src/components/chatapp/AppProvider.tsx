@@ -223,7 +223,7 @@ const AppProvider = ({ children }: Prop) => {
         currentHubID: -1,
         currentDMID: 'friends',
         currentChannelID: -1,
-        friendIDs: [5, 6],
+        friendIDs: [],
         dm: new Map()
     });
 

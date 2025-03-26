@@ -56,6 +56,8 @@ const MemberList = () => {
         }
     });
 
+    if (app.currentDMID === 'friends') return null;
+
     const memberIDs = getMemberIDs(app, send);
 
     return (

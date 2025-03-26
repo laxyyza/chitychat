@@ -96,10 +96,7 @@ function MainApp() {
                 }
                 dispatch({ type: Action.ADD_FRIENDS, payload: json.friends });
             })
-            .catch((error) => {
-                console.error('Error:', error);
-                send({ cmd: 'get_user', user_ids: app.friendIDs });
-            });
+            .catch((error) => console.error('Error:', error));
 
         if (process.env.NODE_ENV !== 'development') {
             websocketClient.onStateChange((state: string) => {
