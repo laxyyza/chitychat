@@ -17,6 +17,8 @@ export interface App {
     currentDMID: string;
     currentChannelID: number;
     friendIDs: number[];
+    friendRequests: number[];
+    pendingRequests: number[];
 }
 
 interface Prop {
@@ -224,7 +226,9 @@ const AppProvider = ({ children }: Prop) => {
         currentDMID: 'friends',
         currentChannelID: -1,
         friendIDs: [],
-        dm: new Map()
+        dm: new Map(),
+        friendRequests: [],
+        pendingRequests: []
     });
 
     return (

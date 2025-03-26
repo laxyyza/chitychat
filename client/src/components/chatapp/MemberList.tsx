@@ -56,14 +56,14 @@ const MemberList = () => {
         }
     });
 
-    if (app.currentDMID === 'friends') return null;
-
     const memberIDs = getMemberIDs(app, send);
 
     return (
         <div className="relative max-h-screen w-60 bg-gray-800 overflow-auto">
             <div className="text-center text-white font-bold shadow-xl bg-gray-900">
-                {memberIDs.length} members
+                {app.currentDMID === 'friends'
+                    ? app.friendIDs.length + ' friends'
+                    : memberIDs.length + ' members'}
             </div>
             {memberIDs.map((member_id) => Member(app.users.get(member_id)))}
         </div>

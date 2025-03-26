@@ -83,7 +83,7 @@ function MainApp() {
     useEffect(() => {
         send({ cmd: 'client_user_info' });
         send({ cmd: 'client_groups' });
-        fetch(window.location.origin + '/friends')
+        fetch(window.location.origin + '/api/friends')
             .then((response) => response.json())
             .then((json) => {
                 const friendIDs: number[] = json.friends;
@@ -96,7 +96,16 @@ function MainApp() {
                 }
                 dispatch({ type: Action.ADD_FRIENDS, payload: json.friends });
             })
-            .catch((error) => console.error('Error:', error));
+            .catch((error) => {
+                console.error('fetch /api/friends:', error);
+                if (
+                    process.env.NODE_ENV === 'development' &&
+                    app.friendIDs.length === 0
+                ) {
+                    send({ cmd: 'get_user', user_ids: [5, 6] });
+                    dispatch({ type: Action.ADD_FRIENDS, payload: [5, 6] });
+                }
+            });
 
         if (process.env.NODE_ENV !== 'development') {
             websocketClient.onStateChange((state: string) => {
