@@ -6,6 +6,7 @@ import { FaUserAlt } from 'react-icons/fa';
 
 interface Prop {
     user: User;
+    className?: string;
 }
 
 interface IconImgProp {
@@ -85,7 +86,7 @@ const UserDetails = ({ user }: Prop) => {
     );
 };
 
-const UserIcon = ({ user }: Prop) => {
+const UserIcon = ({ user, className = 'max-w-13 max-h-13' }: Prop) => {
     const [showDetails, setShowDetails] = useState(false);
     const ref = useRef<HTMLDivElement | null>(null);
     const [canOpen, setCanOpen] = useState(true);
@@ -96,7 +97,7 @@ const UserIcon = ({ user }: Prop) => {
                 if (canOpen) setShowDetails(true);
             }}
             ref={ref}
-            className="max-w-13 max-h-13"
+            className={className}
         >
             <IconImgChooser pfp={user.pfp} profile={false} />
             {showDetails && ref.current && (

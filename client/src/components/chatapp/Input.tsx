@@ -1,7 +1,7 @@
 import { IoAddCircleOutline } from 'react-icons/io5';
 import React, { useState, useRef } from 'react';
-import { Action, useApp } from './AppProvider';
-import useWebsocket from '../WebSocket';
+import { useApp } from './AppProvider';
+// import useWebsocket from '../WebSocket';
 
 interface Prop {
     placeholder?: string;
@@ -29,10 +29,10 @@ const Input = ({
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const divRef = useRef<HTMLDivElement | null>(null);
     const [showPopup, setShowPopup] = useState(false);
-    const { app, dispatch } = useApp();
-    const [counter, setCounter] = useState(4);
+    const { app } = useApp();
+    // const [counter, setCounter] = useState(4);
 
-    const { send } = useWebsocket();
+    // const { send } = useWebsocket();
 
     const adjustHeight = () => {
         const textarea = textareaRef.current;
@@ -63,32 +63,32 @@ const Input = ({
     const sendMessage = () => {
         if (!message.trim()) return; // Prevent sending empty messages
 
-        const channel_type = app.currentHubID === -1 ? 'group' : 'hub';
-        const channel_id =
-            channel_type === 'hub' ? app.currentChannelID : app.currentGroupID;
+        // const channel_type = app.currentHubID === -1 ? 'group' : 'hub';
+        // const channel_id =
+        //     channel_type === 'hub' ? app.currentChannelID : app.currentDMID;
 
-        if (channel_type === 'hub') {
-            setCounter(counter + 1);
-            dispatch({
-                type: Action.ADD_MSG,
-                payload: {
-                    id: counter,
-                    user_id: app.login_user.id,
-                    channel_id: channel_id,
-                    channel_type: channel_type,
-                    content: message,
-                    attachments: [],
-                    timestamp: '<timestamp>'
-                }
-            });
-        } else {
-            send({
-                cmd: 'group_msg',
-                group_id: channel_id,
-                content: message,
-                attachments: []
-            });
-        }
+        // if (channel_type === 'hub') {
+        //     setCounter(counter + 1);
+        //     dispatch({
+        //         type: Action.ADD_MSG,
+        //         payload: {
+        //             id: counter,
+        //             user_id: app.login_user.id,
+        //             channel_id: channel_id,
+        //             channel_type: channel_type,
+        //             content: message,
+        //             attachments: [],
+        //             timestamp: '<timestamp>'
+        //         }
+        //     });
+        // } else {
+        //     send({
+        //         cmd: 'group_msg',
+        //         group_id: channel_id,
+        //         content: message,
+        //         attachments: []
+        //     });
+        // }
 
         console.log('Sent:', message);
         setMessage(''); // Clear input after sending
@@ -99,7 +99,7 @@ const Input = ({
     if (
         !app.hubs.has(app.currentHubID) &&
         !app.textChannels.has(app.currentChannelID) &&
-        !app.groups.get(app.currentGroupID)
+        !app.dm.get(app.currentDMID)
     )
         return null;
 

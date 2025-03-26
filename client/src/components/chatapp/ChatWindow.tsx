@@ -13,10 +13,10 @@ const getMessages = (): Message[] => {
         if (channel) {
             return channel.messages;
         }
-    } else if (app.currentGroupID !== -1) {
-        const group = app.groups.get(app.currentGroupID);
-        if (group) {
-            return Array.from(group.messages.entries())
+    } else if (app.currentDMID !== 'friends') {
+        const dmchat = app.dm.get(app.currentDMID);
+        if (dmchat) {
+            return Array.from(dmchat.chat.messages.entries())
                 .map(([_, msg]) => {
                     return msg;
                 })
@@ -41,7 +41,7 @@ const ChatWindow = () => {
         appRef.current = app;
     }, [app]);
 
-    const { send } = useWebsocket((cmd, packet) => {
+    useWebsocket((cmd, packet) => {
         if (cmd === 'get_group_msgs') {
             const packet_msgs: any[] = packet.messages;
             const msgs: Message[] = packet_msgs.map((msg) => ({
@@ -68,17 +68,17 @@ const ChatWindow = () => {
 
         setOldScroll(container.scrollHeight);
 
-        const group = appRef.current.groups.get(appRef.current.currentGroupID);
-        console.log('fetch message for ', group);
+        // const group = appRef.current.groups.get(appRef.current.currentGroupID);
+        // console.log('fetch message for ', group);
 
-        if (group && group.detailsLoaded) {
-            send({
-                cmd: 'get_group_msgs',
-                group_id: group.id,
-                limit: 10,
-                offset: group.msgOffset
-            });
-        }
+        // if (group && group.detailsLoaded) {
+        //     send({
+        //         cmd: 'get_group_msgs',
+        //         group_id: group.id,
+        //         limit: 10,
+        //         offset: group.msgOffset
+        //     });
+        // }
     }
 
     const handleScroll = () => {
@@ -90,10 +90,10 @@ const ChatWindow = () => {
             container.scrollHeight -
                 (container.scrollTop + container.clientHeight) <
             threshold;
-        const group = appRef.current.groups.get(appRef.current.currentGroupID);
-        if (group) {
-            group.scrollTop = container.scrollTop;
-        }
+        // const group = appRef.current.groups.get(appRef.current.currentGroupID);
+        // if (group) {
+        //     group.scrollTop = container.scrollTop;
+        // }
 
         setIsTop(container.scrollTop === 0);
         if (container.scrollTop === 0) {
@@ -126,12 +126,12 @@ const ChatWindow = () => {
         }
     }, [messages]);
 
-    useEffect(() => {
-        const group = appRef.current.groups.get(appRef.current.currentGroupID);
-        if (group && group.scrollTop !== -1 && containerRef.current) {
-            containerRef.current.scrollTop = group.scrollTop;
-        }
-    }, [app.currentGroupID]);
+    // useEffect(() => {
+    //     const group = appRef.current.groups.get(appRef.current.currentGroupID);
+    //     if (group && group.scrollTop !== -1 && containerRef.current) {
+    //         containerRef.current.scrollTop = group.scrollTop;
+    //     }
+    // }, [app.currentGroupID]);
 
     return (
         <>

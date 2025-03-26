@@ -4,16 +4,17 @@ import { Hub } from '../../models/hub';
 import { TextChannel, ChannelType } from '../../models/channel';
 import Message from '../../models/message';
 import Group from '../../models/group';
+import { DMChat } from '../../models/dm';
 
 export interface App {
     logged_in: boolean;
     login_user: User;
     users: Map<number, User>;
     hubs: Map<number, Hub>;
-    groups: Map<number, Group>;
     textChannels: Map<number, TextChannel>;
+    dm: Map<string, DMChat>;
     currentHubID: number;
-    currentGroupID: number;
+    currentDMID: string;
     currentChannelID: number;
     friendIDs: number[];
 }
@@ -29,7 +30,7 @@ interface AppContextProps {
 
 enum Action {
     SELECT_HUB,
-    SELECT_GROUP,
+    SELECT_DM,
     SET_LOGIN_USER,
     SELECT_CHANNEL,
     ADD_MSG,
@@ -44,7 +45,7 @@ enum Action {
 
 type DispatchAction =
     | { type: Action.SELECT_HUB; payload: number }
-    | { type: Action.SELECT_GROUP; payload: number }
+    | { type: Action.SELECT_DM; payload: string }
     | { type: Action.SELECT_CHANNEL; payload: number }
     | { type: Action.SET_LOGIN_USER; payload: User }
     | { type: Action.ADD_USER; payload: User }
@@ -74,10 +75,10 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 currentHubID: action.payload
             };
         }
-        case Action.SELECT_GROUP: {
+        case Action.SELECT_DM: {
             return {
                 ...state,
-                currentGroupID: action.payload
+                currentDMID: action.payload
             };
         }
         case Action.SELECT_CHANNEL:
@@ -116,15 +117,24 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 );
                 return { ...state, textChannels: newTextChannels };
             } else if (msg.channel_type === 'group') {
-                const newGroups: Map<number, Group> = new Map(
-                    [...state.groups].map(([id, group]) => {
-                        if (msg.channel_id === id) {
-                            return [id, Group.fromAddMessage(group, msg)];
+                const newDMs: Map<string, DMChat> = new Map(
+                    [...state.dm].map(([id, chat]) => {
+                        if (chat.chat instanceof Group) {
+                            return [
+                                id,
+                                new DMChat(Group.fromAddMessage(chat.chat, msg))
+                            ];
                         }
-                        return [id, group];
+                        return [id, chat];
                     })
                 );
-                return { ...state, groups: newGroups };
+                // [...state.dm].map(([id, group]) => {
+                //     if (msg.channel_id === id) {
+                //         return [id, Group.fromAddMessage(group, msg)];
+                //     }
+                //     return [id, group];
+                // })
+                return { ...state, dm: newDMs };
             }
 
             return { ...state };
@@ -151,19 +161,24 @@ const appReducer = (state: App, action: DispatchAction): App => {
         }
         case Action.ADD_GROUP: {
             const group = action.payload;
+            const chat = new DMChat(group);
             return {
                 ...state,
-                groups: new Map(state.groups).set(group.id, group)
+                dm: new Map(state.dm).set(chat.id, chat)
             };
         }
         case Action.LOAD_GROUP_MSGS: {
-            const group = state.groups.get(action.payload.group_id);
-            if (group) {
+            const dmchat = state.dm.get(
+                DMChat.GroupID(action.payload.group_id)
+            );
+            if (dmchat && dmchat.chat instanceof Group) {
                 return {
                     ...state,
-                    groups: new Map(state.groups).set(
-                        group.id,
-                        Group.loadMessages(group, action.payload.msgs)
+                    dm: new Map(state.dm).set(
+                        dmchat.id,
+                        new DMChat(
+                            Group.loadMessages(dmchat.chat, action.payload.msgs)
+                        )
                     )
                 };
             }
@@ -204,12 +219,12 @@ const AppProvider = ({ children }: Prop) => {
         },
         users: new Map(),
         hubs: new Map(),
-        groups: new Map(),
         textChannels: new Map(),
         currentHubID: -1,
-        currentGroupID: -1,
+        currentDMID: 'friends',
         currentChannelID: -1,
-        friendIDs: []
+        friendIDs: [5, 6],
+        dm: new Map()
     });
 
     return (

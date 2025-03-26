@@ -3,6 +3,7 @@ import { Action, useApp } from '../AppProvider';
 import { BiSolidGroup } from 'react-icons/bi';
 import { RiUserHeartFill } from 'react-icons/ri';
 import { FaUser } from 'react-icons/fa';
+import Group from '../../../models/group';
 
 interface DMProp {
     name?: string;
@@ -51,16 +52,17 @@ const DM = ({ name, onClick, selected, type, children }: DMProp) => {
 
 const DMList = () => {
     const { app, dispatch } = useApp();
-    const groups = Array.from(app.groups.entries());
-    const friends = app.friendIDs.map((friend_id) => app.users.get(friend_id));
+    const dms = Array.from(app.dm.entries());
+    // const groups = Array.from(app.groups.entries());
+    // const friends = app.friendIDs.map((friend_id) => app.users.get(friend_id));
 
     return (
         <>
             <DM
-                selected={app.currentGroupID === -1}
+                selected={app.currentDMID === 'friends'}
                 type="other"
                 onClick={() =>
-                    dispatch({ type: Action.SELECT_GROUP, payload: -1 })
+                    dispatch({ type: Action.SELECT_DM, payload: 'friends' })
                 }
             >
                 <div className="flex items-center text-center justify-center">
@@ -72,7 +74,46 @@ const DMList = () => {
             </DM>
             <div className="text-center text-xs font-bold">Direct Messages</div>
             <ul className="p-1">
-                {friends.map((friend) => {
+                {dms.map(([id, dmchat]) => {
+                    if (dmchat.chat instanceof Group) {
+                        const group = dmchat.chat;
+                        return (
+                            <li key={dmchat.id}>
+                                <DM
+                                    name={group.name}
+                                    selected={app.currentDMID === id}
+                                    type="group"
+                                    onClick={() =>
+                                        dispatch({
+                                            type: Action.SELECT_DM,
+                                            payload: id
+                                        })
+                                    }
+                                />
+                            </li>
+                        );
+                    } else {
+                        const dm = dmchat.chat;
+                        const user = app.users.get(dm.targetUserID);
+                        if (!user) return null;
+                        return (
+                            <li key={dmchat.id}>
+                                <DM
+                                    name={user.displayname}
+                                    selected={app.currentDMID === id}
+                                    type="user"
+                                    onClick={() =>
+                                        dispatch({
+                                            type: Action.SELECT_DM,
+                                            payload: id
+                                        })
+                                    }
+                                />
+                            </li>
+                        );
+                    }
+                })}
+                {/* {friends.map((friend) => {
                     if (!friend) return null;
                     else {
                         return (
@@ -86,8 +127,8 @@ const DMList = () => {
                             </li>
                         );
                     }
-                })}
-                {groups.map(([id, group]) => (
+                })} */}
+                {/* {groups.map(([id, group]) => (
                     <li key={id}>
                         <DM
                             name={group.name}
@@ -101,7 +142,7 @@ const DMList = () => {
                             }
                         />
                     </li>
-                ))}
+                ))} */}
             </ul>
         </>
     );
