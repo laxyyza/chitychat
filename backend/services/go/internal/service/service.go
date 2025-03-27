@@ -8,15 +8,20 @@ import (
 	"path/filepath"
 )
 
-type Service struct {
+type FuncPathHandler[T any] func(*Service[T], map[string]interface{})
+type PathMap[T any] map[string]FuncPathHandler[T]
+
+type Service[T any] struct {
 	server server.Server
 	Db db.DB
 	name string
+	UserData T
+	paths PathMap[T]
 }
 
-func New() (*Service, error) {
+func New[T any](userData T) (*Service[T], error) {
 	var err error
-	service := Service{}
+	service := Service[T]{UserData: userData}
 
 	exePath, err := os.Executable()
 	if err != nil {
@@ -37,10 +42,16 @@ func New() (*Service, error) {
 	return &service, nil
 }
 
-func (s* Service) Register(paths []string) error {
+func (s* Service[T]) Register(paths PathMap[T]) error {
+	pathStr := make([]string, len(paths))
+
+	for path := range paths {
+		pathStr = append(pathStr, path)	
+	}
+
 	err := s.server.Send(map[string]interface{}{
 		"name": s.name,
-		"register_paths": paths,
+		"register_paths": pathStr,
 	})
 	if err != nil {
 		return err
@@ -51,15 +62,28 @@ func (s* Service) Register(paths []string) error {
 		return err
 	}
 
+	s.paths = paths
 	fmt.Println("register:", resp)
 
 	return nil
 }
 
-func (s* Service) Send(data map[string]interface{}) error {
+func (s* Service[T]) Send(data map[string]interface{}) error {
 	return s.server.Send(data)
 }
 
-func (s* Service) Recv() (map[string]interface{}, error) {
+func (s* Service[T]) Recv() (map[string]interface{}, error) {
 	return s.server.Recv()
+}
+
+func (s* Service[T]) Run() error {
+	for {
+		data, err := s.Recv()	
+		if err != nil {
+			return err
+		}
+
+		var path string = data["path"].(string)
+		s.paths[path](s, data)
+	}
 }
