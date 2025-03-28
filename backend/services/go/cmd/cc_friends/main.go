@@ -8,13 +8,13 @@ import (
 )
 
 type FriendsData struct {
-	sql string
+	sql_select_friends string
 }
 
 func getFriends(s* service.Service[FriendsData], req map[string]interface{}) {
 	fmt.Println("friends(): ", req)
 
-	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.sql, req["user_id"])
+	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.sql_select_friends, req["user_id"])
 	if err != nil {
 		fmt.Printf("Query: %v\n", err)
 		os.Exit(-1)
@@ -54,7 +54,7 @@ func main() {
 
 	err = bservice.Register(service.PathMap[FriendsData]{
 		"/api/friends": getFriends,
-		"/api/friend-request": getFriends,
+		"/api/friend-request": friendRequest,
 	})
 	if err != nil {
 		fmt.Printf("Register: %v\n", err)
@@ -67,45 +67,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	bservice.UserData.sql = string(data)
+	bservice.UserData.sql_select_friends = string(data)
 
 	bservice.Run()
-
-	// for {
-	// 	resp, err := bservice.Recv()	
-	// 	if err != nil {
-	// 		return
-	// 	}
-
-	// 	log.Printf("resp: %v\n", resp)
-
-	// 	if resp["path"] == "/api/friends" {
-	// 		rows, err := s.Db.Conn.Query(context.Background(), sql, resp["user_id"])
-	// 		if err != nil {
-	// 			fmt.Printf("Query: %v\n", err)
-	// 			os.Exit(-1)
-	// 		}
-
-	// 		var friendIDs []uint32 = make([]uint32, 0)
-
-	// 		for rows.Next() {
-	// 			var userID uint32
-	// 			rows.Scan(&userID)
-	// 			friendIDs = append(friendIDs, userID)
-	// 		}
-
-	// 		err = service.Send(map[string]interface{}{
-	// 			"type": resp["type"],
-	// 			"fd": resp["fd"],
-	// 			"status": 200,
-	// 			"headers": map[string]interface{}{
-	// 				"Content-Type": "application/json",
-	// 			},
-	// 			"payload": map[string]interface{}{
-	// 				"friends": friendIDs,
-	// 			},
-	// 		})
-	// 	} else if resp["path"] == "/api/friend-request" {
-	// 	}
-	// }
 }
