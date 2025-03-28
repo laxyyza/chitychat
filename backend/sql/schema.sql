@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS Attachments(
     file_size       bigint NOT NULL,
     mime_type       text NOT NULL,
     storage_path    text NOT NULL,
-    created_at      TIMESTAMP DEFAULT NOW(),
+    created_at      TIMESTAMP DEFAULT NOW()
 
-    FOREIGN KEY (user_id) REFERENCES Users(user_id)
+    -- CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES Users(user_id) DEFERRABLE INITIALLY DEFERRED
 );
 
 CREATE TABLE IF NOT EXISTS Users(
@@ -22,9 +22,15 @@ CREATE TABLE IF NOT EXISTS Users(
     hash            bytea NOT null,
     salt            bytea NOT null, 
     created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
-    pfp             text,
+    pfp             int,
     FOREIGN KEY (pfp) REFERENCES Attachments(attachment_id)
 );
+
+DO $$ BEGIN
+    ALTER TABLE Attachments ADD CONSTRAINT user_id_fkey FOREIGN KEY (user_id) REFERENCES Users(user_id);
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS Groups(
     group_id        SERIAL PRIMARY KEY,
@@ -173,17 +179,3 @@ CREATE OR REPLACE TRIGGER insert_owner_group_member
 AFTER INSERT ON Groups 
 FOR EACH ROW
 EXECUTE FUNCTION insert_owner_group_member();
-
-CREATE OR REPLACE FUNCTION delete_userfiles_if_ref_is_zero()
-RETURNS TRIGGER AS $$
-BEGIN
-    DELETE FROM UserFiles
-    WHERE ref_count <= 0;
-    RETURN null;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE TRIGGER delete_userfiles_if_ref_is_zero
-AFTER UPDATE OF ref_count ON UserFiles
-FOR EACH ROW
-EXECUTE FUNCTION delete_userfiles_if_ref_is_zero();
