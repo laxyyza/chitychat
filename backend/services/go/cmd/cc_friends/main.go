@@ -1,23 +1,25 @@
 package main
 
 import (
+	"backend/services/go/internal/server"
 	"backend/services/go/internal/service"
 	"context"
 	"fmt"
 	"os"
+	"net/http"
 )
 
 type FriendsData struct {
 	sql_select_friends string
 }
 
-func getFriends(s* service.Service[FriendsData], req map[string]interface{}) {
+func getFriends(s* service.Service[FriendsData], req* server.HTTPRequest) *server.HTTPResponse {
 	fmt.Println("friends(): ", req)
 
-	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.sql_select_friends, req["user_id"])
+	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.sql_select_friends, req.UserID)
 	if err != nil {
 		fmt.Printf("Query: %v\n", err)
-		os.Exit(-1)
+		return server.NewResponse(req, http.StatusInternalServerError, nil)
 	}
 
 	var friendIDs []uint32 = make([]uint32, 0)
@@ -28,21 +30,13 @@ func getFriends(s* service.Service[FriendsData], req map[string]interface{}) {
 		friendIDs = append(friendIDs, userID)
 	}
 
-	s.Send(map[string]interface{}{
-		"type": req["type"],
-		"fd": req["fd"],
-		"status": 200,
-		"headers": map[string]interface{}{
-			"Content-Type": "application/json",
-		},
-		"payload": map[string]interface{}{
-			"friends": friendIDs,
-		},
+	return server.NewResponse(req, http.StatusOK, &map[string]interface{}{
+		"friends": friendIDs,
 	})
 }
 
-func friendRequest(s* service.Service[FriendsData], req map[string]interface{}) {
-
+func friendRequest(s* service.Service[FriendsData], req* server.HTTPRequest) *server.HTTPResponse {
+	return nil
 }
 
 func main() {

@@ -93,11 +93,11 @@ registered_backend_read(eworker_t* ew, backend_service_t* service, json_object* 
 {
     json_object* json_fd = json_object_object_get(json, "fd");
     json_object* json_headers = json_object_object_get(json, "headers");
-    json_object* json_payload = json_object_object_get(json, "payload");
+    json_object* json_body = json_object_object_get(json, "body");
     json_object* json_status = json_object_object_get(json, "status");
     i32 fd;
     i32 status;
-    const char* payload;
+    const char* body;
     size_t payload_len;
     client_t* client;
     http_t* http;
@@ -111,9 +111,9 @@ registered_backend_read(eworker_t* ew, backend_service_t* service, json_object* 
     }
 
     status = json_object_get_int(json_status);
-    payload = json_object_to_json_string_length(json_payload, JSON_C_TO_STRING_NOSLASHESCAPE | JSON_C_TO_STRING_PLAIN, &payload_len);
+    body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE | JSON_C_TO_STRING_PLAIN, &payload_len);
 
-    http = http_new_resp(status, "OK", payload, payload_len);
+    http = http_new_resp(status, "OK", body, payload_len);
 
     json_object_object_foreach(json_headers, key, val) {
         http_add_header(http, key, json_object_to_json_string(val));

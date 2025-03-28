@@ -14,6 +14,24 @@ type Server struct {
 	address string
 }
 
+type HTTPRequest struct {
+	Type 	string `json:"type"`
+	Fd 		int `json:"fd"`
+	UserID 	uint32 `json:"user_id"`
+	Path 	string `json:"path"`
+	Headers map[string]string `json:"headers"`
+	Params  map[string]string `json:"params"`
+	Body	map[string]interface{} `json:"body"`
+}
+
+type HTTPResponse struct {
+	Type 	string `json:"type"`
+	Fd 		int `json:"fd"`
+	Status 	int `json:"status"`
+	Headers map[string]string `json:"headers"`
+	Body*	map[string]interface{} `json:"body"`
+}
+
 func (s* Server) connect(address string) (net.Conn, error) {	
 	conn, err := net.Dial("tcp", address)
 	if (err != nil) {
@@ -23,7 +41,7 @@ func (s* Server) connect(address string) (net.Conn, error) {
 	return conn, nil
 }
 
-func (s* Server) Send(data map[string]interface{}) error {
+func (s* Server) Send(data interface{}) error {
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		fmt.Printf("Invalid data: %w\n", err)
@@ -41,7 +59,11 @@ func (s* Server) Send(data map[string]interface{}) error {
 	return err
 }
 
-func (s* Server) Recv() (map[string]interface{}, error) {
+func (s* Server) SendResp(data* HTTPResponse) error {
+	return s.Send(data)
+}
+
+func (s* Server) Recv() (*HTTPRequest, error) {
 	buffer := make([]byte, 4096)
 
 	n, err := s.conn.Read(buffer)
@@ -49,15 +71,15 @@ func (s* Server) Recv() (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed read: %w", err)
 	}
 
-	var ret map[string]interface{}
+	var data HTTPRequest
 
-	err = json.Unmarshal(buffer[4:n], &ret)
+	err = json.Unmarshal(buffer[4:n], &data)
 	if err != nil {
 		log.Fatalf("Error unmarshalling JSON: %w", err)
 		return nil, err
 	}
 
-	return ret, nil
+	return &data, nil
 }
 
 func New() (Server, error) {
@@ -72,4 +94,12 @@ func New() (Server, error) {
 
 func (s* Server) Close() {
 	s.conn.Close()
+}
+
+func NewResponse(req* HTTPRequest, status int, body* map[string]interface{}) *HTTPResponse {
+	return &HTTPResponse{Type: req.Type, Fd: req.Fd, Status: status, Headers: map[string]string{
+		"Content-Type": "application/json",
+	},
+	Body: body,
+}
 }
