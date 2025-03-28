@@ -323,7 +323,7 @@ backend_send_http(UNUSED server_t* server, backend_service_t* bs, client_t* clie
 {
     const http_header_t* content_type = http_get_header(http, "Content-Type");
     json_object* json = json_object_new_object();
-    json_object_object_add(json, "type", json_object_new_string(http->req.method));
+    json_object_object_add(json, "method", json_object_new_string(http->req.method));
     json_object_object_add(json, "fd", json_object_new_int(client->addr.sock));
     json_object_object_add(json, "user_id", json_object_new_uint64(user_id));
     json_object_object_add(json, "path", json_object_new_string(http->req.url));

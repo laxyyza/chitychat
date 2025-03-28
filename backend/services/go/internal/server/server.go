@@ -15,7 +15,7 @@ type Server struct {
 }
 
 type HTTPRequest struct {
-	Type 	string `json:"type"`
+	Method 	string `json:"method"`
 	Fd 		int `json:"fd"`
 	UserID 	uint32 `json:"user_id"`
 	Path 	string `json:"path"`
@@ -97,7 +97,7 @@ func (s* Server) Close() {
 }
 
 func NewResponse(req* HTTPRequest, status int, body* map[string]interface{}) *HTTPResponse {
-	return &HTTPResponse{Type: req.Type, Fd: req.Fd, Status: status, Headers: map[string]string{
+	return &HTTPResponse{Type: req.Method, Fd: req.Fd, Status: status, Headers: map[string]string{
 		"Content-Type": "application/json",
 	},
 	Body: body,
