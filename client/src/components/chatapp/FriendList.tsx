@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { useState } from 'react';
 import AddFriend from './AddFriend';
 import { App, useApp } from './AppProvider';
 import User from './User';
