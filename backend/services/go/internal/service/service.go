@@ -43,7 +43,7 @@ func New[T any](userData T) (*Service[T], error) {
 }
 
 func (s* Service[T]) Register(paths PathMap[T]) error {
-	pathStr := make([]string, len(paths))
+	pathStr := make([]string, 0)
 
 	for path := range paths {
 		pathStr = append(pathStr, path)	
