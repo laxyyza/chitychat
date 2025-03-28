@@ -4,12 +4,18 @@ import (
 	"backend/services/go/internal/db"
 	"backend/services/go/internal/server"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 )
 
+type CallbackAllow[T any] struct {
+	Callback FuncPathHandler[T]
+	Allow []string
+}
+
 type FuncPathHandler[T any] func(*Service[T], *server.HTTPRequest) *server.HTTPResponse
-type PathMap[T any] map[string]FuncPathHandler[T]
+type PathMap[T any] map[string]CallbackAllow[T]
 
 type Service[T any] struct {
 	server server.Server
@@ -76,6 +82,15 @@ func (s* Service[T]) Recv() (*server.HTTPRequest, error) {
 	return s.server.Recv()
 }
 
+func allowMethod(methods []string, method string) bool {
+	for _, v := range methods {
+		if method == v {
+			return true
+		}
+	}
+	return false
+}
+
 func (s* Service[T]) Run() error {
 	for {
 		data, err := s.Recv()	
@@ -83,10 +98,16 @@ func (s* Service[T]) Run() error {
 			return err
 		}
 
-		var path string = data.Path
-		resp := s.paths[path](s, data)
-		if resp != nil {
-			s.server.Send(resp)
+		var urlPath string = data.Path
+		var path CallbackAllow[T] = s.paths[urlPath]
+
+		if allowMethod(path.Allow, data.Method) {
+			resp := path.Callback(s, data)
+			if resp != nil {
+				s.server.Send(resp)
+			}
+		} else {
+			s.server.Send(server.NewResponse(data, http.StatusMethodNotAllowed, nil))
 		}
 	}
 }

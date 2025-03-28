@@ -5,6 +5,7 @@ import (
 	"backend/services/go/internal/service"
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -38,10 +39,6 @@ func getFriends(s* service.Service[FriendsData], req* server.HTTPRequest) *serve
 }
 
 func friendRequest(s* service.Service[FriendsData], req* server.HTTPRequest) *server.HTTPResponse {
-	if req.Method != "POST" {
-		return server.NewResponse(req, http.StatusBadRequest, nil)
-	}
-
 	var username string = req.Body["username"].(string)
 	var userID uint32
 
@@ -81,6 +78,30 @@ func friendRequest(s* service.Service[FriendsData], req* server.HTTPRequest) *se
 	}) 
 }
 
+func getFriendRequests(s* service.Service[FriendsData], req* server.HTTPRequest) *server.HTTPResponse {
+	var userID uint32 = req.UserID
+
+	rows, err := s.Db.Conn.Query(context.Background(), 
+								"SELECT source_user_id FROM Friendships WHERE target_user_id = $1::int AND status = 'PENDING';", 
+								userID)
+	if err != nil {
+		log.Fatalf("%v: %v\n", req.Path, err)
+		return server.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	var userIDs []uint32 = make([]uint32, 0)
+	for rows.Next() {
+		var sourceUserID uint32
+		rows.Scan(&sourceUserID)
+
+		userIDs = append(userIDs, sourceUserID)
+	}
+
+	return server.NewResponse(req, http.StatusOK, &map[string]interface{}{
+		"user_ids": userIDs,
+	})
+}
+
 func main() {
 	bservice, err := service.New(FriendsData{})
 	if err != nil {
@@ -89,8 +110,18 @@ func main() {
 	}
 
 	err = bservice.Register(service.PathMap[FriendsData]{
-		"/api/friends": getFriends,
-		"/api/friend-request": friendRequest,
+		"/api/friends": service.CallbackAllow[FriendsData]{
+			Callback: getFriends, 
+			Allow: []string{"GET"},
+		},
+		"/api/friend-request": service.CallbackAllow[FriendsData]{
+			Callback: friendRequest,
+			Allow: []string{"POST"},
+		},
+		"/api/friend-requests": service.CallbackAllow[FriendsData]{
+			Callback: getFriendRequests,
+			Allow: []string{"GET"},
+		},
 	})
 	if err != nil {
 		fmt.Printf("Register: %v\n", err)
