@@ -56,6 +56,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     size_t content_len;
     char* content;
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
+    bool notfound = false;
 
     if (strcmp(http->req.url, "/set-session") == 0)
     {
@@ -70,6 +71,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     }
 
     // TODO: Add "default_file_per_dir" config, default should be "index.html"
+format_path:
     if (http->req.url[url_len - 1] == '/')
         snprintf(path, PATH_MAX, "%s%s%s", server->conf.root_dir, http->req.url, "index.html"); 
     else
@@ -78,8 +80,15 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     i32 isdir = file_isdir(path);
     if (isdir == -1)
     {
-        server_http_resp_404_not_found(client);
-        return RECV_ERROR;
+        if (notfound)
+        {
+            server_http_resp_404_not_found(client);
+            return RECV_ERROR;
+        }
+
+        strcpy(http->req.url, "/");
+        notfound = true;
+        goto format_path;
     }
     else if (isdir)
         strcat(path, "/index.html");
