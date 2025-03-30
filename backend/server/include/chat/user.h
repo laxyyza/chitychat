@@ -5,6 +5,7 @@
 #include "chat/db_def.h"
 #include "chat/rtusm.h"
 #include "array.h"
+#include <nats.h>
 
 typedef struct client client_t;
 
@@ -33,8 +34,11 @@ typedef struct dbuser
     i32     flags;
     rtusm_t rtusm;
 
-    array_t connected_clients;
-    token_bucket_t msg_tokens;
+    struct {
+        array_t connected_clients;
+        token_bucket_t msg_tokens;
+        natsSubscription* sub;
+    };
 } dbuser_t;
 
 dbuser_t* server_new_user(eworker_t* ew, u32 user_id);

@@ -101,7 +101,10 @@ server_free_client(eworker_t* ew, client_t* client)
             server_rtusm_user_disconnect(ew, client->dbuser);
 
         if (client->dbuser->connected_clients.count == 0 && client->dbuser->msg_tokens.tokens > 0)
+        {
+            natsSubscription_Unsubscribe(client->dbuser->sub);
             server_ght_del(&ew->server->user_ht, client->dbuser->user_id);
+        }
     }
     close(client->addr.sock);
 

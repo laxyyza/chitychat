@@ -5,6 +5,25 @@
 #include <libpq-fe.h>
 
 static void 
+user_event(UNUSED natsConnection* nc, UNUSED natsSubscription* sub, natsMsg* msg, void* closuer)
+{
+    const char* data = natsMsg_GetData(msg);
+    const u32 size = natsMsg_GetDataLength(msg);
+    dbuser_t* user = closuer;
+
+    json_tokener* tok = json_tokener_new();
+    json_object* json = json_tokener_parse_ex(tok, data, size);
+    json_tokener_free(tok);
+
+    if (json == NULL)
+        return;
+
+    server_user_send(user, json);
+
+    json_object_put(json);
+}
+
+static void 
 db_get_user_result(eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
 {
     i32 rows;
@@ -29,6 +48,11 @@ db_get_user_result(eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ct
             {
                 user = server_new_user(ew, 0);
                 db_row_to_user(user, res, 0);
+
+                char user_subject[SUBJECT_LEN];
+                snprintf(user_subject, SUBJECT_LEN - 1, "realtime.user.%u", user_id);
+
+                natsConnection_Subscribe(&user->sub, ew->server->nats.conn, user_subject, user_event, user);
             }
         }
         else
