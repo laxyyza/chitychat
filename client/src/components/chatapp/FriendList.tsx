@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AddFriend from './AddFriend';
-import { App, useApp } from './AppProvider';
+import { Action, App, useApp } from './AppProvider';
 import User from './User';
 import UserIcon from './UserIcon';
 import { IoMdPersonAdd } from 'react-icons/io';
@@ -9,6 +9,7 @@ import { MdOutgoingMail } from 'react-icons/md';
 import { MdBlock } from 'react-icons/md';
 import { FaCheck } from 'react-icons/fa';
 import { MdOutlineCancel } from 'react-icons/md';
+import useWebsocket from '../WebSocket';
 
 enum Selection {
     ALL,
@@ -92,13 +93,10 @@ const getUserIDs = (app: App, selection: Selection): number[] => {
     }
 };
 
-const ListUsers = (app: App, selection: Selection) => {
-    const userIDs = getUserIDs(app, selection);
-    const friends = userIDs.map((friend_id) => app.users.get(friend_id));
-
+const ListUsers = (users: (User | undefined)[], selection: Selection) => {
     return (
         <>
-            {friends.map((user) => {
+            {users.map((user) => {
                 if (!user) return null;
                 if (selection === Selection.ALL) return <Friend user={user} />;
                 else if (selection === Selection.FRIEND_REQUESTS)
@@ -112,9 +110,31 @@ const ListUsers = (app: App, selection: Selection) => {
 };
 
 const FriendList = () => {
-    const { app } = useApp();
+    const { app, dispatch } = useApp();
     const [addFriend, setAddFriend] = useState(false);
     const [selected, setSelected] = useState(Selection.ALL);
+    const [users, setUsers] = useState<(User | undefined)[]>([]);
+
+    const { send } = useWebsocket((cmd: string, packet: any) => {
+        if (cmd === 'friend_request') {
+            const userID = packet.source_user_id;
+            const user = app.users.get(userID);
+            if (!user) {
+                send({ cmd: 'get_user', user_ids: [userID] });
+            }
+
+            dispatch({
+                type: Action.ADD_FRIEND_REQUESTS,
+                payload: [userID]
+            });
+        }
+    });
+
+    useEffect(() => {
+        const userIDs = getUserIDs(app, selected);
+        const newUsers = userIDs.map((userID) => app.users.get(userID));
+        setUsers(newUsers);
+    }, [app.friendIDs, app.friendRequests, selected, app.users]);
 
     return (
         <div className="h-full relative">
@@ -188,7 +208,7 @@ const FriendList = () => {
                     <span>Pending Requests</span>
                 </button>
             </div>
-            {ListUsers(app, selected)}
+            {ListUsers(users, selected)}
         </div>
     );
 };

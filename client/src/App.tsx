@@ -83,6 +83,7 @@ function MainApp() {
     useEffect(() => {
         send({ cmd: 'client_user_info' });
         send({ cmd: 'client_groups' });
+
         fetch(window.location.origin + '/api/friends')
             .then((response) => response.json())
             .then((json) => {
@@ -105,6 +106,21 @@ function MainApp() {
                     send({ cmd: 'get_user', user_ids: [5, 6] });
                     dispatch({ type: Action.ADD_FRIENDS, payload: [5, 6] });
                 }
+            });
+
+        fetch(window.location.origin + '/api/friend-requests')
+            .then((response) => response.json())
+            .then((json) => {
+                const userIDs: number[] = json.user_ids;
+                const donthaveIDs = userIDs.filter((id) => !app.users.get(id));
+
+                if (donthaveIDs.length) {
+                    send({ cmd: 'get_user', user_ids: donthaveIDs });
+                }
+                dispatch({
+                    type: Action.ADD_FRIEND_REQUESTS,
+                    payload: json.user_ids
+                });
             });
 
         if (process.env.NODE_ENV !== 'development') {

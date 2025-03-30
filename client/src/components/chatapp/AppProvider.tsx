@@ -42,7 +42,8 @@ enum Action {
     RECONNECT,
     SET_CONNECT,
     LOAD_GROUP_MSGS,
-    ADD_FRIENDS
+    ADD_FRIENDS,
+    ADD_FRIEND_REQUESTS
 }
 
 type DispatchAction =
@@ -54,7 +55,10 @@ type DispatchAction =
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUP; payload: Group }
-    | { type: Action.ADD_FRIENDS; payload: number[] }
+    | {
+          type: Action.ADD_FRIENDS | Action.ADD_FRIEND_REQUESTS;
+          payload: number[];
+      }
     | {
           type: Action.LOAD_GROUP_MSGS;
           payload: { group_id: number; msgs: Message[] };
@@ -191,6 +195,12 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return {
                 ...state,
                 friendIDs: [...state.friendIDs, ...action.payload]
+            };
+        }
+        case Action.ADD_FRIEND_REQUESTS: {
+            return {
+                ...state,
+                friendRequests: [...state.friendRequests, ...action.payload]
             };
         }
         default:
