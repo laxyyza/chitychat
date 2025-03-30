@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"os"
 
-	// "os"
-
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -119,6 +117,12 @@ func actionFriendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest, s
 		fmt.Printf("Failed to update friendship: %s\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
 	}
+
+	s.Mq.UserEvent(sourceUserID, map[string]interface{}{
+		"cmd": "friend_request_update",
+		"user_id": targetUserID,
+		"state": status,
+	})
 
 	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
 		"status": "success",

@@ -108,7 +108,7 @@ function MainApp() {
                 }
             });
 
-        fetch(window.location.origin + '/api/friend-requests')
+        fetch(window.location.origin + '/api/friends/requests')
             .then((response) => response.json())
             .then((json) => {
                 const userIDs: number[] = json.user_ids;

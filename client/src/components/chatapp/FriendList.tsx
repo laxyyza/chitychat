@@ -58,6 +58,23 @@ const PendingRequest = ({ user }: FriendProp) => {
 };
 
 const FriendRequest = ({ user }: FriendProp) => {
+    const postRequest = async (action: string) => {
+        const resp = await fetch(
+            window.location.origin + '/api/friends/requests',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: user.id, action: action })
+            }
+        );
+        const data = await resp.json();
+        if (data.status === 'error') {
+            console.error(data.error);
+        }
+    };
+
     return (
         <div
             key={'friend-' + user.id}
@@ -69,10 +86,16 @@ const FriendRequest = ({ user }: FriendProp) => {
                 <div className="text-xs">{user.username}</div>
             </div>
             <div className="flex items-center scale-0 group-hover:scale-100">
-                <button className="text-red-600 p-1 m-1 hover:bg-gray-700 rounded-xl active:text-red-400">
+                <button
+                    className="text-red-600 p-1 m-1 hover:bg-gray-700 rounded-xl active:text-red-400"
+                    onClick={() => postRequest('block')}
+                >
                     <MdBlock size="32" />
                 </button>
-                <button className="text-green-600 p-1 m-1 hover:bg-gray-700 rounded-xl active:text-green-400">
+                <button
+                    className="text-green-600 p-1 m-1 hover:bg-gray-700 rounded-xl active:text-green-400"
+                    onClick={() => postRequest('accept')}
+                >
                     <FaCheck size="32" />
                 </button>
             </div>
@@ -115,6 +138,10 @@ const FriendList = () => {
     const [selected, setSelected] = useState(Selection.ALL);
     const [users, setUsers] = useState<(User | undefined)[]>([]);
 
+    if (selected !== Selection.ALL && users.length === 0) {
+        setSelected(Selection.ALL);
+    }
+
     const { send } = useWebsocket((cmd: string, packet: any) => {
         if (cmd === 'friend_request') {
             const userID = packet.source_user_id;
@@ -126,6 +153,25 @@ const FriendList = () => {
             dispatch({
                 type: Action.ADD_FRIEND_REQUESTS,
                 payload: [userID]
+            });
+        } else if (cmd === 'friend_request_update') {
+            const userID = packet.user_id;
+            const user = app.users.get(userID);
+            const state = packet.state;
+            if (!user) {
+                send({ cmd: 'get_user', user_ids: [userID] });
+            }
+
+            if (state === 'ACCEPTED') {
+                dispatch({
+                    type: Action.ADD_FRIENDS,
+                    payload: [userID]
+                });
+            }
+
+            dispatch({
+                type: Action.DEL_FRIEND_REQUEST,
+                payload: userID
             });
         }
     });

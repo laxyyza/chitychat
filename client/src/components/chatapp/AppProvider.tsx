@@ -43,7 +43,8 @@ enum Action {
     SET_CONNECT,
     LOAD_GROUP_MSGS,
     ADD_FRIENDS,
-    ADD_FRIEND_REQUESTS
+    ADD_FRIEND_REQUESTS,
+    DEL_FRIEND_REQUEST
 }
 
 type DispatchAction =
@@ -55,6 +56,7 @@ type DispatchAction =
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUP; payload: Group }
+    | { type: Action.DEL_FRIEND_REQUEST; payload: number }
     | {
           type: Action.ADD_FRIENDS | Action.ADD_FRIEND_REQUESTS;
           payload: number[];
@@ -201,6 +203,14 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return {
                 ...state,
                 friendRequests: [...state.friendRequests, ...action.payload]
+            };
+        }
+        case Action.DEL_FRIEND_REQUEST: {
+            return {
+                ...state,
+                friendRequests: state.friendRequests.filter(
+                    (id) => id !== action.payload
+                )
             };
         }
         default:
