@@ -4,11 +4,11 @@ import (
 	"context"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DB struct {
-	Conn* pgx.Conn
+	Conn* pgxpool.Pool
 }
 
 func New() (DB, error) {
@@ -19,7 +19,7 @@ func New() (DB, error) {
 		url = "dbname=chitychat"
 	}
 
-	db.Conn, err = pgx.Connect(context.Background(), url)
+	db.Conn, err = pgxpool.New(context.Background(), url)
 
 	return db, err
 }
