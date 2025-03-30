@@ -5,7 +5,6 @@
 static enum se_status
 nats_read(UNUSED eworker_t* ew, server_event_t* ev)
 {
-	info("nats_read\n");
 	natsConnection_ProcessReadEvent(ev->data);
 	return SE_OK;
 }
@@ -13,7 +12,6 @@ nats_read(UNUSED eworker_t* ew, server_event_t* ev)
 static enum se_status
 nats_write(UNUSED eworker_t* ew, server_event_t* ev)
 {
-	info("nats_write\n");
 	natsConnection_ProcessWriteEvent(ev->data);
 	return SE_OK;
 }
@@ -21,7 +19,7 @@ nats_write(UNUSED eworker_t* ew, server_event_t* ev)
 static enum se_status
 nats_close(UNUSED eworker_t* ew, UNUSED server_event_t* ev)
 {
-	error("nats_close\n");
+	warn("nats_close. TODO: Implement NATS Close!\n");
 	return SE_OK;
 }
 
@@ -29,8 +27,6 @@ natsStatus
 nats_attach(void** user_data, void* loop, natsConnection* nc, natsSock sock)
 {
 	server_t* server = loop;
-
-	info("NATS Attach socket: %d\n", sock);
 
 	server->nats.ev = server_epoll_add_event(server, sock, nc, 
 									nats_read, 
@@ -47,7 +43,6 @@ natsStatus
 nats_set_poll_read(void* user_data, bool add)
 {
 	server_nats_t* nats = user_data;
-	info("POLL READ %d\n", add);
 	if (add)
 		nats->ev->new_listen_events |= EPOLLIN;
 	else
@@ -59,7 +54,6 @@ natsStatus
 nats_set_poll_write(void* user_data, bool add)
 {
 	server_nats_t* nats = user_data;
-	info("POLL WRITE: %d\n", add);
 	if (add)
 		nats->ev->new_listen_events |= EPOLLOUT;
 	else
@@ -72,9 +66,9 @@ nats_set_poll_write(void* user_data, bool add)
 }
 
 natsStatus
-nats_detach(void* user_data)
+nats_detach(UNUSED void* user_data)
 {
-	info("nats detach: %p\n", user_data);
+	warn("nats detach: Implement NATS Detach!\n", user_data);
 	return NATS_OK;
 }
 
@@ -91,11 +85,6 @@ cc_server_http_msg(UNUSED natsConnection* nc, UNUSED natsSubscription* sub, nats
 	if (json == NULL)
 		goto msg_free;
 
-	info("on_msg: %s - %.*s\n", 
-		natsMsg_GetSubject(msg), 
-		size,
-		data);
-	
 	backend_read(server, json);
 	
 	json_object_put(json);
@@ -142,9 +131,9 @@ server_init_nats(server_t* server)
 
 	natsConnection_PublishString(server->nats.conn, "new_cc_server", "Yup a new one!");
 
-	natsSubscription* sub;
+	natsConnection_Subscribe(&server->nats.sub_http, server->nats.conn, server->nats.subj_http, (void*)cc_server_http_msg, server);
 
-	natsConnection_Subscribe(&sub, server->nats.conn, server->nats.subj_http, (void*)cc_server_http_msg, server);
+	natsSubscription_SetPendingLimits(server->nats.sub_http, -1, -1);
 
 	return true;
 }

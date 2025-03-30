@@ -207,7 +207,13 @@ server_epoll_add_event(server_t* server,
     else
         se->write = NULL;
 
-    se->close = close_cb;
+    if (close_cb)
+    {
+        listen_events |= EPOLLRDHUP;
+        se->close = close_cb;
+    }
+    else
+        se->close = NULL;
 
     se->new_listen_events = se->listen_events = listen_events;
     se->keep_data = false;
@@ -251,11 +257,7 @@ server_new_event(server_t* server,
     se->new_listen_events = se->listen_events = DEFAULT_EPEV;
     se->keep_data = false;
 
-    if (server_ght_insert(&server->event_ht, fd, se) == false)
-    {
-        // error("new_event(): Failed to insert.\n");
-        // goto err;
-    }
+    server_ght_insert(&server->event_ht, fd, se);
     if (server_epoll_add(server, se) == -1)
     {
         error("ep_addfd %d failed\n", fd);
@@ -314,9 +316,8 @@ server_process_event(eworker_t* ew, server_event_t* se)
         server_del_event(ew, se);
         return;
     }
-    else if (ev & (EPOLLRDHUP | EPOLLHUP))
+    else if (ev & EPOLLRDHUP)
     {
-        info("EPOLLRDHUB HUB fd: %d\n", se->fd);
         server_del_event(ew, se);
         return;
     }

@@ -15,6 +15,7 @@ typedef struct
 	server_event_t* ev;
 	u64 client_id;
 	char subj_http[SUBJECT_LEN];
+	natsSubscription* sub_http;
 } server_nats_t;
 
 bool server_init_nats(server_t* server);

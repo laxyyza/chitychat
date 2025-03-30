@@ -61,24 +61,6 @@ backend_do_route(eworker_t* ew, const char* subject, client_t* client, http_t* h
     }
 }
 
-// bool 
-// backend_route(eworker_t* ew, client_t* client, http_t* http)
-// {
-// 	const array_t* routes = &ew->server->backend_routes.routes;
-
-//     for (u32 i = 0; i < routes->count; i++)
-// 	{
-// 		const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
-
-// 		if (strncmp(route->path_prefix, http->req.url, route->path_len) == 0)
-// 		{
-//             backend_do_route(ew, route, client, http);
-// 			return true;
-// 		}
-// 	}
-// 	return false;
-// }
-
 bool 
 backend_route(eworker_t* ew, client_t* client, http_t* http)
 {
@@ -87,24 +69,7 @@ backend_route(eworker_t* ew, client_t* client, http_t* http)
     nats_subject[i + 4] = '.';
     strncat(nats_subject, http->req.method, SUBJECT_MAX - 1);
 
-    info("%s -> %s\n", http->req.url, nats_subject);
-
     backend_do_route(ew, nats_subject, client, http);
-    // backend_send_http(ew->server, nats_subject, client, http, 69);
-
-	// const array_t* routes = &ew->server->backend_routes.routes;
-
-    // for (u32 i = 0; i < routes->count; i++)
-	// {
-	// 	const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
-
-	// 	if (strncmp(route->path_prefix, http->req.url, route->path_len) == 0)
-	// 	{
-    //         backend_do_route(ew, route, client, http);
-	// 		return true;
-	// 	}
-	// }
-	// return false;
 
     return true;
 }
