@@ -14,6 +14,7 @@ void        hexstr_to_u8(const char* hexstr, size_t hexstr_len, u8* output);
 const char* server_get_content_type(const char* path);
 const char* getenvd(const char* var, const char* default_val);
 void        uuid_to_u64_2(const char* uuid_str, u64 out[2]);
+u32         strncpy_replace(char* dst, const char* src, u32 n, char old, char new);
 
 // Copy n bytes swapped order
 void        swpcpy(u8* restrict dest, const u8* restrict src, size_t n);

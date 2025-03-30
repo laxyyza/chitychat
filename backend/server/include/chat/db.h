@@ -75,7 +75,7 @@ typedef struct
 
 typedef struct 
 {
-    const backend_route_t* route;
+    const char* subject;
     http_t* http;
 } session_route_t;
 

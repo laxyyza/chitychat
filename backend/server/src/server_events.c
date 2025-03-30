@@ -7,7 +7,7 @@
 #include "server_tm.h"
 
 i32
-server_event_add(const server_t* server, server_event_t* se)
+server_epoll_add(const server_t* server, server_event_t* se)
 {
     i32 ret;
 
@@ -26,7 +26,7 @@ server_event_add(const server_t* server, server_event_t* se)
 }
 
 i32
-server_event_remove(const server_t* server, const server_event_t* se)
+server_epoll_remove(const server_t* server, const server_event_t* se)
 {
     i32 ret;
 
@@ -38,9 +38,11 @@ server_event_remove(const server_t* server, const server_event_t* se)
 }
 
 i32 
-server_event_rearm(const server_t* server, server_event_t* se)
+server_epoll_rearm(const server_t* server, server_event_t* se)
 {
     i32 ret;
+
+    se->listen_events = se->new_listen_events;
 
     struct epoll_event ev = {
         .data.ptr = (void*)se,
@@ -176,6 +178,55 @@ se_close_client(eworker_t* th, server_event_t* ev)
 }
 
 server_event_t* 
+server_epoll_add_event(server_t* server,
+                    i32 fd,
+                    void* data,
+                    se_read_callback_t read_cb,
+                    se_write_callback_t write_cb,
+                    se_close_callback_t close_cb)
+{
+    server_event_t* se;
+    i32 listen_events = EPOLLONESHOT;
+
+    se = malloc(sizeof(server_event_t));
+    se->fd = fd;
+    se->data = data;
+    if (read_cb)
+    {
+        listen_events |= EPOLLIN;
+        se->read = read_cb;
+    }
+    else
+        se->read = NULL;
+
+    if (write_cb)
+    {
+        listen_events |= EPOLLOUT;
+        se->write = write_cb;
+    }
+    else
+        se->write = NULL;
+
+    se->close = close_cb;
+
+    se->new_listen_events = se->listen_events = listen_events;
+    se->keep_data = false;
+
+    server_ght_insert(&server->event_ht, fd, se);
+    if (server_epoll_add(server, se) == -1)
+    {
+        error("server_epoll_add failed for fd: %d\n", fd);
+        goto err;
+    }
+    return se;
+err:
+    server_epoll_remove(server, se);
+    server_ght_del(&server->event_ht, fd);
+    free(se);
+    return NULL;
+}
+
+server_event_t* 
 server_new_event(server_t* server, 
                  i32 fd, 
                  void* data, 
@@ -195,8 +246,9 @@ server_new_event(server_t* server,
     se->fd = fd;
     se->data = data;
     se->read = read_callback;
+    se->write = NULL;
     se->close = close_callback;
-    se->listen_events = DEFAULT_EPEV;
+    se->new_listen_events = se->listen_events = DEFAULT_EPEV;
     se->keep_data = false;
 
     if (server_ght_insert(&server->event_ht, fd, se) == false)
@@ -204,14 +256,14 @@ server_new_event(server_t* server,
         // error("new_event(): Failed to insert.\n");
         // goto err;
     }
-    if (server_event_add(server, se) == -1)
+    if (server_epoll_add(server, se) == -1)
     {
         error("ep_addfd %d failed\n", fd);
         goto err;
     }
     return se;
 err:
-    server_event_remove(server, se);
+    server_epoll_remove(server, se);
     server_ght_del(&server->event_ht, fd);
     free(se);
     return NULL;
@@ -229,7 +281,7 @@ server_del_event(eworker_t* th, server_event_t* se)
         return;
     }
 
-    server_event_remove(server, se);
+    server_epoll_remove(server, se);
     if (se->close)
         se->close(th, se);
     else
@@ -260,17 +312,35 @@ server_process_event(eworker_t* ew, server_event_t* se)
     {
         se->err = server_print_sockerr(fd);
         server_del_event(ew, se);
+        return;
     }
     else if (ev & (EPOLLRDHUP | EPOLLHUP))
+    {
+        info("EPOLLRDHUB HUB fd: %d\n", se->fd);
         server_del_event(ew, se);
-    else if (ev & EPOLLIN)
+        return;
+    }
+
+    if (ev & EPOLLIN)
     {
         ret = se->read(ew, se);
         if (ret == SE_CLOSE || ret == SE_ERROR)
+        {
             server_del_event(ew, se);
-        else if (se->listen_events & EPOLLONESHOT)
-            server_event_rearm(server, se);
+            return;
+        }
     }
-    else
-        warn("Not handled fd: %d, ev: 0x%x\n", fd, ev);
+
+    if (ev & EPOLLOUT)
+    {
+        ret = se->write(ew, se);
+        if (ret == SE_CLOSE || ret == SE_ERROR)
+        {
+            server_del_event(ew, se);
+            return;
+        }
+    }
+
+    if (se->listen_events & EPOLLONESHOT || se->new_listen_events != se->listen_events)
+        server_epoll_rearm(server, se);
 }

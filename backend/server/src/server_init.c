@@ -344,14 +344,14 @@ server_init_eventfd(server_t* server)
      * Default server_new_event() will use EPOLLONESHOT,
      * in this case we don't, we want all threads get this event.
      */
-    se->listen_events = EPOLLIN;
-    if (server_event_rearm(server, se) == -1)
+    se->new_listen_events = EPOLLIN;
+    if (server_epoll_rearm(server, se) == -1)
         return false;
 
     return true;
 }
 
-static bool 
+UNUSED static bool 
 server_test_bind(server_t* server)
 {
     i32 sock;
@@ -399,8 +399,8 @@ server_init(int argc, char* const* argv)
     if (!server_set_address(server))
         goto error;
 
-    if (!server_test_bind(server))
-        goto error;
+    // if (!server_test_bind(server))
+    //     goto error;
 
     // Init Hash Tables
     if (!server_init_ht(server))
@@ -432,7 +432,7 @@ server_init(int argc, char* const* argv)
     if (!server_init_signal(server))
         goto error;
 
-    if (!backend_socket_init(server))
+    if (!server_init_nats(server))
         goto error;
 
     // Init Thread Manager

@@ -39,6 +39,8 @@ function cleanup()
 
 trap cleanup SIGINT SIGTERM
 
+export $(cat .env | xargs)
+
 exec_server
 sleep 0.1
 exec_services

@@ -2,10 +2,11 @@ package service
 
 import (
 	"backend/services/go/internal/db"
-	"backend/services/go/internal/server"
+	"backend/services/go/internal/mq"
 	"fmt"
-	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"path/filepath"
 )
 
@@ -14,11 +15,11 @@ type CallbackAllow[T any] struct {
 	Allow []string
 }
 
-type FuncPathHandler[T any] func(*Service[T], *server.HTTPRequest) *server.HTTPResponse
+type FuncPathHandler[T any] func(*Service[T], *mq.HTTPRequest) *mq.HTTPResponse
 type PathMap[T any] map[string]CallbackAllow[T]
 
 type Service[T any] struct {
-	server server.Server
+	Mq mq.MQ
 	Db db.DB
 	name string
 	UserData T
@@ -35,7 +36,7 @@ func New[T any](userData T) (*Service[T], error) {
 	}
 	service.name = filepath.Base(exePath)
 
-	service.server, err = server.New()
+	service.Mq, err = mq.New(service.name)
 	if err != nil {
 		return nil, err
 	}
@@ -49,65 +50,18 @@ func New[T any](userData T) (*Service[T], error) {
 }
 
 func (s* Service[T]) Register(paths PathMap[T]) error {
-	pathStr := make([]string, 0)
-
-	for path := range paths {
-		pathStr = append(pathStr, path)	
+	for path, route := range paths {
+		s.Mq.BindHTTP(path, route.Allow, func (req* mq.HTTPRequest) (*mq.HTTPResponse) {
+			return route.Callback(s, req)
+		})
 	}
-
-	err := s.server.Send(map[string]interface{}{
-		"name": s.name,
-		"register_paths": pathStr,
-	})
-	if err != nil {
-		return err
-	}
-
-	resp, err := s.server.Recv()
-	if err != nil {
-		return err
-	}
-
-	s.paths = paths
-	fmt.Println("register:", resp)
-
 	return nil
 }
 
-func (s* Service[T]) Send(data* server.HTTPResponse) error {
-	return s.server.SendResp(data)
-}
-
-func (s* Service[T]) Recv() (*server.HTTPRequest, error) {
-	return s.server.Recv()
-}
-
-func allowMethod(methods []string, method string) bool {
-	for _, v := range methods {
-		if method == v {
-			return true
-		}
-	}
-	return false
-}
-
-func (s* Service[T]) Run() error {
-	for {
-		data, err := s.Recv()	
-		if err != nil {
-			return err
-		}
-
-		var urlPath string = data.Path
-		var path CallbackAllow[T] = s.paths[urlPath]
-
-		if allowMethod(path.Allow, data.Method) {
-			resp := path.Callback(s, data)
-			if resp != nil {
-				s.server.Send(resp)
-			}
-		} else {
-			s.server.Send(server.NewResponse(data, http.StatusMethodNotAllowed, nil))
-		}
-	}
+func (s* Service[T]) Run() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigChan
+	fmt.Printf("\n%s received signal: %s. Exiting.\n", s.name, sig)
+	os.Exit(0)
 }

@@ -3,7 +3,14 @@ add_global_arguments(
     language: 'c',
 )
 
-subdir('lib/cutils')
+cutils_proj = subproject('cutils', required: true)
+cutils_include = cutils_proj.get_variable('cutils_include')
+libcutils = cutils_proj.get_variable('libcutils')
+
+cmake = import('cmake', required: true)
+nats_proj = cmake.subproject('nats.c', required: true)
+nats_dep = nats_proj.dependency('nats')
+nats_inc = nats_proj.include_directories('nats')
 
 openssl_dep = dependency('openssl')
 jsonc_dep = dependency('json-c')
@@ -30,6 +37,7 @@ server_src = files(
     'src/server_eworker.c',
     'src/backend.c',
     'src/backend_route.c',
+    'src/server_nats.c',
 
     'src/chat/user_file.c',
     'src/chat/user_login.c',
@@ -47,7 +55,7 @@ server_src = files(
     'src/chat/cmd.c',
     'src/chat/db_user_session.c',
 )
-include_dirs = [include_directories('include')]
+include_dirs = [include_directories('include'), nats_inc]
 include_dirs += cutils_include
 
 executable('cc_server', server_src, 
@@ -56,7 +64,8 @@ executable('cc_server', server_src,
         openssl_dep, 
         jsonc_dep, 
         libpq_dep, 
-        magic_dep
+        magic_dep,
+        nats_dep
     ],
     link_with: libcutils
 )

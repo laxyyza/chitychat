@@ -267,3 +267,24 @@ uuid_to_u64_2(const char* uuid_str, u64 out[2])
              ((u64)bytes[12] << 24) | ((u64)bytes[13] << 16) |
              ((u64)bytes[14] << 8)  | ((u64)bytes[15]);
 }
+
+u32
+strncpy_replace(char* dst, const char* src, u32 n, char old, char new)
+{
+    u32 i = 0;
+
+    while (src[i])
+    {
+        char c = src[i];
+        if (c == old)
+            c = new;
+        dst[i] = c;
+        i++;
+
+        if (i >= n)
+            break;
+    }
+    dst[i] = 0x00;
+
+    return i;
+}

@@ -4,70 +4,33 @@
 #include "backend.h"
 #include "chat/db_user_session.h"
 
-void 
-backend_route_init(backend_route_table_t* brt)
-{
-	array_init(&brt->routes, sizeof(backend_route_t), 10);
-}
-
-void 
-backend_route_deinit(backend_route_table_t* brt)
-{
-	array_del(&brt->routes);
-}
-
-void 
-backend_route_add(backend_route_table_t* brt, const char* path_prefix, backend_service_t* bs)
-{
-	backend_route_t* new_route = array_add_into(&brt->routes);
-	strncpy(new_route->path_prefix, path_prefix, ROUTE_PREFIX_MAX);
-	new_route->service = bs;
-	new_route->path_len = strnlen(new_route->path_prefix, ROUTE_PREFIX_MAX);
-
-	info("BS '%s' registered: %s\n", bs->name, path_prefix);
-}
-
-void 
-backend_route_del(backend_route_table_t* brt, const backend_service_t* bs)
-{
-	array_t* routes = &brt->routes;
-
-	for (u32 i = 0; i < routes->count; i++)
-	{
-		const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
-
-        if (route->service == bs)
-        {
-            info("Unregister: %s from bs:%s\n", route->path_prefix, bs->name);
-            array_erase(routes, i);
-            i--;
-        }
-	}
-}
+#define SUBJECT_MAX 512
 
 static const char* 
 do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
     dbsession_t* session = ctx->data;
-    const backend_route_t* route = ctx->param.session_route.route;
+    const char* subject = ctx->param.session_route.subject;
     http_t* http = ctx->param.session_route.http;
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
         server_http_resp_error(ctx->client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
         http_free(http);
+        free((void*)subject);
         return "Invalid session ID";
     }
 
-    backend_send_http(ew->server, route->service, ctx->client, http, session->user_id);
+    backend_send_http(ew->server, subject, ctx->client, http, session->user_id);
 
     http_free(http);
+    free((void*)subject);
 
     return NULL;
 }
 
 static void 
-backend_do_route(eworker_t* ew, const backend_route_t* route, client_t* client, http_t* http)
+backend_do_route(eworker_t* ew, const char* subject, client_t* client, http_t* http)
 {
     if (http->session_uuid == NULL)
     {
@@ -80,7 +43,7 @@ backend_do_route(eworker_t* ew, const backend_route_t* route, client_t* client, 
 
     if (real_client && real_client->dbuser)
     {
-        backend_send_http(ew->server, route->service, client, http, real_client->dbuser->user_id);
+        backend_send_http(ew->server, subject, client, http, real_client->dbuser->user_id);
     }
     else
     {
@@ -90,7 +53,7 @@ backend_do_route(eworker_t* ew, const backend_route_t* route, client_t* client, 
         dbcmd_ctx_t ctx = {
             .exec = do_get_session,
             .param.session_route.http = http,
-            .param.session_route.route = route
+            .param.session_route.subject = strndup(subject, SUBJECT_MAX)
         };
         ew->ignore_http_free = true;
 
@@ -98,20 +61,50 @@ backend_do_route(eworker_t* ew, const backend_route_t* route, client_t* client, 
     }
 }
 
+// bool 
+// backend_route(eworker_t* ew, client_t* client, http_t* http)
+// {
+// 	const array_t* routes = &ew->server->backend_routes.routes;
+
+//     for (u32 i = 0; i < routes->count; i++)
+// 	{
+// 		const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
+
+// 		if (strncmp(route->path_prefix, http->req.url, route->path_len) == 0)
+// 		{
+//             backend_do_route(ew, route, client, http);
+// 			return true;
+// 		}
+// 	}
+// 	return false;
+// }
+
 bool 
 backend_route(eworker_t* ew, client_t* client, http_t* http)
 {
-	const array_t* routes = &ew->server->backend_routes.routes;
+    char nats_subject[SUBJECT_MAX] = "http";
+    u32 i = strncpy_replace(nats_subject + 4, http->req.url, SUBJECT_MAX - 5, '/', '.');
+    nats_subject[i + 4] = '.';
+    strncat(nats_subject, http->req.method, SUBJECT_MAX - 1);
 
-    for (u32 i = 0; i < routes->count; i++)
-	{
-		const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
+    info("%s -> %s\n", http->req.url, nats_subject);
 
-		if (strncmp(route->path_prefix, http->req.url, route->path_len) == 0)
-		{
-            backend_do_route(ew, route, client, http);
-			return true;
-		}
-	}
-	return false;
+    backend_do_route(ew, nats_subject, client, http);
+    // backend_send_http(ew->server, nats_subject, client, http, 69);
+
+	// const array_t* routes = &ew->server->backend_routes.routes;
+
+    // for (u32 i = 0; i < routes->count; i++)
+	// {
+	// 	const backend_route_t* route = (backend_route_t*)array_idx(routes, i);
+
+	// 	if (strncmp(route->path_prefix, http->req.url, route->path_len) == 0)
+	// 	{
+    //         backend_do_route(ew, route, client, http);
+	// 		return true;
+	// 	}
+	// }
+	// return false;
+
+    return true;
 }

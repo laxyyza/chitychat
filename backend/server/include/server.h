@@ -19,6 +19,7 @@
 #include "chat/upload_token.h"
 #include "chat/user_session.h"
 #include "backend_route.h"
+#include "server_nats.h"
 
 #define SERVER_NAME "ChityChat"
 
@@ -73,7 +74,6 @@ typedef struct server
         struct sockaddr_in6 addr_in6;
     };
     socklen_t addr_len;
-    backend_route_table_t backend_routes;
 
     server_ght_t event_ht;
     server_ght_t client_ht;
@@ -84,6 +84,9 @@ typedef struct server
     server_ght_t chat_cmd_ht;
     server_ght_t bservices_ht;
     server_event_t* server_event;
+
+    server_nats_t nats;
+
     bool running;
 } server_t;
 

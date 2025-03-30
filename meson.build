@@ -5,6 +5,7 @@ project('chitychat', 'c',
         'warning_level=2',
         'default_library=static',
     ],
+    subproject_dir: 'backend/server/lib/',
     version: run_command('cat', join_paths(meson.project_source_root(), 'VERSION'), check: true).stdout().strip(),
 )
 
