@@ -17,6 +17,7 @@ type FriendsData struct {
 	sql_select_friends string
 }
 
+// Get friends
 func getFriends(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	fmt.Println("friends(): ", req)
 
@@ -39,6 +40,7 @@ func getFriends(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPRe
 	})
 }
 
+// Send friend request 
 func friendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	var username string = req.Body["username"].(string)
 	var userID uint32
@@ -74,11 +76,17 @@ func friendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTT
 		}
 	}
 
+	s.Mq.UserEvent(userID, map[string]interface{}{
+		"cmd": "friend_request",
+		"source_user_id": req.UserID,
+	})
+
 	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
 		"user_id": userID,
 	})
 }
 
+// Get friend requests.
 func getFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	var userID uint32 = req.UserID
 

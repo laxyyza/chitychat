@@ -93,3 +93,13 @@ func NewResponse(req* HTTPRequest, status int, body* map[string]interface{}) *HT
 		Body: body,
 	}
 }
+
+func (mq* MQ) UserEvent(userID uint32, event map[string]interface{}) {
+	data, err := json.Marshal(event)
+	if err != nil {
+		fmt.Printf("RealTimeEvent json.Marshal failed: %s\n", err)
+		return
+	}
+
+	mq.conn.Publish(fmt.Sprintf("realtime.user.%d", userID), data)
+}
