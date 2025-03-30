@@ -110,7 +110,7 @@ const getUserIDs = (app: App, selection: Selection): number[] => {
         case Selection.FRIEND_REQUESTS:
             return app.friendRequests;
         case Selection.PENDING_REQUESTS:
-            return app.friendRequests;
+            return app.pendingRequests;
         default:
             return [];
     }
@@ -137,10 +137,6 @@ const FriendList = () => {
     const [addFriend, setAddFriend] = useState(false);
     const [selected, setSelected] = useState(Selection.ALL);
     const [users, setUsers] = useState<(User | undefined)[]>([]);
-
-    if (selected !== Selection.ALL && users.length === 0) {
-        setSelected(Selection.ALL);
-    }
 
     const { send } = useWebsocket((cmd: string, packet: any) => {
         if (cmd === 'friend_request') {
@@ -169,10 +165,17 @@ const FriendList = () => {
                 });
             }
 
-            dispatch({
-                type: Action.DEL_FRIEND_REQUEST,
-                payload: userID
-            });
+            if (app.friendRequests.find((id) => id === userID)) {
+                dispatch({
+                    type: Action.DEL_FRIEND_REQUEST,
+                    payload: userID
+                });
+            } else if (app.pendingRequests.find((id) => id === userID)) {
+                dispatch({
+                    type: Action.DEL_PENDING_FRIEND_REQUEST,
+                    payload: userID
+                });
+            }
         }
     });
 
@@ -180,7 +183,16 @@ const FriendList = () => {
         const userIDs = getUserIDs(app, selected);
         const newUsers = userIDs.map((userID) => app.users.get(userID));
         setUsers(newUsers);
-    }, [app.friendIDs, app.friendRequests, selected, app.users]);
+        if (selected !== Selection.ALL && userIDs.length === 0) {
+            setSelected(Selection.ALL);
+        }
+    }, [
+        app.friendIDs,
+        app.friendRequests,
+        app.pendingRequests,
+        selected,
+        app.users
+    ]);
 
     return (
         <div className="h-full relative">
@@ -241,6 +253,7 @@ const FriendList = () => {
                             : '')
                     }
                     onClick={() => {
+                        console.log('PENDING click! ', selected);
                         if (app.pendingRequests.length)
                             setSelected(Selection.PENDING_REQUESTS);
                     }}

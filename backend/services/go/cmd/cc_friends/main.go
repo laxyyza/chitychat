@@ -123,6 +123,11 @@ func actionFriendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest, s
 		"user_id": targetUserID,
 		"state": status,
 	})
+	s.Mq.UserEvent(targetUserID, map[string]interface{}{
+		"cmd": "friend_request_update",
+		"user_id": sourceUserID,
+		"state": status,
+	})
 
 	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
 		"status": "success",
@@ -178,6 +183,32 @@ func friendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HT
 	}
 }
 
+// Get outgoing friend requests.
+func getOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	sourceUserID := req.UserID
+
+	rows, err := s.Db.Conn.Query(context.Background(), 
+								"SELECT target_user_id FROM Friendships WHERE source_user_id = $1::int;",
+								sourceUserID)								
+	if err != nil {
+		fmt.Printf("Get outgoing friend requests failed: %s\n",
+					err)
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	var userIDs []uint32 = make([]uint32, 0)
+	for rows.Next() {
+		var targetUserID uint32
+		rows.Scan(&targetUserID)
+
+		userIDs = append(userIDs, targetUserID)
+	}
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
+		"user_ids": userIDs,
+	})
+}
+
 func main() {
 	bservice, err := service.New(FriendsData{})
 	if err != nil {
@@ -205,6 +236,10 @@ func main() {
 		"/api/friend-request": service.CallbackAllow[FriendsData]{
 			Callback: friendRequest,
 			Allow: []string{"POST"},
+		},
+		"/api/friends/requests/outgoing": service.CallbackAllow[FriendsData]{
+			Callback: getOutgoingFriendRequests,
+			Allow: []string{"GET"},
 		},
 	})
 	if err != nil {

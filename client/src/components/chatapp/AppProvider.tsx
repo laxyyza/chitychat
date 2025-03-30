@@ -44,7 +44,9 @@ enum Action {
     LOAD_GROUP_MSGS,
     ADD_FRIENDS,
     ADD_FRIEND_REQUESTS,
-    DEL_FRIEND_REQUEST
+    ADD_PENDING_FRIEND_REQUESTS,
+    DEL_FRIEND_REQUEST,
+    DEL_PENDING_FRIEND_REQUEST
 }
 
 type DispatchAction =
@@ -56,9 +58,15 @@ type DispatchAction =
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUP; payload: Group }
-    | { type: Action.DEL_FRIEND_REQUEST; payload: number }
     | {
-          type: Action.ADD_FRIENDS | Action.ADD_FRIEND_REQUESTS;
+          type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
+          payload: number;
+      }
+    | {
+          type:
+              | Action.ADD_FRIENDS
+              | Action.ADD_FRIEND_REQUESTS
+              | Action.ADD_PENDING_FRIEND_REQUESTS;
           payload: number[];
       }
     | {
@@ -209,6 +217,20 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return {
                 ...state,
                 friendRequests: state.friendRequests.filter(
+                    (id) => id !== action.payload
+                )
+            };
+        }
+        case Action.ADD_PENDING_FRIEND_REQUESTS: {
+            return {
+                ...state,
+                pendingRequests: [...state.pendingRequests, ...action.payload]
+            };
+        }
+        case Action.DEL_PENDING_FRIEND_REQUEST: {
+            return {
+                ...state,
+                pendingRequests: state.pendingRequests.filter(
                     (id) => id !== action.payload
                 )
             };

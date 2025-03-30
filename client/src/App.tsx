@@ -123,6 +123,21 @@ function MainApp() {
                 });
             });
 
+        fetch(window.location.origin + '/api/friends/requests/outgoing')
+            .then((response) => response.json())
+            .then((json) => {
+                const userIDs: number[] = json.user_ids;
+                const donthaveIDs = userIDs.filter((id) => !app.users.get(id));
+
+                if (donthaveIDs.length) {
+                    send({ cmd: 'get_user', user_ids: donthaveIDs });
+                }
+                dispatch({
+                    type: Action.ADD_PENDING_FRIEND_REQUESTS,
+                    payload: json.user_ids
+                });
+            });
+
         if (process.env.NODE_ENV !== 'development') {
             websocketClient.onStateChange((state: string) => {
                 if (state === 'error' || state === 'close') {
