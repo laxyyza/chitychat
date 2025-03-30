@@ -6,7 +6,7 @@ urllib3.disable_warnings()
 import requests
 
 def run(session_id: str) -> None:
-    resp = requests.get(f"https://{host}:{port}/api/friend-requests", cookies={"session_id": session_id}, verify=False)
+    resp = requests.get(f"https://{host}:{port}/api/friends/requests", cookies={"session_id": session_id}, verify=False)
     print(resp.status_code)
     print(resp.text)
 

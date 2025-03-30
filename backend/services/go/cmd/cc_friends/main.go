@@ -5,9 +5,10 @@ import (
 	"backend/services/go/internal/service"
 	"context"
 	"fmt"
-	"os"
 	"log"
 	"net/http"
+	"os"
+
 	// "os"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -86,7 +87,58 @@ func friendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTT
 	})
 }
 
-// Get friend requests.
+func actionFriendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest, status string) *mq.HTTPResponse {
+	sourceUserID := req.UserID
+
+	targetUserIDf64, ok := req.Body["user_id"].(float64)
+	if (!ok) {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"status": "error",
+			"error": "user_id",
+		})
+	}
+	targetUserID := uint32(targetUserIDf64)
+	var friendShipID uint32
+
+	row := s.Db.Conn.QueryRow(context.Background(), 
+								"SELECT friendship_id FROM Friendships WHERE target_user_id = $1::int AND source_user_id = $2::int AND status = 'PENDING';",
+								sourceUserID, targetUserID)
+	err := row.Scan(&friendShipID)	
+	if (err != nil) {
+		fmt.Printf("Query friendship id: %s\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"status": "error",
+			"error": "Cant find friend request",
+		})
+	}
+
+	_, err = s.Db.Conn.Exec(context.Background(), 
+							"UPDATE Friendships SET status = $1::friendship_status WHERE friendship_id = $2::int;", 
+							status, friendShipID)
+	if (err != nil) {
+		fmt.Printf("Failed to update friendship: %s\n", err)
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
+		"status": "success",
+	})
+}
+
+func postFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	fmt.Println(req)
+	switch action := req.Body["action"]; action {
+	case "accept": 
+		return actionFriendRequest(s, req, "ACCEPTED")
+	case "block":
+		return actionFriendRequest(s, req, "BLOCKED")
+	default:
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": "Only 'accept' or 'block' actions are allowed",
+		})
+	}
+}
+
 func getFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	var userID uint32 = req.UserID
 
@@ -111,6 +163,17 @@ func getFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq
 	})
 }
 
+// Get friend requests.
+func friendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	if (req.Method == "GET") {
+		return getFriendRequests(s, req)
+	} else if (req.Method == "POST") {
+		return postFriendRequests(s, req)
+	} else {
+		return nil
+	}
+}
+
 func main() {
 	bservice, err := service.New(FriendsData{})
 	if err != nil {
@@ -131,13 +194,13 @@ func main() {
 			Callback: getFriends, 
 			Allow: []string{"GET"},
 		},
+		"/api/friends/requests": service.CallbackAllow[FriendsData]{
+			Callback: friendRequests,
+			Allow: []string{"GET", "POST"},
+		},
 		"/api/friend-request": service.CallbackAllow[FriendsData]{
 			Callback: friendRequest,
 			Allow: []string{"POST"},
-		},
-		"/api/friend-requests": service.CallbackAllow[FriendsData]{
-			Callback: getFriendRequests,
-			Allow: []string{"GET"},
 		},
 	})
 	if err != nil {
