@@ -11,7 +11,7 @@ backend_service_send(backend_service_t* bs, json_object* json)
 {
     size_t len64;
     void* buf;
-    const char* json_str = json_object_to_json_string_length(json, 0, &len64);
+    const char* json_str = json_object_to_json_string_length(json, JSON_C_TO_STRING_NOSLASHESCAPE, &len64);
     const u32 len = len64;
     u32 buf_len = sizeof(u32) + len;
 
@@ -85,7 +85,7 @@ backend_service_send(backend_service_t* bs, json_object* json)
     "payload": {
         "friends": [451, 514, 31]
     }
-}
+
 
 */
 static enum se_status 
@@ -111,7 +111,7 @@ registered_backend_read(eworker_t* ew, backend_service_t* service, json_object* 
     }
 
     status = json_object_get_int(json_status);
-    body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE | JSON_C_TO_STRING_PLAIN, &payload_len);
+    body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE, &payload_len);
 
     http = http_new_resp(status, "OK", body, payload_len);
 
