@@ -74,11 +74,11 @@ CREATE TABLE IF NOT EXISTS HubMembers(
 );
 
 CREATE TABLE IF NOT EXISTS DirectMessages(
-    dm_id       SERIAL PRIMARY KEY,
     user1_id    int NOT NULL,
     user2_id    int NOT NULL,
     created_at  TIMESTAMP DEFAULT NOW(),
 
+    PRIMARY KEY (user1_id, user2_id),
 	UNIQUE (user1_id, user2_id),
     FOREIGN KEY (user1_id) REFERENCES Users(user_id),
     FOREIGN KEY (user2_id) REFERENCES Users(user_id)

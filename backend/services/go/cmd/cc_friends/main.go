@@ -1,9 +1,9 @@
 package main
 
 import (
+	"backend/services/go/internal/cc_friends"
 	"backend/services/go/internal/service"
 	"os"
-	"backend/services/go/internal/cc_friends"
 	"fmt"
 )
 
