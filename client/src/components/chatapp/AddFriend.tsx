@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { useApp } from './AppProvider';
+import { Action, useApp } from './AppProvider';
+import useWebsocket from '../WebSocket';
 
 interface Prop {
     onClose: () => void;
 }
 
 const AddFriend = ({ onClose }: Prop) => {
-    const { app } = useApp();
+    const { app, dispatch } = useApp();
     const [username, setUsername] = useState('');
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const [errorMsg, setErrorMsg] = useState('');
+
+    const { send } = useWebsocket();
 
     const postRequest = async () => {
         const resp = await fetch(
@@ -22,8 +26,21 @@ const AddFriend = ({ onClose }: Prop) => {
             }
         );
         const data = await resp.json();
-        console.log('data: ', data);
-        onClose();
+        if (data.user_id) {
+            const userID: number = data.user_id
+            if (!app.users.get(userID)) {
+                send({ cmd: 'get_user', user_ids: [userID] });
+            }
+
+            dispatch({
+                type: Action.ADD_PENDING_FRIEND_REQUESTS,
+                payload: [userID]
+            });
+            setErrorMsg('');
+            onClose();
+        } else {
+            setErrorMsg('ERROR: ' + data.error);
+        }
     };
 
     useEffect(() => {
@@ -55,6 +72,11 @@ const AddFriend = ({ onClose }: Prop) => {
                 className="bg-gray-800 w-150 p-2 rounded-xl border-1 border-black"
                 onClick={(e) => e.stopPropagation()}
             >
+                {errorMsg && (
+                    <div className="bg-red-500 mb-2 rounded-xs p-1 font-bold">
+                        <span>{errorMsg}</span>
+                    </div>
+                )}
                 {app.friendIDs.length === 0 && (
                     <div className="mb-2 text-xl">
                         No friends yet? Send a request and start a conversation!
