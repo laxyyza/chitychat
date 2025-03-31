@@ -54,7 +54,9 @@ class WebSocketClient
     send(msg: any) 
     {
         if (this.ws?.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify(msg));
+            const data = JSON.stringify(msg);
+            console.debug("Sending: ", data);
+            this.ws.send(data);
         } else { 
             console.warn("Websocket not open. Not sending message.");
         }

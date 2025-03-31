@@ -188,7 +188,7 @@ func getOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequ
 	sourceUserID := req.UserID
 
 	rows, err := s.Db.Conn.Query(context.Background(), 
-								"SELECT target_user_id FROM Friendships WHERE source_user_id = $1::int;",
+								"SELECT target_user_id FROM Friendships WHERE source_user_id = $1::int AND status = 'PENDING';",
 								sourceUserID)								
 	if err != nil {
 		fmt.Printf("Get outgoing friend requests failed: %s\n",
@@ -207,6 +207,48 @@ func getOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequ
 	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
 		"user_ids": userIDs,
 	})
+}
+
+func deleteOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	sourceUserID := req.UserID
+	targetUserIDf64 := req.Body["user_id"].(float64)
+	targetUserID := uint32(targetUserIDf64)
+
+	_, err := s.Db.Conn.Exec(context.Background(), 
+								"DELETE FROM Friendships WHERE source_user_id = $1::int AND target_user_id = $2::int AND status = 'PENDING';",
+								sourceUserID, targetUserID)
+	if err != nil {
+		fmt.Printf("Failed to delete outgoing friend request: %s\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"status": "error",
+			"error": "Failed to delete friend request",
+		})
+	}
+
+	s.Mq.UserEvent(targetUserID, map[string]interface{}{
+		"cmd": "friend_request_update",
+		"user_id": sourceUserID,
+		"state": "DELETED",
+	})
+	s.Mq.UserEvent(sourceUserID, map[string]interface{}{
+		"cmd": "friend_request_update",
+		"user_id": targetUserID,
+		"state": "DELETED",
+	})
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
+		"status": "success",
+	})
+}
+
+func outgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	if req.Method == "GET" {
+		return getOutgoingFriendRequests(s, req)
+	} else if (req.Method == "DELETE") {
+		return deleteOutgoingFriendRequests(s, req)
+	} else {
+		return nil
+	}
 }
 
 func main() {
@@ -238,8 +280,8 @@ func main() {
 			Allow: []string{"POST"},
 		},
 		"/api/friends/requests/outgoing": service.CallbackAllow[FriendsData]{
-			Callback: getOutgoingFriendRequests,
-			Allow: []string{"GET"},
+			Callback: outgoingFriendRequests,
+			Allow: []string{"GET", "DELETE"},
 		},
 	})
 	if err != nil {

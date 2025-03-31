@@ -38,6 +38,19 @@ const Friend = ({ user }: FriendProp) => {
 };
 
 const PendingRequest = ({ user }: FriendProp) => {
+    const deleteRequest = async () => {
+        await fetch(
+            window.location.origin + "/api/friends/requests/outgoing",
+            {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({user_id: user.id})
+            }
+        )
+    }
+
     return (
         <div
             key={'friend-' + user.id}
@@ -48,7 +61,7 @@ const PendingRequest = ({ user }: FriendProp) => {
                 <div className="font-bold text-xl">{user.displayname}</div>
                 <div className="text-xs">{user.username}</div>
             </div>
-            <div className="flex items-center scale-0 group-hover:scale-100">
+            <div className="flex items-center scale-0 group-hover:scale-100" onClick={() => deleteRequest()}>
                 <button className="text-red-600 p-1 m-1 hover:bg-gray-700 rounded-xl active:text-red-400">
                     <MdOutlineCancel size="32" />
                 </button>

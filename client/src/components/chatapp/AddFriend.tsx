@@ -16,7 +16,7 @@ const AddFriend = ({ onClose }: Prop) => {
 
     const postRequest = async () => {
         const resp = await fetch(
-            'https://localhost:8080' + '/api/friend-request',
+            window.location.origin + '/api/friend-request',
             {
                 method: 'POST',
                 headers: {
