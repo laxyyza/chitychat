@@ -26,11 +26,18 @@ type HTTPResponse struct {
 	Body*	map[string]interface{} 	`json:"body"`
 }
 
+type WSRequest struct {
+	UserID 	uint32 			`json:"user_id"`
+	Payload map[string]any 	`json:"payload"`
+}
+
 type SubCallbackType func (*HTTPRequest) (*HTTPResponse)
+type WSCallbackType func (uint32, map[string]any) error
 
 type MQ struct {
 	conn* nats.Conn
-	queueName string
+	httpQueueName string
+	wsQueueName string
 }
 
 func toRequest(m* nats.Msg) (*HTTPRequest) {
@@ -45,7 +52,7 @@ func toRequest(m* nats.Msg) (*HTTPRequest) {
 }
 
 func New(queueName string) (MQ, error) {
-	var mq MQ = MQ{queueName: queueName}
+	var mq MQ = MQ{httpQueueName: queueName + ".http", wsQueueName: queueName + ".ws"}
 	var err error
 
 	mq.conn, err = nats.Connect(nats.DefaultURL)
@@ -64,7 +71,7 @@ func (mq* MQ) BindHTTP(endpoint string, methods []string, callback SubCallbackTy
 		var subject string = natsEndpoint + "." + method
 		fmt.Printf("SUB %s\n", subject)
 
-		mq.conn.QueueSubscribe(subject, mq.queueName, func (m* nats.Msg) {
+		mq.conn.QueueSubscribe(subject, mq.httpQueueName, func (m* nats.Msg) {
 			req := toRequest(m)
 			if req == nil {
 				return
@@ -83,6 +90,22 @@ func (mq* MQ) BindHTTP(endpoint string, methods []string, callback SubCallbackTy
 			m.Respond(data)
 		})
 	}
+}
+
+func (mq* MQ) BindWSCMD(cmd string, callback WSCallbackType) {
+	var natsSubject = "ws.cmd." + cmd
+
+	fmt.Printf("SUB %s\n", natsSubject)
+	mq.conn.QueueSubscribe(natsSubject, mq.wsQueueName, func(m* nats.Msg) {
+		var req WSRequest
+		err := json.Unmarshal(m.Data, &req)
+		if err != nil {
+			fmt.Printf("ws: json.Unmarshal: %s\n", err)
+			return
+		}
+
+		callback(req.UserID, req.Payload)
+	})
 }
 
 func NewResponse(req* HTTPRequest, status int, body* map[string]interface{}) *HTTPResponse {

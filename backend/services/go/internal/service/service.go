@@ -17,6 +17,7 @@ type CallbackAllow[T any] struct {
 
 type FuncPathHandler[T any] func(*Service[T], *mq.HTTPRequest) *mq.HTTPResponse
 type PathMap[T any] map[string]CallbackAllow[T]
+type CmdMap[T any] map[string]func(*Service[T], uint32, map[string]any) error
 
 type Service[T any] struct {
 	Mq mq.MQ
@@ -53,6 +54,16 @@ func (s* Service[T]) Register(paths PathMap[T]) error {
 	for path, route := range paths {
 		s.Mq.BindHTTP(path, route.Allow, func (req* mq.HTTPRequest) (*mq.HTTPResponse) {
 			return route.Callback(s, req)
+		})
+	}
+	return nil
+}
+
+// WebSocket Command Register
+func (s* Service[T]) WSCmdRegister(cmds CmdMap[T]) error {
+	for cmd, callback := range cmds {
+		s.Mq.BindWSCMD(cmd, func(srcUserID uint32, payload map[string]any) error {
+			return callback(s, srcUserID, payload)
 		})
 	}
 	return nil

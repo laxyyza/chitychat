@@ -127,7 +127,8 @@ server_init_nats(server_t* server)
 
 	info("NATS CLIENT ID: %lu\n", server->nats.client_id);
 
-	snprintf(server->nats.subj_http, SUBJECT_LEN, "cc_server.http.%lu", server->nats.client_id);
+	snprintf(server->nats.subj_http, SUBJECT_LEN - 1, "cc_server.http.%lu", server->nats.client_id);
+	snprintf(server->nats.subj_ws, SUBJECT_LEN - 1, "cc_server.ws.%lu", server->nats.client_id);
 
 	natsConnection_PublishString(server->nats.conn, "new_cc_server", "Yup a new one!");
 

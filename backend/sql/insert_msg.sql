@@ -1,4 +1,4 @@
-INSERT INTO Messages (user_id, group_id, content, attachments)
+INSERT INTO Messages (user_id, channel_id, content, attachments)
 VALUES (
     $1::int, 
     $2::int, 

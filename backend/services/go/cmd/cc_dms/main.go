@@ -19,8 +19,15 @@ func main() {
 		fmt.Printf("Failed to read file: %s\n", err)
 		os.Exit(-1)
 	}
-
 	bservice.UserData.SqlSelectDMs = string(data)
+
+	data, err = os.ReadFile("backend/sql/insert_msg.sql")
+	if err != nil {
+		fmt.Printf("Failed to read file: %s\n", err)
+		os.Exit(-1)
+	}
+	bservice.UserData.SqlInsertMsg = string(data)
+
 
 	err = bservice.Register(service.PathMap[cc_dms.DMs]{
 		"/api/dms": service.CallbackAllow[cc_dms.DMs]{
@@ -30,6 +37,13 @@ func main() {
 	})
 	if err != nil {
 		fmt.Printf("Register: %s\n", err)
+		os.Exit(-1)
+	}
+	err = bservice.WSCmdRegister(service.CmdMap[cc_dms.DMs]{
+		"msg_user": cc_dms.MsgUser,
+	})
+	if err != nil {
+		fmt.Printf("Failed to register WS CMDs: %s\n", err)
 		os.Exit(-1)
 	}
 

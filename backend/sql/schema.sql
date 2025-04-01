@@ -73,17 +73,6 @@ CREATE TABLE IF NOT EXISTS HubMembers(
     FOREIGN KEY (hub_id)  REFERENCES Hubs(hub_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS DirectMessages(
-    user1_id    int NOT NULL,
-    user2_id    int NOT NULL,
-    created_at  TIMESTAMP DEFAULT NOW(),
-
-    PRIMARY KEY (user1_id, user2_id),
-	UNIQUE (user1_id, user2_id),
-    FOREIGN KEY (user1_id) REFERENCES Users(user_id),
-    FOREIGN KEY (user2_id) REFERENCES Users(user_id)
-);
-
 DO $$ BEGIN
     CREATE TYPE channel_type AS ENUM ('DM', 'GROUP', 'HUB');
 EXCEPTION
@@ -93,6 +82,25 @@ END $$;
 CREATE TABLE IF NOT EXISTS TextChannels(
     channel_id      SERIAL PRIMARY KEY,
     type            channel_type NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS DirectMessages(
+    user1_id    int NOT NULL,
+    user2_id    int NOT NULL,
+    channel_id  int NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW(),
+
+    PRIMARY KEY (user1_id, user2_id),
+    FOREIGN KEY (channel_id) REFERENCES TextChannels(channel_id),
+    FOREIGN KEY (user1_id) REFERENCES Users(user_id),
+    FOREIGN KEY (user2_id) REFERENCES Users(user_id),
+
+    CHECK (user1_id < user2_id)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS direct_messages_unique_idx ON DirectMessages (
+    LEAST(user1_id, user2_id),
+    GREATEST(user1_id, user2_id)
 );
 
 CREATE TABLE IF NOT EXISTS HubChannels(

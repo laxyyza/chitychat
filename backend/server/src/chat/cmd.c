@@ -157,6 +157,24 @@ server_new_chatcmd(server_t* server,
     return server_ght_insert(ht, chatcmd->cmd_hash, chatcmd);
 }
 
+static void 
+server_publish_cmd(server_t* server, client_t* client, const char* cmd, json_object* payload)
+{
+    u64 len;
+    const char* str;
+    char subject[SUBJECT_LEN];
+    json_object* json = json_object_new_object();
+    json_object_object_add(json, "user_id", json_object_new_uint64(client->dbuser->user_id));
+    json_object_object_add(json, "payload", json_object_get(payload));
+
+    snprintf(subject, SUBJECT_LEN - 1, "ws.cmd.%s", cmd);
+
+    str = json_object_to_json_string_length(json, JSON_C_TO_STRING_NOSLASHESCAPE, &len);
+    natsConnection_PublishRequest(server->nats.conn, subject, server->nats.subj_ws, str, len);
+
+    json_object_put(json);
+}
+
 const char* 
 server_exec_chatcmd(const char* cmd, 
                     eworker_t* ew, 
@@ -173,7 +191,15 @@ server_exec_chatcmd(const char* cmd,
 
     chatcmd = server_ght_get(ht, hash_key);
     if (chatcmd == NULL)
-        return "Command not found.";
+    {
+        if (client->state & CLIENT_STATE_LOGGED_IN)
+        {
+            server_publish_cmd(ew->server, client, cmd, payload);
+            return NULL;
+        }
+        else
+            return "Command not found";
+    }
     else if (!(chatcmd->perms & client->state))
         return "Require permission";
 
