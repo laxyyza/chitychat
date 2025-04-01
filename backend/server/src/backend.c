@@ -53,10 +53,18 @@ backend_send_http(server_t* server, const char* subject, client_t* client, http_
 {
     const http_header_t* content_type = http_get_header(http, "Content-Type");
     json_object* json = json_object_new_object();
+    json_object* params_json = json_object_new_object();
     json_object_object_add(json, "method", json_object_new_string(http->req.method));
     json_object_object_add(json, "fd", json_object_new_int(client->addr.sock));
     json_object_object_add(json, "user_id", json_object_new_uint64(user_id));
     json_object_object_add(json, "path", json_object_new_string(http->req.url));
+    json_object_object_add(json, "params", params_json);
+
+    for (u32 i = 0; i < http->n_params; i++)
+    {
+        http_header_t* param = http->params + i;
+        json_object_object_add(params_json, param->name, json_object_new_string(param->val));
+    }
 
     if (http->body)
     {

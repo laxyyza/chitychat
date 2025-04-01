@@ -89,6 +89,8 @@ func selectMessages(s* service.Service[DMs], channelID uint32, limit uint32, off
 
 func GetMessages(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse {
 	targetUserID, err := getMsgPathUserID(req.Path)
+	var limit uint32 = 10
+	var offset uint32
 	if err != nil {
 		fmt.Printf("Failed to get target user ID: %s\n", err)
 		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{"error": err})
@@ -100,7 +102,22 @@ func GetMessages(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse 
 		return mq.NewResponse(req, http.StatusUnauthorized, nil)
 	}
 
-	msgs, err := selectMessages(s, channelID, 10, 0)
+	limitStr, ok := req.Params["limit"]
+	if ok {
+		num, err := strconv.ParseUint(limitStr, 10, 32)
+		if err == nil {
+			limit = uint32(num)
+		}
+	}
+	offsetStr, ok := req.Params["offset"]
+	if ok {
+		num, err := strconv.ParseUint(offsetStr, 10, 32)
+		if err == nil {
+			offset = uint32(num)
+		}
+	}
+
+	msgs, err := selectMessages(s, channelID, limit, offset)
 	if err != nil {
 		fmt.Printf("Select Messages failed: %s\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
