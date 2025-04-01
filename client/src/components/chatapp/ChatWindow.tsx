@@ -1,12 +1,51 @@
 import { useEffect, useRef, useState } from 'react';
-import { Action, useApp } from './AppProvider';
+import { Action, DispatchAction, useApp } from './AppProvider';
 import ChannelMessages from './ChannelMessages';
 import { FaArrowDown } from 'react-icons/fa';
 import Message from '../../models/message';
 import useWebsocket from '../WebSocket';
+import { DM, DMChat } from '../../models/dm';
+
+const requestDMMessages = async (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
+    if (dmChat.chat instanceof DM == false) {
+        return;
+    }
+
+    dmChat.requestMsgs = true;
+    const limit = 20;
+
+    const resp = await fetch(window.location.origin + `/api/dms/${dmChat.chat.targetUserID}?limit=${limit}&offset=${dmChat.msgOffset}`,
+        {
+            method: "GET",
+        })
+
+    if (resp.ok) {
+        const data = await resp.json();
+        const messagesJson: any[] = data.messages;
+        const messages: Message[] = [];
+
+        messagesJson.forEach((msgJson) => {
+            const msg: Message = {
+                id: msgJson.msg_id,
+                user_id: msgJson.user_id,
+                channel_id: msgJson.channel_id,
+                channel_type: "dm",
+                content: msgJson.content,
+                attachments: msgJson.attachments,
+                timestamp: msgJson.timestamp
+            };
+
+            messages.push(msg);
+        })
+
+        if (messages.length) {
+            dispatch({type: Action.ADD_DM_MSGS, payload: {dmID: dmChat.id, messages: messages }});
+        }
+    }
+};
 
 const getMessages = (): Message[] => {
-    const { app } = useApp();
+    const { app, dispatch } = useApp();
 
     if (app.currentHubID !== -1) {
         const channel = app.textChannels.get(app.currentChannelID);
@@ -16,11 +55,17 @@ const getMessages = (): Message[] => {
     } else if (app.currentDMID !== 'friends') {
         const dmchat = app.dm.get(app.currentDMID);
         if (dmchat) {
-            return Array.from(dmchat.chat.messages.entries())
+            const msgs = Array.from(dmchat.chat.messages.entries())
                 .map(([_, msg]) => {
                     return msg;
                 })
                 .sort((a, b) => a.id - b.id);
+
+            if (msgs.length === 0 && dmchat.requestMsgs === false) {
+                requestDMMessages(dmchat, dispatch);
+            }
+
+            return msgs;
         }
     }
 

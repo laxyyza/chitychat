@@ -1,6 +1,8 @@
 import { IoAddCircleOutline } from 'react-icons/io5';
 import React, { useState, useRef } from 'react';
 import { useApp } from './AppProvider';
+import { DM } from '../../models/dm';
+import useWebsocket from '../WebSocket';
 // import useWebsocket from '../WebSocket';
 
 interface Prop {
@@ -32,7 +34,7 @@ const Input = ({
     const { app } = useApp();
     // const [counter, setCounter] = useState(4);
 
-    // const { send } = useWebsocket();
+    const { send } = useWebsocket();
 
     const adjustHeight = () => {
         const textarea = textareaRef.current;
@@ -62,6 +64,18 @@ const Input = ({
 
     const sendMessage = () => {
         if (!message.trim()) return; // Prevent sending empty messages
+
+        if (app.currentDMID !== 'friends') {
+            const dmchat = app.dm.get(app.currentDMID);
+            if (dmchat && dmchat.chat instanceof DM) {
+                send({
+                    cmd: 'msg_user',
+                    user_id: dmchat.chat.targetUserID,
+                    content: message,
+                    attachments: []
+                })
+            }
+        }
 
         // const channel_type = app.currentHubID === -1 ? 'group' : 'hub';
         // const channel_id =

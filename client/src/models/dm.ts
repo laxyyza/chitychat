@@ -9,11 +9,28 @@ class DM {
 		this.targetUserID = userID;
 		this.messages = new Map();
 	}
+
+    clone(): DM {
+        return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    }
+
+    static fromAddMessages(dm: DM, msgs: Message[]): DM {
+        const newDM = dm.clone();
+        newDM.messages = new Map(dm.messages);
+        msgs.forEach((msg) => {
+            newDM.messages.set(msg.id, msg);
+        });
+        newDM.targetUserID = dm.targetUserID;
+
+        return newDM;
+    }
 }
 
 class DMChat {
 	id: string;
 	chat: DM | Group;
+    requestMsgs: boolean;
+    msgOffset: number;
 
 	constructor(chat: DM | Group) {
 		if (chat instanceof DM) {
@@ -22,6 +39,8 @@ class DMChat {
 			this.id = DMChat.GroupID(chat.id);
 		}
 		this.chat = chat;
+        this.requestMsgs = false;
+        this.msgOffset = 0;
 	}
 
 	getGroup(): Group | undefined {
@@ -43,6 +62,15 @@ class DMChat {
 	static DmID(id: number): string {
 		return "dm-" + id;
 	}
+
+    static From(dmchat: DMChat, chat: DM | Group): DMChat {
+        const newDMChat = new DMChat(chat);
+        newDMChat.id = dmchat.id;
+        newDMChat.requestMsgs = dmchat.requestMsgs;
+        newDMChat.msgOffset = dmchat.msgOffset;
+
+        return newDMChat;
+    }
 }
 
 export { DM, DMChat };

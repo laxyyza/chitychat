@@ -4,7 +4,7 @@ import { Hub } from '../../models/hub';
 import { TextChannel, ChannelType } from '../../models/channel';
 import Message from '../../models/message';
 import Group from '../../models/group';
-import { DMChat } from '../../models/dm';
+import { DM, DMChat } from '../../models/dm';
 
 export interface App {
     logged_in: boolean;
@@ -48,15 +48,17 @@ enum Action {
     DEL_FRIEND_REQUEST,
     DEL_PENDING_FRIEND_REQUEST,
     ADD_DMS,
+    ADD_DM_MSGS,
 }
 
-type DispatchAction =
+export type DispatchAction =
     | { type: Action.SELECT_HUB; payload: number }
     | { type: Action.SELECT_DM; payload: string }
     | { type: Action.SELECT_CHANNEL; payload: number }
     | { type: Action.SET_LOGIN_USER; payload: User }
     | { type: Action.ADD_USER; payload: User }
     | { type: Action.ADD_MSG; payload: Message }
+    | { type: Action.ADD_DM_MSGS; payload: {dmID: string, messages: Message[]} }
     | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUP; payload: Group }
     | { type: Action.ADD_DMS; payload: DMChat[] }
@@ -80,6 +82,17 @@ const AppCtx = createContext<AppContextProps | undefined>(undefined);
 
 const appReducer = (state: App, action: DispatchAction): App => {
     switch (action.type) {
+        case Action.ADD_DM_MSGS: {
+            const dmchat = state.dm.get(action.payload.dmID);
+            if (dmchat && dmchat.chat instanceof DM) {
+
+                return {
+                    ...state,
+                    dm: new Map(state.dm).set(dmchat.id, DMChat.From(dmchat, DM.fromAddMessages(dmchat.chat, action.payload.messages)))
+                };
+            }
+            return {...state};
+        }
         case Action.SELECT_HUB: {
             const hub = state.hubs.get(action.payload);
             if (hub) {
@@ -116,47 +129,46 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 users: new Map(state.users).set(user.id, user)
             };
         }
-        case Action.ADD_MSG: {
-            const msg = action.payload;
-            if (msg.channel_type === 'hub') {
-                const newTextChannels = new Map(
-                    [...state.textChannels].map(([id, channel]) => {
-                        if (channel.id === msg.channel_id) {
-                            return [
-                                id,
-                                {
-                                    ...channel,
-                                    messages: [...channel.messages, msg]
-                                }
-                            ];
-                        }
-                        return [id, channel];
-                    })
-                );
-                return { ...state, textChannels: newTextChannels };
-            } else if (msg.channel_type === 'group') {
-                const newDMs: Map<string, DMChat> = new Map(
-                    [...state.dm].map(([id, chat]) => {
-                        if (chat.chat instanceof Group) {
-                            return [
-                                id,
-                                new DMChat(Group.fromAddMessage(chat.chat, msg))
-                            ];
-                        }
-                        return [id, chat];
-                    })
-                );
-                // [...state.dm].map(([id, group]) => {
-                //     if (msg.channel_id === id) {
-                //         return [id, Group.fromAddMessage(group, msg)];
-                //     }
-                //     return [id, group];
-                // })
-                return { ...state, dm: newDMs };
-            }
-
-            return { ...state };
-        }
+        // case Action.ADD_MSG: {
+        //     const msg = action.payload;
+        //     if (msg.channel_type === 'hub') {
+        //         const newTextChannels = new Map(
+        //             [...state.textChannels].map(([id, channel]) => {
+        //                 if (channel.id === msg.channel_id) {
+        //                     return [
+        //                         id,
+        //                         {
+        //                             ...channel,
+        //                             messages: [...channel.messages, msg]
+        //                         }
+        //                     ];
+        //                 }
+        //                 return [id, channel];
+        //             })
+        //         );
+        //         return { ...state, textChannels: newTextChannels };
+        //     } else if (msg.channel_type === 'group' || msg.channel_type === "dm") {
+        //         const newDMs: Map<string, DMChat> = new Map(
+        //             [...state.dm].map(([id, chat]) => {
+        //                 if (chat.chat instanceof Group) {
+        //                     return [
+        //                         id,
+        //                         new DMChat(Group.fromAddMessage(chat.chat, msg))
+        //                     ];
+        //                 } 
+        //             })
+        //         );
+        //         // [...state.dm].map(([id, group]) => {
+        //         //     if (msg.channel_id === id) {
+        //         //         return [id, Group.fromAddMessage(group, msg)];
+        //         //     }
+        //         //     return [id, group];
+        //         // })
+        //         return { ...state, dm: newDMs };
+        //     }
+        //
+        //     return { ...state };
+        // }
         case Action.ADD_HUB: {
             const hubID = state.hubs.size;
             const channelID = state.textChannels.size;

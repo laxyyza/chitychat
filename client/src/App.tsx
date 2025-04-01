@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import websocketClient from './services/websocketClient';
 import useWebsocket from './components/WebSocket';
 import Group from './models/group';
+import { DM, DMChat } from './models/dm';
 
 function MainApp() {
     const { app, dispatch } = useApp();
@@ -75,6 +76,51 @@ function MainApp() {
                         timestamp: packet.timestamp
                     }
                 });
+                break;
+            }
+            case 'msg_user': {
+                const getDMChat = (): DMChat | undefined => {
+                    const isUs = packet.user_id === app.login_user.id;
+
+                    const entries = Array.from(app.dm.entries());
+                    for (var i = 0; i < entries.length; i++) {
+                        const [_, dm] = entries[i];
+                        if (dm.chat instanceof DM == false)
+                            continue;
+
+                        if (isUs) {
+                            if (dm.chat.targetUserID === packet.target_user_id)
+                                return dm;
+                        } else {
+                            if (dm.chat.targetUserID === packet.user_id) 
+                                return dm;
+                        }
+                    }
+
+                    return undefined;
+                }
+
+                const dmchat = getDMChat();
+
+                if (dmchat) {
+                    dispatch({
+                        type: Action.ADD_DM_MSGS,
+                        payload: {
+                            dmID: dmchat.id,
+                            messages: [
+                                {
+                                    id: packet.msg_id,
+                                    channel_id: packet.channel_id,
+                                    channel_type: 'dm',
+                                    user_id: packet.user_id,
+                                    content: packet.content,
+                                    attachments: packet.attachments,
+                                    timestamp: packet.timestamp
+                                }
+                            ]
+                        }
+                    })
+                }
                 break;
             }
         }
