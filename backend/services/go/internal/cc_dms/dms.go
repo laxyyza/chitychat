@@ -7,13 +7,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type DMs struct {
 	SqlSelectDMs string
 	SqlInsertMsg string
+	SqlSelectMsgs string
 }
 
 type Message struct {
@@ -25,6 +29,17 @@ type Message struct {
 	Timestamp 	string		`json:"timestamp"`
 	Attachments []string	`json:"attachments"`
 	ParentMsgID uint32		`json:"parent_msg_id"`
+}
+
+func selectChannelID(s* service.Service[DMs], user1ID uint32, user2ID uint32) (uint32, error) {
+	var channelID uint32
+	row := s.Db.Conn.QueryRow(context.Background(),
+				"SELECT channel_id FROM DirectMessages WHERE LEAST(user1_id, user2_id) = LEAST($1::int, $2::int) AND GREATEST(user1_id, user2_id) = GREATEST($1::int, $2::int);",
+				user1ID, user2ID)
+
+	err := row.Scan(&channelID)
+
+	return channelID, err
 }
 
 func GetDMs(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse {
@@ -48,16 +63,62 @@ func GetDMs(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse {
 	}) 
 }
 
+func getMsgPathUserID(path string) (uint32, error) {
+	split := strings.Split(path[1:], "/")
+	// e.g. HTTP GET /api/dms/69  =  ["api", "dms", "69"]
+
+	if len(split) == 3 {
+		userIDString := split[2]
+		var userID uint64
+
+		userID, err := strconv.ParseUint(userIDString, 10, 32)
+		return uint32(userID), err
+	} else {
+		return 0, fmt.Errorf("invalid path")
+	}
+}
+
+func selectMessages(s* service.Service[DMs], channelID uint32, limit uint32, offset uint32) ([]interface{}, error) {
+	var msgsJson []interface{}
+	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SqlSelectMsgs, 
+		channelID, limit, offset)
+	err := row.Scan(&msgsJson)
+
+	return msgsJson, err
+}
+
+func GetMessages(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse {
+	targetUserID, err := getMsgPathUserID(req.Path)
+	if err != nil {
+		fmt.Printf("Failed to get target user ID: %s\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{"error": err})
+	}
+
+	channelID, err := selectChannelID(s, req.UserID, targetUserID)
+	if err != nil {
+		fmt.Printf("Failed to get channel ID: %s\n", err)
+		return mq.NewResponse(req, http.StatusUnauthorized, nil)
+	}
+
+	msgs, err := selectMessages(s, channelID, 10, 0)
+	if err != nil {
+		fmt.Printf("Select Messages failed: %s\n", err)
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
+		"messages": msgs,
+	}) 
+}
+
 func MsgUser(s* service.Service[DMs], srcUserID uint32, payload map[string]any) error {
 	content := payload["content"].(string)
 	targetUserID := uint32(payload["user_id"].(float64))
 	var msg Message = Message{UserID: srcUserID, Content: content, Attachments: []string{}, ChannelType: "DM"}
+	var err error
+	var row pgx.Row
 
-	row := s.Db.Conn.QueryRow(context.Background(),
-				"SELECT channel_id FROM DirectMessages WHERE LEAST(user1_id, user2_id) = LEAST($1::int, $2::int) AND GREATEST(user1_id, user2_id) = GREATEST($1::int, $2::int);",
-					srcUserID, targetUserID)
-
-	err := row.Scan(&msg.ChannelID)
+	msg.ChannelID, err = selectChannelID(s, srcUserID, targetUserID)
 	if err != nil {
 		tx, err := s.Db.Conn.Begin(context.Background())
 		if err != nil {

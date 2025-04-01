@@ -28,10 +28,21 @@ func main() {
 	}
 	bservice.UserData.SqlInsertMsg = string(data)
 
+	data, err = os.ReadFile("backend/sql/select_msgs_json.sql")
+	if err != nil {
+		fmt.Printf("Failed to read file: %s\n", err)
+		os.Exit(-1)
+	}
+	bservice.UserData.SqlSelectMsgs = string(data)
+
 
 	err = bservice.Register(service.PathMap[cc_dms.DMs]{
 		"/api/dms": service.CallbackAllow[cc_dms.DMs]{
 			Callback: cc_dms.GetDMs,
+			Allow: []string{"GET"},
+		},
+		"/api/dms/*": service.CallbackAllow[cc_dms.DMs]{
+			Callback: cc_dms.GetMessages,
 			Allow: []string{"GET"},
 		},
 	})
