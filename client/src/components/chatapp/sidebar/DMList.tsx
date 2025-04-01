@@ -1,9 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Action, useApp } from '../AppProvider';
 import { BiSolidGroup } from 'react-icons/bi';
 import { RiUserHeartFill } from 'react-icons/ri';
 import { FaUser } from 'react-icons/fa';
 import Group from '../../../models/group';
+import {DM, DMChat} from '../../../models/dm';
+import useWebsocket from '../../WebSocket';
 
 interface DMProp {
     name?: string;
@@ -31,7 +33,7 @@ const Icon = (type: string) => {
     }
 };
 
-const DM = ({ name, onClick, selected, type, children }: DMProp) => {
+const DMComponent = ({ name, onClick, selected, type, children }: DMProp) => {
     return (
         <button
             className={
@@ -56,9 +58,41 @@ const DMList = () => {
     // const groups = Array.from(app.groups.entries());
     // const friends = app.friendIDs.map((friend_id) => app.users.get(friend_id));
 
+    const {send} = useWebsocket();
+
+    const fetchDMs = async () => {
+        const resp = await fetch(window.location.origin + "/api/dms",
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+        const json = await resp.json()
+        const userIDs: number[] = json.user_ids;
+        const dontHaveIDs: number[] = []
+        const dmChats: DMChat[] = []
+        userIDs.forEach(userID => {
+            const dmchat = new DMChat(new DM(userID));
+            if (!app.users.get(userID)) {
+                dontHaveIDs.push(userID);
+            }
+            dmChats.push(dmchat);
+        })
+
+        dispatch({type: Action.ADD_DMS, payload: dmChats })
+        if (dontHaveIDs.length) {
+            send({cmd: "get_user", user_ids: dontHaveIDs});
+        }
+    }
+
+    useEffect(() => {
+        fetchDMs();
+    }, [])
+
     return (
         <>
-            <DM
+            <DMComponent
                 selected={app.currentDMID === 'friends'}
                 type="other"
                 onClick={() =>
@@ -71,7 +105,7 @@ const DMList = () => {
                     </div>
                     <div className="ml-1 font-bold p-1">Friends</div>
                 </div>
-            </DM>
+            </DMComponent>
             <div className="text-center text-xs font-bold">Direct Messages</div>
             <ul className="p-1">
                 {dms.map(([id, dmchat]) => {
@@ -79,7 +113,7 @@ const DMList = () => {
                         const group = dmchat.chat;
                         return (
                             <li key={dmchat.id}>
-                                <DM
+                                <DMComponent
                                     name={group.name}
                                     selected={app.currentDMID === id}
                                     type="group"
@@ -98,7 +132,7 @@ const DMList = () => {
                         if (!user) return null;
                         return (
                             <li key={dmchat.id}>
-                                <DM
+                                <DMComponent
                                     name={user.displayname}
                                     selected={app.currentDMID === id}
                                     type="user"
@@ -118,7 +152,7 @@ const DMList = () => {
                     else {
                         return (
                             <li key={'friend-' + friend.id}>
-                                <DM
+                                <DMComponent
                                     name={friend.displayname}
                                     selected={false}
                                     type="user"
@@ -130,7 +164,7 @@ const DMList = () => {
                 })} */}
                 {/* {groups.map(([id, group]) => (
                     <li key={id}>
-                        <DM
+                        <DMComponent
                             name={group.name}
                             selected={app.currentGroupID === id}
                             type="group"

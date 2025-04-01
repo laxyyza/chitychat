@@ -46,7 +46,8 @@ enum Action {
     ADD_FRIEND_REQUESTS,
     ADD_PENDING_FRIEND_REQUESTS,
     DEL_FRIEND_REQUEST,
-    DEL_PENDING_FRIEND_REQUEST
+    DEL_PENDING_FRIEND_REQUEST,
+    ADD_DMS,
 }
 
 type DispatchAction =
@@ -58,6 +59,7 @@ type DispatchAction =
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUP; payload: Group }
+    | { type: Action.ADD_DMS; payload: DMChat[] }
     | {
           type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
           payload: number;
@@ -233,6 +235,16 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 pendingRequests: state.pendingRequests.filter(
                     (id) => id !== action.payload
                 )
+            };
+        }
+        case Action.ADD_DMS: {
+            const newDMs = new Map(state.dm);
+            action.payload.forEach(dmchat => {
+                newDMs.set(dmchat.id, dmchat);
+            });
+            return {
+                ...state,
+                dm: newDMs
             };
         }
         default:
