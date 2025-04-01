@@ -97,6 +97,12 @@ function MainApp() {
                         }
                     }
 
+                    if (!isUs) {
+                        const newDM = new DMChat(new DM(packet.user_id));
+                        dispatch({type: Action.ADD_DMS, payload: [newDM]});
+                        return newDM;
+                    }
+
                     return undefined;
                 }
 

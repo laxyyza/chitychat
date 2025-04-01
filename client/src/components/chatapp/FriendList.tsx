@@ -10,6 +10,7 @@ import { MdBlock } from 'react-icons/md';
 import { FaCheck } from 'react-icons/fa';
 import { MdOutlineCancel } from 'react-icons/md';
 import useWebsocket from '../WebSocket';
+import { DM, DMChat } from '../../models/dm';
 
 enum Selection {
     ALL,
@@ -23,10 +24,24 @@ interface FriendProp {
 }
 
 const Friend = ({ user }: FriendProp) => {
+    const {app, dispatch} = useApp();
+
+    const onClick = () => {
+        const dmchat = app.dm.get("id-" + user.id);
+        if (dmchat) {
+            dispatch({type: Action.SELECT_DM, payload: dmchat.id});
+        } else {
+            const newDM = new DMChat(new DM(user.id));
+            dispatch({type: Action.ADD_DMS, payload: [newDM]});
+            dispatch({type: Action.SELECT_DM, payload: newDM.id});
+        }
+    };
+
     return (
         <div
             key={'friend-' + user.id}
-            className="m-1 p-1 flex hover:bg-gray-600 rounded-xl text-white"
+            className="m-1 p-1 flex hover:bg-gray-600 rounded-xl text-white active:bg-gray-500"
+            onClick={onClick}
         >
             <UserIcon user={user} />
             <div className="ml-2">
