@@ -1,204 +1,81 @@
 import SideBar from './components/chatapp/sidebar/SideBar';
 import MainContent from './components/chatapp/MainContent';
 import MemberList from './components/chatapp/MemberList';
-import { Action, useApp } from './components/chatapp/AppProvider';
+import { Action, App, DispatchAction, useApp } from './components/chatapp/AppProvider';
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import websocketClient from './services/websocketClient';
 import useWebsocket from './components/WebSocket';
-import Group from './models/group';
-import { DM, DMChat } from './models/dm';
+import handleWebsocketMessage from './hooks/useWebsocket';
+import fetchData from './services/api';
+
+const loadAppData = (app: App, send: (msg: any) => void, dispatch: React.Dispatch<DispatchAction>) => {
+    send({ cmd: "client_user_info" });
+    send({ cmd: 'client_groups' });
+
+    fetchData('/api/friends')
+        .then(json => {
+            const friendIDs: number[] = json.friends;
+            const donthaveIDs = friendIDs.filter(
+                (id) => !app.users.get(id)
+            );
+
+            if (donthaveIDs.length) {
+                send({ cmd: 'get_user', user_ids: donthaveIDs });
+            }
+            dispatch({ type: Action.ADD_FRIENDS, payload: json.friends });
+        });
+
+    fetchData('/api/friends/requests')
+        .then((json) => {
+            const userIDs: number[] = json.user_ids;
+            const donthaveIDs = userIDs.filter((id) => !app.users.get(id));
+
+            if (donthaveIDs.length) {
+                send({ cmd: 'get_user', user_ids: donthaveIDs });
+            }
+            dispatch({
+                type: Action.ADD_FRIEND_REQUESTS,
+                payload: json.user_ids
+            });
+        });
+
+    fetchData('/api/friends/requests/outgoing')
+        .then((json) => {
+            const userIDs: number[] = json.user_ids;
+            const donthaveIDs = userIDs.filter((id) => !app.users.get(id));
+
+            if (donthaveIDs.length) {
+                send({ cmd: 'get_user', user_ids: donthaveIDs });
+            }
+            dispatch({
+                type: Action.ADD_PENDING_FRIEND_REQUESTS,
+                payload: json.user_ids
+            });
+        });
+
+    // if (process.env.NODE_ENV !== 'development') {
+    //     websocketClient.onStateChange((state: string) => {
+    //         if (state === 'error' || state === 'close') {
+    //             navigate('/login');
+    //         }
+    //     });
+    // }
+
+    return () => websocketClient.onStateChange(undefined);
+};
 
 function MainApp() {
     const { app, dispatch } = useApp();
     // const [test, setTest] = useState(0);
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
 
     const { send } = useWebsocket((cmd, packet) => {
-        switch (cmd) {
-            case 'client_user_info': {
-                dispatch({
-                    type: Action.SET_LOGIN_USER,
-                    payload: {
-                        id: packet.user_id,
-                        username: packet.username,
-                        displayname: packet.displayname,
-                        created_at: packet.create_at,
-                        about_me: packet.bio,
-                        pfp: ''
-                    }
-                });
-                break;
-            }
-            case 'client_groups': {
-                const groups: any[] = packet['groups'];
-                groups.forEach((group) => {
-                    dispatch({
-                        type: Action.ADD_GROUP,
-                        payload: new Group(
-                            group['group_id'],
-                            group['owner_id'],
-                            group['name'],
-                            '',
-                            group['public']
-                        )
-                    });
-                });
-                break;
-            }
-            case 'get_user': {
-                const users: any[] = packet['users'];
-                users.forEach((user) => {
-                    dispatch({
-                        type: Action.ADD_USER,
-                        payload: {
-                            id: user['user_id'],
-                            username: user['username'],
-                            displayname: user['displayname'],
-                            about_me: user['bio'],
-                            pfp: '',
-                            created_at: user['created_at']
-                        }
-                    });
-                });
-                break;
-            }
-            case 'group_msg': {
-                dispatch({
-                    type: Action.ADD_MSG,
-                    payload: {
-                        id: packet.msg_id,
-                        channel_id: packet.group_id,
-                        channel_type: 'group',
-                        user_id: packet.user_id,
-                        content: packet.content,
-                        attachments: packet.attachments,
-                        timestamp: packet.timestamp
-                    }
-                });
-                break;
-            }
-            case 'msg_user': {
-                const getDMChat = (): DMChat | undefined => {
-                    const isUs = packet.user_id === app.login_user.id;
-
-                    const entries = Array.from(app.dm.entries());
-                    for (var i = 0; i < entries.length; i++) {
-                        const [_, dm] = entries[i];
-                        if (dm.chat instanceof DM == false)
-                            continue;
-
-                        if (isUs) {
-                            if (dm.chat.targetUserID === packet.target_user_id)
-                                return dm;
-                        } else {
-                            if (dm.chat.targetUserID === packet.user_id) 
-                                return dm;
-                        }
-                    }
-
-                    if (!isUs) {
-                        const newDM = new DMChat(new DM(packet.user_id));
-                        dispatch({type: Action.ADD_DMS, payload: [newDM]});
-                        return newDM;
-                    }
-
-                    return undefined;
-                }
-
-                const dmchat = getDMChat();
-
-                if (dmchat) {
-                    dispatch({
-                        type: Action.ADD_DM_MSGS,
-                        payload: {
-                            dmID: dmchat.id,
-                            messages: [
-                                {
-                                    id: packet.msg_id,
-                                    channel_id: packet.channel_id,
-                                    channel_type: 'dm',
-                                    user_id: packet.user_id,
-                                    content: packet.content,
-                                    attachments: packet.attachments,
-                                    timestamp: packet.timestamp
-                                }
-                            ]
-                        }
-                    })
-                }
-                break;
-            }
-        }
+        handleWebsocketMessage(cmd, packet, app, dispatch);
     });
 
     useEffect(() => {
-        send({ cmd: 'client_user_info' });
-        send({ cmd: 'client_groups' });
-
-        fetch(window.location.origin + '/api/friends')
-            .then((response) => response.json())
-            .then((json) => {
-                const friendIDs: number[] = json.friends;
-                const donthaveIDs = friendIDs.filter(
-                    (id) => !app.users.get(id)
-                );
-
-                if (donthaveIDs.length) {
-                    send({ cmd: 'get_user', user_ids: donthaveIDs });
-                }
-                dispatch({ type: Action.ADD_FRIENDS, payload: json.friends });
-            })
-            .catch((error) => {
-                console.error('fetch /api/friends:', error);
-                if (
-                    process.env.NODE_ENV === 'development' &&
-                    app.friendIDs.length === 0
-                ) {
-                    send({ cmd: 'get_user', user_ids: [5, 6] });
-                    dispatch({ type: Action.ADD_FRIENDS, payload: [5, 6] });
-                }
-            });
-
-        fetch(window.location.origin + '/api/friends/requests')
-            .then((response) => response.json())
-            .then((json) => {
-                const userIDs: number[] = json.user_ids;
-                const donthaveIDs = userIDs.filter((id) => !app.users.get(id));
-
-                if (donthaveIDs.length) {
-                    send({ cmd: 'get_user', user_ids: donthaveIDs });
-                }
-                dispatch({
-                    type: Action.ADD_FRIEND_REQUESTS,
-                    payload: json.user_ids
-                });
-            });
-
-        fetch(window.location.origin + '/api/friends/requests/outgoing')
-            .then((response) => response.json())
-            .then((json) => {
-                const userIDs: number[] = json.user_ids;
-                const donthaveIDs = userIDs.filter((id) => !app.users.get(id));
-
-                if (donthaveIDs.length) {
-                    send({ cmd: 'get_user', user_ids: donthaveIDs });
-                }
-                dispatch({
-                    type: Action.ADD_PENDING_FRIEND_REQUESTS,
-                    payload: json.user_ids
-                });
-            });
-
-        if (process.env.NODE_ENV !== 'development') {
-            websocketClient.onStateChange((state: string) => {
-                if (state === 'error' || state === 'close') {
-                    navigate('/login');
-                }
-            });
-        }
-
-        return () => websocketClient.onStateChange(undefined);
+        loadAppData(app, send, dispatch);
     }, []);
 
     return (

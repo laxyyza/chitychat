@@ -4,8 +4,9 @@ import { BiSolidGroup } from 'react-icons/bi';
 import { RiUserHeartFill } from 'react-icons/ri';
 import { FaUser } from 'react-icons/fa';
 import Group from '../../../models/group';
-import {DM, DMChat} from '../../../models/dm';
+import { DM, DMChat } from '../../../models/dm';
 import useWebsocket from '../../WebSocket';
+import fetchData from '../../../services/api';
 
 interface DMProp {
     name?: string;
@@ -58,32 +59,27 @@ const DMList = () => {
     // const groups = Array.from(app.groups.entries());
     // const friends = app.friendIDs.map((friend_id) => app.users.get(friend_id));
 
-    const {send} = useWebsocket();
+    const { send } = useWebsocket();
 
-    const fetchDMs = async () => {
-        const resp = await fetch(window.location.origin + "/api/dms",
-            {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json"
+    const fetchDMs = () => {
+        fetchData('/api/dms')
+            .then(json => {
+                const userIDs: number[] = json.user_ids;
+                const dontHaveIDs: number[] = []
+                const dmChats: DMChat[] = []
+                userIDs.forEach(userID => {
+                    const dmchat = new DMChat(new DM(userID));
+                    if (!app.users.get(userID)) {
+                        dontHaveIDs.push(userID);
+                    }
+                    dmChats.push(dmchat);
+                })
+
+                dispatch({ type: Action.ADD_DMS, payload: dmChats })
+                if (dontHaveIDs.length) {
+                    send({ cmd: "get_user", user_ids: dontHaveIDs });
                 }
-            })
-        const json = await resp.json()
-        const userIDs: number[] = json.user_ids;
-        const dontHaveIDs: number[] = []
-        const dmChats: DMChat[] = []
-        userIDs.forEach(userID => {
-            const dmchat = new DMChat(new DM(userID));
-            if (!app.users.get(userID)) {
-                dontHaveIDs.push(userID);
-            }
-            dmChats.push(dmchat);
-        })
-
-        dispatch({type: Action.ADD_DMS, payload: dmChats })
-        if (dontHaveIDs.length) {
-            send({cmd: "get_user", user_ids: dontHaveIDs});
-        }
+            });
     }
 
     useEffect(() => {

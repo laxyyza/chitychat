@@ -1,3 +1,5 @@
+import { isDev } from "./api";
+
 class WebSocketClient 
 {
     private baseurl: string;
@@ -8,7 +10,7 @@ class WebSocketClient
 
     constructor () 
     {
-        this.baseurl = "wss://localhost:8080";
+        this.baseurl = isDev ? "wss://localhost:8080" : "wss://" + window.location.host;
         this.listeners = new Set();
         this.state = 'close';
         this.onStateChangeCallback = undefined;

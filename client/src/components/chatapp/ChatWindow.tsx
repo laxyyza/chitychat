@@ -5,8 +5,9 @@ import { FaArrowDown } from 'react-icons/fa';
 import Message from '../../models/message';
 import useWebsocket from '../WebSocket';
 import { DM, DMChat } from '../../models/dm';
+import fetchData from '../../services/api';
 
-const requestDMMessages = async (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
+const requestDMMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
     if (dmChat.chat instanceof DM == false) {
         return;
     }
@@ -14,34 +15,29 @@ const requestDMMessages = async (dmChat: DMChat, dispatch: React.Dispatch<Dispat
     dmChat.requestMsgs = true;
     const limit = 20;
 
-    const resp = await fetch(window.location.origin + `/api/dms/${dmChat.chat.targetUserID}?limit=${limit}&offset=${dmChat.msgOffset}`,
-        {
-            method: "GET",
-        })
+    fetchData(`/api/dms/${dmChat.chat.targetUserID}?limit=${limit}&offset=${dmChat.msgOffset}`)
+        .then(data => {
+            const messagesJson: any[] = data.messages;
+            const messages: Message[] = [];
 
-    if (resp.ok) {
-        const data = await resp.json();
-        const messagesJson: any[] = data.messages;
-        const messages: Message[] = [];
+            messagesJson.forEach((msgJson) => {
+                const msg: Message = {
+                    id: msgJson.msg_id,
+                    user_id: msgJson.user_id,
+                    channel_id: msgJson.channel_id,
+                    channel_type: "dm",
+                    content: msgJson.content,
+                    attachments: msgJson.attachments,
+                    timestamp: msgJson.timestamp
+                };
 
-        messagesJson.forEach((msgJson) => {
-            const msg: Message = {
-                id: msgJson.msg_id,
-                user_id: msgJson.user_id,
-                channel_id: msgJson.channel_id,
-                channel_type: "dm",
-                content: msgJson.content,
-                attachments: msgJson.attachments,
-                timestamp: msgJson.timestamp
-            };
+                messages.push(msg);
+            })
 
-            messages.push(msg);
-        })
-
-        if (messages.length) {
-            dispatch({type: Action.ADD_DM_MSGS, payload: {dmID: dmChat.id, messages: messages }});
-        }
-    }
+            if (messages.length) {
+                dispatch({ type: Action.ADD_DM_MSGS, payload: { dmID: dmChat.id, messages: messages } });
+            }
+        });
 };
 
 const getMessages = (): Message[] => {
@@ -133,7 +129,7 @@ const ChatWindow = () => {
         const threshold = 100;
         const bottom =
             container.scrollHeight -
-                (container.scrollTop + container.clientHeight) <
+            (container.scrollTop + container.clientHeight) <
             threshold;
         // const group = appRef.current.groups.get(appRef.current.currentGroupID);
         // if (group) {

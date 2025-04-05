@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import useWebsocket from './WebSocket';
 import websocketClient from '../services/websocketClient';
+import fetchData from '../services/api';
 
 interface LoginToggleProp {
     type: 'login' | 'register' | 'checkbox';
@@ -75,7 +76,7 @@ const Login = () => {
 
     useEffect(() => {
         if (sessionToken) {
-            fetch('https://localhost:8080/set-session?token=' + sessionToken);
+            fetchData('/set-session?token=' + sessionToken);
         }
     }, [sessionToken]);
 

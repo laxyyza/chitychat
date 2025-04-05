@@ -11,6 +11,7 @@ import { FaCheck } from 'react-icons/fa';
 import { MdOutlineCancel } from 'react-icons/md';
 import useWebsocket from '../WebSocket';
 import { DM, DMChat } from '../../models/dm';
+import fetchData from '../../services/api';
 
 enum Selection {
     ALL,
@@ -53,17 +54,8 @@ const Friend = ({ user }: FriendProp) => {
 };
 
 const PendingRequest = ({ user }: FriendProp) => {
-    const deleteRequest = async () => {
-        await fetch(
-            window.location.origin + "/api/friends/requests/outgoing",
-            {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({user_id: user.id})
-            }
-        )
+    const deleteRequest = () => {
+        fetchData('/api/friends/requests/outgoing', 'DELETE', {user_id: user.id});
     }
 
     return (
@@ -86,21 +78,8 @@ const PendingRequest = ({ user }: FriendProp) => {
 };
 
 const FriendRequest = ({ user }: FriendProp) => {
-    const postRequest = async (action: string) => {
-        const resp = await fetch(
-            window.location.origin + '/api/friends/requests',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ user_id: user.id, action: action })
-            }
-        );
-        const data = await resp.json();
-        if (data.status === 'error') {
-            console.error(data.error);
-        }
+    const postRequest = (action: string) => {
+        fetchData('/api/friends/requests', 'POST', {user_id: user.id, action: action});
     };
 
     return (

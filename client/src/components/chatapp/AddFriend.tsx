@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Action, useApp } from './AppProvider';
 import useWebsocket from '../WebSocket';
+import fetchData from '../../services/api';
 
 interface Prop {
     onClose: () => void;
@@ -14,33 +15,22 @@ const AddFriend = ({ onClose }: Prop) => {
 
     const { send } = useWebsocket();
 
-    const postRequest = async () => {
-        const resp = await fetch(
-            window.location.origin + '/api/friend-request',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username: username })
-            }
-        );
-        const data = await resp.json();
-        if (data.user_id) {
-            const userID: number = data.user_id
-            if (!app.users.get(userID)) {
-                send({ cmd: 'get_user', user_ids: [userID] });
-            }
+    const postRequest = () => {
+        fetchData('/api/friend-request', 'POST', { username: username })
+            .then(data => {
+                const userID: number = data.user_id
+                if (!app.users.get(userID)) {
+                    send({ cmd: 'get_user', user_ids: [userID] });
+                }
 
-            dispatch({
-                type: Action.ADD_PENDING_FRIEND_REQUESTS,
-                payload: [userID]
-            });
-            setErrorMsg('');
-            onClose();
-        } else {
-            setErrorMsg('ERROR: ' + data.error);
-        }
+                dispatch({
+                    type: Action.ADD_PENDING_FRIEND_REQUESTS,
+                    payload: [userID]
+                });
+                setErrorMsg('');
+                onClose();
+            })
+            .catch(error => setErrorMsg('ERROR: ' + error));
     };
 
     useEffect(() => {
