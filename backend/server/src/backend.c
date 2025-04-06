@@ -27,6 +27,7 @@ backend_read(server_t* server, json_object* json)
     body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE, &payload_len);
 
     http = http_new_resp(status, "OK", body, payload_len);
+    http_add_cross_origin_headers(client, http);
 
     json_object_object_foreach(json_headers, key, val) {
         http_add_header(http, key, json_object_to_json_string(val));

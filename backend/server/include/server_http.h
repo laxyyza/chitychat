@@ -97,6 +97,7 @@ typedef struct http
         enum http_keep_alive keep_alive;
         char* websocket_key;
 		char* session_uuid;
+        const char* origin;
         bool body_inheap;
     };
 
@@ -127,6 +128,7 @@ int                     server_http_url_checks(http_t* http);
 void                    server_http_resp_error(client_t* client, u16 error_code, 
                                                const char* status_msg);
 void                    server_http_resp_404_not_found(client_t* client);
+void                    http_add_cross_origin_headers(client_t* client, http_t* http);
 void                    server_http_resp_ok(client_t* client, char* content, 
                                             size_t content_len, const char* content_type);
 

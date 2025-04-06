@@ -46,6 +46,7 @@ typedef struct client
     u64         tmptoken;
     char*       websocket_key;
     char        session_uuid[UUID_LEN];
+    bool        dev_origin;
 } client_t;
 
 client_t*   server_accept_client(eworker_t* ew, server_event_t* ev);

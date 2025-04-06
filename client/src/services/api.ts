@@ -14,7 +14,8 @@ const fetchData = async (
     try {
         const opts: RequestInit = {
             method,
-            headers
+            headers,
+            credentials: "include",
         };
 
         if (method !== 'GET' && body) {

@@ -2,6 +2,9 @@
 #include "server.h"
 #include "server_log.h"
 
+// Vite server
+#define DEV_ORIGIN_URI "http://localhost:5173"
+
 #define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
 #define HEADER_LINE_LEN (sizeof(http_header_t) + sizeof(HTTP_NL) + sizeof(": "))
 
@@ -116,6 +119,14 @@ handle_cookie(http_t* http, http_header_t* header)
         error("Invalid cookie key: %s\n", token);
 }
 
+static inline void 
+handle_origin(client_t* client, http_t* http, http_header_t* header)
+{
+    http->origin = header->val;
+    client->dev_origin = strcmp(http->origin, "http://localhost:5173") == 0;
+
+}
+
 static void 
 handle_http_header(client_t* client, http_t* http, http_header_t* header)
 {
@@ -127,6 +138,8 @@ handle_http_header(client_t* client, http_t* http, http_header_t* header)
         handle_websocket_key(http, header);
     else if (NAME_CMP("Cookie"))
         handle_cookie(http, header);
+    else if (NAME_CMP("Origin"))
+        handle_origin(client, http, header);
 }
 
 static void 
@@ -502,10 +515,21 @@ http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_le
 }
 
 void 
+http_add_cross_origin_headers(client_t* client, http_t* http)
+{
+    if (client->dev_origin)
+    {
+        http_add_header(http, "Access-Control-Allow-Credentials", "true");
+        http_add_header(http, "Access-Control-Allow-Origin", DEV_ORIGIN_URI);
+    }
+}
+
+void 
 server_http_resp_ok(client_t* client, char* content, size_t content_len, const char* content_type)
 {
     http_t* http = http_new_resp(HTTP_CODE_OK, "OK", content, content_len);
     http_add_header(http, HTTP_HEAD_CONTENT_TYPE, content_type);
+    http_add_cross_origin_headers(client, http);
 
     http_send(client, http);
 
@@ -553,10 +577,29 @@ server_http_url_checks(http_t* http)
     return 0;
 }
 
+static enum client_recv_status
+server_handle_http_options(client_t* client, http_t* http)
+{
+    http_t* resp = http_new_resp(206, "No Content", NULL, 0);
+    const http_header_t* req_headers = http_get_header(http, "Access-Control-Request-Headers");
+    if (req_headers)
+        http_add_header(resp, "Access-Control-Allow-Headers", req_headers->val);
+    http_add_header(resp, "Access-Control-Allow-Methods", "*");
+    http_add_header(resp, "Access-Control-Allow-Origin", DEV_ORIGIN_URI);
+    http_add_header(resp, "Access-Control-Allow-Credentials", "true");
+
+    http_send(client, resp);
+
+    return RECV_OK;
+}
+
 static enum client_recv_status 
 server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
     enum client_recv_status ret = RECV_OK;
+
+    if (!HTTP_CMP_METHOD("OPTIONS")) 
+        return server_handle_http_options(client, http);
 
     if (str_startwith(http->req.url, "/api/"))
     {
