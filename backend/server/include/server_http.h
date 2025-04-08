@@ -23,20 +23,58 @@
 #define HTTP_MAX_HEADERS    20
 #define HTTP_MAX_PARAMS     10
 
-#define HTTP_CODE_SW_PROTO      101
-#define HTTP_CODE_OK            200
-#define HTTP_CODE_BAD_REQ       400
-#define HTTP_CODE_NOT_FOUND     404
-#define HTTP_CODE_INTERAL_ERROR 500
-#define HTTP_CODE_UNAUTHORIZED  401
-#define HTTP_CODE_FORBIDDEN     403
-#define HTTP_CODE_SERVER_ERROR  500
+/* 1XX information response */
+#define HTTP_CODE_CONTINUE          100
+#define HTTP_CODE_SW_PROTO          101
+#define HTTP_CODE_EARLY_HINTS       103
 
-#define HTTP_UNAUTHORIZED "Unauthorized"
-#define HTTP_SW_PROTO "Switching Protocols"
-#define HTTP_FORBIDDEN "Forbidden"
-#define HTTP_BAD_REQ "Bad Request"
-#define HTTP_SERVER_ERROR "Internal Server Error"
+/* 2XX success */
+#define HTTP_CODE_OK                200
+#define HTTP_CODE_CREATED           201
+#define HTTP_CODE_ACCEPTED          202
+#define HTTP_CODE_NO_CONTENT        204
+#define HTTP_CODE_RESET_CONTENT     205
+#define HTTP_CODE_PARTIAL_CONTENT   206
+#define HTTP_CODE_IM_USED           226
+
+/* 3XX redirection */
+// Not implemented.
+
+/* 4XX client errors */
+#define HTTP_CODE_BAD_REQ           400
+#define HTTP_CODE_UNAUTHORIZED      401
+#define HTTP_CODE_FORBIDDEN         403
+#define HTTP_CODE_NOT_FOUND         404
+#define HTTP_CODE_METH_NOT_ALLOW    405
+#define HTTP_CODE_NOT_ACCEPTABLE    406
+#define HTTP_CODE_REQ_TIMEOUT       408
+#define HTTP_CODE_CONFLICT          409
+#define HTTP_CODE_GONE              410
+#define HTTP_CODE_LEN_REQUIRED      411
+#define HTTP_CODE_PRECON_FAILED     412
+#define HTTP_CODE_PAYLOAD_LARGE     413
+#define HTTP_CODE_URI_TOO_LONG      414
+#define HTTP_CODE_UNSUPP_MEDIA      415
+#define HTTP_CODE_RANGE_NOT_SAT     416
+#define HTTP_CODE_EXPECTATION_F     417
+#define HTTP_CODE_MISDIRECTED_R     421
+#define HTTP_CODE_UNPROCESS_CONTENT 422
+#define HTTP_CODE_TOO_EARLY         425
+#define HTTP_CODE_UPGRADE_REQUIRED  426
+#define HTTP_CODE_PRECOND_REQUIRED  428
+#define HTTP_CODE_TOO_MANY_REQUESTS 429
+#define HTTP_CODE_HEADERS_TO_LARGE  431
+
+/* 5XX server errors */
+#define HTTP_CODE_INTERAL_ERROR     500
+#define HTTP_CODE_NOT_IMPLEMENT     501
+#define HTTP_CODE_BAD_GATEWAY       502
+#define HTTP_CODE_SERV_UNAVAIL      503
+#define HTTP_CODE_GATEWAY_TIMEOUT   504
+#define HTTP_CODE_VERSION_NOT_SUPP  505
+#define HTTP_CODE_VARIANT_ALSO_NEGO 506
+#define HTTP_CODE_NOT_EXTENDED      510
+#define HTTP_CODE_NET_AUTH_REQUIRED 511
 
 #define HTTP_HEAD_CONTENT_LEN "Content-Length"
 #define HTTP_HEAD_WS_ACCEPT   "Sec-WebSocket-Accept"
@@ -120,13 +158,11 @@ enum client_recv_status server_http_parse(eworker_t* ew, client_t* client, u8* b
 enum client_recv_status server_handle_http(eworker_t* ew, client_t* client, http_t* http);
 http_header_t*          http_get_header(const http_t* http, const char* name);
 char*                   http_add_header(http_t* http, const char* name, const char* val);
-http_t*                 http_new_resp(u16 code, const char* status_msg, const char* body, 
-                                      size_t body_len);
+http_t*                 http_new_resp(u16 code, const char* body, size_t body_len);
 ssize_t                 http_send(client_t* client, http_t* http);
 void                    http_free(http_t* http);
 int                     server_http_url_checks(http_t* http);
-void                    server_http_resp_error(client_t* client, u16 error_code, 
-                                               const char* status_msg);
+void                    server_http_resp_error(client_t* client, u16 error_code);
 void                    server_http_resp_404_not_found(client_t* client);
 void                    http_add_cross_origin_headers(client_t* client, http_t* http);
 void                    server_http_resp_ok(client_t* client, char* content, 
@@ -136,5 +172,7 @@ enum client_recv_status server_handle_http_get(server_t* server, client_t* clien
 
 enum client_recv_status server_handle_http_post(eworker_t* ew, client_t* client, 
                                                 const http_t* http);
+
+const char* http_status_code_str(u32 code);
 
 #endif // _SERVER_HTTP_H_

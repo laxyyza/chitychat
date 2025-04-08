@@ -94,7 +94,7 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
-        server_http_resp_error(ctx->client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
+        server_http_resp_error(ctx->client, HTTP_CODE_UNAUTHORIZED);
         return "Invalid session ID";
     }
 

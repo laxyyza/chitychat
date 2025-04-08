@@ -26,7 +26,7 @@ backend_read(server_t* server, json_object* json)
     status = json_object_get_int(json_status);
     body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE, &payload_len);
 
-    http = http_new_resp(status, "OK", body, payload_len);
+    http = http_new_resp(status, body, payload_len);
     http_add_cross_origin_headers(client, http);
 
     json_object_object_foreach(json_headers, key, val) {
@@ -76,7 +76,7 @@ backend_send_http(server_t* server, const char* subject, client_t* client, http_
         }
         else 
         {
-            server_http_resp_error(client, HTTP_CODE_BAD_REQ, HTTP_BAD_REQ);
+            server_http_resp_error(client, HTTP_CODE_BAD_REQ);
             return;
         }
     }

@@ -118,7 +118,7 @@ server_handle_user_pfp_update(eworker_t* ew, client_t* client, const http_t* htt
 
     if (strncmp(http->req.url, post_img_cmd, post_img_cmd_len) != 0)
     {
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Not image", NULL, 0);
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, NULL, 0);
         goto respond;
     }
 
@@ -143,10 +143,10 @@ respond:
     if (!resp)
     {
         if (failed)
-            resp = http_new_resp(HTTP_CODE_INTERAL_ERROR, "Interal server error", NULL, 0);
+            resp = http_new_resp(HTTP_CODE_INTERAL_ERROR, NULL, 0);
         else
         {
-            resp = http_new_resp(HTTP_CODE_OK, "OK", NULL, 0);
+            resp = http_new_resp(HTTP_CODE_OK, NULL, 0);
             ((http_t*)http)->body_inheap = false;
         }
     }
@@ -188,7 +188,7 @@ server_handle_msg_attach(eworker_t* ew, client_t* client,
 
     if (attach_index_header == NULL)
     {
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "No Attach-Index header", NULL, 0);
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, NULL, 0);
         goto respond;
     }
 
@@ -197,7 +197,7 @@ server_handle_msg_attach(eworker_t* ew, client_t* client,
     {
         warn("Invalid Attach-Index: %s = %s\n", 
                 attach_index_header->name, attach_index_header->val);
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Invalid Attach-Index", NULL, 0);
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, NULL, 0);
         goto respond;
     }
 
@@ -259,7 +259,7 @@ server_handle_user_upload(eworker_t* ew, client_t* client, const http_t* http)
 
     if (ut == NULL)
     {
-        resp = http_new_resp(HTTP_CODE_BAD_REQ, "Upload-Token failed", NULL, 0);
+        resp = http_new_resp(HTTP_CODE_BAD_REQ, NULL, 0);
         goto respond;
     }
 

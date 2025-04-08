@@ -415,7 +415,7 @@ server_http_switch_to_websocket(client_t* client)
 {
     http_t* http;
 
-    http = http_new_resp(HTTP_CODE_SW_PROTO, HTTP_SW_PROTO, NULL, 0);
+    http = http_new_resp(HTTP_CODE_SW_PROTO, NULL, 0);
     http_add_header(http, "Connection", HTTP_HEAD_CONN_UPGRADE);
     http_add_header(http, "Upgrade", "websocket");
     http_add_header(http, HTTP_HEAD_WS_ACCEPT, client->websocket_key);
@@ -440,14 +440,14 @@ server_upgrade_client_to_websocket(eworker_t* ew, client_t* client, http_t* req_
     {
         if (req_http->session_uuid == NULL)
         {
-            http = http_new_resp(HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED, NULL, 0);
+            http = http_new_resp(HTTP_CODE_UNAUTHORIZED, NULL, 0);
             goto error;
         }
 
         const char* errmsg = server_client_login_session_uuid(ew, req_http->session_uuid);
         if (errmsg)
         {
-            http = http_new_resp(HTTP_CODE_SERVER_ERROR, errmsg, NULL, 0);
+            http = http_new_resp(HTTP_CODE_INTERAL_ERROR, NULL, 0);
             goto error;
         }
     }
@@ -492,9 +492,10 @@ http_add_body(http_t* restrict http, const char* restrict body, size_t body_len)
 }
 
 http_t* 
-http_new_resp(u16 code, const char* status_msg, const char* body, size_t body_len)
+http_new_resp(u16 code, const char* body, size_t body_len)
 {
     http_t* http = calloc(1, sizeof(http_t));
+    const char* status_msg = http_status_code_str(code);
 
     http->type = HTTP_RESPOND;
     http->resp.code = code;
@@ -527,7 +528,7 @@ http_add_cross_origin_headers(client_t* client, http_t* http)
 void 
 server_http_resp_ok(client_t* client, char* content, size_t content_len, const char* content_type)
 {
-    http_t* http = http_new_resp(HTTP_CODE_OK, "OK", content, content_len);
+    http_t* http = http_new_resp(HTTP_CODE_OK, content, content_len);
     http_add_header(http, HTTP_HEAD_CONTENT_TYPE, content_type);
     http_add_cross_origin_headers(client, http);
 
@@ -537,9 +538,9 @@ server_http_resp_ok(client_t* client, char* content, size_t content_len, const c
 }
 
 void 
-server_http_resp_error(client_t* client, u16 error_code, const char* status_msg)
+server_http_resp_error(client_t* client, u16 error_code)
 {
-    http_t* http = http_new_resp(error_code, status_msg, NULL, 0);
+    http_t* http = http_new_resp(error_code, NULL, 0);
     http_add_header(http, "Content-Length", "0");
 
     http_send(client, http);
@@ -553,7 +554,7 @@ server_http_resp_404_not_found(client_t* client)
     const char* not_found_html = "<h1>Not Found</h1>";
     size_t len = strlen(not_found_html);
 
-    http_t* http = http_new_resp(HTTP_CODE_NOT_FOUND, "Not Found", not_found_html, len);
+    http_t* http = http_new_resp(HTTP_CODE_NOT_FOUND, not_found_html, len);
 
     http_send(client, http);
 
@@ -580,7 +581,7 @@ server_http_url_checks(http_t* http)
 static enum client_recv_status
 server_handle_http_options(client_t* client, http_t* http)
 {
-    http_t* resp = http_new_resp(206, "No Content", NULL, 0);
+    http_t* resp = http_new_resp(HTTP_CODE_NO_CONTENT, NULL, 0);
     const http_header_t* req_headers = http_get_header(http, "Access-Control-Request-Headers");
     if (req_headers)
         http_add_header(resp, "Access-Control-Allow-Headers", req_headers->val);
@@ -593,6 +594,20 @@ server_handle_http_options(client_t* client, http_t* http)
     return RECV_OK;
 }
 
+// static inline enum client_recv_status
+// server_handle_auth_test(eworker_t* ew, client_t* client, http_t* http)
+// {
+//
+// }
+//
+// static inline enum client_recv_status
+// server_handle_auth(eworker_t* ew, client_t* client, http_t* http)
+// {
+//     if (strcmp(http->req.url, "/api/auth/test"))
+//         return server_handle_auth_test(ew, client, http);
+//     return RECV_OK;
+// }
+
 static enum client_recv_status 
 server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
@@ -603,6 +618,8 @@ server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 
     if (str_startwith(http->req.url, "/api/"))
     {
+        // if (str_startwith(http->req.url, "/api/auth/"))
+        //     return server_handle_auth(th, client, http);
         if (backend_route(th, client, http))
             return RECV_OK;
     }
@@ -698,4 +715,98 @@ http_send(client_t* client, http_t* http)
     free(to_str.str);
 
     return bytes_sent;
+}
+
+const char* 
+http_status_code_str(u32 code)
+{
+    switch (code)
+    {
+        case HTTP_CODE_CONTINUE:
+            return "Continue";
+        case HTTP_CODE_SW_PROTO:
+            return "Switching Protocols";
+        case HTTP_CODE_EARLY_HINTS:
+            return "Early Hints";
+        case HTTP_CODE_OK:
+            return "OK";
+        case HTTP_CODE_CREATED:
+            return "Created";
+        case HTTP_CODE_ACCEPTED:
+            return "Accepted";
+        case HTTP_CODE_NO_CONTENT:
+            return "No Content";
+        case HTTP_CODE_RESET_CONTENT:
+            return "Reset Content";
+        case HTTP_CODE_PARTIAL_CONTENT:
+            return "Partial Content";
+        case HTTP_CODE_IM_USED:
+            return "IM Used";
+        case HTTP_CODE_BAD_REQ:
+            return "Bad Request";
+        case HTTP_CODE_UNAUTHORIZED:
+            return "Unauthorized";
+        case HTTP_CODE_FORBIDDEN:
+            return "Forbidden";
+        case HTTP_CODE_NOT_FOUND:
+            return "Not Found";
+        case HTTP_CODE_METH_NOT_ALLOW:
+            return "Method Not Allowed";
+        case HTTP_CODE_NOT_ACCEPTABLE:
+            return "Not Acceptable";
+        case HTTP_CODE_REQ_TIMEOUT:
+            return "Request Timeout";
+        case HTTP_CODE_CONFLICT:
+            return "Conflict";
+        case HTTP_CODE_GONE:
+            return "Gone";
+        case HTTP_CODE_LEN_REQUIRED:
+            return "Length Required";
+        case HTTP_CODE_PRECON_FAILED:
+            return "Precondition Failed";
+        case HTTP_CODE_PAYLOAD_LARGE:
+            return "Payload Too Large";
+        case HTTP_CODE_URI_TOO_LONG:
+            return "URI Too Long";
+        case HTTP_CODE_UNSUPP_MEDIA:
+            return "Unsupported Media Type";
+        case HTTP_CODE_RANGE_NOT_SAT:
+            return "Range Not Satisfiable";
+        case HTTP_CODE_EXPECTATION_F:
+            return "Expectation Failed";
+        case HTTP_CODE_MISDIRECTED_R:
+            return "Misdirected Request";
+        case HTTP_CODE_UNPROCESS_CONTENT:
+            return "Unprocessable Content";
+        case HTTP_CODE_TOO_EARLY:
+            return "Too Early";
+        case HTTP_CODE_UPGRADE_REQUIRED:
+            return "Upgrade Required";
+        case HTTP_CODE_PRECOND_REQUIRED:
+            return "Precondition Required";
+        case HTTP_CODE_TOO_MANY_REQUESTS:
+            return "Too Many Requests";
+        case HTTP_CODE_HEADERS_TO_LARGE:
+            return "Request Header Fields Too Large";
+        case HTTP_CODE_INTERAL_ERROR:
+            return "Internal Server Error";
+        case HTTP_CODE_NOT_IMPLEMENT:
+            return "Not Implemented";
+        case HTTP_CODE_BAD_GATEWAY:
+            return "Bad Gateway";
+        case HTTP_CODE_SERV_UNAVAIL:
+            return "Service Unavailable";
+        case HTTP_CODE_GATEWAY_TIMEOUT:
+            return "Gateway Timeout";
+        case HTTP_CODE_VERSION_NOT_SUPP:
+            return "HTTP Version Not Supported";
+        case HTTP_CODE_VARIANT_ALSO_NEGO:
+            return "Variant Also Negotiates";
+        case HTTP_CODE_NOT_EXTENDED:
+            return "Not Extended";
+        case HTTP_CODE_NET_AUTH_REQUIRED:
+            return "Network Authentication Required";
+        default:
+            return "";
+    }
 }

@@ -15,7 +15,7 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
-        server_http_resp_error(ctx->client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
+        server_http_resp_error(ctx->client, HTTP_CODE_UNAUTHORIZED);
         http_free(http);
         free((void*)subject);
         return "Invalid session ID";
@@ -34,7 +34,7 @@ backend_do_route(eworker_t* ew, const char* subject, client_t* client, http_t* h
 {
     if (http->session_uuid == NULL)
     {
-        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
+        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED);
         return;
     }
 

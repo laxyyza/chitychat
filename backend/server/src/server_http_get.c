@@ -20,7 +20,7 @@ server_handle_set_session(server_t* server, client_t* client, http_t* http)
     if (token == NULL)
     {
         error("No token provided\n");
-        server_http_resp_error(client, HTTP_CODE_BAD_REQ, HTTP_BAD_REQ);
+        server_http_resp_error(client, HTTP_CODE_BAD_REQ);
         return;
     }
 
@@ -28,7 +28,7 @@ server_handle_set_session(server_t* server, client_t* client, http_t* http)
     client_t* ws_client = server_ght_get(&server->client_by_tmptoken_ht, tokenid);
     if (ws_client)
     {
-        http_t* resp_http = http_new_resp(HTTP_CODE_OK, "Ok", NULL, 0);
+        http_t* resp_http = http_new_resp(HTTP_CODE_OK, NULL, 0);
         char* set_cookie = http_add_header(resp_http, "Set-Cookie", NULL);
         if (set_cookie == NULL)
         {
@@ -43,7 +43,7 @@ server_handle_set_session(server_t* server, client_t* client, http_t* http)
     else
     {
         error("No client in tmptoken_ht\n");
-        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, HTTP_UNAUTHORIZED);
+        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED);
     }
 }
 
@@ -66,7 +66,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
 
     if (server_http_url_checks(http) == -1)
     {
-        server_http_resp_error(client, HTTP_CODE_NOT_FOUND, "Not found");
+        server_http_resp_error(client, HTTP_CODE_NOT_FOUND);
         return RECV_ERROR;
     }
 
