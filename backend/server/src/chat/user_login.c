@@ -94,7 +94,7 @@ do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
-        server_http_resp_error(ctx->client, HTTP_CODE_UNAUTHORIZED);
+        server_http_resp(ctx->client, HTTP_CODE_UNAUTHORIZED);
         return "Invalid session ID";
     }
 
@@ -140,211 +140,211 @@ server_client_login_session_uuid(eworker_t* ew,
     return NULL;
 }
 
-static const char* 
-after_session_insert(eworker_t* ew, dbcmd_ctx_t* ctx)
-{
-    const char* errmsg;
-    json_object* resp;
-    client_t* client;
-    dbuser_t* user;
-    dbsession_t* session;
+// static const char* 
+// after_session_insert(eworker_t* ew, dbcmd_ctx_t* ctx)
+// {
+//     const char* errmsg;
+//     json_object* resp;
+//     client_t* client;
+//     dbuser_t* user;
+//     dbsession_t* session;
+//
+//     if (ctx->ret == DB_ASYNC_ERROR)
+//         return "Failed to create session";
+//
+//     client = ctx->param.session_login.client;
+//     user = ctx->param.session_login.user;
+//     session = ctx->data;
+//
+//     resp = json_object_new_object();
+//     errmsg = server_set_client_logged_in(ew, client, user, session, resp);
+//     json_object_put(resp);
+//
+//     return errmsg;
+// }
 
-    if (ctx->ret == DB_ASYNC_ERROR)
-        return "Failed to create session";
+// static const char*
+// async_create_session(eworker_t* ew, client_t* client, dbuser_t* user, dbsession_t* session)
+// {
+//     dbcmd_ctx_t ctx = {
+//         .exec = after_session_insert,
+//         .param.session_login.client = client,
+//         .param.session_login.user = user,
+//         .client = client
+//     };
+//     if (!db_async_insert_session(&ew->db, user->user_id, &ctx))
+//     {
+//         free(session);
+//         return "Internal error: async-insert-session";
+//     }
+//
+//     return NULL;
+// }
+//
+// static const char*
+// do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
+// {
+//     const char* errmsg = NULL;
+//     dbuser_t* user = ctx->data;
+//     const char* password = ctx->param.user_login.password;
+//     // const bool do_session = ctx->param.user_login.do_session;
+//     dbsession_t* session;
+//     u8 hash_login[SERVER_HASH_SIZE];
+//
+//     if (ctx->ret == DB_ASYNC_ERROR)
+//         return INCORRECT_LOGIN_STR;
+//     if (user == NULL)
+//     {
+//         error("db_client_login: ctx->data is NULL!\n");
+//         return "Internal error: ctx->data";
+//     }
+//
+//     server_sha512(password, user->salt, hash_login);
+//
+//     if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
+//     {
+//         // if (do_session)
+//         // {
+//         session = calloc(1, sizeof(dbsession_t));
+//         session->user_id = user->user_id;
+//         errmsg = async_create_session(ew, ctx->client, user, session);
+//         // }
+//         // else
+//         // {
+//         //     json_object* resp = json_object_new_object();
+//         //     errmsg = server_set_client_logged_in(ew, ctx->client, user, NULL, resp);
+//         //     json_object_put(resp);
+//         // }
+//     }
+//     else
+//         errmsg = INCORRECT_LOGIN_STR;
+//
+//     /*
+//      * Set ctx->data to NULL if client logged-in.
+//      * If client logged-in: client->dbuser = ctx->data.
+//      * After this function ctx->data will be freed.
+//      */
+//     if (errmsg == NULL)
+//         ctx->data = NULL;
+//
+//     return errmsg;
+// }
 
-    client = ctx->param.session_login.client;
-    user = ctx->param.session_login.user;
-    session = ctx->data;
+// const char* 
+// server_client_login(eworker_t* ew, 
+//                     UNUSED client_t* client, 
+//                     json_object* payload, 
+//                     UNUSED json_object* respond_json)
+// {
+//     json_object* username_json;
+//     json_object* password_json;
+//     json_object* do_session_json;
+//     const char* username;
+//     const char* password;
+//     // dbuser_t* user;
+//     // session_t* session;
+//     bool do_session;
+//     // u8 hash_login[SERVER_HASH_SIZE];
+//     // u8* salt;
+//     // const char* errmsg = NULL;
+//
+//     RET_IF_JSON_BAD(username_json, payload, "username", json_type_string);
+//     RET_IF_JSON_BAD(password_json, payload, "password", json_type_string);
+//     RET_IF_JSON_BAD(do_session_json, payload, "session", json_type_boolean);
+//
+//     username = json_object_get_string(username_json);
+//     password = json_object_get_string(password_json);
+//     do_session = json_object_get_boolean(do_session_json);
+//
+//     dbcmd_ctx_t ctx;
+//     memset(&ctx, 0, sizeof(dbcmd_ctx_t));
+//
+//     ctx.exec = do_client_login;
+//     ctx.param.user_login.do_session = do_session;
+//     strncpy(ctx.param.user_login.password, password, DB_PASSWORD_MAX - 1);
+//
+//     if (!db_async_get_user_username(&ew->db, username, &ctx))
+//         return "Failed to do async sql.\n";
+//     return NULL;
+// }
+//
+// static const char* 
+// do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
+// {
+//     const char* errmsg = NULL;
+//     dbuser_t* user = ctx->data;
+//     dbsession_t* session;
+//     const bool do_session = ctx->param.user_login.do_session;
+//
+//     if (ctx->ret == DB_ASYNC_ERROR)
+//         return "Username already taken";
+//
+//     if (do_session)
+//     {
+//         session = calloc(1, sizeof(dbsession_t));
+//         session->user_id = user->user_id;
+//     }
+//     else 
+//         session = NULL;
+//
+//     if (session)
+//         errmsg = async_create_session(ew, ctx->client, user, session);
+//     else
+//     {
+//         json_object* resp = json_object_new_object();
+//         errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
+//         json_object_put(resp);
+//     }
+//
+//     /* See user_login.c:do_client_login() why setting ctx->data to NULL */
+//     if (errmsg == NULL)
+//         ctx->data = NULL;
+//
+//     return errmsg;
+// }
 
-    resp = json_object_new_object();
-    errmsg = server_set_client_logged_in(ew, client, user, session, resp);
-    json_object_put(resp);
-
-    return errmsg;
-}
-
-static const char*
-async_create_session(eworker_t* ew, client_t* client, dbuser_t* user, dbsession_t* session)
-{
-    dbcmd_ctx_t ctx = {
-        .exec = after_session_insert,
-        .param.session_login.client = client,
-        .param.session_login.user = user,
-        .client = client
-    };
-    if (!db_async_insert_session(&ew->db, session, &ctx))
-    {
-        free(session);
-        return "Internal error: async-insert-session";
-    }
-
-    return NULL;
-}
-
-static const char*
-do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
-{
-    const char* errmsg = NULL;
-    dbuser_t* user = ctx->data;
-    const char* password = ctx->param.user_login.password;
-    // const bool do_session = ctx->param.user_login.do_session;
-    dbsession_t* session;
-    u8 hash_login[SERVER_HASH_SIZE];
-
-    if (ctx->ret == DB_ASYNC_ERROR)
-        return INCORRECT_LOGIN_STR;
-    if (user == NULL)
-    {
-        error("db_client_login: ctx->data is NULL!\n");
-        return "Internal error: ctx->data";
-    }
-
-    server_sha512(password, user->salt, hash_login);
-
-    if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
-    {
-        // if (do_session)
-        // {
-        session = calloc(1, sizeof(dbsession_t));
-        session->user_id = user->user_id;
-        errmsg = async_create_session(ew, ctx->client, user, session);
-        // }
-        // else
-        // {
-        //     json_object* resp = json_object_new_object();
-        //     errmsg = server_set_client_logged_in(ew, ctx->client, user, NULL, resp);
-        //     json_object_put(resp);
-        // }
-    }
-    else
-        errmsg = INCORRECT_LOGIN_STR;
-
-    /*
-     * Set ctx->data to NULL if client logged-in.
-     * If client logged-in: client->dbuser = ctx->data.
-     * After this function ctx->data will be freed.
-     */
-    if (errmsg == NULL)
-        ctx->data = NULL;
-
-    return errmsg;
-}
-
-const char* 
-server_client_login(eworker_t* ew, 
-                    UNUSED client_t* client, 
-                    json_object* payload, 
-                    UNUSED json_object* respond_json)
-{
-    json_object* username_json;
-    json_object* password_json;
-    json_object* do_session_json;
-    const char* username;
-    const char* password;
-    // dbuser_t* user;
-    // session_t* session;
-    bool do_session;
-    // u8 hash_login[SERVER_HASH_SIZE];
-    // u8* salt;
-    // const char* errmsg = NULL;
-
-    RET_IF_JSON_BAD(username_json, payload, "username", json_type_string);
-    RET_IF_JSON_BAD(password_json, payload, "password", json_type_string);
-    RET_IF_JSON_BAD(do_session_json, payload, "session", json_type_boolean);
-
-    username = json_object_get_string(username_json);
-    password = json_object_get_string(password_json);
-    do_session = json_object_get_boolean(do_session_json);
-
-    dbcmd_ctx_t ctx;
-    memset(&ctx, 0, sizeof(dbcmd_ctx_t));
-
-    ctx.exec = do_client_login;
-    ctx.param.user_login.do_session = do_session;
-    strncpy(ctx.param.user_login.password, password, DB_PASSWORD_MAX - 1);
-
-    if (!db_async_get_user_username(&ew->db, username, &ctx))
-        return "Failed to do async sql.\n";
-    return NULL;
-}
-
-static const char* 
-do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
-{
-    const char* errmsg = NULL;
-    dbuser_t* user = ctx->data;
-    dbsession_t* session;
-    const bool do_session = ctx->param.user_login.do_session;
-
-    if (ctx->ret == DB_ASYNC_ERROR)
-        return "Username already taken";
-
-    if (do_session)
-    {
-        session = calloc(1, sizeof(dbsession_t));
-        session->user_id = user->user_id;
-    }
-    else 
-        session = NULL;
-
-    if (session)
-        errmsg = async_create_session(ew, ctx->client, user, session);
-    else
-    {
-        json_object* resp = json_object_new_object();
-        errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
-        json_object_put(resp);
-    }
-
-    /* See user_login.c:do_client_login() why setting ctx->data to NULL */
-    if (errmsg == NULL)
-        ctx->data = NULL;
-
-    return errmsg;
-}
-
-const char* 
-server_client_register(eworker_t* ew, 
-                       UNUSED client_t* client, 
-                       json_object* payload,
-                       UNUSED json_object* resp)
-{
-    json_object* username_json;
-    json_object* displayname_json;
-    json_object* password_json;
-    json_object* do_session_json;
-    const char* username;
-    const char* displayname;
-    const char* password;
-    bool do_session;
-    dbuser_t* new_user;
-    const char* errmsg = NULL;
-
-    RET_IF_JSON_BAD(username_json,      payload, "username",    json_type_string);
-    RET_IF_JSON_BAD(displayname_json,   payload, "displayname", json_type_string);
-    RET_IF_JSON_BAD(password_json,      payload, "password",    json_type_string);
-    RET_IF_JSON_BAD(do_session_json,    payload, "session",     json_type_boolean);
-
-    username = json_object_get_string(username_json);
-    displayname = json_object_get_string(displayname_json);
-    password = json_object_get_string(password_json);
-    do_session = json_object_get_boolean(do_session_json);
-
-    new_user = server_new_user(ew, 0);
-    strncpy(new_user->username, username, DB_USERNAME_MAX - 1);
-    strncpy(new_user->displayname, displayname, DB_USERNAME_MAX - 1);
-
-    getrandom(new_user->salt, SERVER_SALT_SIZE, 0);
-    server_sha512(password, new_user->salt, new_user->hash);
-
-    dbcmd_ctx_t ctx = {
-        .param.user_login.do_session = do_session,
-        .exec = do_client_register,
-    };
-    if (db_async_insert_user(&ew->db, new_user, &ctx) == false)
-    {
-        errmsg = "Internal error: async-insert-user";
-        free(new_user);
-    }
-    return errmsg;
-}
+// const char* 
+// server_client_register(eworker_t* ew, 
+//                        UNUSED client_t* client, 
+//                        json_object* payload,
+//                        UNUSED json_object* resp)
+// {
+//     json_object* username_json;
+//     json_object* displayname_json;
+//     json_object* password_json;
+//     json_object* do_session_json;
+//     const char* username;
+//     const char* displayname;
+//     const char* password;
+//     bool do_session;
+//     dbuser_t* new_user;
+//     const char* errmsg = NULL;
+//
+//     RET_IF_JSON_BAD(username_json,      payload, "username",    json_type_string);
+//     RET_IF_JSON_BAD(displayname_json,   payload, "displayname", json_type_string);
+//     RET_IF_JSON_BAD(password_json,      payload, "password",    json_type_string);
+//     RET_IF_JSON_BAD(do_session_json,    payload, "session",     json_type_boolean);
+//
+//     username = json_object_get_string(username_json);
+//     displayname = json_object_get_string(displayname_json);
+//     password = json_object_get_string(password_json);
+//     do_session = json_object_get_boolean(do_session_json);
+//
+//     new_user = server_new_user(ew, 0);
+//     strncpy(new_user->username, username, DB_USERNAME_MAX - 1);
+//     strncpy(new_user->displayname, displayname, DB_USERNAME_MAX - 1);
+//
+//     getrandom(new_user->salt, SERVER_SALT_SIZE, 0);
+//     server_sha512(password, new_user->salt, new_user->hash);
+//
+//     dbcmd_ctx_t ctx = {
+//         .param.user_login.do_session = do_session,
+//         .exec = do_client_register,
+//     };
+//     if (db_async_insert_user(&ew->db, new_user, &ctx) == false)
+//     {
+//         errmsg = "Internal error: async-insert-user";
+//         free(new_user);
+//     }
+//     return errmsg;
+// }

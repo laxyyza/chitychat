@@ -76,7 +76,7 @@ backend_send_http(server_t* server, const char* subject, client_t* client, http_
         }
         else 
         {
-            server_http_resp_error(client, HTTP_CODE_BAD_REQ);
+            server_http_resp(client, HTTP_CODE_BAD_REQ);
             return;
         }
     }

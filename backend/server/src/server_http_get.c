@@ -20,7 +20,7 @@ server_handle_set_session(server_t* server, client_t* client, http_t* http)
     if (token == NULL)
     {
         error("No token provided\n");
-        server_http_resp_error(client, HTTP_CODE_BAD_REQ);
+        server_http_resp(client, HTTP_CODE_BAD_REQ);
         return;
     }
 
@@ -43,7 +43,7 @@ server_handle_set_session(server_t* server, client_t* client, http_t* http)
     else
     {
         error("No client in tmptoken_ht\n");
-        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED);
+        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
     }
 }
 
@@ -66,7 +66,7 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
 
     if (server_http_url_checks(http) == -1)
     {
-        server_http_resp_error(client, HTTP_CODE_NOT_FOUND);
+        server_http_resp(client, HTTP_CODE_NOT_FOUND);
         return RECV_ERROR;
     }
 

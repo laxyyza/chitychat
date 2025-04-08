@@ -6,7 +6,7 @@
 typedef struct 
 {
     char password[DB_PASSWORD_MAX];
-    bool do_session;
+    bool remember_me;
 } user_login_param_t;
 
 const char* 

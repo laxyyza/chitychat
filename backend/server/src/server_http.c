@@ -1,6 +1,7 @@
 #include "server_http.h"
 #include "server.h"
 #include "server_log.h"
+#include "server_http_auth.h"
 
 // Vite server
 #define DEV_ORIGIN_URI "http://localhost:5173"
@@ -538,7 +539,7 @@ server_http_resp_ok(client_t* client, char* content, size_t content_len, const c
 }
 
 void 
-server_http_resp_error(client_t* client, u16 error_code)
+server_http_resp(client_t* client, u16 error_code)
 {
     http_t* http = http_new_resp(error_code, NULL, 0);
     http_add_header(http, "Content-Length", "0");
@@ -546,6 +547,28 @@ server_http_resp_error(client_t* client, u16 error_code)
     http_send(client, http);
 
     http_free(http);
+}
+
+void 
+server_http_resp_json_single(client_t* client, u16 code, const char* key, const char* val)
+{
+    u64 body_len;
+    json_object* json_body = json_object_new_object();
+    json_object_object_add(json_body, key, json_object_new_string(val));
+    const char* body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE, &body_len);
+
+    http_t* http = http_new_resp(code, body, body_len);
+
+    http_send(client, http);
+
+    http_free(http);
+    json_object_put(json_body);
+}
+
+void 
+server_http_resp_error(client_t* client, u16 error_code, const char* error_msg)
+{
+    server_http_resp_json_single(client, error_code, "error", error_msg);
 }
 
 void 
@@ -594,20 +617,6 @@ server_handle_http_options(client_t* client, http_t* http)
     return RECV_OK;
 }
 
-// static inline enum client_recv_status
-// server_handle_auth_test(eworker_t* ew, client_t* client, http_t* http)
-// {
-//
-// }
-//
-// static inline enum client_recv_status
-// server_handle_auth(eworker_t* ew, client_t* client, http_t* http)
-// {
-//     if (strcmp(http->req.url, "/api/auth/test"))
-//         return server_handle_auth_test(ew, client, http);
-//     return RECV_OK;
-// }
-
 static enum client_recv_status 
 server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
@@ -618,8 +627,8 @@ server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 
     if (str_startwith(http->req.url, "/api/"))
     {
-        // if (str_startwith(http->req.url, "/api/auth/"))
-        //     return server_handle_auth(th, client, http);
+        if (str_startwith(http->req.url, "/api/auth/"))
+            return server_handle_auth(th, client, http);
         if (backend_route(th, client, http))
             return RECV_OK;
     }

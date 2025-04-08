@@ -162,7 +162,9 @@ http_t*                 http_new_resp(u16 code, const char* body, size_t body_le
 ssize_t                 http_send(client_t* client, http_t* http);
 void                    http_free(http_t* http);
 int                     server_http_url_checks(http_t* http);
-void                    server_http_resp_error(client_t* client, u16 error_code);
+void                    server_http_resp(client_t* client, u16 error_code);
+void                    server_http_resp_json_single(client_t* client, u16 code, const char* key, const char* val);
+void                    server_http_resp_error(client_t* client, u16 error_code, const char* error_msg);
 void                    server_http_resp_404_not_found(client_t* client);
 void                    http_add_cross_origin_headers(client_t* client, http_t* http);
 void                    server_http_resp_ok(client_t* client, char* content, 

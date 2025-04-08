@@ -93,26 +93,26 @@ server_init_chatcmd_logged_in(server_t* server)
     return true;
 }
 
-bool 
-server_init_chatcmd_not_logged_in(server_t* server)
-{
-    if (!server_new_chatcmd(server, "register",
-                            server_client_register,
-                            CHATCMD_PERM_NONE)) 
-        return false;
-
-    if (!server_new_chatcmd(server, "login",
-                            server_client_login,
-                            CHATCMD_PERM_NONE)) 
-        return false;
-
-    // if (!server_new_chatcmd(server, "session",
-    //                         server_client_login_session,
-    //                         CHATCMD_PERM_NONE)) 
-    //     return false;
-
-    return true;
-}
+// bool 
+// server_init_chatcmd_not_logged_in(server_t* server)
+// {
+//     if (!server_new_chatcmd(server, "register",
+//                             server_client_register,
+//                             CHATCMD_PERM_NONE)) 
+//         return false;
+//
+//     if (!server_new_chatcmd(server, "login",
+//                             server_client_login,
+//                             CHATCMD_PERM_NONE)) 
+//         return false;
+//
+//     // if (!server_new_chatcmd(server, "session",
+//     //                         server_client_login_session,
+//     //                         CHATCMD_PERM_NONE)) 
+//     //     return false;
+//
+//     return true;
+// }
 
 bool    
 server_init_chatcmd(server_t* server)
@@ -124,8 +124,8 @@ server_init_chatcmd(server_t* server)
     if (server_init_chatcmd_logged_in(server) == false)
         return false;
 
-    if (server_init_chatcmd_not_logged_in(server) == false)
-        return false;
+    // if (server_init_chatcmd_not_logged_in(server) == false)
+    //     return false;
 
     return true;
 }

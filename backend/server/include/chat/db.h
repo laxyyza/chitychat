@@ -97,6 +97,8 @@ union cmd_param
 	get_group_msgs_param_t get_group_msgs;
     session_login_param_t session_login;
     session_route_t session_route;
+    client_t* client;
+    char session_id[UUID_LEN];
 };
 
 typedef struct dbcmd_ctx
