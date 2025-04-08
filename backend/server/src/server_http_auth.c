@@ -7,7 +7,7 @@
 #define ERR_MSG_INCORRECT "Incorrect username or password"
 
 /**
- *  HTTP Respond OK or Unauthorized if it found the session or not from database.
+ *  Sends HTTP OK if session exists in database, otherwise responds Unauthorized.
  */
 static const char*
 after_get_session(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
@@ -26,8 +26,8 @@ after_get_session(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 }
 
 /**
- *  Async select session id from database.
- *  Then calls `after_get_session()`
+ *  Asynchronously selects session ID from database.
+ *  Calls `after_get_session()` with the result.
  */
 static inline enum client_recv_status
 server_handle_auth_session(eworker_t* ew, client_t* client, http_t* http)
@@ -57,8 +57,7 @@ server_handle_auth_session(eworker_t* ew, client_t* client, http_t* http)
 }
 
 /**
- *  After inserting session for user.
- *  HTTP respond with `Set-Cookie`
+ *  After inserting a session for the user, responds with `Set-Cookie`.
  */
 static const char* 
 after_session_insert(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
@@ -86,8 +85,8 @@ after_session_insert(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 }
 
 /**
- *  Async insert session for user.
- *  Then calls `after_session_insert()`
+ *  Asynchronously inserts session for the user.
+ *  Calls `after_session_insert()` when done.
  */
 static inline const char*
 async_create_session(eworker_t* ew, client_t* client, dbuser_t* user)
@@ -103,10 +102,9 @@ async_create_session(eworker_t* ew, client_t* client, dbuser_t* user)
 }
 
 /**
- *  After SELECT user from Users.
- *  SHA512 given password.
- *  Compare the given password SHA512 with database SHA512.
- *  If match, call `async_create_session()`
+ *  Called after selecting user from database.
+ *  Hashes the given password with SHA512 and compares to stored hash.
+ *  If they match, calls `async_create_session()`.
  */
 static const char*
 do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
@@ -133,15 +131,15 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
 }
 
 /**
- *  Async get user using username from database.
- *  Then calls `do_client_login()`
+ *  Asynchronously retrieves user by username from database.
+ *  Then calls `do_client_login()`.
  */
 static inline enum client_recv_status
 server_handle_auth_login(eworker_t* ew, 
                          client_t* client, 
                          const char* username, 
                          const char* password, 
-                         bool remember_me)
+                         const bool remember_me)
 {
     dbcmd_ctx_t ctx = {
         .exec = do_client_login,
@@ -158,21 +156,72 @@ server_handle_auth_login(eworker_t* ew,
     return RECV_OK;
 }
 
-// static inline enum client_recv_status
-// server_handle_auth_register(eworker_t* ew, client_t* client, http_t* http)
-// {
-//     return RECV_OK;
-// }
+/**
+ *  Called after inserting user into database.
+ *  If successful, call `async_create_session()`, otherwise respond with HTTP Conflict.
+ */
+static const char* 
+do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    client_t* client = ctx->client;
+    dbuser_t* user = ctx->data;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+    {
+        server_http_resp_error(client, HTTP_CODE_CONFLICT, "Username already taken");
+        return NULL;
+    }
+
+    async_create_session(ew, client, user);
+
+    return NULL;
+}
+
+/**
+ * Asynchronously inserts user to database.
+ * Then calls `do_client_register()`.
+ *
+ * TODO: Use `remember_me`
+ */
+static inline enum client_recv_status
+server_handle_auth_register(eworker_t* ew, 
+                            client_t* client, 
+                            const char* username,
+                            const char* displayname, 
+                            const char* password,
+                            UNUSED const bool remember_me)
+{
+    dbuser_t* new_user;
+
+    new_user = server_new_user(ew, 0);
+    strncpy(new_user->username, username, DB_USERNAME_MAX - 1);
+    strncpy(new_user->displayname, displayname, DB_DISPLAYNAME_MAX - 1);
+    getrandom(new_user->salt, SERVER_SALT_SIZE, 0);
+    server_sha512(password, new_user->salt, new_user->hash);
+
+    dbcmd_ctx_t ctx = {
+        .exec = do_client_register,
+    };
+    if (!db_async_insert_user(&ew->db, new_user, &ctx))
+    {
+        server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+        return RECV_ERROR;
+    }
+
+    return RECV_OK;
+}
 
 static inline enum client_recv_status
 handle_post(eworker_t* ew, client_t* client, http_t* http)
 {
     json_object* payload;
     json_object* json_username;
+    json_object* json_displayname;
     json_object* json_password;
     json_object* json_remember_me;
     const char* username;
     const char* password;
+    const char* displayname;
     bool  remember_me;
     json_tokener* tok;
     enum client_recv_status ret;
@@ -223,8 +272,19 @@ handle_post(eworker_t* ew, client_t* client, http_t* http)
         goto free_payload;
     }
 
-    // if (strcmp(http->req.url, "/api/auth/register"))
-    //     return server_handle_auth_register(ew, client, http);
+    if (strcmp(http->req.url, "/api/auth/register") == 0)
+    {
+        /**
+        * Check for "displayname" key and type string 
+        **/
+        json_displayname = json_object_object_get(payload, "displayname");
+        if (json_object_is_type(json_displayname, json_type_string) == 0)
+            goto bad_req;
+        displayname = json_object_get_string(json_displayname);
+
+        ret = server_handle_auth_register(ew, client, username, displayname, password, remember_me);
+        goto free_payload;
+    }
 
     return RECV_DISCONNECT;
 bad_req:

@@ -558,6 +558,7 @@ server_http_resp_json_single(client_t* client, u16 code, const char* key, const 
     const char* body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE, &body_len);
 
     http_t* http = http_new_resp(code, body, body_len);
+    http_add_header(http, HTTP_HEAD_CONTENT_TYPE, "application/json");
 
     http_send(client, http);
 
