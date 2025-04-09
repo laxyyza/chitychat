@@ -122,7 +122,7 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
 
     server_sha512(password, user->salt, hash_login);
 
-    if (memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
+    if (CRYPTO_memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
         async_create_session(ew, client, user);
     else
         server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, ERR_MSG_INCORRECT);
@@ -286,6 +286,8 @@ handle_post(eworker_t* ew, client_t* client, http_t* http)
         goto free_payload;
     }
 
+    server_http_resp(client, HTTP_CODE_NOT_FOUND);
+    json_object_put(payload);
     return RECV_DISCONNECT;
 bad_req:
     server_http_resp(client, HTTP_CODE_BAD_REQ);
