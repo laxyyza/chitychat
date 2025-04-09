@@ -189,6 +189,7 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     char* token;
     char* header;
     char* header_line;
+    char* strtok_saveptr;
     size_t header_len;
     size_t actual_body_len;
 
@@ -198,8 +199,7 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     if (!header)
     {
         warn("parse_http first token is NULL!?!\n");
-        free(http);
-        return NULL;
+        goto parse_error;
     }
 
     http->body = strsplit(NULL, HTTP_END, &saveptr);
@@ -212,27 +212,21 @@ parse_http(client_t* client, char* buf, size_t buf_len)
 
     header_line = strsplit(header, HTTP_NL, &saveptr);
 
-    token = strtok(header_line, " ");
+    // Method
+    token = strtok_r(header_line, " ", &strtok_saveptr);
     if (token)
     {
-        if (strstr(token, "HTTP/"))
-        {
-            http->type = HTTP_RESPOND;
-            strncpy(http->resp.version, token, HTTP_VERSION_LEN - 1);
-        }
-        else
-        {
-            http->type = HTTP_REQUEST;
-            strncpy(http->req.method, token, HTTP_METHOD_LEN - 1);
-        }
+        http->type = HTTP_REQUEST;
+        strncpy(http->req.method, token, HTTP_METHOD_LEN - 1);
     }
     else
     {
-        free(http);
-        return NULL;
+        warn("No token for method.\n");
+        goto parse_error;
     }
 
-    token = strtok(NULL, " ");
+    // URL
+    token = strtok_r(NULL, " ", &strtok_saveptr);
     if (token)
     {
         if (http->type == HTTP_REQUEST)
@@ -240,16 +234,36 @@ parse_http(client_t* client, char* buf, size_t buf_len)
         else
             http->resp.code = atoi(token);
     }
+    else 
+    {
+        warn("No URL\n");
+        goto parse_error;
+    }
 
-    token = strtok(NULL, HTTP_NL);
+    // HTTP Version
+    token = strtok_r(NULL, HTTP_NL, &strtok_saveptr);
     if (token)
     {
         if (http->type == HTTP_REQUEST)
+        {
+            if (strcmp(token, "HTTP/1.1") != 0)
+            {
+                warn("Unsupported version: %s\n", token);
+                server_http_resp(client, HTTP_CODE_VERSION_NOT_SUPP);
+                goto parse_error;
+            }
             strncpy(http->req.version, token, HTTP_METHOD_LEN - 1);
+        }
         else
             strncpy(http->resp.msg, token, HTTP_STATUS_MSG_LEN - 1);
     }
+    else
+    {
+        warn("No HTTP version included.\n");
+        goto parse_error;
+    }
 
+    // Start of header
     header_line = strsplit(NULL, HTTP_NL, &saveptr);
 
     while (header_line)
@@ -258,12 +272,12 @@ parse_http(client_t* client, char* buf, size_t buf_len)
         char* name;
         char* val;
 
-        token = strtok(header_line, ": ");
+        token = strtok_r(header_line, ": ", &strtok_saveptr);
         if (!token)
             break;
         name = token;
 
-        token = strtok(NULL, "");
+        token = strtok_r(NULL, "", &strtok_saveptr);
         if (!token)
             break;
         if (*token == ' ')
@@ -285,16 +299,6 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     for (size_t i = 0; i < http->n_headers; i++)
         handle_http_header(client, http, &http->headers[i]);
 
-    // if (client->state & CLIENT_STATE_UPGRADE_PENDING)
-    // {
-    //     handle_http_upgrade(client, 
-    //         http_get_header(
-    //             http, 
-    //             HTTP_HEAD_CONN_UPGRADE
-    //         )
-    //     );
-    // }
-
     if (http->body || http->body_len)
     {
         if (http->body_len > actual_body_len)
@@ -310,6 +314,9 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     }
 
     return http;
+parse_error:
+    free(http);
+    return NULL;
 }
 
 static void 
