@@ -16,11 +16,15 @@ server_print_sockerr(i32 fd)
 void
 server_run(server_t* server)
 {
+    eworker_t* ew = server->main_ew;
+
     info("Server listening on IP: %s, port: %u, thread pool: %zu, using %s\n", 
          server->conf.addr_ip, server->conf.addr_port, server->tm.n_workers,
         (server->conf.disable_tls) ? "HTTP/WS" : "HTTPS/WSS");
 
-    server_wait_for_signals(server);
+    ew->server = server;
+    ew->db.cmd = &server->db_commands;
+    tm_worker(ew);
 }
 
 static void 
@@ -30,7 +34,7 @@ server_del_all_clients(server_t* server)
     ht->ignore_resize = true;
 
     GHT_FOREACH(client_t* client, ht, {
-        server_free_client(&server->main_ew, client);
+        server_free_client(server->main_ew, client);
     });
     server_ght_destroy(ht);
     server_ght_destroy(&server->user_ht);
@@ -43,7 +47,7 @@ server_del_all_upload_tokens(server_t* server)
     ht->ignore_resize = true;
 
     GHT_FOREACH(upload_token_t* ut, ht, {
-        server_del_upload_token(&server->main_ew, ut);
+            server_del_upload_token(server->main_ew, ut);
     });
     server_ght_destroy(ht);
 }
@@ -55,7 +59,7 @@ server_del_all_events(server_t* server)
     ht->ignore_resize = true;
 
     GHT_FOREACH(server_event_t* ev, ht, {
-        server_del_event(&server->main_ew, ev);
+        server_del_event(server->main_ew, ev);
     });
     server_ght_destroy(&server->event_ht);
 }

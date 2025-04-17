@@ -63,7 +63,6 @@ typedef struct server
     server_config_t conf;
     server_db_commands_t db_commands;
     server_tm_t tm;
-    eworker_t main_ew;
     magic_t magic_cookie;
     SSL_CTX* ssl_ctx;
 
@@ -84,6 +83,7 @@ typedef struct server
     server_ght_t chat_cmd_ht;
     server_ght_t bservices_ht;
     server_event_t* server_event;
+    eworker_t* main_ew;
 
     server_nats_t nats;
 

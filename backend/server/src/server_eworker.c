@@ -138,25 +138,20 @@ void
 server_eworker_async_run(eworker_t* ew)
 {
     server_t* server = ew->server;
-    server_tm_t* tm = &server->tm;
-    // server_db_t* db = &ew->db;
     struct pollfd pfd = {
         .fd = ew->db.fd,
         .events = POLLIN
     };
     i32 ret;
 
-    while ((tm->state & TM_STATE_SHUTDOWN) == 0)
+    while (server->running)
     {
         if ((ret = poll(&pfd, 1, 0)) == -1) 
         {
             error("poll: %s\n", ERRSTR);
-            tm->state |= TM_STATE_SHUTDOWN;
+            server->running = false;
             break;
         }
-
-        // debug("tid: %d\n\tret: %d\n\tdb->queue: %d\n", 
-        //       ew->tid, ret, db->queue.count);
 
         if (ret > 0)
             db_process_results(ew);
