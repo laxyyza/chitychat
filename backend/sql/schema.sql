@@ -153,6 +153,8 @@ CREATE TABLE IF NOT EXISTS RememberTokens(
     last_used_at timestamp DEFAULT now()
 );
 
+CREATE INDEX IF NOT EXISTS idx_token_hash ON RememberTokens(token_hash);
+
 CREATE TABLE IF NOT EXISTS RememberTokenUsage(
     token_id    int NOT NULL REFERENCES RememberTokens(token_id),
     user_id     int NOT NULL REFERENCES Users(user_id),
