@@ -1,5 +1,5 @@
-#ifndef _SERVER_REMEMBER_TOKEN_H_
-#define _SERVER_REMEMBER_TOKEN_H_
+#ifndef _SERVER_AUTH_TOKEN_H_
+#define _SERVER_AUTH_TOKEN_H_
 
 #include "common.h"
 #include "server_crypt.h"
@@ -25,11 +25,11 @@ typedef struct
     char expires[TOKEN_EXPIRE_STR_LEN];
 } remember_token_t;
 
-typedef void (*rt_callback_t)(eworker_t* ew, client_t* client, remember_token_t* rt, const char* session);
+typedef void (*auth_callback_t)(eworker_t* ew, client_t* client, remember_token_t* rt, const char* session);
 
 remember_token_t* create_remember_token(u32 user_id);
-bool server_rt_create_insert_token(eworker_t* ew, u32 user_id, client_t* client, rt_callback_t callback);
-bool server_rt_get_rotate_token(eworker_t* ew, client_t* client, const char* token, rt_callback_t callback);
-bool server_rt_delete_token(eworker_t* ew, const char* token);
+bool server_auth_token_create(eworker_t* ew, u32 user_id, client_t* client, bool remember_me, auth_callback_t callback);
+bool server_auth_token_get_rotate(eworker_t* ew, client_t* client, const char* token, auth_callback_t callback);
+bool server_auth_token_delete(eworker_t* ew, const char* token);
 
-#endif // _SERVER_REMEMBER_TOKEN_H_
+#endif // _SERVER_AUTH_TOKEN_H_

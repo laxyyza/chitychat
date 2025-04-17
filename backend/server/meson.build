@@ -38,8 +38,8 @@ server_src = files(
     'src/backend.c',
     'src/backend_route.c',
     'src/server_nats.c',
-    'src/server_http_auth.c',
-    'src/remember_token.c',
+    'src/server_auth.c',
+    'src/server_auth_token.c',
 
     'src/chat/user_file.c',
     'src/chat/user_login.c',

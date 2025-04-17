@@ -157,6 +157,7 @@ enum client_recv_status server_http_parse(eworker_t* ew, client_t* client, u8* b
                                           size_t buf_len);
 enum client_recv_status server_handle_http(eworker_t* ew, client_t* client, http_t* http);
 http_header_t*          http_get_header(const http_t* http, const char* name);
+char*                   http_add_header_adv(http_t* http, const char* name, const char* val, bool override);
 char*                   http_add_header(http_t* http, const char* name, const char* val);
 http_t*                 http_new_resp(u16 code, const char* body, size_t body_len);
 ssize_t                 http_send(client_t* client, http_t* http);

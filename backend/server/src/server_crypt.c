@@ -1,6 +1,8 @@
 #include "server_crypt.h"
 #include "server_http.h"
 
+#define UUID_BUF_LEN 16
+
 void 
 server_sha512(const char* secret, u8* salt, u8* hash)
 {
@@ -68,4 +70,32 @@ server_secure_random(void* buf, u32 size)
     if ((ret = getrandom(buf, size, 0)) == -1)
         error("getrandom: %s\n", ERRSTR);
     return ret;
+}
+
+void 
+server_uuid_v4(char uuid_out[UUID_LEN])
+{
+    u8 uuid_bytes[UUID_BUF_LEN];
+
+    server_secure_random(uuid_bytes, UUID_BUF_LEN);
+
+    // Set version to 4 (random)
+    uuid_bytes[6] = (uuid_bytes[6] & 0x0F) | 0x40;
+    // Set variant to 10xx
+    uuid_bytes[8] = (uuid_bytes[8] & 0x3F) | 0x80;
+
+    snprintf(uuid_out, UUID_LEN,
+        "%02x%02x%02x%02x-"
+        "%02x%02x-"
+        "%02x%02x-"
+        "%02x%02x-"
+        "%02x%02x%02x%02x%02x%02x",
+        uuid_bytes[0], uuid_bytes[1], 
+        uuid_bytes[2], uuid_bytes[3],
+        uuid_bytes[4], uuid_bytes[5],
+        uuid_bytes[6], uuid_bytes[7],
+        uuid_bytes[8], uuid_bytes[9],
+        uuid_bytes[10], uuid_bytes[11], 
+        uuid_bytes[12], uuid_bytes[13], 
+        uuid_bytes[14], uuid_bytes[15]);
 }

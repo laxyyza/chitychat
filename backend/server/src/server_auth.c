@@ -1,9 +1,9 @@
-#include "server_http_auth.h"
+#include "server_auth.h"
 #include "server_http.h"
 #include "server.h"
 #include "chat/db_user_session.h"
 #include "chat/db_user.h"
-#include "remember_token.h"
+#include "server_auth_token.h"
 
 #define ERR_MSG_INCORRECT "Incorrect username or password"
 
@@ -85,44 +85,39 @@ server_handle_auth_session(eworker_t* ew, client_t* client, http_t* http)
 //     return NULL;
 // }
 
-static void 
-after_token_create(UNUSED eworker_t* ew, client_t* client, remember_token_t* rt, UNUSED const char* session)
+static inline void 
+auth_http_set_cookies(http_t* http, remember_token_t* rt, const char* session_uuid)
 {
-    http_t* http;
     char* set_cookie;
 
-    if (rt == NULL)
+    if (rt)
+    {
+        set_cookie = http_add_header(http, "Set-Cookie", NULL);
+        snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, 
+                 "remember_token=%s; HttpOnly; Path=/api/auth/; Secure; SameSite=Strict; Expires=%s", 
+                 rt->token_hex, rt->expires);
+    }
+    set_cookie = http_add_header_adv(http, "Set-Cookie", NULL, false);
+    snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session=%s; HttpOnly; Path=/; Secure; SameSite=Strict", session_uuid);
+}
+
+static void 
+after_token_create(UNUSED eworker_t* ew, client_t* client, remember_token_t* rt, const char* session_uuid)
+{
+    http_t* http;
+
+    if (rt == NULL && session_uuid == NULL)
     {
         server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
         return;
     }
 
     http = http_new_resp(HTTP_CODE_OK, NULL, 0);
-    set_cookie = http_add_header(http, "Set-Cookie", NULL);
-    snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "remember_token=%s; HttpOnly; Path=/api/auth/; Secure; SameSite=Strict; Expires=%s", rt->token_hex, rt->expires);
+    auth_http_set_cookies(http, rt, session_uuid);
 
     http_send(client, http);
 
     http_free(http);
-}
-
-/**
- *  Asynchronously inserts session for the user.
- *  Calls `after_session_insert()` when done.
- */
-static inline const char*
-async_create_session(eworker_t* ew, client_t* client, dbuser_t* user)
-{
-    server_rt_create_insert_token(ew, user->user_id, client, after_token_create);
-
-    // dbcmd_ctx_t ctx = {
-    //     .exec = after_session_insert,
-    //     .client = client
-    // };
-    // if (!db_async_insert_session(&ew->db, user->user_id, &ctx))
-    //     server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
-
-    return NULL;
 }
 
 /**
@@ -137,6 +132,7 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
     const char* password = ctx->param.user_login.password;
     client_t* client = ctx->client;
     u8 hash_login[SERVER_HASH_SIZE];
+    bool remember_me = ctx->param.user_login.remember_me;
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
@@ -147,7 +143,7 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
     server_sha512(password, user->salt, hash_login);
 
     if (CRYPTO_memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
-        async_create_session(ew, client, user);
+        server_auth_token_create(ew, user->user_id, client, remember_me, after_token_create);
     else
         server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, ERR_MSG_INCORRECT);
 
@@ -189,6 +185,7 @@ do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
     client_t* client = ctx->client;
     dbuser_t* user = ctx->data;
+    bool remember_me = ctx->param.user_login.remember_me;
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
@@ -196,7 +193,7 @@ do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
         return NULL;
     }
 
-    async_create_session(ew, client, user);
+    server_auth_token_create(ew, user->user_id, client, remember_me, after_token_create);
 
     return NULL;
 }
@@ -213,7 +210,7 @@ server_handle_auth_register(eworker_t* ew,
                             const char* username,
                             const char* displayname, 
                             const char* password,
-                            UNUSED const bool remember_me)
+                            const bool remember_me)
 {
     dbuser_t* new_user;
 
@@ -225,6 +222,7 @@ server_handle_auth_register(eworker_t* ew,
 
     dbcmd_ctx_t ctx = {
         .exec = do_client_register,
+        .param.user_login.remember_me = remember_me
     };
     if (!db_async_insert_user(&ew->db, new_user, &ctx))
     {

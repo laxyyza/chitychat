@@ -2,10 +2,9 @@
 #define _SERVER_USER_SESSION_H_
 
 #include "common.h"
+#include "server_crypt.h"
 
 typedef struct client client_t;
-
-#define UUID_LEN 37
 
 typedef struct dbsession
 {

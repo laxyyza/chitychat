@@ -5,7 +5,7 @@
 #include "chat/group.h"
 #include "chat/user_login.h"
 #include "backend_route.h"
-#include "remember_token.h"
+#include "server_auth_token.h"
 
 #define DB_PIPELINE     0x01
 #define DB_NONBLOCK     0x02
@@ -83,7 +83,8 @@ typedef struct
 typedef struct 
 {
     client_t* client;
-    rt_callback_t callback;
+    auth_callback_t callback;
+    u32 user_id;
 } remember_token_param_t;
 
 union cmd_param 

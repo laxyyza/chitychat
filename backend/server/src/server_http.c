@@ -1,7 +1,7 @@
 #include "server_http.h"
 #include "server.h"
 #include "server_log.h"
-#include "server_http_auth.h"
+#include "server_auth.h"
 
 // Vite server
 #define DEV_ORIGIN_URI "http://localhost:5173"
@@ -381,21 +381,24 @@ http_get_header(const http_t* http, const char* name)
     return NULL;
 }
 
-char*
-http_add_header(http_t* http, const char* name, const char* val)
+char* 
+http_add_header_adv(http_t* http, const char* name, const char* val, bool override)
 {
     if (!http || !name)
         return NULL;
 
     http_header_t* to_header = NULL;
 
-    for (size_t i = 0; i < http->n_headers; i++)
+    if (override)
     {
-        http_header_t* header = http->headers + i;
-        if (NAME_CMP(name) || header->name[0] == 0x00 || header->val[0] == 0x00)
+        for (size_t i = 0; i < http->n_headers; i++)
         {
-            to_header = header;
-            break;
+            http_header_t* header = http->headers + i;
+            if (NAME_CMP(name) || header->name[0] == 0x00 || header->val[0] == 0x00)
+            {
+                to_header = header;
+                break;
+            }
         }
     }
 
@@ -416,6 +419,12 @@ http_add_header(http_t* http, const char* name, const char* val)
         strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN - 1);
 
     return to_header->val;
+}
+
+char*
+http_add_header(http_t* http, const char* name, const char* val)
+{
+    return http_add_header_adv(http, name, val, true);
 }
 
 void 
