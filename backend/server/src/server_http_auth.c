@@ -3,6 +3,7 @@
 #include "server.h"
 #include "chat/db_user_session.h"
 #include "chat/db_user.h"
+#include "remember_token.h"
 
 #define ERR_MSG_INCORRECT "Incorrect username or password"
 
@@ -59,29 +60,50 @@ server_handle_auth_session(eworker_t* ew, client_t* client, http_t* http)
 /**
  *  After inserting a session for the user, responds with `Set-Cookie`.
  */
-static const char* 
-after_session_insert(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+// static const char* 
+// after_session_insert(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
+// {
+//     client_t* client = ctx->client;
+//     http_t* http;
+//     const char* session_uuid = ctx->param.session_id;
+//     char* set_cookie;
+//
+//     if (ctx->ret == DB_ASYNC_ERROR)
+//     {
+//         server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+//         return NULL;
+//     }
+//
+//     http = http_new_resp(HTTP_CODE_OK, NULL, 0);
+//     set_cookie = http_add_header(http, "Set-Cookie", NULL);
+//     snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session_id=%s; HttpOnly; Secure; SameSite=Strict", session_uuid);
+//
+//     http_send(client, http);
+//
+//     http_free(http);
+//
+//     return NULL;
+// }
+
+static void 
+after_token_create(UNUSED eworker_t* ew, client_t* client, remember_token_t* rt, UNUSED const char* session)
 {
-    client_t* client = ctx->client;
     http_t* http;
-    const char* session_uuid = ctx->param.session_id;
     char* set_cookie;
 
-    if (ctx->ret == DB_ASYNC_ERROR)
+    if (rt == NULL)
     {
         server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
-        return NULL;
+        return;
     }
 
     http = http_new_resp(HTTP_CODE_OK, NULL, 0);
     set_cookie = http_add_header(http, "Set-Cookie", NULL);
-    snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session_id=%s; HttpOnly; Secure; SameSite=Strict", session_uuid);
+    snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "remember_token=%s; HttpOnly; Path=/api/auth/; Secure; SameSite=Strict; Expires=%s", rt->token_hex, rt->expires);
 
     http_send(client, http);
 
     http_free(http);
-
-    return NULL;
 }
 
 /**
@@ -91,12 +113,14 @@ after_session_insert(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
 static inline const char*
 async_create_session(eworker_t* ew, client_t* client, dbuser_t* user)
 {
-    dbcmd_ctx_t ctx = {
-        .exec = after_session_insert,
-        .client = client
-    };
-    if (!db_async_insert_session(&ew->db, user->user_id, &ctx))
-        server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+    server_rt_create_insert_token(ew, user->user_id, client, after_token_create);
+
+    // dbcmd_ctx_t ctx = {
+    //     .exec = after_session_insert,
+    //     .client = client
+    // };
+    // if (!db_async_insert_session(&ew->db, user->user_id, &ctx))
+    //     server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
 
     return NULL;
 }

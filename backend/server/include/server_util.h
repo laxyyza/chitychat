@@ -11,6 +11,7 @@ i32         file_isdir(const char* filepath);
 void        mask(u8* buf, size_t buf_len, const u8* maskkey, size_t maskkey_len);
 void*       combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr);
 void        hexstr_to_u8(const char* hexstr, size_t hexstr_len, u8* output);
+void        bytes_to_hex(const u8* buf, u32 buf_size, char* out_hex);
 const char* server_get_content_type(const char* path);
 const char* getenvd(const char* var, const char* default_val);
 void        uuid_to_u64_2(const char* uuid_str, u64 out[2]);

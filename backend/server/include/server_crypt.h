@@ -12,7 +12,8 @@
 #define SERVER_HASH256_STR_SIZE (SHA256_DIGEST_LENGTH * 2 + 1)
 
 void server_sha512(const char* secret, u8* salt, u8* hash);
-void server_sha256_str(const void* data, size_t size, char* output);
+void server_sha256(const void* data, size_t size, u8 hash_out[SHA256_DIGEST_LENGTH]);
 char* server_compute_websocket_key(const char* websocket_key);
+i32 server_secure_random(void* buf, u32 size);
 
 #endif // _SERVER_CRYPT_H_

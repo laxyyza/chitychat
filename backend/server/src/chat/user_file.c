@@ -180,7 +180,7 @@ server_save_file_img(eworker_t* ew, const void* data, size_t size,
     file = calloc(1, sizeof(dbuser_file_t));
     strncpy(file->mime_type, mime_type, DB_MIME_TYPE_LEN - 1);
 
-    server_sha256_str(data, size, file->hash);
+    // server_sha256_str(data, size, file->hash);
     file->size = size;
 
     dbcmd_ctx_t ctx = {

@@ -136,12 +136,40 @@ CREATE TABLE IF NOT EXISTS GroupCodes(
     FOREIGN KEY (group_id) REFERENCES Groups(group_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS Sessions(
-    session_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- CREATE TABLE IF NOT EXISTS Sessions(
+--     session_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+--     user_id     int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+--     created_at  TIMESTAMP DEFAULT now(),
+--     last_used   TIMESTAMP DEFAULT now(),
+--     expires_at  TIMESTAMP DEFAULT now() + INTERVAL '7 days'
+-- );
+
+CREATE TABLE IF NOT EXISTS RememberTokens(
+    token_id    SERIAL PRIMARY KEY,
     user_id     int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
-    created_at  TIMESTAMP DEFAULT now(),
-    last_used   TIMESTAMP DEFAULT now(),
-    expires_at  TIMESTAMP DEFAULT now() + INTERVAL '7 days'
+    token_hash  bytea NOT NULL,
+    created_at  timestamp DEFAULT now(),
+    expires_at  timestamp NOT NULL,
+    last_used_at timestamp DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS RememberTokenUsage(
+    token_id    int NOT NULL REFERENCES RememberTokens(token_id),
+    user_id     int NOT NULL REFERENCES Users(user_id),
+    user_agent  TEXT NOT NULL,
+    ip_address  INET NOT NULL,
+    timestamp   timestamp NOT NULL,
+
+    PRIMARY KEY (token_id)
+);
+
+CREATE TABLE IF NOT EXISTS LoginAttempts(
+    login_id    SERIAL PRIMARY KEY,
+    username    TEXT NOT NULL,
+    successful  boolean NOT NULL,
+    user_agent  TEXT NOT NULL,
+    ip_address  INET NOT NULL,
+    timestamp   timestamp DEFAULT now()
 );
 
 DO $$ BEGIN

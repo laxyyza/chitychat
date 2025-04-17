@@ -18,18 +18,13 @@ server_sha512(const char* secret, u8* salt, u8* hash)
 }
 
 void
-server_sha256_str(const void* data, size_t size, char* output)
+server_sha256(const void* data, size_t size, u8 hash_out[SHA256_DIGEST_LENGTH])
 {
-    u8 hash[SHA256_DIGEST_LENGTH];
     SHA256_CTX sha256;
     
     SHA256_Init(&sha256);
     SHA256_Update(&sha256, data, size);
-    SHA256_Final(hash, &sha256);
-
-    for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++)
-        sprintf(output + (i * 2), "%02x", hash[i]);
-    output[SERVER_HASH256_STR_SIZE - 1] = 0x00;
+    SHA256_Final(hash_out, &sha256);
 }
 
 char* 
@@ -64,4 +59,13 @@ server_compute_websocket_key(const char* websocket_key)
     BIO_free_all(bio);
 
     return b64_data;
+}
+
+i32
+server_secure_random(void* buf, u32 size)
+{
+    i32 ret;
+    if ((ret = getrandom(buf, size, 0)) == -1)
+        error("getrandom: %s\n", ERRSTR);
+    return ret;
 }

@@ -151,6 +151,8 @@ server_init_db(server_t* server)
     cmd->insert_session = server_db_load_sql("insert_session");
     cmd->select_session = server_db_load_sql("select_session");
 
+    cmd->insert_remember_token = server_db_load_sql("insert_remember_token");
+
     return db_exec_schema(server);
 }
 

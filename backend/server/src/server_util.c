@@ -172,7 +172,8 @@ combine_buffers(struct iovec* iov, size_t n, size_t* size_ptr)
     return buffer;
 }
 
-void hexstr_to_u8(const char* hexstr, size_t hexstr_len, u8* output)
+void 
+hexstr_to_u8(const char* hexstr, size_t hexstr_len, u8* output)
 {
     if (hexstr[0] == '\\' && hexstr[1] == 'x')
     {
@@ -192,6 +193,19 @@ void hexstr_to_u8(const char* hexstr, size_t hexstr_len, u8* output)
         output[index] = (u8)strtoul(hexpair, &endptr, 16);
         index++;
     }
+}
+
+void
+bytes_to_hex(const u8* buf, u32 buf_size, char* out_hex)
+{
+    static const char hex_chars[] = "0123456789ABCDEF";
+
+    for (u32 i = 0; i < buf_size; i++)
+    {
+        out_hex[2 * i]      = hex_chars[(buf[i] >> 4) & 0x0F];
+        out_hex[2 * i + 1]  = hex_chars[buf[i] & 0x0F];
+    }
+    out_hex[buf_size * 2] = 0x00; // null-terminate string.
 }
 
 const char* 

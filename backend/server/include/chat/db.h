@@ -5,6 +5,7 @@
 #include "chat/group.h"
 #include "chat/user_login.h"
 #include "backend_route.h"
+#include "remember_token.h"
 
 #define DB_PIPELINE     0x01
 #define DB_NONBLOCK     0x02
@@ -79,6 +80,12 @@ typedef struct
     http_t* http;
 } session_route_t;
 
+typedef struct 
+{
+    client_t* client;
+    rt_callback_t callback;
+} remember_token_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
@@ -99,6 +106,7 @@ union cmd_param
     session_route_t session_route;
     client_t* client;
     char session_id[UUID_LEN];
+    remember_token_param_t remember_token;
 };
 
 typedef struct dbcmd_ctx
