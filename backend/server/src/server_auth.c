@@ -1,89 +1,10 @@
 #include "server_auth.h"
 #include "server_http.h"
 #include "server.h"
-#include "chat/db_user_session.h"
 #include "chat/db_user.h"
 #include "server_auth_token.h"
 
 #define ERR_MSG_INCORRECT "Incorrect username or password"
-
-/**
- *  Sends HTTP OK if session exists in database, otherwise responds Unauthorized.
- */
-static const char*
-after_get_session(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
-{
-    client_t* client = ctx->param.client;
-
-    if (ctx->ret == DB_ASYNC_ERROR)
-    {
-        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
-        return NULL;
-    }
-
-    server_http_resp(client, HTTP_CODE_OK);
-
-    return NULL;
-}
-
-/**
- *  Asynchronously selects session ID from database.
- *  Calls `after_get_session()` with the result.
- */
-static inline enum client_recv_status
-server_handle_auth_session(eworker_t* ew, client_t* client, http_t* http)
-{
-    dbsession_t* session;
-    dbcmd_ctx_t ctx = {
-        .exec = after_get_session,
-        .param.client = client,
-    };
-
-    if (http->session_uuid == NULL)
-    {
-        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
-        return RECV_DISCONNECT;
-    }
-
-    session = calloc(1, sizeof(dbsession_t));
-    strncpy(session->uuid, http->session_uuid, UUID_LEN - 1);
-
-    if (!db_async_select_session(&ew->db, session, &ctx))
-    {
-        server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
-        return RECV_ERROR;
-    }
-
-    return RECV_OK;
-}
-
-/**
- *  After inserting a session for the user, responds with `Set-Cookie`.
- */
-// static const char* 
-// after_session_insert(UNUSED eworker_t* ew, dbcmd_ctx_t* ctx)
-// {
-//     client_t* client = ctx->client;
-//     http_t* http;
-//     const char* session_uuid = ctx->param.session_id;
-//     char* set_cookie;
-//
-//     if (ctx->ret == DB_ASYNC_ERROR)
-//     {
-//         server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
-//         return NULL;
-//     }
-//
-//     http = http_new_resp(HTTP_CODE_OK, NULL, 0);
-//     set_cookie = http_add_header(http, "Set-Cookie", NULL);
-//     snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session_id=%s; HttpOnly; Secure; SameSite=Strict", session_uuid);
-//
-//     http_send(client, http);
-//
-//     http_free(http);
-//
-//     return NULL;
-// }
 
 static inline void 
 auth_http_set_cookies(http_t* http, remember_token_t* rt, const char* session_uuid)
@@ -94,7 +15,7 @@ auth_http_set_cookies(http_t* http, remember_token_t* rt, const char* session_uu
     {
         set_cookie = http_add_header(http, "Set-Cookie", NULL);
         snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, 
-                 "remember_token=%s; HttpOnly; Path=/api/auth/; Secure; SameSite=Strict; Expires=%s", 
+                 "remember_token=%s; HttpOnly; Path=/api/auth/remember; Secure; SameSite=Strict; Expires=%s", 
                  rt->token_hex, rt->expires);
     }
     set_cookie = http_add_header_adv(http, "Set-Cookie", NULL, false);
@@ -118,6 +39,37 @@ after_token_create(UNUSED eworker_t* ew, client_t* client, remember_token_t* rt,
     http_send(client, http);
 
     http_free(http);
+}
+
+static inline enum client_recv_status
+server_handle_auth_remember(eworker_t* ew, client_t* client, http_t* http)
+{
+    if (http->cookies.remember_token == NULL)
+    {
+        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, "No remember_token cookie");
+        return RECV_DISCONNECT;
+    }
+    else if (strlen(http->cookies.remember_token) != TOKEN_HEX_LEN)
+    {
+        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
+        return RECV_DISCONNECT;
+    }
+    u8 token[TOKEN_LEN];
+    u8 token_hash[TOKEN_LEN];
+
+    // Convert token hex string into binary.
+    hexstr_to_u8(http->cookies.remember_token, TOKEN_HEX_LEN, token);
+
+    // SHA-256 binary token.
+    server_sha256(token, TOKEN_LEN, token_hash);
+
+    if (server_auth_token_get_rotate(ew, client, token_hash, after_token_create) == false)
+    {
+        server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+        return RECV_ERROR;
+    }
+
+    return RECV_OK;
 }
 
 /**
@@ -324,8 +276,8 @@ server_handle_auth(eworker_t* ew, client_t* client, http_t* http)
 {
     if (strcmp(http->req.method, "GET") == 0)
     {
-        if (strcmp(http->req.url, "/api/auth/session") == 0)
-            return server_handle_auth_session(ew, client, http);
+        if (strcmp(http->req.url, "/api/auth/remember") == 0)
+            return server_handle_auth_remember(ew, client, http);
     }
     else if (strcmp(http->req.method, "POST") == 0)
     {

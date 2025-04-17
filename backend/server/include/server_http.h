@@ -134,10 +134,14 @@ typedef struct http
     struct {
         enum http_keep_alive keep_alive;
         char* websocket_key;
-		char* session_uuid;
         const char* origin;
         bool body_inheap;
     };
+
+    struct {
+        char* session_uuid;
+        char* remember_token;
+    } cookies;
 
     struct {
         bool missing;

@@ -107,17 +107,35 @@ http_handle_content_len(http_t* http, http_header_t* header)
     }
 }
 
-static void 
+static inline void 
+handle_get_cookie(http_t* http, char* cookie_keyval)
+{
+    char* saveptr;
+    char* cookie_key = strtok_r(cookie_keyval, "=", &saveptr);
+    char* cookie_val = strtok_r(NULL, "=", &saveptr);
+
+    if (cookie_key == NULL || cookie_val == NULL)
+        return;
+
+    if (strcmp(cookie_key, "session") == 0)
+        http->cookies.session_uuid = cookie_val;
+    else if (strcmp(cookie_key, "remember_token") == 0)
+        http->cookies.remember_token = cookie_val;
+    else
+        debug("Unknown cookie: %s=%s\n", cookie_key, cookie_val);
+}
+
+static inline void 
 handle_cookie(http_t* http, http_header_t* header)
 {
-    char* token = strtok(header->val, "=");
-    if (strcmp(token, "session_id") == 0)
+    char* saveptr;
+    char* token_keyval = strtok_r(header->val, "; ", &saveptr);
+
+    while (token_keyval)
     {
-        token = strtok(NULL, "=");
-        http->session_uuid = token;
+        handle_get_cookie(http, token_keyval);
+        token_keyval = strtok_r(NULL, "; ", &saveptr);
     }
-    else
-        error("Invalid cookie key: %s\n", token);
 }
 
 static inline void 
@@ -445,7 +463,7 @@ server_http_switch_to_websocket(client_t* client)
 }
 
 static enum client_recv_status
-server_upgrade_client_to_websocket(eworker_t* ew, client_t* client, http_t* req_http)
+server_upgrade_client_to_websocket(UNUSED eworker_t* ew, client_t* client, http_t* req_http)
 {
     http_t* http;
 
@@ -455,18 +473,18 @@ server_upgrade_client_to_websocket(eworker_t* ew, client_t* client, http_t* req_
         server_http_switch_to_websocket(client);
     else
     {
-        if (req_http->session_uuid == NULL)
+        if (req_http->cookies.session_uuid == NULL)
         {
             http = http_new_resp(HTTP_CODE_UNAUTHORIZED, NULL, 0);
             goto error;
         }
 
-        const char* errmsg = server_client_login_session_uuid(ew, req_http->session_uuid);
-        if (errmsg)
-        {
-            http = http_new_resp(HTTP_CODE_INTERAL_ERROR, NULL, 0);
-            goto error;
-        }
+        // const char* errmsg = server_client_login_session_uuid(ew, req_http->session_uuid);
+        // if (errmsg)
+        // {
+        //     http = http_new_resp(HTTP_CODE_INTERAL_ERROR, NULL, 0);
+        //     goto error;
+        // }
     }
 
     return RECV_OK;

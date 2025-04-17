@@ -21,6 +21,7 @@ typedef struct
     u8 token_hash[TOKEN_LEN];
 
     u32 user_id;
+    u32 token_id;
 
     char expires[TOKEN_EXPIRE_STR_LEN];
 } remember_token_t;
@@ -29,7 +30,7 @@ typedef void (*auth_callback_t)(eworker_t* ew, client_t* client, remember_token_
 
 remember_token_t* create_remember_token(u32 user_id);
 bool server_auth_token_create(eworker_t* ew, u32 user_id, client_t* client, bool remember_me, auth_callback_t callback);
-bool server_auth_token_get_rotate(eworker_t* ew, client_t* client, const char* token, auth_callback_t callback);
+bool server_auth_token_get_rotate(eworker_t* ew, client_t* client, const u8* token, auth_callback_t callback);
 bool server_auth_token_delete(eworker_t* ew, const char* token);
 
 #endif // _SERVER_AUTH_TOKEN_H_

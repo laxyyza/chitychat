@@ -55,7 +55,6 @@ server_src = files(
     'src/chat/user_upload.c',
     'src/chat/rtusm.c',
     'src/chat/cmd.c',
-    'src/chat/db_user_session.c',
     'src/chat/db_remember_token.c',
 )
 include_dirs = [include_directories('include'), nats_inc]

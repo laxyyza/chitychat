@@ -2,44 +2,43 @@
 #include "server_client.h"
 #include "server.h"
 #include "backend.h"
-#include "chat/db_user_session.h"
 
 #define SUBJECT_MAX 512
 
-static const char* 
-do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
-{
-    dbsession_t* session = ctx->data;
-    const char* subject = ctx->param.session_route.subject;
-    http_t* http = ctx->param.session_route.http;
-
-    if (ctx->ret == DB_ASYNC_ERROR)
-    {
-        server_http_resp(ctx->client, HTTP_CODE_UNAUTHORIZED);
-        http_free(http);
-        free((void*)subject);
-        return "Invalid session ID";
-    }
-
-    backend_send_http(ew->server, subject, ctx->client, http, session->user_id);
-
-    http_free(http);
-    free((void*)subject);
-
-    return NULL;
-}
+// static const char* 
+// do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
+// {
+//     dbsession_t* session = ctx->data;
+//     const char* subject = ctx->param.session_route.subject;
+//     http_t* http = ctx->param.session_route.http;
+//
+//     if (ctx->ret == DB_ASYNC_ERROR)
+//     {
+//         server_http_resp(ctx->client, HTTP_CODE_UNAUTHORIZED);
+//         http_free(http);
+//         free((void*)subject);
+//         return "Invalid session ID";
+//     }
+//
+//     backend_send_http(ew->server, subject, ctx->client, http, session->user_id);
+//
+//     http_free(http);
+//     free((void*)subject);
+//
+//     return NULL;
+// }
 
 static void 
 backend_do_route(eworker_t* ew, const char* subject, client_t* client, http_t* http)
 {
-    if (http->session_uuid == NULL)
+    if (http->cookies.session_uuid == NULL)
     {
         server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
         return;
     }
 
     client_t* real_client = server_ght_get(&ew->server->client_by_session_ht, 
-                                           server_ght_hash_uuid(http->session_uuid));
+                                           server_ght_hash_uuid(http->cookies.session_uuid));
 
     if (real_client && real_client->dbuser)
     {
@@ -48,16 +47,16 @@ backend_do_route(eworker_t* ew, const char* subject, client_t* client, http_t* h
     else
     {
         dbsession_t* session = calloc(1, sizeof(dbsession_t));
-        strncpy(session->uuid, http->session_uuid, UUID_LEN - 1);
+        strncpy(session->uuid, http->cookies.session_uuid, UUID_LEN - 1);
 
-        dbcmd_ctx_t ctx = {
-            .exec = do_get_session,
-            .param.session_route.http = http,
-            .param.session_route.subject = strndup(subject, SUBJECT_MAX)
-        };
-        ew->ignore_http_free = true;
+        // dbcmd_ctx_t ctx = {
+        //     .exec = do_get_session,
+        //     .param.session_route.http = http,
+        //     .param.session_route.subject = strndup(subject, SUBJECT_MAX)
+        // };
+        // ew->ignore_http_free = true;
 
-        db_async_select_session(&ew->db, session, &ctx);
+        // db_async_select_session(&ew->db, session, &ctx);
     }
 }
 

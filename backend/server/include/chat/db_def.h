@@ -63,6 +63,8 @@ typedef struct
     const char*   select_session;
 
     const char*   insert_remember_token;
+    const char*   select_remember_token;
+    const char*   update_remember_token;
 } server_db_commands_t;
 
 typedef struct eworker eworker_t;

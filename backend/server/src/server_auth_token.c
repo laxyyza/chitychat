@@ -88,54 +88,69 @@ server_auth_token_create(eworker_t* ew, u32 user_id, client_t* client, bool reme
     return true;
 }
 
-// bool 
-// server_auth_token_get_rotate_token(eworker_t* ew, client_t* client, const char* token, auth_callback_t callback)
-// {
-//
-// }
-
-// void 
-// inseauth_token_remember_token(eworker_t* ew, client_t* client, u32 user_id)
-// {
-//     inseauth_token_remember_token(ew, user_id, callback)
-// }
-
-
-/*
-
-3 operations:
-
-1. inseauth_token(user_id) -> new token.
-2. get_update(token) -> updated token.
-3. delete(token) -> delete token.
-
-
-inseauth_token:
-
-callback(client, remember_token, session)
+static const char*
+after_token_update(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
-    if (token == NULL && session == NULL)
-        return resp_internal_error
+    client_t* client = ctx->param.remember_token.client;
+    u32 user_id = ctx->param.remember_token.user_id;
+    remember_token_t* rt = ctx->data;
+    auth_callback_t callback = ctx->param.remember_token.callback;
 
-    new http
-    if (session)
-        http.set_cookie(session_id=session.id) // only until browser close
-    if (remember_token)
-        http.set_cookie(remember_token=remember_token) // 30 days
-    send(client, http)
+    if (ctx->ret == DB_ASYNC_ERROR)
+    {
+        server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+        return NULL;
+    }
+
+    callback_create_session(ew, client, user_id, rt, callback);
+
+    return NULL;
 }
 
-// creates new token and session id.
-// create new token in postgres.
-// create new session id in redis.
-create_remember_token(user_id, client, callback)
+static inline void 
+async_rotate_token(eworker_t* ew, u32 token_id, remember_token_param_t* param)
+{
+    client_t* client = param->client;
+    dbcmd_ctx_t ctx = {
+        .exec = after_token_update,
+        .param.remember_token = *param
+    };
+    remember_token_t* rt;
 
-// creates new session id and rotates token.
-// select from postgres
-// create new session in redis.
-get_update(client, token, callback)
+    rt = create_remember_token(param->user_id);
+    rt->token_id = token_id;
 
-// delete token.
-delete(token)
+    if (!db_async_update_remember_token(&ew->db, rt, &ctx))
+        server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+}
 
-*/
+static const char*
+after_token_select(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    client_t* client = ctx->param.remember_token.client;
+    u32 token_id = ctx->param.remember_token.token_id;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+    {
+        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
+        return NULL;
+    }
+
+    async_rotate_token(ew, token_id, &ctx->param.remember_token);
+
+    return NULL;
+}
+
+bool 
+server_auth_token_get_rotate(eworker_t* ew, client_t* client, const u8* token, auth_callback_t callback)
+{
+    dbcmd_ctx_t ctx = {
+        .exec = after_token_select,
+        .param.remember_token.client = client,
+        .param.remember_token.callback = callback,
+    };
+    if (!db_async_select_remember_token(&ew->db, token, &ctx))
+        return false;
+
+    return true;
+}

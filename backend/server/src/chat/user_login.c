@@ -3,7 +3,6 @@
 #include "chat/db_def.h"
 #include "chat/db_user.h"
 #include "chat/rtusm.h"
-#include "chat/db_user_session.h"
 #include "chat/user_session.h"
 #include "chat/ws_text_frame.h"
 #include "server_ht.h"
@@ -12,133 +11,133 @@
 #define INCORRECT_LOGIN_STR "Incorrect Username or Password"
 #define U64_STR_LEN 21
 
-static const char* 
-server_set_client_logged_in(eworker_t* ew, 
-                            client_t* client, 
-                            dbuser_t* user,
-                            dbsession_t* session, 
-                            json_object* respond_json)
-{
-    const char* errmsg;
-    char token[U64_STR_LEN];
+// static const char* 
+// server_set_client_logged_in(eworker_t* ew, 
+//                             client_t* client, 
+//                             dbuser_t* user,
+//                             dbsession_t* session, 
+//                             json_object* respond_json)
+// {
+//     const char* errmsg;
+//     char token[U64_STR_LEN];
+//
+//     if (!(client->state & CLIENT_STATE_WEBSOCKET))
+//         server_http_switch_to_websocket(client);
+//
+//     if (session)
+//     {
+//         client->state |= CLIENT_STATE_SESSION_PENDING;
+//         getrandom(&client->tmptoken, sizeof(u64), 0);
+//         server_ght_insert(&ew->server->client_by_tmptoken_ht, client->tmptoken, client);
+//         server_ght_insert(&ew->server->client_by_session_ht, server_ght_hash_uuid(session->uuid), client);
+//         strncpy(client->session_uuid, session->uuid, UUID_LEN - 1);
+//     }
+//     else
+//         client->tmptoken = 0;
+//
+//     if ((errmsg = server_user_rate_limit_check(user)))
+//         return errmsg; 
+//
+//     server_ght_insert(&ew->server->user_ht, user->user_id, user);
+//     server_rtusm_user_connect(ew, user);
+//     array_add_voidp(&user->connected_clients, client);
+//     client->dbuser = user;
+//
+//     snprintf(token, U64_STR_LEN, "%lu", client->tmptoken);
+//
+//     json_object_object_add(respond_json, "cmd", 
+//                         json_object_new_string("session"));
+//     json_object_object_add(respond_json, "id", 
+//                            json_object_new_string(token));
+//
+//     if (ws_json_send(client, respond_json) != -1)
+//     {
+//         client->state |= CLIENT_STATE_LOGGED_IN;
+//
+//         info("Client (IP: %s) login as user:\n\t\t{ id: %u, username: '%s', displayname: '%s'}\n",
+//             client->addr.ip_str, user->user_id, user->username, user->displayname);
+//     }
+//
+//     return NULL;
+// }
 
-    if (!(client->state & CLIENT_STATE_WEBSOCKET))
-        server_http_switch_to_websocket(client);
+// static const char*
+// do_client_login_session(eworker_t* ew, dbcmd_ctx_t* ctx)
+// {
+//     dbsession_t* session = ctx->param.session;
+//     dbuser_t* user = ctx->data;
+//     const char* errmsg;
+//
+//     if (ctx->ret == DB_ASYNC_ERROR)
+//         return "Could not find user from session";
+//
+//     json_object* resp = json_object_new_object();
+//     errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
+//     json_object_put(resp);
+//
+//     // IDK if session needs to be freed or not.
+//
+//     if (errmsg == NULL)
+//         ctx->data = NULL;
+//
+//     return errmsg;
+// }
 
-    if (session)
-    {
-        client->state |= CLIENT_STATE_SESSION_PENDING;
-        getrandom(&client->tmptoken, sizeof(u64), 0);
-        server_ght_insert(&ew->server->client_by_tmptoken_ht, client->tmptoken, client);
-        server_ght_insert(&ew->server->client_by_session_ht, server_ght_hash_uuid(session->uuid), client);
-        strncpy(client->session_uuid, session->uuid, UUID_LEN - 1);
-    }
-    else
-        client->tmptoken = 0;
-
-    if ((errmsg = server_user_rate_limit_check(user)))
-        return errmsg; 
-
-    server_ght_insert(&ew->server->user_ht, user->user_id, user);
-    server_rtusm_user_connect(ew, user);
-    array_add_voidp(&user->connected_clients, client);
-    client->dbuser = user;
-
-    snprintf(token, U64_STR_LEN, "%lu", client->tmptoken);
-
-    json_object_object_add(respond_json, "cmd", 
-                        json_object_new_string("session"));
-    json_object_object_add(respond_json, "id", 
-                           json_object_new_string(token));
-
-    if (ws_json_send(client, respond_json) != -1)
-    {
-        client->state |= CLIENT_STATE_LOGGED_IN;
-
-        info("Client (IP: %s) login as user:\n\t\t{ id: %u, username: '%s', displayname: '%s'}\n",
-            client->addr.ip_str, user->user_id, user->username, user->displayname);
-    }
-
-    return NULL;
-}
-
-static const char*
-do_client_login_session(eworker_t* ew, dbcmd_ctx_t* ctx)
-{
-    dbsession_t* session = ctx->param.session;
-    dbuser_t* user = ctx->data;
-    const char* errmsg;
-
-    if (ctx->ret == DB_ASYNC_ERROR)
-        return "Could not find user from session";
-
-    json_object* resp = json_object_new_object();
-    errmsg = server_set_client_logged_in(ew, ctx->client, user, session, resp);
-    json_object_put(resp);
-
-    // IDK if session needs to be freed or not.
-
-    if (errmsg == NULL)
-        ctx->data = NULL;
-
-    return errmsg;
-}
-
-static const char* 
-do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
-{
-    dbsession_t* session  = ctx->data;
-    dbuser_t* user;
-    const char* errmsg = NULL;
-    ctx->data = NULL;
-
-    if (ctx->ret == DB_ASYNC_ERROR)
-    {
-        server_http_resp(ctx->client, HTTP_CODE_UNAUTHORIZED);
-        return "Invalid session ID";
-    }
-
-    ctx->param.session = session;
-
-    if ((user = server_ght_get(&ew->server->user_ht, session->user_id)))
-    {
-        ctx->data = user;
-        errmsg = do_client_login_session(ew, ctx);
-        ctx->data = NULL;
-    }
-    else
-    {
-        ctx->exec = do_client_login_session;
-
-        if (!db_async_get_user(&ew->db, session->user_id, ctx))
-            return "Internal error: async-get-user";
-    }
-
-    return errmsg;
-}
+// static const char* 
+// do_get_session(eworker_t* ew, dbcmd_ctx_t* ctx)
+// {
+//     dbsession_t* session  = ctx->data;
+//     dbuser_t* user;
+//     const char* errmsg = NULL;
+//     ctx->data = NULL;
+//
+//     if (ctx->ret == DB_ASYNC_ERROR)
+//     {
+//         server_http_resp(ctx->client, HTTP_CODE_UNAUTHORIZED);
+//         return "Invalid session ID";
+//     }
+//
+//     ctx->param.session = session;
+//
+//     if ((user = server_ght_get(&ew->server->user_ht, session->user_id)))
+//     {
+//         ctx->data = user;
+//         errmsg = do_client_login_session(ew, ctx);
+//         ctx->data = NULL;
+//     }
+//     else
+//     {
+//         ctx->exec = do_client_login_session;
+//
+//         if (!db_async_get_user(&ew->db, session->user_id, ctx))
+//             return "Internal error: async-get-user";
+//     }
+//
+//     return errmsg;
+// }
 
 /**
  *  `ew->db.ctx.client` will contain the client reference. 
  *  No need to pass client_t in this function.
  **/
-const char* 
-server_client_login_session_uuid(eworker_t* ew, 
-                                 const char* session_uuid)
-{
-    dbsession_t* session;
-    
-    dbcmd_ctx_t ctx = {
-        .exec = do_get_session,
-    };
-
-    session = calloc(1, sizeof(dbsession_t));
-    strncpy(session->uuid, session_uuid, UUID_LEN - 1);
-
-    if (!db_async_select_session(&ew->db, session, &ctx))
-        return "Internal error: async-select-session";
-
-    return NULL;
-}
+// const char* 
+// server_client_login_session_uuid(eworker_t* ew, 
+//                                  const char* session_uuid)
+// {
+//     dbsession_t* session;
+//
+//     dbcmd_ctx_t ctx = {
+//         .exec = do_get_session,
+//     };
+//
+//     session = calloc(1, sizeof(dbsession_t));
+//     strncpy(session->uuid, session_uuid, UUID_LEN - 1);
+//
+//     if (!db_async_select_session(&ew->db, session, &ctx))
+//         return "Internal error: async-select-session";
+//
+//     return NULL;
+// }
 
 // static const char* 
 // after_session_insert(eworker_t* ew, dbcmd_ctx_t* ctx)

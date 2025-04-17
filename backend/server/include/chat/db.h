@@ -85,6 +85,8 @@ typedef struct
     client_t* client;
     auth_callback_t callback;
     u32 user_id;
+    u32 token_id;
+    remember_token_t* rt;
 } remember_token_param_t;
 
 union cmd_param 

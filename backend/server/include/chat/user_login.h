@@ -26,9 +26,9 @@ server_client_login(eworker_t* th,
  *  `ew->db.ctx.client` will contain the client reference. 
  *  No need to pass client_t in this function.
  **/
-const char* 
-server_client_login_session_uuid(eworker_t* ew, 
-                                 const char* session_uuid);
+// const char* 
+// server_client_login_session_uuid(eworker_t* ew, 
+//                                  const char* session_uuid);
 
 // const char* 
 // server_client_login_session(eworker_t* th, 
