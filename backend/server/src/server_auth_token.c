@@ -34,7 +34,6 @@ callback_create_session(eworker_t* ew,
     server_uuid_v4(session_uuid);
 
     server_redis_set_session(ew->server, session_uuid, user_id);
-    info("%s -> %u\n", session_uuid, user_id);
 
     callback(ew, client, rt, session_uuid);
 }

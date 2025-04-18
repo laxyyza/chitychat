@@ -27,12 +27,8 @@ redis_disconnect_cb(const redisAsyncContext* c, i32 status)
 }
 
 static void 
-redis_callback(UNUSED redisAsyncContext* c, redisReply* r, UNUSED void* privData)
+redis_callback(UNUSED redisAsyncContext* c, UNUSED redisReply* r, UNUSED void* privData)
 {
-    if (r == NULL)
-        return;
-
-    info("elements: %lu\n", r->elements);
 }
 
 static void 

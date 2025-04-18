@@ -146,6 +146,12 @@ handle_origin(client_t* client, http_t* http, http_header_t* header)
 
 }
 
+static inline void 
+handle_user_agent(client_t* client, http_header_t* header)
+{
+    strncpy(client->user_agent, header->val, USER_AGENT_LEN);
+}
+
 static void 
 handle_http_header(client_t* client, http_t* http, http_header_t* header)
 {
@@ -159,6 +165,8 @@ handle_http_header(client_t* client, http_t* http, http_header_t* header)
         handle_cookie(http, header);
     else if (NAME_CMP("Origin"))
         handle_origin(client, http, header);
+    else if (NAME_CMP("User-Agent"))
+        handle_user_agent(client, header);
 }
 
 static void 

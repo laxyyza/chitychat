@@ -23,6 +23,8 @@
 #define CLIENT_RECV_PAGE             4096
 #define CLIENT_MAX_ERRORS 3
 
+#define USER_AGENT_LEN 128
+
 typedef struct server_event server_event_t;
 
 typedef struct 
@@ -47,6 +49,7 @@ typedef struct client
     char*       websocket_key;
     char        session_uuid[UUID_LEN];
     bool        dev_origin;
+    char        user_agent[USER_AGENT_LEN];
 } client_t;
 
 client_t*   server_accept_client(eworker_t* ew, server_event_t* ev);

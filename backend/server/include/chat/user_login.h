@@ -6,6 +6,7 @@
 typedef struct 
 {
     char password[DB_PASSWORD_MAX];
+    char username[DB_USERNAME_MAX];
     bool remember_me;
 } user_login_param_t;
 

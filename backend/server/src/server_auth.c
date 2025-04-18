@@ -2,6 +2,7 @@
 #include "server_http.h"
 #include "server.h"
 #include "chat/db_user.h"
+#include "chat/db_login_attempts.h"
 #include "server_auth_token.h"
 
 #define ERR_MSG_INCORRECT "Incorrect username or password"
@@ -82,23 +83,30 @@ do_client_login(eworker_t* ew, dbcmd_ctx_t* ctx)
 {
     dbuser_t* user = ctx->data;
     const char* password = ctx->param.user_login.password;
+    const char* username = ctx->param.user_login.username;
     client_t* client = ctx->client;
     u8 hash_login[SERVER_HASH_SIZE];
     bool remember_me = ctx->param.user_login.remember_me;
+    bool successful = false;
 
     if (ctx->ret == DB_ASYNC_ERROR)
     {
         server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, ERR_MSG_INCORRECT);
-        return NULL;
+        goto log_login_attempt;
     }
 
     server_sha512(password, user->salt, hash_login);
 
     if (CRYPTO_memcmp(user->hash, hash_login, SERVER_HASH_SIZE) == 0)
+    {
         server_auth_token_create(ew, user->user_id, client, remember_me, after_token_create);
+        successful = true;
+    }
     else
         server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, ERR_MSG_INCORRECT);
 
+log_login_attempt:
+    db_async_login_attempt(&ew->db, username, successful, client->user_agent, client->addr.ip_str);
     return NULL;
 }
 
@@ -118,6 +126,7 @@ server_handle_auth_login(eworker_t* ew,
         .param.user_login.remember_me = remember_me
     };
     strncpy(ctx.param.user_login.password, password, DB_PASSWORD_MAX - 1);
+    strncpy(ctx.param.user_login.username, username, DB_USERNAME_MAX - 1);
 
     if (!db_async_get_user_username(&ew->db, username, &ctx))
     {
