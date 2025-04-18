@@ -67,6 +67,7 @@ typedef struct
     const char*   update_remember_token;
 
     const char*   insert_login_attempt;
+    const char*   insert_remember_token_usage;
 } server_db_commands_t;
 
 typedef struct eworker eworker_t;

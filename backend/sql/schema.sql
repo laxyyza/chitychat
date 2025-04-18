@@ -156,13 +156,11 @@ CREATE TABLE IF NOT EXISTS RememberTokens(
 CREATE INDEX IF NOT EXISTS idx_token_hash ON RememberTokens(token_hash);
 
 CREATE TABLE IF NOT EXISTS RememberTokenUsage(
+    usage_id    SERIAL PRIMARY KEY,
     token_id    int NOT NULL REFERENCES RememberTokens(token_id),
-    user_id     int NOT NULL REFERENCES Users(user_id),
     user_agent  TEXT NOT NULL,
     ip_address  INET NOT NULL,
-    timestamp   timestamp NOT NULL,
-
-    PRIMARY KEY (token_id)
+    timestamp   timestamp DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS LoginAttempts(

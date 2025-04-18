@@ -58,6 +58,7 @@ server_src = files(
     'src/chat/cmd.c',
     'src/chat/db_remember_token.c',
     'src/chat/db_login_attempt.c',
+    'src/chat/db_remember_token_usage.c',
 )
 include_dirs = [include_directories('include'), nats_inc]
 include_dirs += cutils_include

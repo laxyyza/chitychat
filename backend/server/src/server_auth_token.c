@@ -3,6 +3,7 @@
 #include "server_crypt.h"
 #include "server.h"
 #include "chat/db_remember_token.h"
+#include "chat/db_remember_token_usage.h"
 
 remember_token_t*
 create_remember_token(u32 user_id)
@@ -123,6 +124,8 @@ async_rotate_token(eworker_t* ew, u32 token_id, remember_token_param_t* param)
 
     if (!db_async_update_remember_token(&ew->db, rt, &ctx))
         server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+
+    db_async_remember_token_usage(&ew->db, token_id, client->user_agent, client->addr.ip_str);
 }
 
 static const char*

@@ -7,6 +7,9 @@
 
 #define ERR_MSG_INCORRECT "Incorrect username or password"
 
+#define SET_COOKIE_REMEMBER_TOKEN "remember_token=%s; HttpOnly; Path=/api/auth/remember; Secure; SameSite=Strict; Expires=%s"
+#define SET_COOKIE_SESSION "session=%s; HttpOnly; Path=/; Secure; SameSite=Strict"
+
 static inline void 
 auth_http_set_cookies(http_t* http, remember_token_t* rt, const char* session_uuid)
 {
@@ -16,11 +19,11 @@ auth_http_set_cookies(http_t* http, remember_token_t* rt, const char* session_uu
     {
         set_cookie = http_add_header(http, "Set-Cookie", NULL);
         snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, 
-                 "remember_token=%s; HttpOnly; Path=/api/auth/remember; Secure; SameSite=Strict; Expires=%s", 
+                 SET_COOKIE_REMEMBER_TOKEN,
                  rt->token_hex, rt->expires);
     }
     set_cookie = http_add_header_adv(http, "Set-Cookie", NULL, false);
-    snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session=%s; HttpOnly; Path=/; Secure; SameSite=Strict", session_uuid);
+    snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, SET_COOKIE_SESSION, session_uuid);
 }
 
 static void 
@@ -162,8 +165,6 @@ do_client_register(eworker_t* ew, dbcmd_ctx_t* ctx)
 /**
  * Asynchronously inserts user to database.
  * Then calls `do_client_register()`.
- *
- * TODO: Use `remember_me`
  */
 static inline enum client_recv_status
 server_handle_auth_register(eworker_t* ew, 

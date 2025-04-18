@@ -157,6 +157,8 @@ server_init_db(server_t* server)
 
     cmd->insert_login_attempt = server_db_load_sql("insert_login_attempt");
 
+    cmd->insert_remember_token_usage = server_db_load_sql("insert_remember_token_usage");
+
     return db_exec_schema(server);
 }
 
