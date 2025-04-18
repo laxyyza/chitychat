@@ -58,8 +58,6 @@ server_free_client(eworker_t* ew, client_t* client)
     if (!client)
         return;
     server_ght_del(&server->client_ht, client->addr.sock);
-    if (client->state & CLIENT_STATE_SESSION_PENDING)
-        server_ght_del(&ew->server->client_by_tmptoken_ht, client->tmptoken);
 
     debug("Client (IP: %s:%s) closed.\n", 
             client->addr.ip_str, client->addr.serv);
@@ -78,10 +76,10 @@ server_free_client(eworker_t* ew, client_t* client)
         pthread_mutex_destroy(&client->ssl_mutex);
     }
 
-    if (client->session_uuid[0])
-    {
-        server_ght_del(&ew->server->client_by_session_ht, server_ght_hash_uuid(client->session_uuid));
-    }
+    // if (client->session_uuid[0])
+    // {
+    //     server_ght_del(&ew->server->client_by_session_ht, server_ght_hash_uuid(client->session_uuid));
+    // }
 
     if (client->recv.data)
         free(client->recv.data);

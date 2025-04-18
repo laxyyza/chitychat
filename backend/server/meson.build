@@ -16,6 +16,7 @@ openssl_dep = dependency('openssl')
 jsonc_dep = dependency('json-c')
 libpq_dep = dependency('libpq')
 magic_dep = dependency('libmagic')
+hiredis_dep = dependency('hiredis')
 
 server_src = files(
     'src/main.c',
@@ -40,13 +41,13 @@ server_src = files(
     'src/server_nats.c',
     'src/server_auth.c',
     'src/server_auth_token.c',
+    'src/server_redis.c',
 
     'src/chat/user_file.c',
     'src/chat/user_login.c',
     'src/chat/group.c',
     'src/chat/user.c',
     'src/chat/ws_text_frame.c',
-    'src/chat/upload_token.c',
     'src/chat/db.c',
     'src/chat/db_user.c',
     'src/chat/db_group.c',
@@ -67,7 +68,8 @@ executable('cc_server', server_src,
         jsonc_dep, 
         libpq_dep, 
         magic_dep,
-        nats_dep
+        nats_dep,
+        hiredis_dep
     ],
     link_with: libcutils
 )

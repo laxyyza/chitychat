@@ -40,18 +40,6 @@ server_del_all_clients(server_t* server)
     server_ght_destroy(&server->user_ht);
 }
 
-static void 
-server_del_all_upload_tokens(server_t* server)
-{
-    server_ght_t* ht = &server->upload_token_ht;
-    ht->ignore_resize = true;
-
-    GHT_FOREACH(upload_token_t* ut, ht, {
-            server_del_upload_token(server->main_ew, ut);
-    });
-    server_ght_destroy(ht);
-}
-
 void
 server_del_all_events(server_t* server)
 {
@@ -74,7 +62,6 @@ server_cleanup(server_t* server)
     server_ght_destroy(&server->chat_cmd_ht);
     server_del_all_events(server);
     server_del_all_clients(server);
-    server_del_all_upload_tokens(server);
     server_db_free(server);
     server_close_magic(server);
 

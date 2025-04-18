@@ -230,7 +230,7 @@ server_client_user_info(eworker_t* ew,
  * TODO: Finish server_user_edit_account()
  */
 const char* 
-server_user_edit_account(eworker_t* ew, client_t* client, 
+server_user_edit_account(UNUSED eworker_t* ew, UNUSED client_t* client, 
                          json_object* payload, UNUSED json_object* respond_json)
 {
     // json_object* new_username_json;
@@ -266,17 +266,17 @@ server_user_edit_account(eworker_t* ew, client_t* client,
     //         NULL, client->dbuser->user_id))
     //     return "Failed to update user"; 
 
-    if (new_pfp)
-    {
-        // Create new upload token
-        upload_token_t* upload_token = server_new_upload_token(ew, 
-                                                    client->dbuser->user_id);
-
-        if (upload_token == NULL)
-            return "Failed to create upload token";
-
-        server_send_upload_token(client, "edit_account", upload_token);
-    }
+    // if (new_pfp)
+    // {
+    //     // Create new upload token
+    //     upload_token_t* upload_token = server_new_upload_token(ew, 
+    //                                                 client->dbuser->user_id);
+    //
+    //     if (upload_token == NULL)
+    //         return "Failed to create upload token";
+    //
+    //     server_send_upload_token(client, "edit_account", upload_token);
+    // }
 
     debug("New username: %s, new display name: %s, new pfp: %d\n", 
             new_username, new_displayname, new_pfp);

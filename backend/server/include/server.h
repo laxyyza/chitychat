@@ -16,10 +16,10 @@
 #include "server_signal.h"
 #include "chat/user_file.h"
 #include "chat/db.h"
-#include "chat/upload_token.h"
 #include "chat/user_session.h"
 #include "backend_route.h"
 #include "server_nats.h"
+#include "server_redis.h"
 
 #define SERVER_NAME "ChityChat"
 
@@ -49,6 +49,9 @@ typedef struct server_config
     bool fork;
     i32  thread_pool;
 
+    const char* redis_ip;
+    u16 redis_port;
+
     bool retry_db_connect;
     bool disable_tls;
 } server_config_t;
@@ -76,16 +79,13 @@ typedef struct server
 
     server_ght_t event_ht;
     server_ght_t client_ht;
-    server_ght_t client_by_session_ht;
-    server_ght_t client_by_tmptoken_ht;
     server_ght_t user_ht;
-    server_ght_t upload_token_ht;
     server_ght_t chat_cmd_ht;
-    server_ght_t bservices_ht;
     server_event_t* server_event;
     eworker_t* main_ew;
 
     server_nats_t nats;
+    server_redis_t redis;
 
     bool running;
 } server_t;

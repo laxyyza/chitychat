@@ -423,7 +423,7 @@ server_group_msg(eworker_t* ew, client_t* client,
     size_t n_attachments;
     const char* errmsg = NULL;
     dbmsg_t* msg;
-    upload_token_t* ut;
+    // upload_token_t* ut;
 
     RET_IF_JSON_BAD(group_id_json, payload, "group_id", json_type_int);
     RET_IF_JSON_BAD(content_json, payload, "content", json_type_string);
@@ -464,13 +464,13 @@ server_group_msg(eworker_t* ew, client_t* client,
          * and wait for client to send attachments via HTTP POST,
          * ewen insert the message into database.
          */
-        ut = server_new_upload_token_attach(ew);
-        msg = &ut->msg_state.msg;
-        set_msg(msg, user_id, group_id, content);
-        msg->attachments_json = json_object_get(attachments_json);
-        ut->msg_state.total = n_attachments;
-
-        server_send_upload_token(client, "send_attachments", ut);
+        // ut = server_new_upload_token_attach(ew);
+        // msg = &ut->msg_state.msg;
+        // set_msg(msg, user_id, group_id, content);
+        // msg->attachments_json = json_object_get(attachments_json);
+        // ut->msg_state.total = n_attachments;
+        //
+        // server_send_upload_token(client, "send_attachments", ut);
     }
     return errmsg;
 }

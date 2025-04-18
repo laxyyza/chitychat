@@ -5,7 +5,7 @@
 #include <nats.h>
 #include "server_events.h"
 
-#define SUBJECT_LEN 64
+#define SUBJECT_LEN 128
 
 typedef struct 
 {

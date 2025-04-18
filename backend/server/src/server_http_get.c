@@ -2,51 +2,6 @@
 #include "server_http.h"
 #include "server_util.h"
 
-static inline void
-server_handle_set_session(server_t* server, client_t* client, http_t* http)
-{
-    const char* token = NULL;
-
-    for (u32 i = 0; i < http->n_params; i++)
-    {
-        const http_header_t* param = http->params + i;
-        if (strcmp(param->name, "token") == 0)
-        {
-            token = param->val;
-            break;
-        }
-    }
-
-    if (token == NULL)
-    {
-        error("No token provided\n");
-        server_http_resp(client, HTTP_CODE_BAD_REQ);
-        return;
-    }
-
-    u64 tokenid = strtoull(token, NULL, 10);
-    client_t* ws_client = server_ght_get(&server->client_by_tmptoken_ht, tokenid);
-    if (ws_client)
-    {
-        http_t* resp_http = http_new_resp(HTTP_CODE_OK, NULL, 0);
-        char* set_cookie = http_add_header(resp_http, "Set-Cookie", NULL);
-        if (set_cookie == NULL)
-        {
-            warn("http_add_header() returned NULL!\n");
-            return;
-        }
-        snprintf(set_cookie, HTTP_HEAD_VAL_LEN - 1, "session_id=%s; HttpOnly; Secure; SameSite=Strict", ws_client->session_uuid);
-        http_send(client, resp_http);
-        server_ght_del(&server->client_by_tmptoken_ht, tokenid);
-        http_free(resp_http);
-    }
-    else
-    {
-        error("No client in tmptoken_ht\n");
-        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
-    }
-}
-
 enum client_recv_status 
 server_handle_http_get(server_t* server, client_t* client, http_t* http)
 {    
@@ -57,12 +12,6 @@ server_handle_http_get(server_t* server, client_t* client, http_t* http)
     char* content;
     size_t url_len = strnlen(http->req.url, HTTP_URL_LEN);
     bool notfound = false;
-
-    if (strcmp(http->req.url, "/set-session") == 0)
-    {
-        server_handle_set_session(server, client, http);
-        return RECV_OK;
-    }
 
     if (server_http_url_checks(http) == -1)
     {

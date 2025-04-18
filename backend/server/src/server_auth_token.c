@@ -26,14 +26,16 @@ create_remember_token(u32 user_id)
 static inline void 
 callback_create_session(eworker_t* ew, 
                         client_t* client, 
-                        UNUSED u32 user_id, 
+                        u32 user_id, 
                         remember_token_t* rt, 
                         auth_callback_t callback)
 {
     char session_uuid[UUID_LEN];
     server_uuid_v4(session_uuid);
 
-    // TODO: Set session id in Redis.
+    server_redis_set_session(ew->server, session_uuid, user_id);
+    info("%s -> %u\n", session_uuid, user_id);
+
     callback(ew, client, rt, session_uuid);
 }
 

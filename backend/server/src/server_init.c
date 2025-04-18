@@ -9,6 +9,8 @@
 #include <sys/eventfd.h>
 #include "backend.h"
 
+#define REDIS_DEFAULT_PORT "6379"
+
 static void
 print_help(const char* exe_path)
 {
@@ -115,6 +117,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
     const char* thread_pool_str;
     const char* port_str;
     const char* disable_tls_str;
+    const char* redis_port_str;
     i32 port;
     enum server_log_level log_level = SERVER_DEBUG;
 
@@ -160,6 +163,15 @@ server_load_config(server_t* server, int argc, char* const* argv)
     server->conf.thread_pool = atoi(thread_pool_str);
 
     loglevel_str = getenvd("APP_LOG_LEVEL", "info");
+
+    redis_port_str = getenvd("CC_REDIS_PORT", REDIS_DEFAULT_PORT);
+    server->conf.redis_port = atoi(redis_port_str);
+    if (server->conf.redis_port <= 0 && server->conf.redis_port >= UINT16_MAX)
+    {
+        fatal("Invalid CC_REDIS_PORT: %s\n", redis_port_str);
+        return false;
+    }
+    server->conf.redis_ip = getenvd("CC_REDIS_IP", "127.0.0.1");
 
     if (!strcmp(loglevel_str, "fatal"))
         log_level = SERVER_FATAL;
@@ -292,19 +304,7 @@ server_init_ht(server_t* server)
     if (server_ght_init(&server->client_ht, ht_size, NULL) == false)
         return false;
 
-    if (server_ght_init(&server->client_by_session_ht, ht_size, NULL) == false)
-        return false;
-
-    if (server_ght_init(&server->client_by_tmptoken_ht, ht_size, NULL) == false)
-        return false;
-
     if (server_ght_init(&server->user_ht, ht_size, NULL) == false)
-        return false;
-
-    if (server_ght_init(&server->upload_token_ht, ht_size, NULL) == false)
-        return false;
-
-    if (server_ght_init(&server->bservices_ht, ht_size, NULL) == false)
         return false;
 
     if (server_init_chatcmd(server) == false)
@@ -433,6 +433,9 @@ server_init(int argc, char* const* argv)
         goto error;
 
     if (!server_init_nats(server))
+        goto error;
+
+    if (!server_init_redis(server))
         goto error;
 
     // Init Thread Manager
