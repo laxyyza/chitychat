@@ -157,7 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_token_hash ON RememberTokens(token_hash);
 
 CREATE TABLE IF NOT EXISTS RememberTokenUsage(
     usage_id    SERIAL PRIMARY KEY,
-    token_id    int NOT NULL REFERENCES RememberTokens(token_id),
+    token_id    int NOT NULL REFERENCES RememberTokens(token_id) ON DELETE CASCADE,
     user_agent  TEXT NOT NULL,
     ip_address  INET NOT NULL,
     timestamp   timestamp DEFAULT now()
