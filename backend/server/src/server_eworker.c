@@ -59,7 +59,7 @@ eworker_wait_for_events(eworker_t* ew)
     bool show_event_time = log_level >= SERVER_INFO && server->conf.event_time == true;
 
     /* Block if pipeline is empty, else return immediately. */
-    timeout = (ew->db.queue.count == 0 && ew->redis.pfd->events == 0) ? -1 : 0;
+    timeout = (ew->db.queue.count == 0 && ew->redis.cmds == 0) ? -1 : 0;
 
     nfds = epoll_wait(server->epfd, ew->ep_events, EWORKER_MAX_EVENTS, timeout);
     if (nfds == -1)
