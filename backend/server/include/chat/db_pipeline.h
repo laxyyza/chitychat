@@ -18,14 +18,14 @@
 
 /* Async operations */
 i32 db_async_params(server_db_t* db, 
-                    const char* query, 
+                    const sql_query_t* q, 
                     size_t n, 
                     const char* const vals[], 
                     const i32* lens, 
                     const i32* formats,
-                    const dbcmd_ctx_t* cmd);
-i32 db_async_exec(server_db_t* db, const char* query,
-                  const dbcmd_ctx_t* cmd);
+                    dbcmd_ctx_t* cmd);
+i32 db_async_exec(server_db_t* db, const char* sql,
+                  dbcmd_ctx_t* cmd);
 
 /* Transactions */
 i32 db_async_begin(server_db_t* db, dbcmd_ctx_t* ctx);

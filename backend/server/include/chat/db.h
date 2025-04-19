@@ -2,14 +2,14 @@
 #define _SERVER_DB_
 
 #include "common.h"
-#include "chat/group.h"
-#include "chat/user_login.h"
 #include "backend_route.h"
 #include "server_auth_token.h"
+#include "nano_timer.h"
 
 #define DB_PIPELINE     0x01
 #define DB_NONBLOCK     0x02
 #define DB_TRY_RECONNECT 0x04
+#define DB_SHOW_TIME    0x08
 #define DB_DEFAULT      0x00
 
 #define DB_ASYNC_BUSY   0
@@ -89,6 +89,13 @@ typedef struct
     remember_token_t* rt;
 } remember_token_param_t;
 
+typedef struct 
+{
+    char username[DB_USERNAME_MAX];
+    char password[DB_PASSWORD_MAX];
+    bool remember_me;
+} user_login_param_t;
+
 union cmd_param 
 {
     user_login_param_t user_login;
@@ -98,7 +105,7 @@ union cmd_param
     delete_msg_param_t del_msg;
     group_owner_param_t group_owner;
     rtusm_param_t rtusm;
-    dbsession_t*  session;
+    session_t*  session;
     json_object* json;
     const char* str;
     void*       ptr;
@@ -123,6 +130,11 @@ typedef struct dbcmd_ctx
     dbexec_res_t exec_res;
     union cmd_param param;
     struct dbcmd_ctx* next;
+
+    struct {
+        nano_timer_t timer;
+        const char* name;
+    } debug;
 } dbcmd_ctx_t;
 
 typedef struct 
@@ -160,6 +172,5 @@ void        server_db_close(server_db_t* db);
 
 /* Result to structure */
 void db_row_to_user(dbuser_t* user, PGresult* res, i32 row);
-void db_row_to_group(dbgroup_t* group, PGresult* res, i32 row);
 
 #endif // _SERVER_DB_

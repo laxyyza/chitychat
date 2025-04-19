@@ -41,7 +41,8 @@ server_accept_client(eworker_t* th, server_event_t* ev)
     }
 
     if (server_new_event(server, client->addr.sock, client, 
-                         (server->conf.disable_tls) ? se_read_client : se_ssl_accept, se_close_client) == NULL)
+                         (server->conf.disable_tls) ? se_read_client : se_ssl_accept, se_close_client,
+                         "Client SSL Accept") == NULL)
         goto err;
 
     return client;

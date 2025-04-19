@@ -26,6 +26,12 @@ typedef struct
     char expires[TOKEN_EXPIRE_STR_LEN];
 } remember_token_t;
 
+typedef struct
+{
+    char uuid[UUID_LEN];
+    u32  user_id;
+} session_t;
+
 typedef void (*auth_callback_t)(eworker_t* ew, client_t* client, remember_token_t* rt, const char* session);
 
 remember_token_t* create_remember_token(u32 user_id);

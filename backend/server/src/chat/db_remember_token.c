@@ -72,7 +72,7 @@ db_async_insert_remember_token(server_db_t* db, remember_token_t* rt, dbcmd_ctx_
     };
     ctx->exec_res = db_insert_token_result;
     ctx->data = rt;
-    ret = db_async_params(db, db->cmd->insert_remember_token, 3, vals, lens, formats, ctx);
+    ret = db_async_params(db, &db->cmd->insert_remember_token, 3, vals, lens, formats, ctx);
     return ret == 1;
 }
 
@@ -121,7 +121,7 @@ db_async_select_remember_token(server_db_t* db, const u8* token_hash, dbcmd_ctx_
         TOKEN_LEN,
     };
     ctx->exec_res = db_select_token_result;
-    ret = db_async_params(db, db->cmd->select_remember_token, 1, vals, lens, formats, ctx);
+    ret = db_async_params(db, &db->cmd->select_remember_token, 1, vals, lens, formats, ctx);
     return ret == 1;
 }
 
@@ -175,6 +175,6 @@ db_async_update_remember_token(server_db_t* db, remember_token_t* rt, dbcmd_ctx_
     };
     ctx->exec_res = db_update_token_result;
     ctx->data = rt;
-    ret = db_async_params(db, db->cmd->update_remember_token, 3, vals, lens, formats, ctx);
+    ret = db_async_params(db, &db->cmd->update_remember_token, 3, vals, lens, formats, ctx);
     return ret == 1;
 }

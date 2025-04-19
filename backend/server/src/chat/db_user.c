@@ -91,7 +91,10 @@ bool
 db_async_get_user(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx)
 {
     i32 ret;
-    const char* sql = "SELECT * FROM Users WHERE user_id = $1::int;";
+    const sql_query_t q = { 
+        "SELECT * FROM Users WHERE user_id = $1::int;", 
+        "select_user_user_id" 
+    };
     char user_id_str[DB_INTSTR_MAX];
     const char* vals[1] = {
         user_id_str
@@ -101,7 +104,7 @@ db_async_get_user(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx)
     };
     const i32 formats[1] = {0};
     ctx->exec_res = db_get_user_result;
-    ret = db_async_params(db, sql, 1, vals, lens, formats, ctx);
+    ret = db_async_params(db, &q, 1, vals, lens, formats, ctx);
     return ret == 1;    
 }
 
@@ -109,7 +112,7 @@ bool
 db_async_get_user_username(server_db_t* db, const char* username, dbcmd_ctx_t* ctx)
 {
     i32 ret;
-    const char* sql = "SELECT * FROM Users WHERE username = $1::varchar(50);";
+    const sql_query_t q = { "SELECT * FROM Users WHERE username = $1::varchar(50);", "select_user_username" };
     const char* const vals[1] = {
         username
     };
@@ -119,7 +122,7 @@ db_async_get_user_username(server_db_t* db, const char* username, dbcmd_ctx_t* c
     const i32 formats[1] = {0};
     ctx->exec_res = db_get_user_result;
 
-    ret = db_async_params(db, sql, 1, vals, lens, formats, ctx);
+    ret = db_async_params(db, &q, 1, vals, lens, formats, ctx);
     return ret == 1;
 }
 
@@ -158,7 +161,7 @@ db_async_get_user_array(server_db_t* db, const char* json_array, dbcmd_ctx_t* ct
     const i32 formats[1] = {0};
     ctx->exec_res = db_get_user_json_result;
 
-    ret = db_async_params(db, db->cmd->select_user_json, 1, vals, lens, formats, ctx);
+    ret = db_async_params(db, &db->cmd->select_user_json, 1, vals, lens, formats, ctx);
     return ret == 1;
 }
 
@@ -186,7 +189,7 @@ db_async_insert_user(server_db_t* db, const dbuser_t* user, dbcmd_ctx_t* ctx)
     };
     ctx->exec_res = db_insert_user_result;
     ctx->data = (void*)user;
-    ret = db_async_params(db, db->cmd->insert_user, 4, vals, lens, formats, ctx);
+    ret = db_async_params(db, &db->cmd->insert_user, 4, vals, lens, formats, ctx);
     return ret == 1;
 }
 
@@ -233,7 +236,7 @@ db_async_get_connected_users(server_db_t* db, u32 user_id, dbcmd_ctx_t* ctx)
     };
     const i32 formats[1] = {0};
     ctx->exec_res = get_connected_users_result;
-    ret = db_async_params(db, db->cmd->select_connected_users, 1, vals, lens, formats, ctx);
+    ret = db_async_params(db, &db->cmd->select_connected_users, 1, vals, lens, formats, ctx);
     return ret;
 }
 
@@ -282,6 +285,6 @@ db_async_update_user(server_db_t* db,
     };
     const int formats[7] = {0};
     ctx->exec_res = update_user_result;
-    ret = db_async_params(db, db->cmd->update_user, 7, vals, lens, formats, ctx);
+    ret = db_async_params(db, &db->cmd->update_user, 7, vals, lens, formats, ctx);
     return ret;
 }

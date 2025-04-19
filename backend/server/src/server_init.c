@@ -17,15 +17,18 @@ print_help(const char* exe_path)
     printf(
         "Usage\n"\
         "\t%s [options]\n"\
-        "Chity Chat server\n"\
-        "\nArguments will override config.json\n\n"\
+        "Chity Chat server\n\n"\
         "  -h, --help\t\t\tShow this message\n"\
         "  -v, --verbose\t\t\tSet log level to verbose\n"\
+        "  -d, --debug\t\t\tSet log level to debug\n"\
         "  -p, --port=PORT\t\tPort number to bind\n"\
         "  -T, --thread-pool=N\t\tSet the number of threads for the thread pool,\n"\
         "\t\t\t\tUse -1 (default) to automatically determine the number based on system threads.\n"\
         "  -6, --ipv6\t\t\tUse IPv6\n"\
-        "  -4, --ipv4\t\t\tUse IPv4\n",
+        "  -4, --ipv4\t\t\tUse IPv4\n"\
+        "  -S, --show-sql-times\t\tDisplay SQL query durations in milliseconds.\n"\
+        "  -E, --show-event-times\tDisplay event processing durations.\n"\
+        "  -t, --show-times\t\tEnable both SQL and event timing displays.\n\n",
         exe_path
     );
 }
@@ -39,6 +42,7 @@ server_argv(server_t* server, int argc, char* const* argv)
     struct option long_opts[] = {
         {"port", required_argument, NULL, 'p'},
         {"verbose", 0, NULL, 'v'},
+        {"debug", 0, NULL, 'd'},
         {"ipv6", 0, NULL, '6'},
         {"ipv4", 0, NULL, '4'},
         {"fork", 0, NULL, 'f'},
@@ -46,10 +50,13 @@ server_argv(server_t* server, int argc, char* const* argv)
         {"thread-pool", required_argument, NULL, 'T'},
         {"retry-db-connect", 0, NULL, 'R'},
         {"disable-tls", 0, NULL, 'D'},
+        {"show-sql-times", 0, NULL, 'S'},
+        {"show-event-times", 0, NULL, 'E'},
+        {"show-times", 0, NULL, 't'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "T:p:d:v46hfRD", long_opts, NULL)) != -1)
+    while ((opt = getopt_long(argc, argv, "T:p:v46hfRDSEdt", long_opts, NULL)) != -1)
     {
         switch (opt)
         {
@@ -72,6 +79,12 @@ server_argv(server_t* server, int argc, char* const* argv)
             case 'v':
                 server_set_loglevel(SERVER_VERBOSE);
                 break;
+            case 'd':
+                server_set_loglevel(SERVER_DEBUG);
+                break;
+            case 't':
+                server->conf.event_time = server->conf.sql_time = true;
+                break;
             case '4':
                 server->conf.addr_version = IPv4;
                 break;
@@ -92,6 +105,12 @@ server_argv(server_t* server, int argc, char* const* argv)
                 break;
             case 'D':
                 server->conf.disable_tls = true;
+                break;
+            case 'S':
+                server->conf.sql_time = true;
+                break;
+            case 'E':
+                server->conf.event_time = true;
                 break;
             case '?':
                 error("Unknown or missing argument\n");
@@ -336,7 +355,7 @@ server_init_eventfd(server_t* server)
         return false;
     }
 
-    se = server_new_event(server, server->eventfd, NULL, eventfd_dummy_read, NULL);
+    se = server_new_event(server, server->eventfd, NULL, eventfd_dummy_read, NULL, "evnetfd");
     if (se == NULL)
         return false;
 

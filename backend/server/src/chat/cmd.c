@@ -1,7 +1,5 @@
 #include "chat/cmd.h"
-#include "chat/group.h"
 #include "chat/user.h"
-#include "chat/user_login.h"
 #include "server_ht.h"
 #include "server.h"
 
@@ -15,78 +13,13 @@ server_init_chatcmd_logged_in(server_t* server)
                             CHATCMD_PERM_LOGGED_IN))
         return false;
 
-    if (!server_new_chatcmd(server, "client_groups",
-                            server_client_groups,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "get_member_ids",
-                            server_get_group_member_ids,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "group_create",
-                            server_group_create,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
     if (!server_new_chatcmd(server, "get_user",
                             server_get_user,
                             CHATCMD_PERM_LOGGED_IN))
         return false;
 
-    if (!server_new_chatcmd(server, "get_all_groups",
-                            server_get_all_groups,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "join_group",
-                            server_join_group,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "group_msg",
-                            server_group_msg,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "get_group_msgs",
-                            server_get_group_msgs,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
     if (!server_new_chatcmd(server, "edit_account",
                             server_user_edit_account,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "create_group_code",
-                            server_create_group_code,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "join_group_code",
-                            server_join_group_code,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "get_group_codes",
-                            server_get_group_codes,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "delete_group_code",
-                            server_delete_group_code,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "delete_msg",
-                            server_delete_group_msg,
-                            CHATCMD_PERM_LOGGED_IN))
-        return false;
-
-    if (!server_new_chatcmd(server, "delete_group",
-                            server_delete_group,
                             CHATCMD_PERM_LOGGED_IN))
         return false;
 

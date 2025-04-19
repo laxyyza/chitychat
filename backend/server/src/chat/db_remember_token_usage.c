@@ -41,6 +41,6 @@ db_async_remember_token_usage(server_db_t* db,
         .exec_res = after_insert,
         .exec = dummy_cb
     };
-    ret = db_async_params(db, db->cmd->insert_remember_token_usage, 3, vals, lens, formats, &ctx);
+    ret = db_async_params(db, &db->cmd->insert_remember_token_usage, 3, vals, lens, formats, &ctx);
     return ret == 1;
 }

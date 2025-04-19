@@ -77,7 +77,8 @@ server_init_signal(server_t* server)
                      server->sigfd, 
                      NULL, 
                      signal_read, 
-                     signal_close);
+                     signal_close,
+                     "signalfd");
 
     return true;
 }

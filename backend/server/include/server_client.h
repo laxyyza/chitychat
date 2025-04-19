@@ -3,7 +3,6 @@
 
 #include "common.h"
 #include "server_net.h"
-#include "chat/user_session.h"
 #include "chat/user.h"
 
 #define USERNAME_MAX 50

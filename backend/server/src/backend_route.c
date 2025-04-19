@@ -62,8 +62,6 @@ backend_route(eworker_t* ew, client_t* client, http_t* http)
     data->callback = after_get_session_user_id;
     strcpy(data->data.subject, "http");
 
-    info("data: %p\n", data);
-
     char* nats_subject = data->data.subject;
     u32 i = strncpy_replace(nats_subject + 4, http->req.url, SUBJECT_LEN - 5, '/', '.');
     nats_subject[i + 4] = '.';

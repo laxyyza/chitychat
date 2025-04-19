@@ -1,7 +1,6 @@
 #ifndef _SERVER_CHAT_CMD_H_
 #define _SERVER_CHAT_CMD_H_
 
-#include "chat/user_session.h"
 #include "common.h"
 #include "server_tm.h"
 #include "server_client.h"

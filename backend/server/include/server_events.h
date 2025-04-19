@@ -35,11 +35,13 @@ typedef struct server_event
     se_read_callback_t read;
     se_write_callback_t write;
     se_close_callback_t close;
+    const char* debug_name;
 } server_event_t;
 
 server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
                                 se_read_callback_t read_callback, 
-                                se_close_callback_t close_callback);
+                                se_close_callback_t close_callback,
+                                const char* name);
 
 server_event_t* 
 server_epoll_add_event(server_t* server,
@@ -47,7 +49,8 @@ server_epoll_add_event(server_t* server,
                     void* data,
                     se_read_callback_t read_cb,
                     se_write_callback_t write_cb,
-                    se_close_callback_t close_cb);
+                    se_close_callback_t close_cb,
+                    const char* name);
 
 server_event_t* server_get_event(server_t* server, i32 fd);
 void            server_del_event(eworker_t* ew, server_event_t* se);

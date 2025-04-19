@@ -83,6 +83,7 @@ se_ssl_accept(UNUSED eworker_t* th, server_event_t* ev)
         ev->read = se_read_client;
         client->state &= ~CLIENT_STATE_SSL_HANDSHAKE;
         fcntl(client->addr.sock, F_SETFL, 0);
+        ev->debug_name = "HTTP Client";
         return SE_OK;
     }
     else if (ret == 0)
@@ -183,7 +184,8 @@ server_epoll_add_event(server_t* server,
                     void* data,
                     se_read_callback_t read_cb,
                     se_write_callback_t write_cb,
-                    se_close_callback_t close_cb)
+                    se_close_callback_t close_cb,
+                    const char* name)
 {
     server_event_t* se;
     i32 listen_events = EPOLLONESHOT;
@@ -191,6 +193,7 @@ server_epoll_add_event(server_t* server,
     se = malloc(sizeof(server_event_t));
     se->fd = fd;
     se->data = data;
+    se->debug_name = name;
     if (read_cb)
     {
         listen_events |= EPOLLIN;
@@ -237,7 +240,8 @@ server_new_event(server_t* server,
                  i32 fd, 
                  void* data, 
                  se_read_callback_t read_callback, 
-                 se_close_callback_t close_callback)
+                 se_close_callback_t close_callback,
+                 const char* name)
 {
     server_event_t* se;
 
@@ -256,6 +260,7 @@ server_new_event(server_t* server,
     se->close = close_callback;
     se->new_listen_events = se->listen_events = DEFAULT_EPEV;
     se->keep_data = false;
+    se->debug_name = name;
 
     server_ght_insert(&server->event_ht, fd, se);
     if (server_epoll_add(server, se) == -1)

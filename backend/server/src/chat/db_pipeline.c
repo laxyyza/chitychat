@@ -6,6 +6,7 @@
 #include "json_object.h"
 #include "server_eworker.h"
 #include "server_websocket.h"
+#include "server.h"
 
 UNUSED static const char* const pgres_status_str[] = {
 	"PGRES_EMPTY_QUERY",
@@ -24,18 +25,29 @@ UNUSED static const char* const pgres_status_str[] = {
 
 i32 
 db_async_params(server_db_t* db, 
-                const char* query,
+                const sql_query_t* q,
                 size_t n,
                 const char* const vals[], 
                 const i32* lens, 
                 const i32* formats, 
-                const dbcmd_ctx_t* cmd)
+                dbcmd_ctx_t* cmd)
 {
     i32 ret;
-    if (!cmd)
+    if (!cmd || !q->sql)
         return 0;
 
-    if ((ret = PQsendQueryParams(db->conn, query, n, NULL, vals, lens, formats, 0)) != 1)
+    cmd->debug.name = q->filename;
+    if (db->flags & DB_SHOW_TIME)
+        nano_start_time(&cmd->debug.timer);
+
+    if ((ret = PQsendQueryParams(db->conn, 
+                                 q->sql, 
+                                 n, 
+                                 NULL, 
+                                 vals, 
+                                 lens, 
+                                 formats, 
+                                 0)) != 1)
     {
         error("Async query send: %s\n",
               PQerrorMessage(db->conn));
@@ -50,10 +62,14 @@ err:
 }
 
 i32 
-db_async_exec(server_db_t* db, const char* query,
-              const dbcmd_ctx_t* cmd)
+db_async_exec(server_db_t* db, const char* sql,
+              dbcmd_ctx_t* cmd)
 {
-    return db_async_params(db, query, 0, NULL, NULL, NULL, cmd);
+    const sql_query_t q = {
+        .sql = sql,
+        .filename = sql
+    };
+    return db_async_params(db, &q, 0, NULL, NULL, NULL, cmd);
 }
 
 static void
@@ -176,9 +192,17 @@ db_process_results(eworker_t* ew)
             goto clear;
         }
         while (ctx_peek->next && ctx_peek->ret != DB_ASYNC_BUSY)
+        {
             if (ctx_peek->next)
                 ctx_peek = ctx_peek->next;
+        }
         ctx_peek->exec_res(ew, res, status, ctx_peek);
+
+        if (db->flags & DB_SHOW_TIME)
+        {
+            i64 time_elpased_ns = nano_end_time(&ctx_peek->debug.timer);
+            info("SQL_TIME %s: %.2f ms\t(%s)\n", ew->name, (time_elpased_ns / 1e6), ctx_peek->debug.name);
+        }
 
         if (ctx_peek->next == NULL)
         {

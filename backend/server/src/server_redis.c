@@ -118,7 +118,8 @@ server_init_redis(server_t* server)
     r->ev = server_epoll_add_event(server, c->c.fd, r, 
                                    redis_read, 
                                    redis_write, 
-                                   redis_close);
+                                   redis_close,
+                                   "Redis");
 
     c->ev.data = r;
     c->ev.addRead = (void*)redis_add_read;

@@ -22,8 +22,8 @@ db_init_queue(server_db_t* db, size_t size)
     q->count = 0;
 }
 
-static char* 
-server_db_load_sql(const char* name)
+static bool
+server_db_load_sql(sql_query_t* q, const char* name)
 {
     i32 fd;
     size_t len = 0;
@@ -35,14 +35,14 @@ server_db_load_sql(const char* name)
     if (fd == -1)
     {
         error("open %s: %s\n", path, ERRSTR);
-        return NULL;
+        return false;
     }
 
     len = fdsize(fd);
     if (len == 0)
     {
         close(fd);
-        return NULL;
+        return false;
     }
 
     buffer = malloc(len + 1);
@@ -51,14 +51,17 @@ server_db_load_sql(const char* name)
     {
         error("read %s: %s\n", path, ERRSTR);
         free(buffer);
-        buffer = NULL;
+        return false;
     }
 
     buffer[len] = 0x00;
 
     close(fd);
 
-    return buffer;
+    q->sql = buffer;
+    q->filename = name;
+
+    return true;
 }
 
 static bool
@@ -102,7 +105,7 @@ db_exec_schema(server_t* server)
     if (!server_db_open(&db, &server->conf, (server->conf.retry_db_connect) ? DB_TRY_RECONNECT : DB_DEFAULT))
         ret = false;
 
-    if (ret && !db_exec_sql(&db, server->db_commands.schema))
+    if (ret && !db_exec_sql(&db, server->db_commands.schema.sql))
         ret = false;
 
     server_db_close(&db);
@@ -117,58 +120,52 @@ server_init_db(server_t* server)
 
     cmd = &server->db_commands;
 
-    cmd->schema = server_db_load_sql("schema");
+    if (!server_db_load_sql(&cmd->schema, "schema"))
+        return false;
 
-    cmd->insert_user = server_db_load_sql("insert_user");
-    cmd->select_user = server_db_load_sql("select_user");
+    if (!server_db_load_sql(&cmd->insert_user, "insert_user"))
+        return false;
+    if (!server_db_load_sql(&cmd->select_user, "select_user"))
+        return false;
 
-    cmd->select_connected_users = server_db_load_sql("select_connected_users");
-    cmd->select_user_json = server_db_load_sql("select_user_json");
+    if (!server_db_load_sql(&cmd->select_connected_users, "select_connected_users"))
+        return false;
 
-    cmd->insert_group = server_db_load_sql("insert_group");
-    cmd->select_user_groups = server_db_load_sql("select_user_groups");
-    cmd->select_pub_group = server_db_load_sql("select_public_group");
+    if (!server_db_load_sql(&cmd->select_user_json, "select_user_json"))
+        return false;
 
-    cmd->insert_groupmember_code = server_db_load_sql("insert_groupmember_code");
+    if (!server_db_load_sql(&cmd->update_user, "update_user"))
+        return false;
 
-    cmd->select_groupmember = server_db_load_sql("select_groupmember");
-    cmd->insert_pub_groupmember = server_db_load_sql("join_pub_group");
+    if (!server_db_load_sql(&cmd->insert_userfiles, "insert_userfiles"))
+        return false;
 
-    cmd->insert_msg = server_db_load_sql("insert_msg");
-    cmd->select_msg = server_db_load_sql("select_msg");
+    if (!server_db_load_sql(&cmd->insert_remember_token, "insert_remember_token"))
+        return false;
+    if (!server_db_load_sql(&cmd->select_remember_token, "select_remember_token"))
+        return false;
+    if (!server_db_load_sql(&cmd->update_remember_token, "update_remember_token"))
+        return false;
 
-    cmd->select_group_msgs_json = server_db_load_sql("select_group_msgs_json");
-    cmd->delete_msg = server_db_load_sql("delete_msg");
+    if (!server_db_load_sql(&cmd->insert_login_attempt, "insert_login_attempt"))
+        return false;
 
-    cmd->update_user = server_db_load_sql("update_user");
-
-    cmd->insert_userfiles = server_db_load_sql("insert_userfiles");
-
-    cmd->create_group_code = server_db_load_sql("create_group_code");
-    cmd->get_group_code = server_db_load_sql("get_group_codes");
-    cmd->delete_group_code = server_db_load_sql("delete_group_code");
-
-    cmd->insert_session = server_db_load_sql("insert_session");
-    cmd->select_session = server_db_load_sql("select_session");
-
-    cmd->insert_remember_token = server_db_load_sql("insert_remember_token");
-    cmd->select_remember_token = server_db_load_sql("select_remember_token");
-    cmd->update_remember_token = server_db_load_sql("update_remember_token");
-
-    cmd->insert_login_attempt = server_db_load_sql("insert_login_attempt");
-
-    cmd->insert_remember_token_usage = server_db_load_sql("insert_remember_token_usage");
+    if (!server_db_load_sql(&cmd->insert_remember_token_usage, "insert_remember_token_usage"))
+        return false;
 
     return db_exec_schema(server);
 }
 
 bool
-server_db_open(server_db_t* db, UNUSED server_config_t* config, i32 flags)
+server_db_open(server_db_t* db, server_config_t* config, i32 flags)
 {
     i32 retries = 1;
     struct passwd* pw;
     char conninfo[DB_CONNINTO_LEN];
     char dbaddress[DB_ADDRESS_LEN] = "";
+
+    if (config->sql_time)
+        flags |= DB_SHOW_TIME;
 
     const char* user = getenv("DB_USER");
     const char* password = getenvd("DB_PASSWORD", "");
@@ -249,38 +246,25 @@ server_db_free(server_t* server)
 
     server_db_commands_t* cmd = &server->db_commands;
 
-    free((void*)cmd->schema);
+    free((void*)cmd->schema.sql);
 
-    free((void*)cmd->insert_user);
-    free((void*)cmd->select_user);
-    free((void*)cmd->select_user_json);
-    free((void*)cmd->select_connected_users);
-    free((void*)cmd->delete_user);
+    free((void*)cmd->insert_user.sql);
+    free((void*)cmd->select_user.sql);
+    free((void*)cmd->select_user_json.sql);
+    free((void*)cmd->select_connected_users.sql);
+    free((void*)cmd->delete_user.sql);
 
-    free((void*)cmd->insert_group);
-    free((void*)cmd->select_user_groups);
-    free((void*)cmd->select_pub_group);
-    free((void*)cmd->delete_group);
+    free((void*)cmd->update_user.sql);
+    free((void*)cmd->insert_userfiles.sql);
 
-    free((void*)cmd->insert_groupmember_code);
-    free((void*)cmd->insert_pub_groupmember);
-    free((void*)cmd->select_groupmember);
-    free((void*)cmd->delete_groupmember);
+    free((void*)cmd->insert_session.sql);
+    free((void*)cmd->select_session.sql);
 
-    free((void*)cmd->insert_msg);
-    free((void*)cmd->select_msg);
-    free((void*)cmd->select_group_msgs_json);
-    free((void*)cmd->delete_msg);
 
-    free((void*)cmd->update_user);
-    free((void*)cmd->insert_userfiles);
-
-    free((void*)cmd->create_group_code);
-    free((void*)cmd->get_group_code);
-    free((void*)cmd->delete_group_code);
-
-    free((void*)cmd->insert_session);
-    free((void*)cmd->select_session);
+    free((void*)cmd->select_remember_token.sql);
+    free((void*)cmd->insert_remember_token.sql);
+    free((void*)cmd->insert_remember_token_usage.sql);
+    free((void*)cmd->insert_login_attempt.sql);
 }
 
 void 
@@ -292,48 +276,6 @@ server_db_close(server_db_t* db)
     if (db->flags & DB_PIPELINE)
         free(db->queue.begin);
     PQfinish(db->conn);
-}
-
-void 
-db_row_to_group(dbgroup_t* group, PGresult* res, i32 row)
-{
-    char* endptr;
-
-    const char* group_id_str = PQgetvalue(res, row, 0);
-    if (group_id_str)
-        group->group_id = strtoul(group_id_str, &endptr, 10);
-    else
-        warn("group_id_str is NULL\n");
-
-    const char* owner_id_str = PQgetvalue(res, row, 1);
-    if (owner_id_str)
-        group->owner_id = strtoul(owner_id_str, &endptr, 10);
-    else
-        warn("owner_id_str is NULL!\n");
-
-    const char* name = PQgetvalue(res, row, 2);
-    if (name)
-        strncpy(group->displayname, name, DB_DISPLAYNAME_MAX - 1);
-    else
-        warn("group displayname is NULL\n");
-
-    const char* desc = PQgetvalue(res, row, 3);
-    if (desc)
-        strncpy(group->desc, desc, DB_DESC_MAX - 1);
-    else
-        warn("group desc is NULL!\n");
-
-    const char* public_str = PQgetvalue(res, row, 4);
-    if (public_str && *public_str == 't')
-        group->public = true;
-    else
-        group->public = false;
-
-    const char* created_at = PQgetvalue(res, row, 5);
-    if (created_at)
-        strncpy(group->created_at, created_at, DB_TIMESTAMP_MAX - 1);
-    else
-        warn("group created_at is NULL!\n");
 }
 
 void 

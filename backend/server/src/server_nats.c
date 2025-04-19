@@ -31,7 +31,8 @@ nats_attach(void** user_data, void* loop, natsConnection* nc, natsSock sock)
 	server->nats.ev = server_epoll_add_event(server, sock, nc, 
 									nats_read, 
 									nats_write, 
-									nats_close);
+									nats_close,
+                                    "NATS");
 	server->nats.conn = nc;
 	server->nats.server = server;
 	*user_data = &server->nats;
@@ -125,7 +126,7 @@ server_init_nats(server_t* server)
 
 	natsConnection_GetClientID(server->nats.conn, &server->nats.client_id);
 
-	info("NATS CLIENT ID: %lu\n", server->nats.client_id);
+	verbose("NATS CLIENT ID: %lu\n", server->nats.client_id);
 
 	snprintf(server->nats.subj_http, SUBJECT_LEN - 1, "cc_server.http.%lu", server->nats.client_id);
 	snprintf(server->nats.subj_ws, SUBJECT_LEN - 1, "cc_server.ws.%lu", server->nats.client_id);

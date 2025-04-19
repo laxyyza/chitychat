@@ -12,11 +12,10 @@
 #include "server_util.h"
 #include "server_http.h"
 #include "server_websocket.h"
+#include "chat/user_file.h"
 #include "server_ht.h"
 #include "server_signal.h"
-#include "chat/user_file.h"
 #include "chat/db.h"
-#include "chat/user_session.h"
 #include "backend_route.h"
 #include "server_nats.h"
 #include "server_redis.h"
@@ -54,6 +53,9 @@ typedef struct server_config
 
     bool retry_db_connect;
     bool disable_tls;
+
+    bool sql_time;  // Display SQL Query Times.
+    bool event_time;// Display Event Times.
 } server_config_t;
  
 typedef struct server

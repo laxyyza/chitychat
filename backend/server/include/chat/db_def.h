@@ -27,47 +27,33 @@
 
 typedef struct 
 {
-    const char*   schema;
+    const char* sql;
+    const char* filename;
+} sql_query_t;
 
-    const char*   insert_user;
-    const char*   select_user;
-    const char*   select_connected_users;
-    const char*   select_user_json;
-    const char*   delete_user;
+typedef struct 
+{
+    sql_query_t   schema;
 
-    const char*   insert_group;
-    const char*   select_user_groups;
-    const char*   select_pub_group;
-    const char*   delete_group;
+    sql_query_t   insert_user;
+    sql_query_t   select_user;
+    sql_query_t   select_connected_users;
+    sql_query_t   select_user_json;
+    sql_query_t   delete_user;
 
-    const char*   select_groupmember;
-    const char*   insert_pub_groupmember;
-    const char*   delete_groupmember;
+    sql_query_t   update_user;
 
-    const char*   insert_msg;
-    const char*   select_msg;
-    const char*   select_group_msgs_json;
-    const char*   delete_msg;
+    sql_query_t   insert_userfiles;
 
-    const char*   update_user;
+    sql_query_t   insert_session;
+    sql_query_t   select_session;
 
-    const char*   insert_userfiles;
+    sql_query_t   insert_remember_token;
+    sql_query_t   select_remember_token;
+    sql_query_t   update_remember_token;
 
-    const char*   insert_groupmember_code;
-
-    const char*   create_group_code;
-    const char*   get_group_code;
-    const char*   delete_group_code;
-
-    const char*   insert_session;
-    const char*   select_session;
-
-    const char*   insert_remember_token;
-    const char*   select_remember_token;
-    const char*   update_remember_token;
-
-    const char*   insert_login_attempt;
-    const char*   insert_remember_token_usage;
+    sql_query_t   insert_login_attempt;
+    sql_query_t   insert_remember_token_usage;
 } server_db_commands_t;
 
 typedef struct eworker eworker_t;

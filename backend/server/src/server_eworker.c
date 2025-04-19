@@ -8,6 +8,7 @@
 #include <libpq-fe.h>
 #include <poll.h>
 #include <netinet/tcp.h>
+#include "nano_timer.h"
 
 #define LISTEN_BACKLOG 100
 
@@ -29,6 +30,24 @@ eworker_prep_event(eworker_t* ew, server_event_t* se)
 }
 
 static void 
+eworker_print_event_time(eworker_t* ew, i64 time_elpased_ns, server_event_t* se)
+{
+    f64 time_elpased_ms = time_elpased_ns / 1e6;
+    f64 time_elpased_us = time_elpased_ns / 1e3;
+
+    info("EVENT_TIME: %s: ", ew->name);
+    if (strlen(ew->name) < 5)
+        printf(" ");
+    if (time_elpased_ms >= 1.0)
+        printf("%.2f ms", time_elpased_ms);
+    else if (time_elpased_us >= 1.0)
+        printf("%.2f µs", time_elpased_us);
+    else
+        printf("%ld ns", time_elpased_ns);
+    printf("\t(%s)\n", se->debug_name);
+}
+
+static void 
 eworker_wait_for_events(eworker_t* ew)
 {
     const server_t* server = ew->server;
@@ -36,6 +55,9 @@ eworker_wait_for_events(eworker_t* ew)
     server_event_t* se;
     i32 nfds;
     i32 timeout;
+    nano_timer_t timer;
+    i32 log_level = server_get_loglevel();
+    bool show_event_time = log_level >= SERVER_INFO && server->conf.event_time == true;
 
     /* Block if pipeline is empty, else return immediately. */
     timeout = (ew->db.queue.count == 0) ? -1 : 0;
@@ -54,7 +76,16 @@ eworker_wait_for_events(eworker_t* ew)
         se = event->data.ptr;
         se->ep_events = event->events;
 
+        if (show_event_time)
+            nano_start_time(&timer);
+
         eworker_prep_event(ew, se);
+
+        if (show_event_time)
+        {
+            i64 time_elpased_ns = nano_end_time(&timer);
+            eworker_print_event_time(ew, time_elpased_ns, se);
+        }
     }
 }
 
@@ -110,7 +141,7 @@ eworker_create_socket(server_t* server)
         return false;
     }
 
-    if (server_new_event(server, sock, NULL, se_accept_conn, NULL) == NULL)
+    if (server_new_event(server, sock, NULL, se_accept_conn, NULL, "Accpet Connection") == NULL)
         return false;
 
     return true;
@@ -120,6 +151,7 @@ bool
 server_eworker_init(eworker_t* ew)
 {
     ew->tid = gettid();
+
     if (!server_db_open(&ew->db, &ew->server->conf, 
                         DB_PIPELINE | DB_NONBLOCK))
         return false;

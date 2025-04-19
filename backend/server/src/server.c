@@ -24,6 +24,7 @@ server_run(server_t* server)
 
     ew->server = server;
     ew->db.cmd = &server->db_commands;
+    strncpy(ew->name, "ew:0", THREAD_NAME_LEN);
     tm_worker(ew);
 }
 
