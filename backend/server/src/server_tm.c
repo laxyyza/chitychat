@@ -32,13 +32,43 @@ server_init_tm(server_t* server, i32 n_workers)
     tm->n_workers = n_workers;
     tm->workers = calloc(n_workers, sizeof(eworker_t));
     server->main_ew = &tm->workers[0];
+    server->main_ew->server = server;
+    server->main_ew->db.cmd = &server->db_commands;
+    strncpy(server->main_ew->name, "ew:0", THREAD_NAME_LEN);
 
     pthread_mutex_init(&tm->mutex, NULL);
     pthread_cond_init(&tm->cond, NULL);
 
-    for (i32 i = 1; i < n_workers; i++)
+    return true;
+}
+
+bool 
+server_create_eworker(server_t* server, eworker_t* ew, size_t i)
+{
+    ew->db.cmd = &server->db_commands;
+    ew->server = server;
+
+    if (pthread_create(&ew->pth, NULL, eworker_main, ew) != 0)
+    {
+        fatal("pthread_create failed: %s\n", ERRSTR);
+        return false;
+    }
+    snprintf(ew->name, THREAD_NAME_LEN, "ew:%zu", i);
+    pthread_setname_np(ew->pth, ew->name);
+    return true;
+}
+
+bool 
+server_tm_start_threads(server_t* server)
+{
+    server_tm_t* tm = &server->tm;
+
+    for (i32 i = 1; i < tm->n_workers; i++)
+    {
         if (server_create_eworker(server, tm->workers + i, i) == false)
             return false;
+    }
+
     return true;
 }
 
@@ -53,7 +83,7 @@ server_tm_shutdown_threads(server_t* server)
      */
     eventfd_write(server->eventfd, 1);
     
-    for (size_t i = 1; i < tm->n_workers; i++)
+    for (i32 i = 1; i < tm->n_workers; i++)
     {
         eworker_t* ew = tm->workers + i;
         pthread_join(ew->pth, NULL);
@@ -74,8 +104,6 @@ server_tm_shutdown(server_t* server)
 
     pthread_cond_destroy(&tm->cond);
     pthread_mutex_destroy(&tm->mutex);
-
-    free(tm->workers);
 }
 
 i32

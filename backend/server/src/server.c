@@ -16,16 +16,11 @@ server_print_sockerr(i32 fd)
 void
 server_run(server_t* server)
 {
-    eworker_t* ew = server->main_ew;
-
     info("Server listening on IP: %s, port: %u, thread pool: %zu, using %s\n", 
          server->conf.addr_ip, server->conf.addr_port, server->tm.n_workers,
         (server->conf.disable_tls) ? "HTTP/WS" : "HTTPS/WSS");
 
-    ew->server = server;
-    ew->db.cmd = &server->db_commands;
-    strncpy(ew->name, "ew:0", THREAD_NAME_LEN);
-    tm_worker(ew);
+    server_eworker_async_run(server->main_ew);
 }
 
 static void 
@@ -59,6 +54,7 @@ server_cleanup(server_t* server)
     if (!server)
         return;
 
+    server_eworker_cleanup(server->main_ew);
     server_tm_shutdown(server);
     server_ght_destroy(&server->chat_cmd_ht);
     server_del_all_events(server);
@@ -75,6 +71,7 @@ server_cleanup(server_t* server)
 
     debug("Server stopped.\n");
 
+    free(server->tm.workers);
     free(server);
 }
 

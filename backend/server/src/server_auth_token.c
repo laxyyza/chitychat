@@ -34,7 +34,7 @@ callback_create_session(eworker_t* ew,
     char session_uuid[UUID_LEN];
     server_uuid_v4(session_uuid);
 
-    server_redis_set_session(ew->server, session_uuid, user_id);
+    server_redis_set_session(&ew->redis, session_uuid, user_id);
 
     callback(ew, client, rt, session_uuid);
 }

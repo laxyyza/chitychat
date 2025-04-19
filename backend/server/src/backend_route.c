@@ -27,7 +27,7 @@
 // }
 
 static void 
-after_get_session_user_id(server_t* server, get_session_data_t* data)
+after_get_session_user_id(eworker_t* ew, get_session_data_t* data)
 {
     client_t* client = data->client;
     http_t* http = data->http;
@@ -40,7 +40,7 @@ after_get_session_user_id(server_t* server, get_session_data_t* data)
         goto cleanup;
     }
 
-    backend_send_http(server, subject, client, http, user_id);
+    backend_send_http(ew->server, subject, client, http, user_id);
 cleanup:
     http_free(http);
 }
@@ -55,7 +55,7 @@ backend_route(eworker_t* ew, client_t* client, http_t* http)
         return true;
     }
 
-    redis_cb_data_t* data = server_redis_get_cb_data(&ew->server->redis);
+    redis_cb_data_t* data = server_redis_get_cb_data(&ew->redis);
     data->data.http = http;
     data->data.client = client;
     data->data.user_id = 0;
@@ -68,7 +68,7 @@ backend_route(eworker_t* ew, client_t* client, http_t* http)
     strncat(nats_subject, http->req.method, SUBJECT_LEN - 1);
 
     ew->ignore_http_free = true;
-    server_redis_get_session(ew->server, session, data);
+    server_redis_get_session(&ew->redis, session, data);
 
     return true;
 }

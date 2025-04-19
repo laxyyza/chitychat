@@ -302,3 +302,47 @@ server_handle_auth(eworker_t* ew, client_t* client, http_t* http)
     server_http_resp(client, HTTP_CODE_NOT_FOUND);
     return RECV_DISCONNECT;
 }
+
+static void 
+after_get_session(eworker_t* ew, get_session_data_t* data)
+{
+    client_t* client = data->client;
+    u32 user_id = data->user_id;
+    dbuser_t* user;
+
+    if (data->found == false)
+    {
+        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
+        return;
+    }
+
+    server_http_switch_to_websocket(client);
+
+    user = server_ght_get(&ew->server->user_ht, user_id);
+    if (user)
+    {
+
+    }
+}
+
+enum client_recv_status
+server_handle_websocket_auth(eworker_t* ew, client_t* client, http_t* http)
+{
+    redis_cb_data_t* data;
+    const char* session;
+
+    if ((session = http->cookies.session_uuid) == NULL)
+    {
+        server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
+        return RECV_DISCONNECT;
+    }
+
+    data = server_redis_get_cb_data(&ew->redis);
+    data->data.http = http;
+    data->data.client = client;
+    data->data.user_id = 0;
+    data->callback = after_get_session;
+    server_redis_get_session(&ew->redis, session, data);
+
+    return RECV_OK;
+}

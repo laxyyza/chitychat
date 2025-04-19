@@ -454,11 +454,14 @@ server_init(int argc, char* const* argv)
     if (!server_init_nats(server))
         goto error;
 
-    if (!server_init_redis(server))
-        goto error;
-
     // Init Thread Manager
     if (!server_init_tm(server, server->conf.thread_pool))
+        goto error;
+
+    if (!server_eworker_init(server->main_ew))
+        goto error;
+
+    if (!server_tm_start_threads(server))
         goto error;
 
     // if --fork is used, fork and exit parent process 

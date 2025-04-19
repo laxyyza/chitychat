@@ -87,7 +87,6 @@ typedef struct server
     eworker_t* main_ew;
 
     server_nats_t nats;
-    server_redis_t redis;
 
     bool running;
 } server_t;

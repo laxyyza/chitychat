@@ -1,6 +1,7 @@
 #include "server_redis.h"
 #include "server_events.h"
 #include "server.h"
+#include <poll.h>
 
 // TODO: Make TTL customizable.
 #define TTL 3600
@@ -8,12 +9,12 @@
 static void 
 redis_connect_cb(const redisAsyncContext* c, i32 status)
 {
-    server_t* server = c->data;
+    eworker_t* ew = c->data;
 
     if (status != REDIS_OK)
     {
         fatal("Redis Connection Failed: %s\n", c->errstr);
-        server->running = false;
+        ew->server->running = false;
     }
 }
 
@@ -27,38 +28,34 @@ redis_disconnect_cb(const redisAsyncContext* c, i32 status)
 }
 
 static void 
-redis_callback(UNUSED redisAsyncContext* c, UNUSED redisReply* r, UNUSED void* privData)
+redis_callback(redisAsyncContext* c, UNUSED redisReply* r, UNUSED void* privData)
 {
+    eworker_t* ew = c->data;
+    ew->redis.cmds--;
 }
 
 static void 
 redis_add_read(server_redis_t* r)
 {
-    r->ev->new_listen_events |= EPOLLIN;
-
-    if (r->ev->new_listen_events != r->ev->listen_events)
-        server_epoll_rearm(r->server, r->ev);
+    r->pfd->events |= POLLIN;
 }
 
 static void 
 redis_del_read(server_redis_t* r)
 {
-    r->ev->new_listen_events &= ~EPOLLIN;
+    r->pfd->events &= ~POLLIN;
 }
 
 static void 
 redis_add_write(server_redis_t* r)
 {
-    r->ev->new_listen_events |= EPOLLOUT;
-
-    if (r->ev->new_listen_events != r->ev->listen_events)
-        server_epoll_rearm(r->server, r->ev);
+    r->pfd->events |= POLLOUT;
 }
 
 static void 
 redis_del_write(server_redis_t* r)
 {
-    r->ev->new_listen_events &= ~EPOLLOUT;
+    r->pfd->events &= ~POLLOUT;
 }
 
 static void 
@@ -73,38 +70,12 @@ redis_sched_timer(UNUSED server_redis_t* r, struct timeval* tv)
     warn("TODO: implement: redis_sched_timer: %ds\n", tv->tv_sec);
 }
 
-static enum se_status
-redis_read(UNUSED eworker_t* ew, server_event_t* ev)
-{
-    server_redis_t* r = ev->data;
-
-    redisAsyncHandleRead(r->c);
-
-    return SE_OK;
-}
-
-static enum se_status
-redis_write(UNUSED eworker_t* ew, server_event_t* ev)
-{
-    server_redis_t* r = ev->data;
-
-    redisAsyncHandleWrite(r->c);
-
-    return SE_OK;
-}
-
-static enum se_status
-redis_close(UNUSED eworker_t* ew, UNUSED server_event_t* ev)
-{
-    warn("TODO: Implement redis_close()!\n");
-    return SE_OK;
-}
-
 bool 
-server_init_redis(server_t* server)
+server_init_redis(eworker_t* ew)
 {
-    server_redis_t* r = &server->redis;
-    r->server = server;
+    server_t* server = ew->server;
+    server_redis_t* r = &ew->redis;
+    r->ew = ew;
     r->c = redisAsyncConnect(server->conf.redis_ip, server->conf.redis_port);
     if (r->c->err)
     {
@@ -113,13 +84,9 @@ server_init_redis(server_t* server)
         return false;
     }
     redisAsyncContext* c = r->c;
-    c->data = server;
+    c->data = ew;
 
-    r->ev = server_epoll_add_event(server, c->c.fd, r, 
-                                   redis_read, 
-                                   redis_write, 
-                                   redis_close,
-                                   "Redis");
+    r->pfd = &ew->pfds[1];
 
     c->ev.data = r;
     c->ev.addRead = (void*)redis_add_read;
@@ -132,8 +99,6 @@ server_init_redis(server_t* server)
     redisAsyncSetConnectCallback(r->c, redis_connect_cb);
     redisAsyncSetDisconnectCallback(r->c, redis_disconnect_cb);
 
-    atomic_init(&r->ring_idx, 0);
-
     return true;
 }
 
@@ -144,18 +109,22 @@ server_deinit_redis(UNUSED server_t* server)
 }
 
 void 
-server_redis_set_session(server_t* server, const char* session_uuid, u32 user_id)
+server_redis_set_session(server_redis_t* r, const char* session_uuid, u32 user_id)
 {
-    redisAsyncCommand(server->redis.c, 
+    redisAsyncCommand(r->c, 
                       (redisCallbackFn*)redis_callback, 
                       NULL, 
                       "SET session:%s %u EX %d", 
                       session_uuid, user_id, TTL);
+    r->cmds++;
 }
 
 static void 
 get_session_cb(redisAsyncContext* c, redisReply* r, redis_cb_data_t* data)
 {
+    eworker_t* ew = c->data;
+    ew->redis.cmds -= 2; // GET and EXPIRE commands.
+    
     if (r->type != REDIS_REPLY_STRING)
         data->data.found = false;
     else
@@ -165,27 +134,29 @@ get_session_cb(redisAsyncContext* c, redisReply* r, redis_cb_data_t* data)
         data->data.found = true;
     }
 
-    data->callback(c->data, &data->data);
+    data->callback(ew, &data->data);
 }
 
 void 
-server_redis_get_session(server_t* server, const char* session_uuid, redis_cb_data_t* data)
+server_redis_get_session(server_redis_t* r, const char* session_uuid, redis_cb_data_t* data)
 {
-    redisAsyncCommand(server->redis.c, 
+    redisAsyncCommand(r->c, 
                       (void*)get_session_cb, 
                       data, 
                       "GET session:%s", session_uuid);
 
-    redisAsyncCommand(server->redis.c, 
+    redisAsyncCommand(r->c, 
                       NULL, 
                       NULL, 
                       "EXPIRE session:%s %d", session_uuid, TTL);
+
+    r->cmds += 2;
 }
 
 redis_cb_data_t* 
 server_redis_get_cb_data(server_redis_t* r)
 {
-    u32 data_idx = atomic_fetch_add(&r->ring_idx, 1);
+    u32 data_idx = r->ring_idx++;
     redis_cb_data_t* ret = r->ring_data + (data_idx % SERVER_REDIS_RING_SIZE);
 
     return ret;
