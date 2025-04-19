@@ -5,15 +5,16 @@ i32
 main(int argc, char* const* argv)
 {
     server_t* server;
-
     nano_timer_t timer;
+    i64 time_elapsed_ns;
+
     nano_start_time(&timer);
 
     server = server_init(argc, argv);
     if (!server)
         return EXIT_FAILURE;
 
-    i64 time_elapsed_ns = nano_end_time(&timer);
+    time_elapsed_ns = nano_end_time(&timer);
     info("server_init(): %.2fms\n", 
          (time_elapsed_ns / 1e6));
 
