@@ -44,7 +44,6 @@ db_async_login_attempt(server_db_t* db,
         .exec_res = after_insert,
         .exec = dummy_cb
     };
-    ctx.exec = NULL;
     ret = db_async_params(db, &db->cmd->insert_login_attempt, 4, vals, lens, formats, &ctx);
     return ret == 1;
 }
