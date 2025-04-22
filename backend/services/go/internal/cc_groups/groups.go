@@ -14,6 +14,7 @@ import (
 
 type GroupsData struct {
 	SelectUserGroups string
+	SelectInvalidUserIDs string
 }
 
 type CreateGroupData struct {
@@ -97,6 +98,31 @@ func insertGroupMembers(s* service.Service[GroupsData], req* mq.HTTPRequest, gro
 	})
 }
 
+func getInvalidUserIDs(s* service.Service[GroupsData], data* CreateGroupData, ownerID uint32) []uint32 {
+	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.SelectInvalidUserIDs, data.UserIDs)
+	if err != nil {
+		fmt.Printf("SelectInvalidUserIDs: %v\n", err)
+		return []uint32{}
+	}
+
+	var invalidUserIDs []uint32 = make([]uint32, 0)
+
+	for rows.Next() {
+		var invalidID uint32
+		rows.Scan(&invalidID)
+		invalidUserIDs = append(invalidUserIDs, invalidID)
+	}
+
+	for _, id := range data.UserIDs {
+		if id == ownerID {
+			invalidUserIDs = append(invalidUserIDs, id)
+			break
+		}
+	}
+
+	return invalidUserIDs
+}
+
 func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	ownerID:= req.UserID
 	var data CreateGroupData
@@ -107,22 +133,41 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 		})
 	}
 
+	invalidUserIDs := getInvalidUserIDs(s, &data, ownerID)
+	if len(invalidUserIDs) > 0 {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": "Invalid User IDs",
+			"invalid_user_ids": invalidUserIDs,
+		})
+	}
+
 	var groupID uint32
 
 	insertGroup := "INSERT INTO Groups(owner_id, name, \"desc\") VALUES ($1::int, $2::varchar(50), $3::text) RETURNING group_id;"
 
+	tx, err := s.Db.Conn.Begin(context.Background())
+	if err != nil {
+		fmt.Printf("Failed to begin! %v\n", err);
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
 	row := s.Db.Conn.QueryRow(context.Background(), insertGroup, ownerID, data.Name, data.Desc)
 	err = row.Scan(&groupID)
 	if err != nil {
+		tx.Rollback(context.Background())
 		fmt.Printf("insertGroup: %v\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]interface{}{
 			"error": "Failed to create group",
 		})
 	}
 
-	fmt.Println(">>> ", data.Name)
-
-	return insertGroupMembers(s, req, groupID, data.UserIDs) 
+	resp := insertGroupMembers(s, req, groupID, data.UserIDs) 
+	if resp.Status != http.StatusOK {
+		tx.Rollback(context.Background())
+	} else {
+		tx.Commit(context.Background())
+	}
+	return resp
 }
 
 func Groups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
