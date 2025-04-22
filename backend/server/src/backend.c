@@ -53,6 +53,8 @@ backend_service_send(server_t* server, const char* subject, json_object* json)
 
     str = json_object_to_json_string_length(json, JSON_C_TO_STRING_NOSLASHESCAPE, &len);
 
+    verbose("NATS PUB: Subject='%s', Data=%s\n", subject, str);
+
     natsConnection_PublishRequest(server->nats.conn, subject, server->nats.subj_http, str, len);
 }
 

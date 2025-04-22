@@ -45,7 +45,6 @@ CREATE TABLE IF NOT EXISTS GroupMembers(
     user_id         int,
     group_id        int,
     join_date       timestamp DEFAULT CURRENT_TIMESTAMP,
-    flags           int DEFAULT 0,
     PRIMARY KEY (user_id, group_id),
     FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (group_id) REFERENCES Groups(group_id) ON DELETE CASCADE
