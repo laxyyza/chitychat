@@ -45,13 +45,33 @@ after_token_create(UNUSED eworker_t* ew, client_t* client, remember_token_t* rt,
     http_free(http);
 }
 
+static void 
+remember_get_session_cb(UNUSED eworker_t* ew, get_session_data_t* data)
+{
+    client_t* client = data->client;
+    u32 code = (data->found) ? HTTP_CODE_OK : HTTP_CODE_UNAUTHORIZED;
+
+    server_http_resp(client, code);
+}
+
 static inline enum client_recv_status
 server_handle_auth_remember(eworker_t* ew, client_t* client, http_t* http)
 {
     if (http->cookies.remember_token == NULL)
     {
-        server_http_resp_error(client, HTTP_CODE_UNAUTHORIZED, "No remember_token cookie");
-        return RECV_DISCONNECT;
+        if (http->cookies.session_uuid == NULL)
+        {
+            server_http_resp(client, HTTP_CODE_UNAUTHORIZED);
+            return RECV_DISCONNECT;
+        }
+
+        redis_cb_data_t* data = server_redis_get_cb_data(&ew->redis);
+        data->data.http = http;
+        data->data.client = client;
+        data->data.user_id = 0;
+        data->callback = remember_get_session_cb;
+        server_redis_get_session(&ew->redis, http->cookies.session_uuid, data);
+        return RECV_OK;
     }
     else if (strlen(http->cookies.remember_token) != TOKEN_HEX_LEN)
     {
@@ -351,7 +371,7 @@ get_bind_user_to_client(eworker_t* ew, client_t* client, u32 user_id)
 }
 
 static void 
-after_get_session(eworker_t* ew, get_session_data_t* data)
+websocket_upgrade_get_session_cb(eworker_t* ew, get_session_data_t* data)
 {
     client_t* client = data->client;
     u32 user_id = data->user_id;
@@ -386,7 +406,7 @@ server_auth_websocket_upgrade(eworker_t* ew, client_t* client, http_t* http)
     data->data.http = http;
     data->data.client = client;
     data->data.user_id = 0;
-    data->callback = after_get_session;
+    data->callback = websocket_upgrade_get_session_cb;
     server_redis_get_session(&ew->redis, session, data);
 
     return RECV_OK;

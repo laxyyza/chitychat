@@ -557,6 +557,7 @@ server_http_resp(client_t* client, u16 error_code)
 {
     http_t* http = http_new_resp(error_code, NULL, 0);
     http_add_header(http, "Content-Length", "0");
+    http_add_cross_origin_headers(client, http);
 
     http_send(client, http);
 
@@ -728,6 +729,9 @@ http_send(client_t* client, http_t* http)
 
     ssize_t bytes_sent = 0;
     http_to_str_t to_str = http_to_str(http);
+
+    verbose("HTTP SEND: IP=[%s], Agent='%s', Body:\n%s\n", 
+            client->addr.ip_str, client->user_agent, to_str.str);
 
     if ((bytes_sent = server_send(client, to_str.str, to_str.len)) == -1)
     {

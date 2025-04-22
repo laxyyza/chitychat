@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import websocketClient from '../services/websocketClient';
 
 const Loading = () => {
     const [animation, setAnimation] = useState('animate-bounce');
     const emotes = ['>_<', ':3', ':)', ':(', '^_^', '>:(', '>:)'];
     const [emote, setEmote] = useState(emotes[0]);
-    const [status, setStatus] = useState('');
-    const navigate = useNavigate();
+    const [status] = useState('');
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -25,18 +22,18 @@ const Loading = () => {
         return () => clearInterval(interval);
     }, []);
 
-    useEffect(() => {
-        websocketClient.onStateChange((state: string) => {
-            setStatus(state);
-            if (state === 'open') {
-                navigate('/app');
-            } else if (state === 'close' || state === 'error') {
-                navigate('/login');
-            }
-        });
-
-        return () => websocketClient.onStateChange(undefined);
-    }, []);
+    // useEffect(() => {
+    //     websocketClient.onStateChange((state: string) => {
+    //         setStatus(state);
+    //         if (state === 'open') {
+    //             navigate('/app');
+    //         } else if (state === 'close' || state === 'error') {
+    //             navigate('/login');
+    //         }
+    //     });
+    //
+    //     return () => websocketClient.onStateChange(undefined);
+    // }, []);
 
     return (
         <>

@@ -75,6 +75,7 @@ function MainApp() {
     });
 
     useEffect(() => {
+        websocketClient.connect()
         loadAppData(app, send, dispatch);
     }, []);
 

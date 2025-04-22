@@ -6,6 +6,7 @@ class WebSocketClient
     private ws?: WebSocket;
     private listeners: Set<(cmd: string, data: any) => void>;
     private onStateChangeCallback?: (state: 'open' | 'close' | 'error') => void;
+    private bufferedMsgs: String[]
     public state: 'connecting' | 'open' | 'close' | 'error';
 
     constructor () 
@@ -15,11 +16,12 @@ class WebSocketClient
         this.state = 'close';
         this.onStateChangeCallback = undefined;
         this.connect();
+        this.bufferedMsgs = []
     }
 
-    connect(path: string = '') 
+    connect() 
     {
-        const url = this.baseurl + path;
+        const url = this.baseurl;
         console.log("Connecting to ", url);
         this.ws = new WebSocket(url);
         this.state = 'connecting';
@@ -29,6 +31,11 @@ class WebSocketClient
             console.log("OPEN");
             if (this.onStateChangeCallback)
                 this.onStateChangeCallback(this.state);
+
+            this.bufferedMsgs.forEach(msg => {
+                this.send(msg);
+            })
+            this.bufferedMsgs = []
         }
 
         this.ws.onmessage = (event) => {
@@ -61,6 +68,7 @@ class WebSocketClient
             this.ws.send(data);
         } else { 
             console.warn("Websocket not open. Not sending message.");
+            this.bufferedMsgs.push(msg);
         }
     }
 

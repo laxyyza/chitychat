@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import useWebsocket from './WebSocket';
-import websocketClient from '../services/websocketClient';
+import { useEffect, useState } from 'react';
 import fetchData from '../services/api';
+import websocketClient from '../services/websocketClient';
 
 interface LoginToggleProp {
     type: 'login' | 'register' | 'checkbox';
@@ -62,72 +61,48 @@ const Login = () => {
     const [username, setUsername] = useState('');
     const [displayName, setDisplayName] = useState('');
     const [password, setPassword] = useState('');
-    const [doSession, setDoSession] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const [statusMsg, setStatusMsg] = useState<StatusMsg>({
         type: 'info',
         msg: ''
     });
-    const navigate = useNavigate();
-    const [sessionToken, setSessionToken] = useState<string>('');
-
-    if (websocketClient.state === 'close') {
-        websocketClient.connect('/login');
-    }
+    const navigator = useNavigate()
 
     useEffect(() => {
-        if (sessionToken) {
-            fetchData('/set-session?token=' + sessionToken);
-        }
-    }, [sessionToken]);
-
-    useEffect(() => {
-        websocketClient.onStateChange((state: string) => {
-            if (state === 'close' || state === 'error') {
-                setStatusMsg({
-                    type: 'error',
-                    msg: 'Failed to connect to server.'
-                });
-            } else if (state === 'connecting') {
-                setStatusMsg({ type: 'info', msg: 'Connecting...' });
-            } else {
-                setStatusMsg({ type: 'info', msg: '' });
-            }
-
-            return () => websocketClient.onStateChange(undefined);
-        });
+        // close websocket connection when logging in,
+        // bc the backend binds user account to websocket connection.
+        websocketClient.close();
     }, []);
-
-    const { send } = useWebsocket((cmd, packet) => {
-        if (cmd === 'error') {
-            setStatusMsg({ type: 'error', msg: packet['error_msg'] });
-        } else if (cmd === 'session') {
-            if (packet['id'] !== '0') {
-                setSessionToken(packet['id']);
-            }
-
-            navigate('/app');
-        } else {
-            setStatusMsg({ type: 'info', msg: packet });
-        }
-    });
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         if (doRegister) {
-            send({
-                cmd: 'register',
+            fetchData('/api/auth/register', 'POST', {
                 username: username,
-                password: password,
                 displayname: displayName,
-                session: doSession
+                password: password,
+                remember_me: rememberMe
+            }).then(() => {
+                navigator("/app");
+            }).catch((e) => {
+                setStatusMsg({
+                    type: 'error',
+                    msg: e
+                })
             });
         } else {
-            send({
-                cmd: 'login',
+            fetchData('/api/auth/login', 'POST', {
                 username: username,
                 password: password,
-                session: doSession
+                remember_me: rememberMe
+            }).then(() => {
+                navigator("/app");
+            }).catch((e) => {
+                setStatusMsg({
+                    type: 'error',
+                    msg: e
+                })
             });
         }
 
@@ -203,9 +178,9 @@ const Login = () => {
                             <input
                                 className="w-5 h-5"
                                 type="checkbox"
-                                checked={doSession}
+                                checked={rememberMe}
                                 onChange={(event) =>
-                                    setDoSession(event.target.checked)
+                                    setRememberMe(event.target.checked)
                                 }
                             />
                         </div>

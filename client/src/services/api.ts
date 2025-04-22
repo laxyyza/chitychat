@@ -11,28 +11,34 @@ const fetchData = async (
         'Content-Type': 'application/json' 
     }
 ) => {
-    try {
-        const opts: RequestInit = {
-            method,
-            headers,
-            credentials: "include",
-        };
+    const opts: RequestInit = {
+        method,
+        headers,
+        credentials: "include",
+    };
 
-        if (method !== 'GET' && body) {
-            opts.body = JSON.stringify(body);
-        }
-
-        const resp = await fetch(baseUrl + url, opts);
-
-        if (!resp.ok) {
-            throw new Error(`HTTP ${method} error: ${resp.status}`);
-        }
-
-        return await resp.json();
-    } catch (error) {
-        console.error('Fetch error:', error);
-        return error;
+    if (method !== 'GET' && body) {
+        opts.body = JSON.stringify(body);
     }
+
+    const resp = await fetch(baseUrl + url, opts);
+
+    if (!resp.ok) {
+        const data = await resp.json();
+        if (data.error)
+            throw data.error;
+        else 
+            throw `${resp.status} ${resp.statusText}`;
+    }
+
+    const contentType = resp.headers.get('Content-Type');
+    if (contentType === "application/json")
+    {
+        const json = await resp.json();
+        return json;
+    }
+    else
+        return resp.body;
 };
 
 export default fetchData;

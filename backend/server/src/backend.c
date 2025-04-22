@@ -30,7 +30,14 @@ backend_read(server_t* server, json_object* json)
     http_add_cross_origin_headers(client, http);
 
     json_object_object_foreach(json_headers, key, val) {
-        http_add_header(http, key, json_object_to_json_string(val));
+        const char* val_string;
+
+        if (json_object_is_type(val, json_type_string))
+            val_string = json_object_get_string(val);
+        else
+            val_string = json_object_to_json_string_ext(val, JSON_C_TO_STRING_NOSLASHESCAPE);
+
+        http_add_header(http, key, val_string);
     }
 
     http_send(client, http);
