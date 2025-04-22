@@ -7,6 +7,7 @@ SERVICES_DIR=$BUILD_DIR/backend/services
 SERVICE_PIDS=()
 SERVER_PID=
 STOPPED=0
+ARGV=$@
 
 function exec_services()
 {
@@ -22,7 +23,7 @@ function exec_services()
 function exec_server()
 {
     echo "Executing $(basename $SERVER_EXE)"
-    $SERVER_EXE &
+    $SERVER_EXE $ARGV &
     SERVER_PID=$!
 }
 

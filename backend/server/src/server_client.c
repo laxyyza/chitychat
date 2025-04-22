@@ -60,13 +60,16 @@ server_free_client(eworker_t* ew, client_t* client)
         return;
     server_ght_del(&server->client_ht, client->addr.sock);
 
-    debug("Client (IP: %s:%s) closed.\n", 
-            client->addr.ip_str, client->addr.serv);
     if (client->dbuser)
     {
-        if (client->dbuser->user_id)
-            info("\tUser:%u %s '%s' logged out.\n", 
-                client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
+        info("Disconnect: IP=[%s], Agent='%s', ID=%u, Username='%s', DisplayName='%s'\n",
+             client->addr.ip_str, client->user_agent, 
+             client->dbuser->user_id, client->dbuser->username, client->dbuser->displayname);
+    }
+    else
+    {
+        debug("HTTP Disconnect: IP=[%s], Agent='%s'\n", 
+              client->addr.ip_str, client->user_agent);
     }
 
     if (client->ssl)

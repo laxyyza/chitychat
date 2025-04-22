@@ -156,6 +156,18 @@ server_eworker_init(eworker_t* ew)
 }
 
 static inline void 
+handle_redis_rw(eworker_t* ew)
+{
+    if (ew->pfds[1].revents & POLLIN)
+    {
+        redisAsyncHandleRead(ew->redis.c);
+        db_pipeline_current_done(&ew->db);
+    }
+    if (ew->pfds[1].revents & POLLOUT)
+        redisAsyncHandleWrite(ew->redis.c);
+}
+
+static inline void 
 eworker_db_poll(eworker_t* ew)
 {
     i32 ret;
@@ -171,10 +183,7 @@ eworker_db_poll(eworker_t* ew)
         if (ew->pfds[0].revents & POLLIN)
             db_process_results(ew);
 
-        if (ew->pfds[1].revents & POLLIN)
-            redisAsyncHandleRead(ew->redis.c);
-        if (ew->pfds[1].revents & POLLOUT)
-            redisAsyncHandleWrite(ew->redis.c);
+        handle_redis_rw(ew);
     }
 }
 

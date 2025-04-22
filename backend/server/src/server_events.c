@@ -64,8 +64,7 @@ se_accept_conn(eworker_t* th, server_event_t* ev)
     if ((client = server_accept_client(th, ev)) == NULL)
         return SE_ERROR;
 
-    debug("Client (fd:%d, IP: %s:%s) connected.\n", 
-        client->addr.sock, client->addr.ip_str, client->addr.serv);
+    debug("TCP Connect: IP=[%s]\n", client->addr.ip_str);
 
     return SE_OK;
 }

@@ -134,7 +134,10 @@ server_exec_chatcmd(const char* cmd,
             return "Command not found";
     }
     else if (!(chatcmd->perms & client->state))
+    {
+        info("not perm: [%s]:%s\n", client->addr.ip_str, client->addr.serv);
         return "Require permission";
+    }
 
     verbose("%s executing '%s' (hash: %zu)...\n", 
             client->addr.ip_str, chatcmd->cmd, chatcmd->cmd_hash);

@@ -304,6 +304,53 @@ server_handle_auth(eworker_t* ew, client_t* client, http_t* http)
 }
 
 static void 
+bind_user_to_client(eworker_t* ew, client_t* client, dbuser_t* user)
+{
+    server_ght_insert(&ew->server->user_ht, user->user_id, user);
+    server_rtusm_user_connect(ew, user);
+    array_add_voidp(&user->connected_clients, client);
+    client->dbuser = user;
+    client->state |= CLIENT_STATE_LOGGED_IN;
+
+    info("Login: IP=[%s], Agent='%s', ID=%u, Username='%s', DisplayName='%s'\n",
+         client->addr.ip_str, client->user_agent, 
+         user->user_id, user->username, user->displayname);
+
+    if ((client->state & CLIENT_STATE_WEBSOCKET) == 0)
+        server_http_switch_to_websocket(client);
+}
+
+static const char* 
+after_get_user(eworker_t* ew, dbcmd_ctx_t* ctx)
+{
+    client_t* client = ctx->client;
+    dbuser_t* user = ctx->data;
+
+    if (ctx->ret == DB_ASYNC_ERROR)
+    {
+        server_http_resp_error(client, HTTP_CODE_NOT_FOUND, "User not found");
+        return NULL;
+    }
+
+    bind_user_to_client(ew, client, user);
+
+    return NULL;
+}
+
+static inline void 
+get_bind_user_to_client(eworker_t* ew, client_t* client, u32 user_id)
+{
+    dbcmd_ctx_t ctx = {
+        .client = client,
+        .exec = after_get_user,
+        .flags = DB_CTX_DONT_FREE
+    };
+
+    if (!db_async_get_user(&ew->db, user_id, &ctx))
+        server_http_resp(client, HTTP_CODE_INTERAL_ERROR);
+}
+
+static void 
 after_get_session(eworker_t* ew, get_session_data_t* data)
 {
     client_t* client = data->client;
@@ -316,17 +363,15 @@ after_get_session(eworker_t* ew, get_session_data_t* data)
         return;
     }
 
-    server_http_switch_to_websocket(client);
-
     user = server_ght_get(&ew->server->user_ht, user_id);
     if (user)
-    {
-
-    }
+        bind_user_to_client(ew, client, user);
+    else
+        get_bind_user_to_client(ew, client, user_id);
 }
 
 enum client_recv_status
-server_handle_websocket_auth(eworker_t* ew, client_t* client, http_t* http)
+server_auth_websocket_upgrade(eworker_t* ew, client_t* client, http_t* http)
 {
     redis_cb_data_t* data;
     const char* session;

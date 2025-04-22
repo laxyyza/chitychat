@@ -5,5 +5,6 @@
 #include "server_client.h"
 
 enum client_recv_status server_handle_auth(eworker_t* ew, client_t* client, http_t* http);
+enum client_recv_status server_auth_websocket_upgrade(eworker_t* ew, client_t* client, http_t* http);
 
 #endif // _SERVER_AUTH_H_

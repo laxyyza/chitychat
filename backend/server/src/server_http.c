@@ -348,12 +348,8 @@ parse_error:
 static void 
 print_parsed_http(const http_t* http, client_t* client)
 {
-    if (http->type == HTTP_REQUEST)
-        debug("%s %s %s  (%s:%s)\n", 
-            http->req.version, http->req.method, http->req.url, client->addr.ip_str, client->addr.serv);
-    else
-        debug("%s %d %s  (%s:%s)\n", 
-            http->resp.version, http->resp.code, http->resp.msg, client->addr.ip_str, client->addr.serv);
+    info("HTTP Request: IP=[%s], Agent='%s', Method=%s, Path='%s'\n",
+         client->addr.ip_str, client->user_agent, http->req.method, http->req.url);
 
     if (server_get_loglevel() != SERVER_VERBOSE)
         return;
@@ -471,35 +467,11 @@ server_http_switch_to_websocket(client_t* client)
 }
 
 static enum client_recv_status
-server_upgrade_client_to_websocket(UNUSED eworker_t* ew, client_t* client, http_t* req_http)
+server_upgrade_client_to_websocket(eworker_t* ew, client_t* client, http_t* http)
 {
-    http_t* http;
+    client->websocket_key = http->websocket_key;
 
-    client->websocket_key = req_http->websocket_key;
-
-    if (strcmp(req_http->req.url, "/login") == 0)
-        server_http_switch_to_websocket(client);
-    else
-    {
-        if (req_http->cookies.session_uuid == NULL)
-        {
-            http = http_new_resp(HTTP_CODE_UNAUTHORIZED, NULL, 0);
-            goto error;
-        }
-
-        // const char* errmsg = server_client_login_session_uuid(ew, req_http->session_uuid);
-        // if (errmsg)
-        // {
-        //     http = http_new_resp(HTTP_CODE_INTERAL_ERROR, NULL, 0);
-        //     goto error;
-        // }
-    }
-
-    return RECV_OK;
-error:
-    http_send(client, http);
-    http_free(http);
-    return RECV_DISCONNECT;
+    return server_auth_websocket_upgrade(ew, client, http);
 }
 
 static enum client_recv_status
