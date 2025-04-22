@@ -1,7 +1,7 @@
 #ifndef _SERVER_DB_LOGIN_ATTEMPTS_H_
 #define _SERVER_DB_LOGIN_ATTEMPTS_H_
 
-#include "chat/db_def.h"
+#include "db/db_def.h"
 
 bool db_async_login_attempt(server_db_t* db, 
                             const char* username, 

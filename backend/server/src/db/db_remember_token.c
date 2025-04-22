@@ -1,7 +1,7 @@
 #include "server.h"
-#include "chat/db.h"
-#include "chat/db_remember_token.h"
-#include "chat/db_pipeline.h"
+#include "db/db.h"
+#include "db/db_remember_token.h"
+#include "db/db_pipeline.h"
 
 static bool
 set_token_expire_time(remember_token_t* rt, const char* expires_at)

@@ -2,8 +2,8 @@
 #include "server_util.h"
 #include "server_crypt.h"
 #include "server.h"
-#include "chat/db_remember_token.h"
-#include "chat/db_remember_token_usage.h"
+#include "db/db_remember_token.h"
+#include "db/db_remember_token_usage.h"
 
 remember_token_t*
 create_remember_token(u32 user_id)

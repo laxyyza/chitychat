@@ -2,7 +2,7 @@
 #define _SERVER_CHAT_USER_H_
 
 #include "common.h"
-#include "chat/db_def.h"
+#include "db/db_def.h"
 #include "chat/rtusm.h"
 #include "array.h"
 #include <nats.h>

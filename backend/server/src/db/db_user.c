@@ -1,7 +1,7 @@
 #include "server.h"
-#include "chat/db.h"
-#include "chat/db_def.h"
-#include "chat/db_pipeline.h"
+#include "db/db.h"
+#include "db/db_def.h"
+#include "db/db_pipeline.h"
 #include <libpq-fe.h>
 
 static void 

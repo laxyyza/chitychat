@@ -7,7 +7,7 @@
 
 #include "common.h"
 #include <pthread.h>
-#include "chat/db_def.h"
+#include "db/db_def.h"
 
 typedef struct 
 {

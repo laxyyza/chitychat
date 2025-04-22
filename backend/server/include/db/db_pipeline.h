@@ -1,7 +1,7 @@
 #ifndef _SERVER_DB_PIPELINE_H_
 #define _SERVER_DB_PIPELINE_H_
 
-#include "chat/db_def.h"
+#include "db/db_def.h"
 #include "chat/user.h"
 
 /**

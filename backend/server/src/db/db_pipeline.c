@@ -1,6 +1,6 @@
-#include "chat/db_pipeline.h"
-#include "chat/db.h"
-#include "chat/db_def.h"
+#include "db/db_pipeline.h"
+#include "db/db.h"
+#include "db/db_def.h"
 #include <libpq-fe.h>
 #include "common.h"
 #include "json_object.h"

@@ -1,7 +1,7 @@
-#include "chat/db_remember_token_usage.h"
-#include "chat/db_pipeline.h"
-#include "chat/db_def.h"
-#include "chat/db.h"
+#include "db/db_remember_token_usage.h"
+#include "db/db_pipeline.h"
+#include "db/db_def.h"
+#include "db/db.h"
 
 static void 
 after_insert(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, UNUSED dbcmd_ctx_t* ctx)

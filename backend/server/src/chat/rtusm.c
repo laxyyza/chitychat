@@ -1,9 +1,9 @@
 #include "server.h"
 #include "chat/rtusm.h"
-#include "chat/db_def.h"
+#include "db/db_def.h"
 #include "chat/user.h"
-#include "chat/db_user.h"
-#include "chat/db.h"
+#include "db/db_user.h"
+#include "db/db.h"
 #include "server_websocket.h"
 
 const char* const rtusm_status_str[RTUSM_STATUS_LEN] = {

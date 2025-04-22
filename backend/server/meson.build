@@ -46,15 +46,16 @@ server_src = files(
     'src/chat/user_file.c',
     'src/chat/user.c',
     'src/chat/ws_text_frame.c',
-    'src/chat/db.c',
-    'src/chat/db_user.c',
-    'src/chat/db_pipeline.c',
     'src/chat/user_upload.c',
     'src/chat/rtusm.c',
     'src/chat/cmd.c',
-    'src/chat/db_remember_token.c',
-    'src/chat/db_login_attempt.c',
-    'src/chat/db_remember_token_usage.c',
+
+    'src/db/db.c',
+    'src/db/db_user.c',
+    'src/db/db_pipeline.c',
+    'src/db/db_remember_token.c',
+    'src/db/db_login_attempt.c',
+    'src/db/db_remember_token_usage.c',
 )
 include_dirs = [include_directories('include'), nats_inc]
 include_dirs += cutils_include

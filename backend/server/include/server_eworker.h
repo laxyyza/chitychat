@@ -7,7 +7,7 @@
 #ifndef _SERVER_EVENT_WORKER_H_
 #define _SERVER_EVENT_WORKER_H_
 
-#include "chat/db.h"
+#include "db/db.h"
 #include "server_redis.h"
 #include <poll.h>
 

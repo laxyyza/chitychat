@@ -1,8 +1,8 @@
 #include "server_auth.h"
 #include "server_http.h"
 #include "server.h"
-#include "chat/db_user.h"
-#include "chat/db_login_attempts.h"
+#include "db/db_user.h"
+#include "db/db_login_attempts.h"
 #include "server_auth_token.h"
 
 #define ERR_MSG_INCORRECT "Incorrect username or password"

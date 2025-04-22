@@ -1,5 +1,5 @@
 #include "server_init.h"
-#include "chat/db_def.h"
+#include "db/db_def.h"
 #include "server.h"
 #include "server_events.h"
 #include "server_ht.h"

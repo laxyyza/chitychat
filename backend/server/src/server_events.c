@@ -3,7 +3,7 @@
 #include "server.h"
 #include "server_client.h"
 #include "server_eworker.h"
-#include "chat/db_pipeline.h"
+#include "db/db_pipeline.h"
 #include "server_tm.h"
 
 i32

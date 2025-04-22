@@ -1,7 +1,7 @@
-#include "chat/db_def.h"
+#include "db/db_def.h"
 #include "server.h"
 #include "server_log.h"
-#include "chat/db.h"
+#include "db/db.h"
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>

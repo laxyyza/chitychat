@@ -15,7 +15,7 @@
 #include "chat/user_file.h"
 #include "server_ht.h"
 #include "server_signal.h"
-#include "chat/db.h"
+#include "db/db.h"
 #include "backend_route.h"
 #include "server_nats.h"
 #include "server_redis.h"
