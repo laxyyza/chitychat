@@ -28,6 +28,13 @@ func main() {
 	}
 	bservice.UserData.SelectInvalidUserIDs = string(data)
 
+	data, err = os.ReadFile("backend/sql/insert_group_msg.sql")
+	if err != nil {
+		fmt.Printf("ReadFile: %v\n", err)
+		os.Exit(-1)
+	}
+	bservice.UserData.InsertMessage = string(data)
+
 	err = bservice.Register(service.PathMap[cc_groups.GroupsData]{
 		"/api/groups": service.CallbackAllow[cc_groups.GroupsData]{
 			Callback: cc_groups.Groups,
@@ -38,6 +45,10 @@ func main() {
 		fmt.Printf("Register: %v\n", err)
 		os.Exit(-1)
 	}
+
+	err = bservice.WSCmdRegister(service.CmdMap[cc_groups.GroupsData]{
+		"msg_group": cc_groups.MsgGroup,
+	})
 
 	bservice.Run()
 }

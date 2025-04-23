@@ -3,6 +3,7 @@ package cc_dms
 import (
 	"backend/services/go/internal/mq"
 	"backend/services/go/internal/service"
+	"backend/services/go/internal/msg"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -18,17 +19,6 @@ type DMs struct {
 	SqlSelectDMs string
 	SqlInsertMsg string
 	SqlSelectMsgs string
-}
-
-type Message struct {
-	MsgID 		uint32		`json:"msg_id"`
-	UserID 		uint32		`json:"user_id"`
-	ChannelID 	uint32		`jnon:"channel_id"`
-	ChannelType string 		`json:"channel_type"`
-	Content 	string		`json:"content"`
-	Timestamp 	string		`json:"timestamp"`
-	Attachments []string	`json:"attachments"`
-	ParentMsgID uint32		`json:"parent_msg_id"`
 }
 
 func selectChannelID(s* service.Service[DMs], user1ID uint32, user2ID uint32) (uint32, error) {
@@ -129,10 +119,14 @@ func GetMessages(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse 
 }
 
 func MsgUser(s* service.Service[DMs], srcUserID uint32, payload map[string]any) error {
-	content := payload["content"].(string)
+	// content := payload["content"].(string)
 	targetUserID := uint32(payload["user_id"].(float64))
-	var msg Message = Message{UserID: srcUserID, Content: content, Attachments: []string{}, ChannelType: "DM"}
-	var err error
+	// var msg = msg.Message{UserID: srcUserID, Content: content, Attachments: []string{}, ChannelType: "DM"}
+	msg, err := msg.FromUser(srcUserID, payload, msg.DM)
+	if err != nil {
+		fmt.Printf("msg.FromUser: %v\n", err)
+		return nil
+	}
 	var row pgx.Row
 
 	msg.ChannelID, err = selectChannelID(s, srcUserID, targetUserID)
@@ -166,7 +160,7 @@ func MsgUser(s* service.Service[DMs], srcUserID uint32, payload map[string]any) 
 
 	var pgTime pgtype.Timestamp
 	row = s.Db.Conn.QueryRow(context.Background(), s.UserData.SqlInsertMsg, 
-			srcUserID, msg.ChannelID, content, msg.Attachments)
+			srcUserID, msg.ChannelID, msg.Content, msg.Attachments)
 	err = row.Scan(&msg.MsgID, &pgTime)
 	if err != nil {
 		fmt.Printf("Failed to insert msg: %s\n", err)

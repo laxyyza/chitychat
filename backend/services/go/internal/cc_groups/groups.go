@@ -2,6 +2,7 @@ package cc_groups
 
 import (
 	"backend/services/go/internal/mq"
+	"backend/services/go/internal/msg"
 	"backend/services/go/internal/service"
 	"context"
 	"encoding/json"
@@ -15,6 +16,7 @@ import (
 type GroupsData struct {
 	SelectUserGroups string
 	SelectInvalidUserIDs string
+	InsertMessage string
 }
 
 type CreateGroupData struct {
@@ -30,6 +32,9 @@ type Group struct {
 	Desc	string 		`json:"desc"`
 	CreatedAt string 	`json:"created_at"`
 }
+
+const insertGroupSQL = "INSERT INTO Groups(owner_id, channel_id, name, \"desc\") VALUES ($1::int, $2::int, $3::varchar(50), $4::text) RETURNING group_id;"
+const insertChannelSQL = "INSERT INTO TextChannels(type) VALUES ('GROUP') RETURNING channel_id;"
 
 func mapToStruct(m map[string]interface{}, out* CreateGroupData) error {
     b, err := json.Marshal(m)
@@ -142,8 +147,7 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	}
 
 	var groupID uint32
-
-	insertGroup := "INSERT INTO Groups(owner_id, name, \"desc\") VALUES ($1::int, $2::varchar(50), $3::text) RETURNING group_id;"
+	var channelID uint32
 
 	tx, err := s.Db.Conn.Begin(context.Background())
 	if err != nil {
@@ -151,7 +155,17 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
 	}
 
-	row := s.Db.Conn.QueryRow(context.Background(), insertGroup, ownerID, data.Name, data.Desc)
+	row := s.Db.Conn.QueryRow(context.Background(), insertChannelSQL)
+	err = row.Scan(&channelID)
+	if err != nil {
+		tx.Rollback(context.Background())
+		fmt.Printf("insertGroup: %v\n", err)
+		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]interface{}{
+			"error": "Failed to create group",
+		})
+	}
+
+	row = s.Db.Conn.QueryRow(context.Background(), insertGroupSQL, ownerID, channelID, data.Name, data.Desc)
 	err = row.Scan(&groupID)
 	if err != nil {
 		tx.Rollback(context.Background())
@@ -179,4 +193,55 @@ func Groups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRespons
 	default:
 		return nil
 	}
+}
+
+func broadcastMsg(s* service.Service[GroupsData], message msg.Message, groupID uint32) {
+	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;", groupID)
+	if err != nil {
+		fmt.Printf("broadcastMsg: %v\n", err)
+		return
+	}
+
+	jsonData, err := json.Marshal(&message)
+	if err != nil {
+		fmt.Printf("broadcastMsg json: %v\n", err)
+		return
+	}
+	var eventCMD map[string]any
+	_ = json.Unmarshal(jsonData,&eventCMD) 
+	eventCMD["cmd"] = "msg_group"
+	eventCMD["group_id"] = groupID
+
+	for rows.Next() {
+		var memberID uint32
+		rows.Scan(&memberID)
+
+		s.Mq.UserEvent(memberID, eventCMD)
+	}
+}
+
+func MsgGroup(s* service.Service[GroupsData], srcUserID uint32, payload map[string]any) error {
+	msg, err := msg.FromUser(srcUserID, payload, msg.Group)
+	if err != nil {
+		fmt.Printf("msg.FromUser: %v\n", err)
+		return nil
+	}
+	groupIDf64, ok := payload["group_id"].(float64)
+	if ok == false {
+		return nil
+	}
+	groupID := uint32(groupIDf64)
+
+	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.InsertMessage, msg.UserID, groupID, msg.Content)
+	var timestamp pgtype.Timestamp
+	err = row.Scan(&msg.MsgID, &timestamp)
+	if err != nil {
+		fmt.Printf("InsertMessage: %v\n", err)
+		return nil
+	}
+	msg.Timestamp = timestamp.Time.String()
+
+	broadcastMsg(s, msg, groupID)
+
+	return nil
 }
