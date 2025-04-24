@@ -39,6 +39,7 @@ after_token_create(UNUSED eworker_t* ew, client_t* client, remember_token_t* rt,
 
     http = http_new_resp(HTTP_CODE_OK, NULL, 0);
     auth_http_set_cookies(http, rt, session_uuid);
+    http_add_cross_origin_headers(client, http);
 
     http_send(client, http);
 
