@@ -49,6 +49,7 @@ typedef struct client
     char        session_uuid[UUID_LEN];
     bool        dev_origin;
     char        user_agent[USER_AGENT_LEN];
+    server_event_t* se;
 } client_t;
 
 client_t*   server_accept_client(eworker_t* ew, server_event_t* ev);

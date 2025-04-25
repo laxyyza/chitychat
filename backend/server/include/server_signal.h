@@ -2,6 +2,7 @@
 #define _SERVER_SIGNAL_H_
 
 #include "common.h"
+#include "server_eworker.h"
 #include <sys/signalfd.h>
 
 typedef struct 
@@ -10,7 +11,6 @@ typedef struct
     sigset_t mask;
 } server_signal_t;
 
-bool server_init_signal(server_t* server);
-void server_wait_for_signals(server_t* server);
+bool server_init_signal(eworker_t* ew);
 
 #endif // _SERVER_SIGNAL_H_

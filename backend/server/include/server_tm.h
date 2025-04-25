@@ -8,11 +8,13 @@
 #include "common.h"
 #include <pthread.h>
 #include "db/db_def.h"
+#include <stdatomic.h>
 
 typedef struct 
 {
     eworker_t*      workers;    /* Event Workers; Threads */
     i32             n_workers;
+    atomic_int      online_workers;
 
     pthread_mutex_t mutex;
     pthread_cond_t  cond;

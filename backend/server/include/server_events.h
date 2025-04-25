@@ -8,7 +8,8 @@
  *  `se` = "Server Event"
  */
 
-#define DEFAULT_EPEV (EPOLLIN | EPOLLRDHUP | EPOLLONESHOT)
+#define FD_EXCLUSIVE    0
+#define FD_SHARED       1
 
 enum se_status 
 {
@@ -36,35 +37,36 @@ typedef struct server_event
     se_write_callback_t write;
     se_close_callback_t close;
     const char* debug_name;
+    i32 type;
+    atomic_int interests;
 } server_event_t;
 
-server_event_t* server_new_event(server_t* server, i32 fd, void* data, 
-                                se_read_callback_t read_callback, 
-                                se_close_callback_t close_callback,
-                                const char* name);
+typedef struct 
+{
+    i32 fd;
+    void* data;
+    se_read_callback_t read_cb;
+    se_write_callback_t write_cb;
+    se_close_callback_t close_cb;
+    const char* name;
+    i32 type;
+} add_event_args_t;
 
-server_event_t* 
-server_epoll_add_event(server_t* server,
-                    i32 fd,
-                    void* data,
-                    se_read_callback_t read_cb,
-                    se_write_callback_t write_cb,
-                    se_close_callback_t close_cb,
-                    const char* name);
+server_event_t* server_epoll_add_event(eworker_t* ew, add_event_args_t* args);
 
-server_event_t* server_get_event(server_t* server, i32 fd);
-void            server_del_event(eworker_t* ew, server_event_t* se);
+void            eworker_del_event(eworker_t* ew, server_event_t* se);
 void            server_process_event(eworker_t* ew, server_event_t* se);
 void            server_wait_for_events(eworker_t* ew);
 
-i32 server_epoll_add(const server_t* server, server_event_t* ev);
-i32 server_epoll_remove(const server_t* server, const server_event_t* ev);
-i32 server_epoll_rearm(const server_t* server, server_event_t* ev);
+i32 eworker_epoll_rearm(const eworker_t* ew, server_event_t* ev);
+i32 server_epoll_rearm_all(const server_t* server, server_event_t* se);
 
 // Handlers 
 enum se_status se_accept_conn(eworker_t* ew, server_event_t* ev);
 enum se_status se_read_client(eworker_t* ew, server_event_t* ev);
 enum se_status se_ssl_accept(UNUSED eworker_t* th, server_event_t* ev);
 enum se_status se_close_client(eworker_t* ew, server_event_t* ev);
+
+void    server_make_event_shared(eworker_t* ew, server_event_t* se);
 
 #endif // _SERVER_EVENTS_H_

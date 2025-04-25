@@ -269,19 +269,6 @@ server_set_address(server_t* server)
 }
 
 static bool 
-server_init_epoll(server_t* server)
-{
-    server->epfd = epoll_create1(EPOLL_CLOEXEC);
-    if (server->epfd == -1)
-    {
-        fatal("epoll_create1: %s\n", ERRSTR);
-        return false;
-    }
-    
-    return true;
-}
-
-static bool 
 server_init_ssl(server_t* server)
 {
     SSL_library_init();
@@ -317,9 +304,6 @@ server_init_ht(server_t* server)
 {
     const size_t ht_size = 10;
 
-    if (server_ght_init(&server->event_ht, 40, NULL) == false)
-        return false;
-
     if (server_ght_init(&server->client_ht, ht_size, NULL) == false)
         return false;
 
@@ -344,9 +328,10 @@ eventfd_dummy_read(eworker_t* ew, UNUSED server_event_t* ev)
 }
 
 static bool
-server_init_eventfd(server_t* server)
+server_init_eventfd(eworker_t* ew)
 {
     server_event_t* se;
+    server_t* server = ew->server;
 
     server->eventfd = eventfd(0, 0);
     if (server->eventfd == -1)
@@ -355,7 +340,16 @@ server_init_eventfd(server_t* server)
         return false;
     }
 
-    se = server_new_event(server, server->eventfd, NULL, eventfd_dummy_read, NULL, "evnetfd");
+    add_event_args_t args = {
+        .fd = server->eventfd,
+        .data = NULL,
+        .read_cb = eventfd_dummy_read,
+        .write_cb = NULL,
+        .close_cb = NULL,
+        .name = "eventfd",
+        .type = FD_SHARED
+    };
+    se = server_epoll_add_event(ew, &args);
     if (se == NULL)
         return false;
 
@@ -363,40 +357,33 @@ server_init_eventfd(server_t* server)
      * Default server_new_event() will use EPOLLONESHOT,
      * in this case we don't, we want all threads get this event.
      */
-    se->new_listen_events = EPOLLIN;
-    if (server_epoll_rearm(server, se) == -1)
-        return false;
+    // se->new_listen_events = EPOLLIN;
+    // if (server_epoll_rearm_all(server, se) == -1)
+    //     return false;
 
     return true;
 }
 
-UNUSED static bool 
-server_test_bind(server_t* server)
+static inline bool 
+server_wait_for_workers(server_t* server)
 {
-    i32 sock;
-    bool ret;
+    i32 online_workers;
+    hr_time_t start_time, current_time;
+    nano_gettime(&start_time);
+    i32 wait_seconds = 5;
 
-    if ((sock = socket(server->domain, SOCK_STREAM, 0)) == -1)
+    // busy wait
+    while ((online_workers = atomic_load(&server->tm.online_workers)) < server->tm.n_workers)
     {
-        fatal("socket: %s\n", ERRSTR);
-        return false;
+        nano_gettime(&current_time);
+        if (nano_time_diff_s(&start_time, &current_time) >= wait_seconds)
+        {
+            fatal("Wait time for online workers timed out. %d/%d online workers.\n", 
+                  online_workers, server->tm.n_workers);
+            return false;
+        }
     }
-
-    i32 opt = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(i32)) == -1) 
-        error("setsockopt SO_REUSEADDR: %s\n", ERRSTR);
-
-    if (bind(sock, server->addr, server->addr_len) == -1)
-    {
-        fatal("bind: %s\n", ERRSTR);
-        ret = false;
-    }
-    else
-        ret = true;
-
-    close(sock);
-
-    return ret;
+    return true;
 }
 
 server_t*   
@@ -421,12 +408,8 @@ server_init(int argc, char* const* argv)
     // if (!server_test_bind(server))
     //     goto error;
 
-    // Init Hash Tables
+    // Init Hash Tables %
     if (!server_init_ht(server))
-        goto error;
-
-    // Init Linux's Event Poll
-    if (!server_init_epoll(server))
         goto error;
 
     // Init DataBase
@@ -444,16 +427,6 @@ server_init(int argc, char* const* argv)
             goto error;
     }
 
-    // Init EventFD (to wake up threads from epoll_wait())
-    if (!server_init_eventfd(server))
-        goto error;
-
-    if (!server_init_signal(server))
-        goto error;
-
-    if (!server_init_nats(server))
-        goto error;
-
     // Init Thread Manager
     if (!server_init_tm(server, server->conf.thread_pool))
         goto error;
@@ -461,7 +434,22 @@ server_init(int argc, char* const* argv)
     if (!server_eworker_init(server->main_ew))
         goto error;
 
+    server->running = true;
+
     if (!server_tm_start_threads(server))
+        goto error;   
+
+    if (!server_wait_for_workers(server))
+        goto error;
+
+    if (!server_init_eventfd(server->main_ew))
+        goto error;
+
+    if (!server_init_signal(server->main_ew))
+        goto error;
+
+
+    if (!server_init_nats(server->main_ew))
         goto error;
 
     // if --fork is used, fork and exit parent process 
@@ -474,8 +462,6 @@ server_init(int argc, char* const* argv)
             exit(0);
         }
     }
-
-    server->running = true;
 
     return server;
 error:;

@@ -6,39 +6,99 @@
 #include "db/db_pipeline.h"
 #include "server_tm.h"
 
-i32
-server_epoll_add(const server_t* server, server_event_t* se)
+static inline i32
+do_epoll_add(eworker_t* ew, server_event_t* se)
 {
     i32 ret;
-
-    if (se->listen_events == 0)
-        se->listen_events = DEFAULT_EPEV;
 
     struct epoll_event ev = {
         .data.ptr = se,
         .events = se->listen_events
     };
 
-    ret = epoll_ctl(server->epfd, EPOLL_CTL_ADD, se->fd, &ev);
+    ret = epoll_ctl(ew->epfd, EPOLL_CTL_ADD, se->fd, &ev);
+
     if (ret == -1)
-        error("server_event_add on fd: %d\n", se->fd);
+    {
+        error("%s: EPFD=%d FD=%d epoll_ctl ADD: %s (%d)\n", 
+              ew->name, ew->epfd, se->fd, ERRSTR, errno);
+        return -1;
+    }
+    else
+        atomic_fetch_add(&se->interests, 1);
     return ret;
 }
 
-i32
-server_epoll_remove(const server_t* server, const server_event_t* se)
+static inline i32 
+server_epoll_add_to_all(server_t* server, server_event_t* se)
+{
+    eworker_t* ew;
+
+    for (i32 i = 0; i < server->tm.n_workers; i++)
+    {
+        ew = server->tm.workers + i;
+        if (do_epoll_add(ew, se) == -1)
+            return -1;
+    }
+    return 0;
+}
+
+static inline i32
+eworker_epoll_add(eworker_t* ew, server_event_t* se)
+{
+    i32 ret;
+    if (se->type == FD_SHARED)
+    {
+        ret = server_epoll_add_to_all(ew->server, se);
+    }
+    else
+        ret = do_epoll_add(ew, se);
+
+    return ret;
+}
+
+static inline i32 
+do_epoll_del(const eworker_t* ew, server_event_t* se)
+{
+    i32 ret;
+    ret = epoll_ctl(ew->epfd, EPOLL_CTL_DEL, se->fd, NULL);
+    if (ret == -1)
+        error("%s epoll_ctl DEL EPFD=%d FD=%d: %s\n", ew->name, ew->epfd, se->fd, ERRSTR);
+    return ret;
+}
+
+// static inline i32 
+// server_epoll_remove_all(server_t* server, server_event_t* se)
+// {
+//     eworker_t* ew;
+//
+//     for (i32 i = 0; i < server->tm.n_workers; i++)
+//     {
+//         ew = server->tm.workers + i;
+//         do_epoll_del(ew, se);
+//     }
+//
+//     return 0;
+// }
+
+static inline i32
+eworker_epoll_remove(const eworker_t* ew, server_event_t* se)
 {
     i32 ret;
 
-    ret = epoll_ctl(server->epfd, EPOLL_CTL_DEL, se->fd, NULL);
-    if (ret == -1)
-        error("server_event_remove on fd: %d\n", se->fd);
+    // if (se->type == FD_SHARED)
+    // {
+    //     warn("%s deleting event fd:%d from all\n", ew->name, se->fd);
+    //     ret = server_epoll_remove_all(ew->server, se);
+    // }
+    // else
+    ret = do_epoll_del(ew, se);
 
     return ret;
 }
 
 i32 
-server_epoll_rearm(const server_t* server, server_event_t* se)
+eworker_epoll_rearm(const eworker_t* ew, server_event_t* se)
 {
     i32 ret;
 
@@ -49,11 +109,27 @@ server_epoll_rearm(const server_t* server, server_event_t* se)
         .events = se->listen_events
     };
 
-    ret = epoll_ctl(server->epfd, EPOLL_CTL_MOD, se->fd, &ev);
+    ret = epoll_ctl(ew->epfd, EPOLL_CTL_MOD, se->fd, &ev);
     if (ret == -1)
-        error("server_event_rearm() on fd: %d\n", se->fd);
+    {
+        error("%s: EPFD=%d FD=%d epoll_ctl MOD: %s\n", 
+              ew->name, ew->epfd, se->fd, ERRSTR);
+    }
 
     return ret;
+}
+
+i32 
+server_epoll_rearm_all(const server_t* server, server_event_t* se)
+{
+    eworker_t* ew;
+    for (i32 i = 0; i < server->tm.n_workers; i++)
+    {
+        ew = server->tm.workers + i;
+        if (eworker_epoll_rearm(ew, se) == -1)
+            return -1;
+    }
+    return 0;
 }
 
 enum se_status
@@ -178,107 +254,57 @@ se_close_client(eworker_t* th, server_event_t* ev)
 }
 
 server_event_t* 
-server_epoll_add_event(server_t* server,
-                    i32 fd,
-                    void* data,
-                    se_read_callback_t read_cb,
-                    se_write_callback_t write_cb,
-                    se_close_callback_t close_cb,
-                    const char* name)
+server_epoll_add_event(eworker_t* ew, add_event_args_t* args)
 {
     server_event_t* se;
-    i32 listen_events = EPOLLONESHOT;
+    i32 listen_events = (args->type == FD_SHARED) ? EPOLLEXCLUSIVE : 0;
 
     se = malloc(sizeof(server_event_t));
-    se->fd = fd;
-    se->data = data;
-    se->debug_name = name;
-    if (read_cb)
+    se->fd = args->fd;
+    se->data = args->data;
+    se->debug_name = args->name;
+    if (args->read_cb)
     {
         listen_events |= EPOLLIN;
-        se->read = read_cb;
+        se->read = args->read_cb;
     }
     else
         se->read = NULL;
 
-    if (write_cb)
+    if (args->write_cb)
     {
         listen_events |= EPOLLOUT;
-        se->write = write_cb;
+        se->write = args->write_cb;
     }
     else
         se->write = NULL;
 
-    if (close_cb)
+    if (args->close_cb)
     {
-        listen_events |= EPOLLRDHUP;
-        se->close = close_cb;
+        listen_events |= EPOLLHUP;
+        se->close = args->close_cb;
     }
     else
         se->close = NULL;
 
     se->new_listen_events = se->listen_events = listen_events;
     se->keep_data = false;
+    se->type = args->type;
+    atomic_init(&se->interests, 0);
 
-    server_ght_insert(&server->event_ht, fd, se);
-    if (server_epoll_add(server, se) == -1)
+    if (eworker_epoll_add(ew, se) == -1)
     {
-        error("server_epoll_add failed for fd: %d\n", fd);
-        goto err;
-    }
-    return se;
-err:
-    server_epoll_remove(server, se);
-    server_ght_del(&server->event_ht, fd);
-    free(se);
-    return NULL;
-}
-
-server_event_t* 
-server_new_event(server_t* server, 
-                 i32 fd, 
-                 void* data, 
-                 se_read_callback_t read_callback, 
-                 se_close_callback_t close_callback,
-                 const char* name)
-{
-    server_event_t* se;
-
-    if (!server || !read_callback || (data && !close_callback))
-    {
-        warn("server_new_event(%p, %d, %p, %p, %p): Something is NULL!\n",
-                server, fd, data, read_callback, close_callback);
+        error("server_epoll_add failed for fd: %d\n", args->fd);
+        free(se);
         return NULL;
     }
-    
-    se = malloc(sizeof(server_event_t));
-    se->fd = fd;
-    se->data = data;
-    se->read = read_callback;
-    se->write = NULL;
-    se->close = close_callback;
-    se->new_listen_events = se->listen_events = DEFAULT_EPEV;
-    se->keep_data = false;
-    se->debug_name = name;
-
-    server_ght_insert(&server->event_ht, fd, se);
-    if (server_epoll_add(server, se) == -1)
-    {
-        error("ep_addfd %d failed\n", fd);
-        goto err;
-    }
     return se;
-err:
-    server_epoll_remove(server, se);
-    server_ght_del(&server->event_ht, fd);
-    free(se);
-    return NULL;
 }
 
 void 
-server_del_event(eworker_t* th, server_event_t* se)
+eworker_del_event(eworker_t* ew, server_event_t* se)
 {
-    server_t* server = th->server;
+    server_t* server = ew->server;
 
     if (!server || !se)
     {
@@ -287,42 +313,37 @@ server_del_event(eworker_t* th, server_event_t* se)
         return;
     }
 
-    server_epoll_remove(server, se);
-    if (se->close)
-        se->close(th, se);
-    else
-        if (close(se->fd) == -1)
-            error("del_event: close(%d): %s\n", se->fd, ERRSTR);
+    eworker_epoll_remove(ew, se);
 
-    if (server->running)
-        server_ght_del(&server->event_ht, se->fd);
+    if (atomic_fetch_sub(&se->interests, 1) == 1)
+    {
+        if (se->close)
+            se->close(ew, se);
+        else
+            if (close(se->fd) == -1)
+                error("del_event: close(%d): %s\n", se->fd, ERRSTR);
 
-    free(se);
-}
-
-server_event_t* 
-server_get_event(server_t* server, i32 fd)
-{
-    return server_ght_get(&server->event_ht, fd);
+        free(se);
+    }
 }
 
 void 
 server_process_event(eworker_t* ew, server_event_t* se)
 {
     enum se_status ret;
-    server_t* server = ew->server;
+    // server_t* server = ew->server;
     const u32 ev = se->ep_events;
     const i32 fd = se->fd;
 
     if (ev & EPOLLERR)
     {
         se->err = server_print_sockerr(fd);
-        server_del_event(ew, se);
+        eworker_del_event(ew, se);
         return;
     }
-    else if (ev & EPOLLRDHUP)
+    else if (ev & (EPOLLRDHUP | EPOLLHUP))
     {
-        server_del_event(ew, se);
+        eworker_del_event(ew, se);
         return;
     }
 
@@ -331,7 +352,7 @@ server_process_event(eworker_t* ew, server_event_t* se)
         ret = se->read(ew, se);
         if (ret == SE_CLOSE || ret == SE_ERROR)
         {
-            server_del_event(ew, se);
+            eworker_del_event(ew, se);
             return;
         }
     }
@@ -341,11 +362,29 @@ server_process_event(eworker_t* ew, server_event_t* se)
         ret = se->write(ew, se);
         if (ret == SE_CLOSE || ret == SE_ERROR)
         {
-            server_del_event(ew, se);
+            eworker_del_event(ew, se);
             return;
         }
     }
 
-    if (se->listen_events & EPOLLONESHOT || se->new_listen_events != se->listen_events)
-        server_epoll_rearm(server, se);
+    if (se->new_listen_events != se->listen_events)
+        eworker_epoll_rearm(ew, se);
+}
+
+void 
+server_make_event_shared(eworker_t* ew, server_event_t* se)
+{
+    if (se->type == FD_SHARED)
+        return;
+    // if (server_ght_del_opt(&ew->event_ht, se->fd, true) == false)
+    //     return;
+
+    se->type = FD_SHARED;
+
+    for (i32 i = 0; i < ew->server->tm.n_workers; i++)
+    {
+        eworker_t* worker = ew->server->tm.workers + i;
+        if (worker != ew)
+            eworker_epoll_add(worker, se);
+    }
 }

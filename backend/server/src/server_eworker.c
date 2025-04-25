@@ -47,21 +47,17 @@ eworker_print_event_time(eworker_t* ew, i64 time_elpased_ns, server_event_t* se)
 }
 
 static inline void 
-eworker_wait_for_events(eworker_t* ew)
+eworker_epoll_wait(eworker_t* ew)
 {
     const server_t* server = ew->server;
     const struct epoll_event* event;
     server_event_t* se;
     i32 nfds;
-    i32 timeout;
     nano_timer_t timer;
     i32 log_level = server_get_loglevel();
     bool show_event_time = log_level >= SERVER_INFO && server->conf.event_time == true;
 
-    /* Block if pipeline is empty, else return immediately. */
-    timeout = (ew->db.queue.count == 0 && ew->redis.cmds == 0) ? -1 : 0;
-
-    nfds = epoll_wait(server->epfd, ew->ep_events, EWORKER_MAX_EVENTS, timeout);
+    nfds = epoll_wait(ew->epfd, ew->ep_events, EWORKER_MAX_EVENTS, -1);
     if (nfds == -1)
     {
         error("%s: epoll_wait: %s",
@@ -89,9 +85,10 @@ eworker_wait_for_events(eworker_t* ew)
 }
 
 static bool 
-eworker_create_socket(server_t* server)
+eworker_create_socket(eworker_t* ew)
 {
     i32 sock;
+    server_t* server = ew->server;
 
     sock = socket(server->domain, SOCK_STREAM, 0);
     if (sock == -1)
@@ -124,9 +121,52 @@ eworker_create_socket(server_t* server)
         return false;
     }
 
-    if (server_new_event(server, sock, NULL, se_accept_conn, NULL, "Accpet Connection") == NULL)
+    add_event_args_t args = {
+        .fd = sock,
+        .data = NULL,
+        .read_cb = se_accept_conn,
+        .write_cb = NULL,
+        .close_cb = NULL,
+        .name = "Accept Connection",
+        .type = FD_EXCLUSIVE
+    };
+    if (server_epoll_add_event(ew, &args) == NULL)
         return false;
 
+    return true;
+}
+
+static inline bool 
+eworker_init_epoll(eworker_t* ew)
+{
+    ew->epfd = epoll_create1(EPOLL_CLOEXEC);
+    if (ew->epfd == -1)
+        fatal("%s: epoll_create1: %s\n", ew->name, ERRSTR);
+
+    return ew->epfd != -1;
+}
+
+static enum se_status 
+eworker_db_read(eworker_t* ew, UNUSED server_event_t* se)
+{
+    db_process_results(ew);
+    return SE_OK;
+}
+
+static inline bool 
+eworker_add_db_fd(eworker_t* ew)
+{
+    add_event_args_t args = {
+        .fd = ew->db.fd,
+        .data = NULL,
+        .read_cb = eworker_db_read,
+        .write_cb = NULL,
+        .close_cb = NULL,
+        .name = "PostgreSQL",
+        .type = FD_EXCLUSIVE
+    };
+    if (server_epoll_add_event(ew, &args) == NULL)
+        return false;
     return true;
 }
 
@@ -134,6 +174,11 @@ bool
 server_eworker_init(eworker_t* ew)
 {
     ew->tid = gettid();
+    char* name = malloc(100);
+    sprintf(name, "%s:event_ht", ew->name);
+
+    if (!eworker_init_epoll(ew))
+        return false;
 
     if (!server_db_open(&ew->db, &ew->server->conf, 
                         DB_PIPELINE | DB_NONBLOCK))
@@ -142,49 +187,19 @@ server_eworker_init(eworker_t* ew)
     PQpipelineSync(ew->db.conn);
     db_process_results(ew);
 
-    ew->pfds[0].fd = ew->db.fd;
-    ew->pfds[0].events = POLLIN;
+    if (eworker_add_db_fd(ew) == false)
+        return false;
 
-    if (eworker_create_socket(ew->server) == false)
+    if (eworker_create_socket(ew) == false)
         return false;
 
     if (server_init_redis(ew) == false)
         return false;
 
+    atomic_fetch_add(&ew->server->tm.online_workers, 1);
     debug("%s up & running!\n", ew->name);
+
     return true;
-}
-
-static inline void 
-handle_redis_rw(eworker_t* ew)
-{
-    if (ew->pfds[1].revents & POLLIN)
-    {
-        redisAsyncHandleRead(ew->redis.c);
-        db_pipeline_current_done(&ew->db);
-    }
-    if (ew->pfds[1].revents & POLLOUT)
-        redisAsyncHandleWrite(ew->redis.c);
-}
-
-static inline void 
-eworker_db_poll(eworker_t* ew)
-{
-    i32 ret;
-
-    if ((ret = poll(ew->pfds, PFDS_COUNT, 0)) == -1) 
-    {
-        error("poll: %s\n", ERRSTR);
-        ew->server->running = false;
-    }
-
-    if (ret > 0)
-    {
-        if (ew->pfds[0].revents & POLLIN)
-            db_process_results(ew);
-
-        handle_redis_rw(ew);
-    }
 }
 
 void 
@@ -193,19 +208,14 @@ server_eworker_async_run(eworker_t* ew)
     server_t* server = ew->server;
 
     while (server->running)
-    {
-        // poll() for thread-specific events.
-        eworker_db_poll(ew);
-
-        // epoll() for general events.
-        eworker_wait_for_events(ew);
-    }
+        eworker_epoll_wait(ew);
 }
 
 void 
 server_eworker_cleanup(eworker_t* ew)
 {
     server_db_close(&ew->db);
+    close(ew->epfd);
     debug("%s shutdown.\n", ew->name);
 }
 

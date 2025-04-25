@@ -14,10 +14,10 @@ server_get_client_user_id(server_t* server, u64 id)
 }
 
 client_t*
-server_accept_client(eworker_t* th, server_event_t* ev)
+server_accept_client(eworker_t* ew, server_event_t* ev)
 {
     client_t* client;
-    server_t* server = th->server;
+    server_t* server = ew->server;
 
     client = calloc(1, sizeof(client_t));
     client->addr.len = server->addr_len;
@@ -40,14 +40,21 @@ server_accept_client(eworker_t* th, server_event_t* ev)
         pthread_mutex_init(&client->ssl_mutex, NULL);
     }
 
-    if (server_new_event(server, client->addr.sock, client, 
-                         (server->conf.disable_tls) ? se_read_client : se_ssl_accept, se_close_client,
-                         "Client SSL Accept") == NULL)
+    add_event_args_t args = {
+        .fd = client->addr.sock,
+        .data = client,
+        .read_cb = (server->conf.disable_tls) ? se_read_client : se_ssl_accept,
+        .close_cb = se_close_client,
+        .write_cb = NULL,
+        .name = (server->conf.disable_tls) ? "Client SSL Accept" : "HTTP Client" ,
+        .type = FD_EXCLUSIVE
+    };
+    if ((client->se = server_epoll_add_event(ew, &args)) == NULL)
         goto err;
 
     return client;
 err:
-    server_free_client(th, client);
+    server_free_client(ew, client);
     return NULL;
 }
 
@@ -79,11 +86,6 @@ server_free_client(eworker_t* ew, client_t* client)
         SSL_free(client->ssl);
         pthread_mutex_destroy(&client->ssl_mutex);
     }
-
-    // if (client->session_uuid[0])
-    // {
-    //     server_ght_del(&ew->server->client_by_session_ht, server_ght_hash_uuid(client->session_uuid));
-    // }
 
     if (client->recv.data)
         free(client->recv.data);

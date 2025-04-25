@@ -37,25 +37,29 @@ redis_callback(redisAsyncContext* c, UNUSED redisReply* r, UNUSED void* privData
 static void 
 redis_add_read(server_redis_t* r)
 {
-    r->pfd->events |= POLLIN;
+    r->se->new_listen_events |= EPOLLIN;
+    if (r->se->listen_events != r->se->new_listen_events)
+        eworker_epoll_rearm(r->ew, r->se);
 }
 
 static void 
 redis_del_read(server_redis_t* r)
 {
-    r->pfd->events &= ~POLLIN;
+    r->se->new_listen_events &= ~EPOLLIN;
 }
 
 static void 
 redis_add_write(server_redis_t* r)
 {
-    r->pfd->events |= POLLOUT;
+    r->se->new_listen_events |= EPOLLOUT;
+    if (r->se->listen_events != r->se->new_listen_events)
+        eworker_epoll_rearm(r->ew, r->se);
 }
 
 static void 
 redis_del_write(server_redis_t* r)
 {
-    r->pfd->events &= ~POLLOUT;
+    r->se->new_listen_events &= ~EPOLLOUT;
 }
 
 static void 
@@ -68,6 +72,27 @@ static void
 redis_sched_timer(UNUSED server_redis_t* r, struct timeval* tv)
 {
     warn("TODO: implement: redis_sched_timer: %ds\n", tv->tv_sec);
+}
+
+static enum se_status
+redis_read(eworker_t* ew, UNUSED server_event_t* se)
+{
+    redisAsyncHandleRead(ew->redis.c);
+    return SE_OK;
+}
+
+static enum se_status
+redis_write(eworker_t* ew, UNUSED server_event_t* se)
+{
+    redisAsyncHandleWrite(ew->redis.c);
+    return SE_OK;
+}
+
+static enum se_status
+redis_close(UNUSED eworker_t* ew, UNUSED server_event_t* se)
+{
+    warn("redis_close() NOT IMPLEMENTED!\n");
+    return SE_OK;
 }
 
 bool 
@@ -86,7 +111,17 @@ server_init_redis(eworker_t* ew)
     redisAsyncContext* c = r->c;
     c->data = ew;
 
-    r->pfd = &ew->pfds[1];
+    add_event_args_t args = {
+        .fd = c->c.fd,
+        .data = NULL,
+        .read_cb = redis_read,
+        .write_cb = redis_write,
+        .close_cb = redis_close,
+        .name = "Redis",
+        .type = FD_EXCLUSIVE
+    };
+    if ((r->se = server_epoll_add_event(ew, &args)) == NULL)
+        return false;
 
     c->ev.data = r;
     c->ev.addRead = (void*)redis_add_read;

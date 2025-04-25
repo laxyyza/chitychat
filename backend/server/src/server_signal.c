@@ -57,7 +57,7 @@ signal_close(eworker_t* ew, server_event_t* ev)
 }
 
 bool 
-server_init_signal(server_t* server)
+server_init_signal(eworker_t* ew)
 {
     sigset_t mask;
     sigemptyset(&mask);
@@ -66,19 +66,23 @@ server_init_signal(server_t* server)
     sigaddset(&mask, SIGPIPE);
     sigprocmask(SIG_BLOCK, &mask, NULL);
     
-    server->sigfd = signalfd(-1, &mask, 0);
-    if (server->sigfd == -1)
+    ew->server->sigfd = signalfd(-1, &mask, 0);
+    if (ew->server->sigfd == -1)
     {
         error("signalfd: %s\n", ERRSTR);
         return false;
     }
 
-    server_new_event(server, 
-                     server->sigfd, 
-                     NULL, 
-                     signal_read, 
-                     signal_close,
-                     "signalfd");
+    add_event_args_t args = {
+        .fd = ew->server->sigfd,
+        .data = NULL,
+        .read_cb = signal_read,
+        .close_cb = signal_close,
+        .write_cb = NULL,
+        .name = "signalfd",
+        .type = FD_SHARED
+    };
+    server_epoll_add_event(ew, &args);
 
     return true;
 }

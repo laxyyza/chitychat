@@ -37,8 +37,7 @@ typedef struct
     redis_cb_data_t ring_data[SERVER_REDIS_RING_SIZE];
     u32             ring_idx;
     i32             cmds;
-
-    struct pollfd* pfd;
+    server_event_t* se;
 } server_redis_t;
 
 bool server_init_redis(eworker_t* ew);

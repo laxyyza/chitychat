@@ -38,6 +38,8 @@ server_init_tm(server_t* server, i32 n_workers)
     pthread_mutex_init(&tm->mutex, NULL);
     pthread_cond_init(&tm->cond, NULL);
 
+    atomic_init(&tm->online_workers, 0);
+
     return true;
 }
 

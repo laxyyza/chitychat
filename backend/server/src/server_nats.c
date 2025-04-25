@@ -26,16 +26,26 @@ nats_close(UNUSED eworker_t* ew, UNUSED server_event_t* ev)
 natsStatus
 nats_attach(void** user_data, void* loop, natsConnection* nc, natsSock sock)
 {
-	server_t* server = loop;
+	eworker_t* ew = loop;
 
-	server->nats.ev = server_epoll_add_event(server, sock, nc, 
-									nats_read, 
-									nats_write, 
-									nats_close,
-                                    "NATS");
-	server->nats.conn = nc;
-	server->nats.server = server;
-	*user_data = &server->nats;
+    add_event_args_t args = {
+        .fd = sock,
+        .data = nc,
+        .read_cb = nats_read,
+        .write_cb = nats_write, 
+        .close_cb = nats_close,
+        .name = "NATS",
+        .type = FD_EXCLUSIVE
+    };
+    ew->server->nats.ev = server_epoll_add_event(ew, &args);
+	// ew->server->nats.ev = server_epoll_add_event(server, sock, nc, 
+	// 								nats_read, 
+	// 								nats_write, 
+	// 								nats_close,
+	//                                    "NATS");
+	ew->server->nats.conn = nc;
+	ew->server->nats.server = ew->server;
+	*user_data = &ew->server->nats;
 
 	return NATS_OK;
 }
@@ -61,7 +71,7 @@ nats_set_poll_write(void* user_data, bool add)
 		nats->ev->new_listen_events &= ~EPOLLOUT;
 
 	if (nats->ev->new_listen_events != nats->ev->listen_events)
-		server_epoll_rearm(nats->server, nats->ev);
+		eworker_epoll_rearm(nats->server->main_ew, nats->ev);
 
 	return NATS_OK;
 }
@@ -95,9 +105,10 @@ msg_free:
 }
 
 bool
-server_init_nats(server_t* server)
+server_init_nats(eworker_t* ew)
 {
 	natsStatus s;
+    server_t* server = ew->server;
 
 	s = natsOptions_Create(&server->nats.opts);
 	if (s != NATS_OK)
@@ -106,7 +117,7 @@ server_init_nats(server_t* server)
 		return false;
 	}
 
-	s = natsOptions_SetEventLoop(server->nats.opts, server, 
+	s = natsOptions_SetEventLoop(ew->server->nats.opts, ew, 
 						nats_attach, 
 						nats_set_poll_read, 
 						nats_set_poll_write, 

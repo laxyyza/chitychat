@@ -61,7 +61,6 @@ typedef struct server_config
 typedef struct server
 {
     struct {
-        i32 epfd;       /* epoll fd */
         i32 eventfd;    /* eventfd (used to wake up threads from epoll_wait()) */
         i32 sigfd;      /* signalfd */
     };
@@ -79,7 +78,6 @@ typedef struct server
     };
     socklen_t addr_len;
 
-    server_ght_t event_ht;
     server_ght_t client_ht;
     server_ght_t user_ht;
     server_ght_t chat_cmd_ht;

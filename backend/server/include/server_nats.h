@@ -19,6 +19,6 @@ typedef struct
 	natsSubscription* sub_http;
 } server_nats_t;
 
-bool server_init_nats(server_t* server);
+bool server_init_nats(eworker_t* ew);
 
 #endif // _SERVER_NATS_H_
