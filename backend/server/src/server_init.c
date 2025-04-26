@@ -397,8 +397,6 @@ server_set_rlimit()
         return;
     }
 
-    debug("Open FDs limit: %d (max: %d)\n", limit.rlim_cur, limit.rlim_max);
-
     if (limit.rlim_cur == limit.rlim_max)
         return;
 
@@ -406,6 +404,8 @@ server_set_rlimit()
 
     if (setrlimit(RLIMIT_NOFILE, &limit) != 0)
         warn("setrlimit: %s\n", ERRSTR);
+    else
+        debug("Max Open FDs: %d\n", limit.rlim_cur);
 }
 
 server_t*   
