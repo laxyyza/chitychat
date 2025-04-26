@@ -8,6 +8,7 @@
 #include "server_util.h"
 #include <sys/eventfd.h>
 #include "backend.h"
+#include <sys/resource.h>
 
 #define REDIS_DEFAULT_PORT "6379"
 
@@ -386,6 +387,27 @@ server_wait_for_workers(server_t* server)
     return true;
 }
 
+static inline void 
+server_set_rlimit()
+{
+    struct rlimit limit;
+    if (getrlimit(RLIMIT_NOFILE, &limit) == -1)
+    {
+        error("getrlimit: %s\n", ERRSTR);
+        return;
+    }
+
+    debug("Open FDs limit: %d (max: %d)\n", limit.rlim_cur, limit.rlim_max);
+
+    if (limit.rlim_cur == limit.rlim_max)
+        return;
+
+    limit.rlim_cur = limit.rlim_max;
+
+    if (setrlimit(RLIMIT_NOFILE, &limit) != 0)
+        warn("setrlimit: %s\n", ERRSTR);
+}
+
 server_t*   
 server_init(int argc, char* const* argv)
 {
@@ -405,8 +427,7 @@ server_init(int argc, char* const* argv)
     if (!server_set_address(server))
         goto error;
 
-    // if (!server_test_bind(server))
-    //     goto error;
+    server_set_rlimit();
 
     // Init Hash Tables %
     if (!server_init_ht(server))
