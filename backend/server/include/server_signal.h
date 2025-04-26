@@ -11,6 +11,7 @@ typedef struct
     sigset_t mask;
 } server_signal_t;
 
+void server_shutdown_and_notify(server_t* server, i32 return_code);
 bool server_init_signal(eworker_t* ew);
 
 #endif // _SERVER_SIGNAL_H_

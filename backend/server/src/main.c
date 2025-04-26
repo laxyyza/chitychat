@@ -4,6 +4,7 @@
 i32
 main(int argc, char* const* argv)
 {
+    i32 ret;
     server_t* server;
     nano_timer_t timer;
     i64 time_elapsed_ns;
@@ -19,8 +20,9 @@ main(int argc, char* const* argv)
          (time_elapsed_ns / 1e6));
 
     server_run(server);
+    ret = server->ret;
 
     server_cleanup(server);
 
-    return EXIT_SUCCESS;
+    return ret;
 }

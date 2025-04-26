@@ -434,7 +434,10 @@ server_init(int argc, char* const* argv)
     if (!server_eworker_init(server->main_ew))
         goto error;
 
-    server->running = true;
+    if (!server_init_nats(server->main_ew))
+        goto error;
+
+    atomic_init(&server->running, true);
 
     if (!server_tm_start_threads(server))
         goto error;   
@@ -446,10 +449,6 @@ server_init(int argc, char* const* argv)
         goto error;
 
     if (!server_init_signal(server->main_ew))
-        goto error;
-
-
-    if (!server_init_nats(server->main_ew))
         goto error;
 
     // if --fork is used, fork and exit parent process 

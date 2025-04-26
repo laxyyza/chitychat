@@ -3,11 +3,16 @@
 #include "server_tm.h"
 #include <sys/eventfd.h>
 
-static void 
-shutdown_and_notify(server_t* server)
+void 
+server_shutdown_and_notify(server_t* server, i32 return_code)
 {
-    server->running = false;
-    eventfd_write(server->eventfd, 1);
+    bool expected = true;
+    if (atomic_compare_exchange_strong(&server->running, &expected, false))
+    {
+        atomic_store(&server->running, false);
+        server->ret = return_code;
+        eventfd_write(server->eventfd, 1);
+    }
 }
 
 static void
@@ -23,7 +28,7 @@ server_handle_signal(server_t* server, const struct signalfd_siginfo* siginfo)
     {
         case SIGINT:
         case SIGTERM:
-            shutdown_and_notify(server);
+            server_shutdown_and_notify(server, EXIT_SUCCESS);
             break;
         default:
             break;

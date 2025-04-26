@@ -89,8 +89,9 @@ redis_write(eworker_t* ew, UNUSED server_event_t* se)
 }
 
 static enum se_status
-redis_close(UNUSED eworker_t* ew, UNUSED server_event_t* se)
+redis_close(eworker_t* ew, UNUSED server_event_t* se)
 {
+    server_shutdown_and_notify(ew->server, EXIT_FAILURE);
     warn("redis_close() NOT IMPLEMENTED!\n");
     return SE_OK;
 }
@@ -138,9 +139,10 @@ server_init_redis(eworker_t* ew)
 }
 
 void 
-server_deinit_redis(UNUSED server_t* server)
+server_deinit_redis(eworker_t* ew)
 {
-    // TODO: Implement
+    redisAsyncDisconnect(ew->redis.c);
+    redisAsyncFree(ew->redis.c);
 }
 
 void 

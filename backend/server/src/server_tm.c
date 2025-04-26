@@ -83,7 +83,7 @@ server_tm_shutdown_threads(server_t* server)
      * to wake them up from that, write something to eventfd.
      */
     eventfd_write(server->eventfd, 1);
-    
+
     for (i32 i = 1; i < tm->n_workers; i++)
     {
         eworker_t* ew = tm->workers + i;
@@ -98,8 +98,6 @@ server_tm_shutdown(server_t* server)
 
     if (server->eventfd <= 0)
         return;
-
-    server->running = false;
 
     server_tm_shutdown_threads(server);
 

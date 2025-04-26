@@ -41,7 +41,7 @@ typedef struct
 } server_redis_t;
 
 bool server_init_redis(eworker_t* ew);
-void server_deinit_redis(server_t* server);
+void server_deinit_redis(eworker_t* ew);
 
 void server_redis_set_session(server_redis_t* r, const char* session_uuid, u32 user_id);
 void server_redis_get_session(server_redis_t* r, const char* session_uuid, redis_cb_data_t* data);

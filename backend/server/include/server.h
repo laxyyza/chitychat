@@ -86,7 +86,9 @@ typedef struct server
 
     server_nats_t nats;
 
-    bool running;
+    atomic_bool running;
+
+    i32 ret;
 } server_t;
 
 void server_run(server_t* server);

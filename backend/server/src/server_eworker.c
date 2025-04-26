@@ -207,7 +207,7 @@ server_eworker_async_run(eworker_t* ew)
 {
     server_t* server = ew->server;
 
-    while (server->running)
+    while (atomic_load(&server->running))
         eworker_epoll_wait(ew);
 }
 
@@ -215,6 +215,7 @@ void
 server_eworker_cleanup(eworker_t* ew)
 {
     server_db_close(&ew->db);
+    server_deinit_redis(ew);
     close(ew->epfd);
     debug("%s shutdown.\n", ew->name);
 }
