@@ -1,4 +1,4 @@
-INSERT INTO Messags(user_id, channel_id, content)
+INSERT INTO Messages(user_id, channel_id, content)
 SELECT $1::int, g.channel_id, $3::text
 FROM Groups g
 INNER JOIN GroupMembers gm ON gm.group_id = g.group_id

@@ -2,7 +2,6 @@ import { App, useApp } from './AppProvider';
 import User from './User';
 import UserIcon from './UserIcon';
 import useWebsocket from '../WebSocket';
-import { DMChat } from '../../models/dm';
 
 const Member = (user?: User) => {
     if (!user) return null;
@@ -22,39 +21,29 @@ const Member = (user?: User) => {
 
 const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
     const group = app.dm.get(app.currentDMID)?.getGroup();
-    if (group) {
-        if (group.detailsLoaded === false) {
-            send({ cmd: 'get_member_ids', group_id: group.id });
-            send({
-                cmd: 'get_group_msgs',
-                group_id: group.id,
-                limit: 15,
-                offset: group.msgOffset
-            });
-            group.detailsLoaded = true;
+    if (!group) return [];
+    const donthaveIDs: number[] = []
+
+    group.memberIDs.forEach((id) => {
+        if (!app.users.has(id)) {
+            donthaveIDs.push(id);
         }
-        return group.memberIDs;
+    })
+
+    if (donthaveIDs.length) {
+        send({
+            cmd: "get_user",
+            user_ids: donthaveIDs
+        })
     }
-    return [];
+
+    return group.memberIDs;
 };
 
 const MemberList = () => {
     const { app } = useApp();
 
-    const { send } = useWebsocket((cmd, packet) => {
-        if (cmd === 'get_member_ids') {
-            const group_id: number = packet['group_id'];
-            const memberIDs: number[] = packet['member_ids'];
-            const group = app.dm.get(DMChat.GroupID(group_id))?.getGroup();
-            group?.addMemberIDs(memberIDs);
-
-            const donthaveIDs = memberIDs.filter((id) => !app.users.get(id));
-
-            if (donthaveIDs.length) {
-                send({ cmd: 'get_user', user_ids: donthaveIDs });
-            }
-        }
-    });
+    const { send } = useWebsocket();
 
     const memberIDs = getMemberIDs(app, send);
 

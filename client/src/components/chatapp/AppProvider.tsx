@@ -84,11 +84,17 @@ const appReducer = (state: App, action: DispatchAction): App => {
     switch (action.type) {
         case Action.ADD_DM_MSGS: {
             const dmchat = state.dm.get(action.payload.dmID);
-            if (dmchat && dmchat.chat instanceof DM) {
+            if (!dmchat) return state;
 
+            if (dmchat.chat instanceof DM) {
                 return {
                     ...state,
                     dm: new Map(state.dm).set(dmchat.id, DMChat.From(dmchat, DM.fromAddMessages(dmchat.chat, action.payload.messages)))
+                };
+            } else if (dmchat.chat instanceof Group) {
+                return {
+                    ...state,
+                    dm: new Map(state.dm).set(dmchat.id, DMChat.From(dmchat, Group.loadMessages(dmchat.chat, action.payload.messages)))
                 };
             }
             return {...state};

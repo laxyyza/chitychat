@@ -20,13 +20,13 @@ const Icon = (type: string) => {
     if (type === 'group') {
         return (
             <div className="bg-purple-500 rounded-full w-8 h-8 overflow-hidden flex items-center justify-center">
-                <BiSolidGroup />
+                <BiSolidGroup size="24" />
             </div>
         );
     } else if (type === 'user') {
         return (
             <div className="bg-blue-500 rounded-full w-8 h-8 overflow-hidden flex items-center justify-center">
-                <FaUser />
+                <FaUser size="20" />
             </div>
         );
     } else {

@@ -114,10 +114,10 @@ const CreateGroup = ({onClose}: Prop) => {
                             return;
                         }
 
-                        // if (selectedIDs.size === 0) {
-                        //     alert("Please select users");
-                        //     return;
-                        // }
+                        if (selectedIDs.size === 0) {
+                            alert("Please select users");
+                            return;
+                        }
 
                         onSubmit();
                     }}

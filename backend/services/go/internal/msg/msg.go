@@ -21,7 +21,7 @@ var ChannelTypeName = map[ChannelType]string{
 type Message struct {
 	MsgID 		uint32		`json:"msg_id"`
 	UserID 		uint32		`json:"user_id"`
-	ChannelID 	uint32		`jnon:"channel_id"`
+	ChannelID 	uint32		`json:"channel_id"`
 	ChannelType string 		`json:"channel_type"`
 	Content 	string		`json:"content"`
 	Timestamp 	string		`json:"timestamp"`

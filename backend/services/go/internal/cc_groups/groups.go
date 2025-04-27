@@ -19,6 +19,7 @@ type GroupsData struct {
 	SelectUserGroups string
 	SelectGroup string
 	SelectInvalidUserIDs string
+	SelectMsgs string
 	InsertMessage string
 }
 
@@ -80,7 +81,6 @@ func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResp
 			fmt.Printf("rows.Scan: %v\n", err)
 		}
 		group.CreatedAt = createdAt.Time.String()
-		fmt.Println("group: ", group);
 		groups = append(groups, group)
 	}
 
@@ -181,7 +181,6 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	err = row.Scan(&groupID)
 	if err != nil {
 		tx.Rollback(context.Background())
-		fmt.Printf("insertGroup: %v\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]interface{}{
 			"error": "Failed to create group",
 		})
@@ -211,7 +210,7 @@ func getGroupIDPath(path string) (uint32, error) {
 	split := strings.Split(path[1:], "/")
 	// e.g. HTTP GET /api/groups/69 = ["api", "groups", "69"]
 	
-	if len(split) == 3 {
+	if len(split) == 3 || len(split) == 4 {
 		groupIDString := split[2]
 		var groupID uint64
 
@@ -261,6 +260,8 @@ func broadcastMsg(s* service.Service[GroupsData], message msg.Message, groupID u
 	_ = json.Unmarshal(jsonData,&eventCMD) 
 	eventCMD["cmd"] = "msg_group"
 	eventCMD["group_id"] = groupID
+	
+	delete(eventCMD, "channel_type")
 
 	for rows.Next() {
 		var memberID uint32
@@ -294,4 +295,41 @@ func MsgGroup(s* service.Service[GroupsData], srcUserID uint32, payload map[stri
 	broadcastMsg(s, msg, groupID)
 
 	return nil
+}
+
+func GetMessages(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	groupID, err := getGroupIDPath(req.Path);
+	if err != nil {
+		fmt.Printf("getGroupIDPath: %v\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, nil)
+	}
+	var limit uint32 = 10
+	var offset uint32 = 0
+
+	limitStr, ok := req.Params["limit"]
+	if ok {
+		num, err := strconv.ParseUint(limitStr, 10, 32)
+		if err == nil {
+			limit = uint32(num)
+		}
+	}
+	offsetStr, ok := req.Params["offset"]
+	if ok {
+		num, err := strconv.ParseUint(offsetStr, 10, 32)
+		if err == nil {
+			offset = uint32(num)
+		}
+	}
+
+	var msgsJson []any
+	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SelectMsgs, groupID, req.UserID, limit, offset)
+	err = row.Scan(&msgsJson)
+	if err != nil {
+		fmt.Printf("SelectMsgs: %v\n", err)
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"messages": msgsJson,
+	}) 
 }

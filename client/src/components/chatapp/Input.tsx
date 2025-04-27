@@ -3,6 +3,7 @@ import React, { useState, useRef } from 'react';
 import { useApp } from './AppProvider';
 import { DM } from '../../models/dm';
 import useWebsocket from '../WebSocket';
+import Group from '../../models/group';
 // import useWebsocket from '../WebSocket';
 
 interface Prop {
@@ -67,10 +68,18 @@ const Input = ({
 
         if (app.currentDMID !== 'friends') {
             const dmchat = app.dm.get(app.currentDMID);
-            if (dmchat && dmchat.chat instanceof DM) {
+            if (!dmchat) return;
+            if (dmchat.chat instanceof DM) {
                 send({
                     cmd: 'msg_user',
                     user_id: dmchat.chat.targetUserID,
+                    content: message,
+                    attachments: []
+                })
+            } else if (dmchat.chat instanceof Group) {
+                send({
+                    cmd: 'msg_group',
+                    group_id: dmchat.chat.id,
                     content: message,
                     attachments: []
                 })

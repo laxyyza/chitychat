@@ -3,16 +3,15 @@ import { Action, DispatchAction, useApp } from './AppProvider';
 import ChannelMessages from './ChannelMessages';
 import { FaArrowDown } from 'react-icons/fa';
 import Message from '../../models/message';
-import useWebsocket from '../WebSocket';
 import { DM, DMChat } from '../../models/dm';
 import fetchData from '../../services/api';
+import Group from '../../models/group';
 
 const requestDMMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
     if (dmChat.chat instanceof DM == false) {
         return;
     }
 
-    dmChat.requestMsgs = true;
     const limit = 20;
 
     fetchData(`/api/dms/${dmChat.chat.targetUserID}?limit=${limit}&offset=${dmChat.msgOffset}`)
@@ -40,6 +39,45 @@ const requestDMMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchActi
         });
 };
 
+const requestGroupMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
+    if (dmChat.chat instanceof Group == false) {
+        return;
+    }
+
+    const limit = 20;
+
+    fetchData(`/api/groups/${dmChat.chat.id}/messages?limit=${limit}&offset=${dmChat.msgOffset}`)
+        .then(data => {
+            const messagesJson: any[] = data.messages;
+            const messages: Message[] = [];
+
+            messagesJson.forEach((msgJson) => {
+                const msg: Message = {
+                    id: msgJson.msg_id,
+                    user_id: msgJson.user_id,
+                    channel_id: msgJson.channel_id,
+                    channel_type: "dm",
+                    content: msgJson.content,
+                    attachments: msgJson.attachments,
+                    timestamp: msgJson.timestamp
+                };
+
+                messages.push(msg);
+            })
+            if (messages.length) {
+                dispatch({ type: Action.ADD_DM_MSGS, payload: { dmID: dmChat.id, messages: messages } });
+            }
+        });
+};
+
+const requestChatMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
+    dmChat.requestMsgs = true;
+    if (dmChat.chat instanceof DM)
+        requestDMMessages(dmChat, dispatch);
+    else
+        requestGroupMessages(dmChat, dispatch);
+}
+
 const getMessages = (): Message[] => {
     const { app, dispatch } = useApp();
 
@@ -58,7 +96,7 @@ const getMessages = (): Message[] => {
                 .sort((a, b) => a.id - b.id);
 
             if (msgs.length === 0 && dmchat.requestMsgs === false) {
-                requestDMMessages(dmchat, dispatch);
+                requestChatMessages(dmchat, dispatch);
             }
 
             return msgs;
@@ -69,7 +107,7 @@ const getMessages = (): Message[] => {
 };
 
 const ChatWindow = () => {
-    const { app, dispatch } = useApp();
+    const { app } = useApp();
     const appRef = useRef(app);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isBottom, setIsBottom] = useState(true);
@@ -82,25 +120,25 @@ const ChatWindow = () => {
         appRef.current = app;
     }, [app]);
 
-    useWebsocket((cmd, packet) => {
-        if (cmd === 'get_group_msgs') {
-            const packet_msgs: any[] = packet.messages;
-            const msgs: Message[] = packet_msgs.map((msg) => ({
-                id: msg.msg_id,
-                user_id: msg.user_id,
-                channel_id: msg.group_id,
-                channel_type: 'group',
-                content: msg.content,
-                attachments: msg.attachments,
-                timestamp: msg.timestamp
-            }));
-
-            dispatch({
-                type: Action.LOAD_GROUP_MSGS,
-                payload: { group_id: packet.group_id, msgs: msgs }
-            });
-        }
-    });
+    // useWebsocket((cmd, packet) => {
+    //     if (cmd === 'get_group_msgs') {
+    //         const packet_msgs: any[] = packet.messages;
+    //         const msgs: Message[] = packet_msgs.map((msg) => ({
+    //             id: msg.msg_id,
+    //             user_id: msg.user_id,
+    //             channel_id: msg.group_id,
+    //             channel_type: 'group',
+    //             content: msg.content,
+    //             attachments: msg.attachments,
+    //             timestamp: msg.timestamp
+    //         }));
+    //
+    //         dispatch({
+    //             type: Action.LOAD_GROUP_MSGS,
+    //             payload: { group_id: packet.group_id, msgs: msgs }
+    //         });
+    //     }
+    // });
 
     function fetchMoreMessages(container: HTMLDivElement) {
         if (oldScroll === container.scrollHeight) {
@@ -138,7 +176,6 @@ const ChatWindow = () => {
 
         setIsTop(container.scrollTop === 0);
         if (container.scrollTop === 0) {
-            console.log('Fetch messages!');
             fetchMoreMessages(container);
         }
 

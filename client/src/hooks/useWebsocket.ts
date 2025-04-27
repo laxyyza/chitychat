@@ -1,6 +1,7 @@
 import React from 'react';
 import { Action, App, DispatchAction } from '../components/chatapp/AppProvider';
 import { DM, DMChat } from '../models/dm';
+import Message from '../models/message';
 
 const getDMChat = (packet: any, app: App, dispatch: React.Dispatch<DispatchAction>): DMChat | undefined => {
     const isUs = packet.user_id === app.login_user.id;
@@ -53,6 +54,26 @@ const cmdMsgUser = (packet: any, app: App, dispatch: React.Dispatch<DispatchActi
     }
 };
 
+const cmdMsgGroup = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
+    const msg: Message = {
+        id: packet.msg_id,
+        user_id: packet.user_id,
+        channel_id: packet.channel_id,
+        channel_type: 'group',
+        content: packet.content,
+        attachments: packet.attachments,
+        timestamp: packet.timestamp
+    };
+    const dmid = DMChat.GroupID(packet.group_id);
+    dispatch({
+        type: Action.ADD_DM_MSGS,
+        payload: {
+            dmID: dmid,
+            messages: [msg]
+        }
+    })
+}
+
 const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
     switch (cmd) {
         case 'client_user_info': {
@@ -86,19 +107,8 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
             });
             break;
         }
-        case 'group_msg': {
-            dispatch({
-                type: Action.ADD_MSG,
-                payload: {
-                    id: packet.msg_id,
-                    channel_id: packet.group_id,
-                    channel_type: 'group',
-                    user_id: packet.user_id,
-                    content: packet.content,
-                    attachments: packet.attachments,
-                    timestamp: packet.timestamp
-                }
-            });
+        case 'msg_group': {
+            cmdMsgGroup(packet, dispatch);
             break;
         }
         case 'msg_user':
