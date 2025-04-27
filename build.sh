@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 
+ARG=$1
 BUILD_DIR=${BUILD_DIR:=build}
 GO_DIR=${GO_DIR:=backend/services/go}
 SERVICES_OUT=${SERVICES_OUT:=$BUILD_DIR/backend/services}
@@ -33,6 +34,18 @@ function build_server()
     mkdir -p $SERVICES_OUT
 }
 
-build_server
-build_go
-build_frontend
+if [[ $ARG == "go" ]]; then
+    build_go
+elif [[ $ARG == "frontend" ]]; then
+    build_frontend
+elif [[ $ARG == "server" ]]; then
+    build_server
+elif [[ $ARG == "backend" ]]; then
+    build_server
+    build_go
+else
+    build_server
+    build_go
+    build_frontend
+fi
+

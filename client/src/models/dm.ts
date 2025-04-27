@@ -31,8 +31,9 @@ class DMChat {
 	chat: DM | Group;
     requestMsgs: boolean;
     msgOffset: number;
+    lastMessage: string;
 
-	constructor(chat: DM | Group) {
+	constructor(chat: DM | Group, lastMessage: string) {
 		if (chat instanceof DM) {
 			this.id = DMChat.DmID(chat.targetUserID);
 		} else {
@@ -41,6 +42,7 @@ class DMChat {
 		this.chat = chat;
         this.requestMsgs = false;
         this.msgOffset = 0;
+        this.lastMessage = lastMessage;
 	}
 
 	getGroup(): Group | undefined {
@@ -64,7 +66,7 @@ class DMChat {
 	}
 
     static From(dmchat: DMChat, chat: DM | Group): DMChat {
-        const newDMChat = new DMChat(chat);
+        const newDMChat = new DMChat(chat, dmchat.lastMessage);
         newDMChat.id = dmchat.id;
         newDMChat.requestMsgs = dmchat.requestMsgs;
         newDMChat.msgOffset = dmchat.msgOffset;

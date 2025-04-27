@@ -8,6 +8,7 @@ export interface GroupProps {
     desc: string;
     member_ids: number[];
     created_at: string;
+    last_message: string;
 }
 
 class Group {

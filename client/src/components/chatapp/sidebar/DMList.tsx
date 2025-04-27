@@ -55,7 +55,9 @@ const DMComponent = ({ name, onClick, selected, type, children }: DMProp) => {
 
 const DMList = () => {
     const { app, dispatch } = useApp();
-    const dms = Array.from(app.dm.entries());
+    const dms = Array.from(app.dm.values()).sort((a, b) => (
+        b.lastMessage.localeCompare(a.lastMessage)
+    ));
     // const groups = Array.from(app.groups.entries());
     // const friends = app.friendIDs.map((friend_id) => app.users.get(friend_id));
 
@@ -64,11 +66,12 @@ const DMList = () => {
     const fetchDMs = () => {
         fetchData('/api/dms')
             .then(json => {
-                const userIDs: number[] = json.user_ids;
+                const dms: any[] = json.dms;
                 const dontHaveIDs: number[] = []
                 const dmChats: DMChat[] = []
-                userIDs.forEach(userID => {
-                    const dmchat = new DMChat(new DM(userID));
+                dms.forEach(dm => {
+                    const userID: number = dm.user_id;
+                    const dmchat = new DMChat(new DM(userID), dm.last_message);
                     if (!app.users.get(userID)) {
                         dontHaveIDs.push(userID);
                     }
@@ -104,19 +107,19 @@ const DMList = () => {
             </DMComponent>
             <div className="text-center text-xs font-bold">Direct Messages</div>
             <ul className="p-1">
-                {dms.map(([id, dmchat]) => {
+                {dms.map((dmchat) => {
                     if (dmchat.chat instanceof Group) {
                         const group = dmchat.chat;
                         return (
                             <li key={dmchat.id}>
                                 <DMComponent
                                     name={group.name}
-                                    selected={app.currentDMID === id}
+                                    selected={app.currentDMID === dmchat.id}
                                     type="group"
                                     onClick={() =>
                                         dispatch({
                                             type: Action.SELECT_DM,
-                                            payload: id
+                                            payload: dmchat.id
                                         })
                                     }
                                 />
@@ -130,12 +133,12 @@ const DMList = () => {
                             <li key={dmchat.id}>
                                 <DMComponent
                                     name={user.displayname}
-                                    selected={app.currentDMID === id}
+                                    selected={app.currentDMID === dmchat.id}
                                     type="user"
                                     onClick={() =>
                                         dispatch({
                                             type: Action.SELECT_DM,
-                                            payload: id
+                                            payload: dmchat.id
                                         })
                                     }
                                 />

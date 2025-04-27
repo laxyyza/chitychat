@@ -85,6 +85,9 @@ const appReducer = (state: App, action: DispatchAction): App => {
         case Action.ADD_DM_MSGS: {
             const dmchat = state.dm.get(action.payload.dmID);
             if (!dmchat) return state;
+            if (action.payload.messages.length === 1) {
+                dmchat.lastMessage = action.payload.messages[0].timestamp;
+            }
 
             if (dmchat.chat instanceof DM) {
                 return {
@@ -208,7 +211,8 @@ const appReducer = (state: App, action: DispatchAction): App => {
                         group.desc,
                         group.created_at,
                         group.member_ids
-                    )
+                    ),
+                    group.last_message
                 );
                 newDMs.set(dm.id, dm);
             });
@@ -218,23 +222,24 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 dm: newDMs
             };
         }
-        case Action.LOAD_GROUP_MSGS: {
-            const dmchat = state.dm.get(
-                DMChat.GroupID(action.payload.group_id)
-            );
-            if (dmchat && dmchat.chat instanceof Group) {
-                return {
-                    ...state,
-                    dm: new Map(state.dm).set(
-                        dmchat.id,
-                        new DMChat(
-                            Group.loadMessages(dmchat.chat, action.payload.msgs)
-                        )
-                    )
-                };
-            }
-            return state;
-        }
+        // case Action.LOAD_GROUP_MSGS: {
+        //     const dmchat = state.dm.get(
+        //         DMChat.GroupID(action.payload.group_id)
+        //     );
+        //     if (dmchat && dmchat.chat instanceof Group) {
+        //         return {
+        //             ...state,
+        //             dm: new Map(state.dm).set(
+        //                 dmchat.id,
+        //                 new DMChat(
+        //                     Group.loadMessages(dmchat.chat, action.payload.msgs),
+        //
+        //                 )
+        //             )
+        //         };
+        //     }
+        //     return state;
+        // }
         case Action.ADD_FRIENDS: {
             const newSet = new Set(state.friendIDs);
             action.payload.forEach((id) => {

@@ -34,7 +34,7 @@ const Friend = ({ user }: FriendProp) => {
         if (dmchat) {
             dispatch({type: Action.SELECT_DM, payload: dmchat.id});
         } else {
-            const newDM = new DMChat(new DM(user.id));
+            const newDM = new DMChat(new DM(user.id), new Date().toISOString());
             dispatch({type: Action.ADD_DMS, payload: [newDM]});
             dispatch({type: Action.SELECT_DM, payload: newDM.id});
         }

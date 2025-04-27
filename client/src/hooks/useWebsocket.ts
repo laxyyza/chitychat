@@ -22,7 +22,7 @@ const getDMChat = (packet: any, app: App, dispatch: React.Dispatch<DispatchActio
     }
 
     if (!isUs) {
-        const newDM = new DMChat(new DM(packet.user_id));
+        const newDM = new DMChat(new DM(packet.user_id), packet.timestamp);
         dispatch({ type: Action.ADD_DMS, payload: [newDM] });
         return newDM;
     }
