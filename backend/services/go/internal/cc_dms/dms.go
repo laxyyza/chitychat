@@ -33,23 +33,26 @@ func selectChannelID(s* service.Service[DMs], user1ID uint32, user2ID uint32) (u
 }
 
 func GetDMs(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse {
-	userID := req.UserID
-
-	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.SqlSelectDMs, userID)
+	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.SqlSelectDMs, req.UserID)
 	if err != nil {
 		fmt.Printf("%s %s: Failed: %s\n", req.Method, req.Path, err)
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
 	}
 
-	var userIDs []uint32 = make([]uint32, 0)
+	var dms = make([]map[string]any, 0)
 	for rows.Next() {
-		var id uint32
-		rows.Scan(&id)
-		userIDs = append(userIDs, id)
+		var userID uint32
+		var lastMessage pgtype.Timestamp
+		rows.Scan(&userID, &lastMessage)
+
+		dms = append(dms, map[string]any{
+			"user_id": userID,
+			"last_message": lastMessage.Time.String(),
+		})
 	}
 
-	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
-		"user_ids": userIDs,
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"dms": dms,
 	}) 
 }
 

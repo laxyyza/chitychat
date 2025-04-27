@@ -60,9 +60,10 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
-CREATE TABLE IF NOT EXISTS TextChannels(
+CREATE TABLE IF NOT EXISTS TextChannels_New(
     channel_id      SERIAL PRIMARY KEY,
-    type            channel_type NOT NULL
+    type            channel_type NOT NULL,
+    last_message    TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS Groups(
@@ -187,3 +188,18 @@ CREATE OR REPLACE TRIGGER insert_owner_group_member
 AFTER INSERT ON Groups 
 FOR EACH ROW
 EXECUTE FUNCTION insert_owner_group_member();
+
+CREATE OR REPLACE FUNCTION update_textchannel_last_message()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE TextChannels
+    SET last_message = NEW.timestamp 
+    WHERE channel_id = NEW.channel_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER update_last_message_at 
+AFTER INSERT ON Messages 
+FOR EACH ROW
+EXECUTE FUNCTION update_textchannel_last_message();

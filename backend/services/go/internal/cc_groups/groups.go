@@ -37,6 +37,7 @@ type Group struct {
 	Desc	string 		`json:"desc"`
 	MemberIDs []uint32  `json:"member_ids"`
 	CreatedAt string 	`json:"created_at"`
+	LastMessage string 	`json:"last_message"`
 }
 
 const insertGroupSQL = "INSERT INTO Groups(owner_id, channel_id, name, \"desc\") VALUES ($1::int, $2::int, $3::varchar(50), $4::text) RETURNING group_id;"
@@ -76,11 +77,13 @@ func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResp
 	for rows.Next() {
 		var group Group
 		var createdAt pgtype.Timestamp
-		err = rows.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs)
+		var lastMessage pgtype.Timestamp
+		err = rows.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs, &lastMessage)
 		if err != nil {
 			fmt.Printf("rows.Scan: %v\n", err)
 		}
 		group.CreatedAt = createdAt.Time.String()
+		group.LastMessage = lastMessage.Time.String()
 		groups = append(groups, group)
 	}
 
@@ -231,13 +234,15 @@ func GetGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRespo
 	}
 	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SelectGroup, groupID, req.UserID)
 	var createdAt pgtype.Timestamp
-	err = row.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs)
+	var lastMessage pgtype.Timestamp
+	err = row.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs, &lastMessage)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
 			"error": "Group not found",
 		})
 	}
 	group.CreatedAt = createdAt.Time.String()
+	group.LastMessage = lastMessage.Time.String()
 
 	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
 		"group": group,
