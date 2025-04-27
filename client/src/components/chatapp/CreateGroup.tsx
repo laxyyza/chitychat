@@ -1,7 +1,9 @@
 import { FaUser } from "react-icons/fa6";
-import { App, useApp } from "./AppProvider";
+import { Action, App, useApp } from "./AppProvider";
 import User from "./User";
 import { useEffect, useState } from "react";
+import fetchData from "../../services/api";
+import { GroupProps } from "../../models/group";
 
 interface Prop {
     onClose: () => void;
@@ -61,21 +63,41 @@ const getFriends = (app: App, filter: string): User[] => {
 }
 
 const CreateGroup = ({onClose}: Prop) => {
-    const {app} = useApp();
+    const {app, dispatch} = useApp();
     const [filter, setFilter] = useState('');
+    const [name, setName] = useState('');
+    const [desc, setDesc] = useState('');
+    const [error, setError] = useState('');
     const friends = getFriends(app, filter);
     const [selectedIDs, setSelectedIDs] = useState(new Set());
 
-    useEffect(() => {
-        console.log(selectedIDs);
-    }, [selectedIDs]);
+    const onSubmit = () => {
+        setError('');
+        fetchData("/api/groups", "POST", {
+            name: name.trim(),
+            desc: desc.trim(),
+            user_ids: Array.from(selectedIDs)
+        }).then(resp => {
+            const groupID = resp.get("group_id");
+            if (groupID) {
+                fetchData(`/api/groups/${groupID}`).then((resp) => {
+                    const group: GroupProps = resp.group;
+                    dispatch({
+                        type: Action.ADD_GROUPS,
+                        payload: [group]
+                    });
+                })
+            }
+        }).catch(e => {
+            setError(e);
+        });
+    };
 
     return (
         <div
             className="absolute flex justify-center items-center w-full h-full z-1000 backdrop-blur-xs text-white"
             onClick={() => onClose()}
             onKeyUp={(e) => {
-                console.log('key ', e.key);
                 if (e.key == 'Escape') onClose();
             }}
         >
@@ -83,7 +105,22 @@ const CreateGroup = ({onClose}: Prop) => {
                 className="bg-gray-800 w-150 p-2 rounded-xl border-1 border-black"
                 onClick={(e) => e.stopPropagation()}
             >
+                {error && <div className="bg-red-500 rounded-xs p-1">ERROR: {error}</div>}
                 <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        if (name.trim().length === 0) {
+                            alert("Please enter valid name");
+                            return;
+                        }
+
+                        // if (selectedIDs.size === 0) {
+                        //     alert("Please select users");
+                        //     return;
+                        // }
+
+                        onSubmit();
+                    }}
                 >
                     <div className="flex m-1">
                         <span className="mr-3">Group Name:</span>
@@ -91,7 +128,23 @@ const CreateGroup = ({onClose}: Prop) => {
                             className="flex-1 bg-gray-900 rounded-xl mr-1 h-8 outline-0 pl-2 focus"
                             type="text"
                             placeholder="Enter group name"
+                            value={name}
                             required
+                            onChange={(e) => {
+                                setName(e.target.value);
+                            }}
+                        />
+                    </div>
+                    <div className="flex m-1">
+                        <span className="mr-3">Desc:</span>
+                        <input
+                            className="flex-1 bg-gray-900 rounded-xl mr-1 h-8 outline-0 pl-2 focus"
+                            type="text"
+                            placeholder="Enter group's description"
+                            value={desc}
+                            onChange={(e) => {
+                                setDesc(e.target.value);
+                            }}
                         />
                     </div>
                     <div className="flex m-1">
@@ -120,7 +173,7 @@ const CreateGroup = ({onClose}: Prop) => {
                     </div>
                     <div className="flex mt-2">
                         <div className="flex-1"></div>
-                        <button className="right-0 bg-green-600 p-1 pr-3 pl-3 rounded-2xl text-xl font-bold">Create</button>
+                        <button type="submit" className="right-0 bg-green-600 p-1 pr-3 pl-3 rounded-2xl text-xl font-bold">Create</button>
                     </div>
                 </form>
             </div>

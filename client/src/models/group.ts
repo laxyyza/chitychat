@@ -1,12 +1,21 @@
 import Message from "./message";
 
+export interface GroupProps {
+    group_id: number;
+    owner_id: number;
+    channel_id: number;
+    name: string;
+    desc: string;
+    member_ids: number[];
+    created_at: string;
+}
+
 class Group {
     id: number;
     owner_id: number;
     name: string;
     created_at: string;
-    public: boolean;
-    desc?: string;
+    desc: string;
     messages: Map<number, Message>;
     memberIDs: number[];
     public detailsLoaded: boolean;
@@ -17,17 +26,17 @@ class Group {
         id: number,
         owner_id: number,
         name: string,
+        desc: string,
         created_at: string,
-        is_public: boolean
+        memberIDs: number[]
     ) {
         this.id = id;
         this.owner_id = owner_id;
         this.name = name;
         this.created_at = created_at;
-        this.public = is_public;
-        this.desc = '';
+        this.desc = desc;
         this.messages = new Map();
-        this.memberIDs = [this.owner_id];
+        this.memberIDs = memberIDs;
         this.detailsLoaded = false;
         this.msgOffset = 0;
         this.scrollTop = -1;

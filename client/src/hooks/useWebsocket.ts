@@ -1,6 +1,5 @@
 import React from 'react';
 import { Action, App, DispatchAction } from '../components/chatapp/AppProvider';
-import Group from '../models/group';
 import { DM, DMChat } from '../models/dm';
 
 const getDMChat = (packet: any, app: App, dispatch: React.Dispatch<DispatchAction>): DMChat | undefined => {
@@ -67,22 +66,6 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
                     about_me: packet.bio,
                     pfp: ''
                 }
-            });
-            break;
-        }
-        case 'client_groups': {
-            const groups: any[] = packet['groups'];
-            groups.forEach((group) => {
-                dispatch({
-                    type: Action.ADD_GROUP,
-                    payload: new Group(
-                        group['group_id'],
-                        group['owner_id'],
-                        group['name'],
-                        '',
-                        group['public']
-                    )
-                });
             });
             break;
         }

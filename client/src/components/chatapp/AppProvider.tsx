@@ -3,7 +3,7 @@ import User from './User';
 import { Hub } from '../../models/hub';
 import { TextChannel, ChannelType } from '../../models/channel';
 import Message from '../../models/message';
-import Group from '../../models/group';
+import Group, { GroupProps } from '../../models/group';
 import { DM, DMChat } from '../../models/dm';
 
 export interface App {
@@ -38,7 +38,7 @@ enum Action {
     ADD_MSG,
     ADD_HUB,
     ADD_USER,
-    ADD_GROUP,
+    ADD_GROUPS,
     RECONNECT,
     SET_CONNECT,
     LOAD_GROUP_MSGS,
@@ -60,7 +60,7 @@ export type DispatchAction =
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_DM_MSGS; payload: {dmID: string, messages: Message[]} }
     | { type: Action.ADD_HUB; payload: string }
-    | { type: Action.ADD_GROUP; payload: Group }
+    | { type: Action.ADD_GROUPS; payload: GroupProps[] }
     | { type: Action.ADD_DMS; payload: DMChat[] }
     | {
           type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
@@ -189,12 +189,27 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 )
             };
         }
-        case Action.ADD_GROUP: {
-            const group = action.payload;
-            const chat = new DMChat(group);
+        case Action.ADD_GROUPS: {
+            const newDMs = new Map(state.dm);
+            const groups = action.payload;
+
+            groups.forEach((group) => {
+                const dm = new DMChat(
+                    new Group(
+                        group.group_id,
+                        group.owner_id,
+                        group.name,
+                        group.desc,
+                        group.created_at,
+                        group.member_ids
+                    )
+                );
+                newDMs.set(dm.id, dm);
+            });
+
             return {
                 ...state,
-                dm: new Map(state.dm).set(chat.id, chat)
+                dm: newDMs
             };
         }
         case Action.LOAD_GROUP_MSGS: {
