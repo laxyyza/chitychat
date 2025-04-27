@@ -67,7 +67,7 @@ const AddFriend = ({ onClose }: Prop) => {
                         <span>{errorMsg}</span>
                     </div>
                 )}
-                {app.friendIDs.length === 0 && (
+                {app.friendIDs.size === 0 && (
                     <div className="mb-2 text-xl">
                         No friends yet? Send a request and start a conversation!
                     </div>

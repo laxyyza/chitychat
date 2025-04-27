@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+START_SERVER=${START_SERVER:=1}
 BUILD_DIR=${BUILD_DIR:=build}
 SERVER_EXE=$BUILD_DIR/backend/server/cc_server
 SERVICES_DIR=$BUILD_DIR/backend/services
+
 
 SERVICE_PIDS=()
 SERVER_PID=
@@ -38,14 +40,23 @@ function cleanup()
     STOPPED=1
 }
 
-trap cleanup SIGINT SIGTERM
+function main() 
+{
+    trap cleanup SIGINT SIGTERM
 
-export $(cat .env | xargs)
+    export $(cat .env | xargs)
 
-exec_server
-sleep 0.1
-exec_services
+    if [[ $START_SERVER -eq 1 ]]; then
+        exec_server
+        sleep 0.1
+    fi
 
-wait $SERVER_PID
+    exec_services
 
-cleanup
+    if [[ $START_SERVER -eq 1 ]]; then
+        wait $SERVER_PID
+        cleanup
+    fi
+}
+
+main

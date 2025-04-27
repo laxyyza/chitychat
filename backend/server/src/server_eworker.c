@@ -60,7 +60,7 @@ eworker_epoll_wait(eworker_t* ew)
     nfds = epoll_wait(ew->epfd, ew->ep_events, EWORKER_MAX_EVENTS, -1);
     if (nfds == -1)
     {
-        error("%s: epoll_wait: %s",
+        error("%s: epoll_wait: %s\n",
               ew->name, ERRSTR);
         return;
     }

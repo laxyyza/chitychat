@@ -62,7 +62,7 @@ const MemberList = () => {
         <div className="relative max-h-screen w-60 bg-gray-800 overflow-auto">
             <div className="text-center text-white font-bold shadow-xl bg-gray-900">
                 {app.currentDMID === 'friends'
-                    ? app.friendIDs.length + ' friends'
+                    ? app.friendIDs.size + ' friends'
                     : memberIDs.length + ' members'}
             </div>
             {memberIDs.map((member_id) => Member(app.users.get(member_id)))}

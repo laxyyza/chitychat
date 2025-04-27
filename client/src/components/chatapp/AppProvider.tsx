@@ -16,9 +16,9 @@ export interface App {
     currentHubID: number;
     currentDMID: string;
     currentChannelID: number;
-    friendIDs: number[];
-    friendRequests: number[];
-    pendingRequests: number[];
+    friendIDs: Set<number>;
+    friendRequests: Set<number>;
+    pendingRequests: Set<number>;
 }
 
 interface Prop {
@@ -215,38 +215,49 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return state;
         }
         case Action.ADD_FRIENDS: {
-            console.log('Friend IDs: ', action.payload);
+            const newSet = new Set(state.friendIDs);
+            action.payload.forEach((id) => {
+                newSet.add(id);
+            })
             return {
                 ...state,
-                friendIDs: [...state.friendIDs, ...action.payload]
+                friendIDs: newSet
             };
         }
         case Action.ADD_FRIEND_REQUESTS: {
+            const newSet = new Set(state.friendRequests);
+            action.payload.forEach((id) => {
+                newSet.add(id);
+            })
             return {
                 ...state,
-                friendRequests: [...state.friendRequests, ...action.payload]
+                friendRequests: newSet
             };
         }
         case Action.DEL_FRIEND_REQUEST: {
+            const newSet = new Set(state.friendRequests);
+            newSet.delete(action.payload);
             return {
                 ...state,
-                friendRequests: state.friendRequests.filter(
-                    (id) => id !== action.payload
-                )
+                friendRequests: newSet
             };
         }
         case Action.ADD_PENDING_FRIEND_REQUESTS: {
+            const newSet = new Set(state.pendingRequests);
+            action.payload.forEach((id) => {
+                newSet.add(id);
+            })
             return {
                 ...state,
-                pendingRequests: [...state.pendingRequests, ...action.payload]
+                pendingRequests: newSet
             };
         }
         case Action.DEL_PENDING_FRIEND_REQUEST: {
+            const newSet = new Set(state.pendingRequests);
+            newSet.delete(action.payload);
             return {
                 ...state,
-                pendingRequests: state.pendingRequests.filter(
-                    (id) => id !== action.payload
-                )
+                pendingRequests: newSet
             };
         }
         case Action.ADD_DMS: {
@@ -291,10 +302,10 @@ const AppProvider = ({ children }: Prop) => {
         currentHubID: -1,
         currentDMID: 'friends',
         currentChannelID: -1,
-        friendIDs: [],
         dm: new Map(),
-        friendRequests: [],
-        pendingRequests: []
+        friendIDs: new Set<number>(),
+        friendRequests: new Set<number>(),
+        pendingRequests: new Set<number>()
     });
 
     return (

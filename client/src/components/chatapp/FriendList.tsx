@@ -115,11 +115,11 @@ const FriendRequest = ({ user }: FriendProp) => {
 const getUserIDs = (app: App, selection: Selection): number[] => {
     switch (selection) {
         case Selection.ALL:
-            return app.friendIDs;
+            return Array.from(app.friendIDs);
         case Selection.FRIEND_REQUESTS:
-            return app.friendRequests;
+            return Array.from(app.friendRequests);
         case Selection.PENDING_REQUESTS:
-            return app.pendingRequests;
+            return Array.from(app.pendingRequests);
         default:
             return [];
     }
@@ -175,12 +175,12 @@ const FriendList = () => {
                 });
             }
 
-            if (app.friendRequests.find((id) => id === userID)) {
+            if (app.friendRequests.has(userID)) {
                 dispatch({
                     type: Action.DEL_FRIEND_REQUEST,
                     payload: userID
                 });
-            } else if (app.pendingRequests.find((id) => id === userID)) {
+            } else if (app.pendingRequests.has(userID)) {
                 dispatch({
                     type: Action.DEL_PENDING_FRIEND_REQUEST,
                     payload: userID
@@ -237,7 +237,7 @@ const FriendList = () => {
                 <button
                     className={
                         'p-1 pr-2 rounded-xl flex relative mr-1 ' +
-                        (app.friendRequests.length
+                        (app.friendRequests.size
                             ? 'hover:bg-gray-700 text-white'
                             : 'text-gray-600') +
                         (selected === Selection.FRIEND_REQUESTS
@@ -245,14 +245,14 @@ const FriendList = () => {
                             : '')
                     }
                     onClick={() => {
-                        if (app.friendRequests.length)
+                        if (app.friendRequests.size)
                             setSelected(Selection.FRIEND_REQUESTS);
                     }}
                 >
                     <HiBellAlert size="24" />
                     <span className="text-xs pl-[2px] pr-[3px] min-w-4 font-bold rounded-full -top-1 left-0 absolute bg-red-500">
-                        {app.friendRequests.length
-                            ? app.friendRequests.length
+                        {app.friendRequests.size
+                            ? app.friendRequests.size
                             : null}
                     </span>
                     <span>Friend Requests</span>
@@ -260,7 +260,7 @@ const FriendList = () => {
                 <button
                     className={
                         'p-1 rounded-xl flex relative mr-1 ' +
-                        (app.pendingRequests.length
+                        (app.pendingRequests.size
                             ? 'hover:bg-gray-700 text-white'
                             : 'text-gray-600') +
                         (selected === Selection.PENDING_REQUESTS
@@ -269,14 +269,14 @@ const FriendList = () => {
                     }
                     onClick={() => {
                         console.log('PENDING click! ', selected);
-                        if (app.pendingRequests.length)
+                        if (app.pendingRequests.size)
                             setSelected(Selection.PENDING_REQUESTS);
                     }}
                 >
                     <MdOutgoingMail size="24" />
                     <span className="text-xs pl-[2px] pr-[3px] min-w-4 font-bold rounded-full -top-1 left-0 absolute bg-blue-500">
-                        {app.pendingRequests.length
-                            ? app.pendingRequests.length
+                        {app.pendingRequests.size
+                            ? app.pendingRequests.size
                             : null}
                     </span>
                     <span>Pending Requests</span>

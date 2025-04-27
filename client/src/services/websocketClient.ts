@@ -21,6 +21,9 @@ class WebSocketClient
 
     connect() 
     {
+        if (this.state in ["open", "connecting"])
+            return;
+
         const url = this.baseurl;
         console.log("Connecting to ", url);
         this.ws = new WebSocket(url);
