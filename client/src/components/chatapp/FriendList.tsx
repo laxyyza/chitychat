@@ -12,6 +12,8 @@ import { MdOutlineCancel } from 'react-icons/md';
 import useWebsocket from '../WebSocket';
 import { DM, DMChat } from '../../models/dm';
 import fetchData from '../../services/api';
+import { MdGroupAdd } from "react-icons/md";
+import CreateGroup from './CreateGroup';
 
 enum Selection {
     ALL,
@@ -142,6 +144,7 @@ const ListUsers = (users: (User | undefined)[], selection: Selection) => {
 const FriendList = () => {
     const { app, dispatch } = useApp();
     const [addFriend, setAddFriend] = useState(false);
+    const [showCreateGroup, setShowCreateGroup] = useState(false);
     const [selected, setSelected] = useState(Selection.ALL);
     const [users, setUsers] = useState<(User | undefined)[]>([]);
 
@@ -204,17 +207,22 @@ const FriendList = () => {
     return (
         <div className="h-full relative">
             {addFriend && <AddFriend onClose={() => setAddFriend(false)} />}
+            {showCreateGroup && <CreateGroup onClose={() => setShowCreateGroup(false)} />}
             <div className="bg-gray-800 p-1 text-white flex">
                 <button
-                    className="bg-blue-600 hover:bg-blue-500 active:bg-blue-400 p-1 rounded-xl flex items-center mr-5"
+                    className="bg-green-600 hover:bg-green-500 active:bg-green-400 p-1 rounded-3xl flex items-center mr-3"
+                    onClick={() => setShowCreateGroup(true)}
+                >
+                    <MdGroupAdd size="24" />
+                    <span className="ml-1">Create Group</span>
+                </button>
+                <button
+                    className="bg-blue-600 hover:bg-blue-500 active:bg-blue-400 p-1 rounded-3xl flex items-center mr-5"
                     onClick={() => setAddFriend(true)}
                 >
                     <IoMdPersonAdd size="24" />
                     <span className="ml-1">Add Friend</span>
                 </button>
-                {/* <button className="p-1 pr-2 pl-2 rounded-xl flex relative mr-1 hover:bg-gray-700">
-                    Online
-                </button> */}
                 <button
                     className={
                         'p-1 pr-4 pl-4 rounded-xl flex relative mr-1 ' +
