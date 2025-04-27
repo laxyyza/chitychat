@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -15,6 +17,7 @@ import (
 
 type GroupsData struct {
 	SelectUserGroups string
+	SelectGroup string
 	SelectInvalidUserIDs string
 	InsertMessage string
 }
@@ -28,13 +31,16 @@ type CreateGroupData struct {
 type Group struct {
 	GroupID uint32 		`json:"group_id"`
 	OwnerID uint32 		`json:"owner_id"`
+	ChannelID uint32 	`json:"channel_id"`
 	Name 	string 		`json:"name"`
 	Desc	string 		`json:"desc"`
+	MemberIDs []uint32  `json:"member_ids"`
 	CreatedAt string 	`json:"created_at"`
 }
 
 const insertGroupSQL = "INSERT INTO Groups(owner_id, channel_id, name, \"desc\") VALUES ($1::int, $2::int, $3::varchar(50), $4::text) RETURNING group_id;"
 const insertChannelSQL = "INSERT INTO TextChannels(type) VALUES ('GROUP') RETURNING channel_id;"
+const selectGroupMembers = "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;"
 
 func mapToStruct(m map[string]interface{}, out* CreateGroupData) error {
     b, err := json.Marshal(m)
@@ -69,12 +75,18 @@ func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResp
 	for rows.Next() {
 		var group Group
 		var createdAt pgtype.Timestamp
-		rows.Scan(&group.GroupID, &group.OwnerID, &group.Name, &group.Desc, &createdAt)
+		err = rows.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs)
+		if err != nil {
+			fmt.Printf("rows.Scan: %v\n", err)
+		}
 		group.CreatedAt = createdAt.Time.String()
+		fmt.Println("group: ", group);
 		groups = append(groups, group)
 	}
 
-	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
+	fmt.Println(groups);
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
 		"groups": groups,
 	})
 }
@@ -159,7 +171,7 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	err = row.Scan(&channelID)
 	if err != nil {
 		tx.Rollback(context.Background())
-		fmt.Printf("insertGroup: %v\n", err)
+		fmt.Printf("insertChannel: %v\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]interface{}{
 			"error": "Failed to create group",
 		})
@@ -193,6 +205,44 @@ func Groups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRespons
 	default:
 		return nil
 	}
+}
+
+func getGroupIDPath(path string) (uint32, error) {
+	split := strings.Split(path[1:], "/")
+	// e.g. HTTP GET /api/groups/69 = ["api", "groups", "69"]
+	
+	if len(split) == 3 {
+		groupIDString := split[2]
+		var groupID uint64
+
+		groupID, err := strconv.ParseUint(groupIDString, 10, 32)
+		return uint32(groupID), err
+	} else {
+		return 0, fmt.Errorf("invalid path")
+	}
+}
+
+func GetGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	var group Group
+	groupID, err := getGroupIDPath(req.Path)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SelectGroup, groupID, req.UserID)
+	var createdAt pgtype.Timestamp
+	err = row.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": "Group not found",
+		})
+	}
+	group.CreatedAt = createdAt.Time.String()
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
+		"group": group,
+	})
 }
 
 func broadcastMsg(s* service.Service[GroupsData], message msg.Message, groupID uint32) {

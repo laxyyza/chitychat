@@ -35,10 +35,21 @@ func main() {
 	}
 	bservice.UserData.InsertMessage = string(data)
 
+	data, err = os.ReadFile("backend/sql/select_group.sql")
+	if err != nil {
+		fmt.Printf("ReadFile: %v\n", err)
+		os.Exit(-1)
+	}
+	bservice.UserData.SelectGroup = string(data)
+
 	err = bservice.Register(service.PathMap[cc_groups.GroupsData]{
 		"/api/groups": service.CallbackAllow[cc_groups.GroupsData]{
 			Callback: cc_groups.Groups,
 			Allow: []string{"GET", "POST"},
+		},
+		"/api/groups/*": service.CallbackAllow[cc_groups.GroupsData]{
+			Callback: cc_groups.GetGroup,
+			Allow: []string{"GET"},
 		},
 	})
 	if err != nil {
