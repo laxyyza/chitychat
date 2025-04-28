@@ -21,7 +21,7 @@ class WebSocketClient
 
     connect() 
     {
-        if (this.state in ["open", "connecting"])
+        if (this.state === "connecting" || this.state === "open")
             return;
 
         const url = this.baseurl;
@@ -70,8 +70,8 @@ class WebSocketClient
             console.debug("Sending: ", data);
             this.ws.send(data);
         } else { 
-            console.warn("Websocket not open. Not sending message.");
             this.bufferedMsgs.push(msg);
+            this.connect();
         }
     }
 

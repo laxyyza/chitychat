@@ -8,7 +8,6 @@ import websocketClient from './services/websocketClient';
 import useWebsocket from './components/WebSocket';
 import handleWebsocketMessage from './hooks/useWebsocket';
 import fetchData from './services/api';
-import { GroupProps } from './models/group';
 
 const loadAppData = (app: App, send: (msg: any) => void, dispatch: React.Dispatch<DispatchAction>) => {
     send({ cmd: "client_user_info" });
@@ -52,16 +51,6 @@ const loadAppData = (app: App, send: (msg: any) => void, dispatch: React.Dispatc
             dispatch({
                 type: Action.ADD_PENDING_FRIEND_REQUESTS,
                 payload: json.user_ids
-            });
-        });
-
-    fetchData('/api/groups')
-        .then((json) => {
-            const groups: GroupProps[] = json.groups;
-
-            dispatch({
-                type: Action.ADD_GROUPS,
-                payload: groups
             });
         });
 

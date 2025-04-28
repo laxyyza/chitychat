@@ -205,7 +205,7 @@ const FriendList = () => {
     ]);
 
     return (
-        <div className="h-full relative">
+        <div className="h-full relative overflow-auto">
             {addFriend && <AddFriend onClose={() => setAddFriend(false)} />}
             {showCreateGroup && <CreateGroup onClose={() => setShowCreateGroup(false)} />}
             <div className="bg-gray-800 p-1 text-white flex">

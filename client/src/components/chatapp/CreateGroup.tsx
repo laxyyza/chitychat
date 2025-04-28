@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import fetchData from "../../services/api";
 import { GroupProps } from "../../models/group";
 
+
 interface Prop {
     onClose: () => void;
 }
@@ -71,6 +72,16 @@ const CreateGroup = ({onClose}: Prop) => {
     const friends = getFriends(app, filter);
     const [selectedIDs, setSelectedIDs] = useState(new Set());
 
+    const fetchGroup = (groupID: number) => {
+        fetchData(`/api/groups/${groupID}`).then((resp) => {
+            const group: GroupProps = resp.group;
+            dispatch({
+                type: Action.ADD_GROUPS,
+                payload: [group]
+            });
+        })
+    }
+
     const onSubmit = () => {
         setError('');
         fetchData("/api/groups", "POST", {
@@ -78,16 +89,8 @@ const CreateGroup = ({onClose}: Prop) => {
             desc: desc.trim(),
             user_ids: Array.from(selectedIDs)
         }).then(resp => {
-            const groupID = resp.get("group_id");
-            if (groupID) {
-                fetchData(`/api/groups/${groupID}`).then((resp) => {
-                    const group: GroupProps = resp.group;
-                    dispatch({
-                        type: Action.ADD_GROUPS,
-                        payload: [group]
-                    });
-                })
-            }
+            fetchGroup(resp.group_id);
+            onClose();
         }).catch(e => {
             setError(e);
         });
@@ -160,15 +163,17 @@ const CreateGroup = ({onClose}: Prop) => {
                     </div>
                     <div className="h-100 mr-1 rounded-xl overflow-auto">
                         {friends.map((friend) => (
-                            <SelectableUser user={friend} selected={selectedIDs.has(friend.id)} onClick={(value) => {
-                                const newSet = new Set(selectedIDs);
-                                if (value) {
-                                    newSet.add(friend.id);
-                                } else {
-                                    newSet.delete(friend.id);
-                                }
-                                setSelectedIDs(newSet);
-                            }}/>
+                            <li key={friend.id}>
+                                <SelectableUser user={friend} selected={selectedIDs.has(friend.id)} onClick={(value) => {
+                                    const newSet = new Set(selectedIDs);
+                                    if (value) {
+                                        newSet.add(friend.id);
+                                    } else {
+                                        newSet.delete(friend.id);
+                                    }
+                                    setSelectedIDs(newSet);
+                                }}/>
+                            </li>
                         ))}
                     </div>
                     <div className="flex mt-2">

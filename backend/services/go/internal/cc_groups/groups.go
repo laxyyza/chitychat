@@ -87,8 +87,6 @@ func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResp
 		groups = append(groups, group)
 	}
 
-	fmt.Println(groups);
-
 	return mq.NewResponse(req, http.StatusOK, &map[string]any{
 		"groups": groups,
 	})
@@ -332,6 +330,10 @@ func GetMessages(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	if err != nil {
 		fmt.Printf("SelectMsgs: %v\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	if msgsJson == nil {
+		msgsJson = make([]any, 0)
 	}
 
 	return mq.NewResponse(req, http.StatusOK, &map[string]any{

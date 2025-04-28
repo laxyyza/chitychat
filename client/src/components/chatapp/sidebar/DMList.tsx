@@ -3,7 +3,7 @@ import { Action, useApp } from '../AppProvider';
 import { BiSolidGroup } from 'react-icons/bi';
 import { RiUserHeartFill } from 'react-icons/ri';
 import { FaUser } from 'react-icons/fa';
-import Group from '../../../models/group';
+import Group, { GroupProps } from '../../../models/group';
 import { DM, DMChat } from '../../../models/dm';
 import useWebsocket from '../../WebSocket';
 import fetchData from '../../../services/api';
@@ -83,6 +83,16 @@ const DMList = () => {
                     send({ cmd: "get_user", user_ids: dontHaveIDs });
                 }
             });
+
+        fetchData('/api/groups')
+            .then((json) => {
+                const groups: GroupProps[] = json.groups;
+
+                dispatch({
+                    type: Action.ADD_GROUPS,
+                    payload: groups
+                });
+            });
     }
 
     useEffect(() => {
@@ -90,7 +100,7 @@ const DMList = () => {
     }, [])
 
     return (
-        <>
+        <div className='flex-col h-full'>
             <DMComponent
                 selected={app.currentDMID === 'friends'}
                 type="other"
@@ -106,7 +116,7 @@ const DMList = () => {
                 </div>
             </DMComponent>
             <div className="text-center text-xs font-bold">Direct Messages</div>
-            <ul className="p-1">
+            <div className="p-1 overflow-auto flex-1 max-h-full">
                 {dms.map((dmchat) => {
                     if (dmchat.chat instanceof Group) {
                         const group = dmchat.chat;
@@ -176,8 +186,8 @@ const DMList = () => {
                         />
                     </li>
                 ))} */}
-            </ul>
-        </>
+            </div>
+        </div>
     );
 };
 

@@ -17,5 +17,7 @@ export default defineConfig({
   build: {
     outDir: "public",
     emptyOutDir: true,
+    sourcemap: 'inline',
+    minify: false
   },
 })
