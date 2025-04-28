@@ -1,3 +1,5 @@
+import { Action, DispatchAction } from "../components/chatapp/AppProvider";
+import fetchData from "../services/api";
 import Group from "./group";
 import Message from "./message";
 
@@ -72,6 +74,74 @@ class DMChat {
         newDMChat.msgOffset = dmchat.msgOffset;
 
         return newDMChat;
+    }
+
+    private async fetchGroupMessages(group: Group, limit: number): Promise<Message[]> {
+        return fetchData(`/api/groups/${group.id}/messages?limit=${limit}&offset=${this.msgOffset}`)
+            .then(data => {
+                const messagesJson: any[] = data.messages;
+                const messages: Message[] = [];
+
+                messagesJson.forEach((msgJson) => {
+                    const msg: Message = {
+                        id: msgJson.msg_id,
+                        user_id: msgJson.user_id,
+                        channel_id: msgJson.channel_id,
+                        channel_type: "dm",
+                        content: msgJson.content,
+                        attachments: msgJson.attachments,
+                        timestamp: msgJson.timestamp
+                    };
+
+                    messages.push(msg);
+                })
+                return messages;
+            })
+            .catch(() => {
+                return [];
+            })
+    }
+
+    private async fetchDMMessages(dm: DM, limit: number): Promise<Message[]> {
+        return fetchData(`/api/dms/${dm.targetUserID}?limit=${limit}&offset=${this.msgOffset}`)
+            .then(data => {
+                const messagesJson: any[] = data.messages;
+                const messages: Message[] = [];
+
+                messagesJson.forEach((msgJson) => {
+                    const msg: Message = {
+                        id: msgJson.msg_id,
+                        user_id: msgJson.user_id,
+                        channel_id: msgJson.channel_id,
+                        channel_type: "dm",
+                        content: msgJson.content,
+                        attachments: msgJson.attachments,
+                        timestamp: msgJson.timestamp
+                    };
+
+                    messages.push(msg);
+                })
+                return messages;
+            })
+            .catch(() => {
+                return [];
+            })
+    }
+
+    fetchMessages(dispatch: React.Dispatch<DispatchAction>, limit: number = 10) {
+        var promise: Promise<Message[]> | undefined
+        if (this.chat instanceof Group) {
+            promise = this.fetchGroupMessages(this.chat, limit);
+        } else if (this.chat instanceof DM) {
+            promise = this.fetchDMMessages(this.chat, limit);
+        }
+
+        promise?.then((messages) => {
+            if (messages.length > 0) {
+                this.msgOffset += limit;
+                dispatch({ type: Action.ADD_DM_MSGS, payload: { dmID: this.id, messages: messages } });
+            }
+        })
     }
 }
 

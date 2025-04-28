@@ -1,81 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Action, DispatchAction, useApp } from './AppProvider';
+import { DispatchAction, useApp } from './AppProvider';
 import ChannelMessages from './ChannelMessages';
 import { FaArrowDown } from 'react-icons/fa';
 import Message from '../../models/message';
-import { DM, DMChat } from '../../models/dm';
-import fetchData from '../../services/api';
-import Group from '../../models/group';
-
-const requestDMMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
-    if (dmChat.chat instanceof DM == false) {
-        return;
-    }
-
-    const limit = 20;
-
-    fetchData(`/api/dms/${dmChat.chat.targetUserID}?limit=${limit}&offset=${dmChat.msgOffset}`)
-        .then(data => {
-            const messagesJson: any[] = data.messages;
-            const messages: Message[] = [];
-
-            messagesJson.forEach((msgJson) => {
-                const msg: Message = {
-                    id: msgJson.msg_id,
-                    user_id: msgJson.user_id,
-                    channel_id: msgJson.channel_id,
-                    channel_type: "dm",
-                    content: msgJson.content,
-                    attachments: msgJson.attachments,
-                    timestamp: msgJson.timestamp
-                };
-
-                messages.push(msg);
-            })
-
-            if (messages.length) {
-                dispatch({ type: Action.ADD_DM_MSGS, payload: { dmID: dmChat.id, messages: messages } });
-            }
-        });
-};
-
-const requestGroupMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
-    if (dmChat.chat instanceof Group == false) {
-        return;
-    }
-
-    const limit = 20;
-
-    fetchData(`/api/groups/${dmChat.chat.id}/messages?limit=${limit}&offset=${dmChat.msgOffset}`)
-        .then(data => {
-            const messagesJson: any[] = data.messages;
-            const messages: Message[] = [];
-
-            messagesJson.forEach((msgJson) => {
-                const msg: Message = {
-                    id: msgJson.msg_id,
-                    user_id: msgJson.user_id,
-                    channel_id: msgJson.channel_id,
-                    channel_type: "dm",
-                    content: msgJson.content,
-                    attachments: msgJson.attachments,
-                    timestamp: msgJson.timestamp
-                };
-
-                messages.push(msg);
-            })
-            if (messages.length) {
-                dispatch({ type: Action.ADD_DM_MSGS, payload: { dmID: dmChat.id, messages: messages } });
-            }
-        });
-};
+import { DMChat } from '../../models/dm';
 
 const requestChatMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
     dmChat.requestMsgs = true;
-    if (dmChat.chat instanceof DM)
-        requestDMMessages(dmChat, dispatch);
-    else
-        requestGroupMessages(dmChat, dispatch);
+    dmChat.fetchMessages(dispatch);
 }
 
 const getMessages = (): Message[] => {
@@ -107,7 +39,7 @@ const getMessages = (): Message[] => {
 };
 
 const ChatWindow = () => {
-    const { app } = useApp();
+    const { app, dispatch } = useApp();
     const appRef = useRef(app);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isBottom, setIsBottom] = useState(true);
@@ -146,6 +78,12 @@ const ChatWindow = () => {
         }
 
         setOldScroll(container.scrollHeight);
+
+
+        if (app.currentDMID !== 'friends') {
+            const dmchat = app.dm.get(app.currentDMID);
+            dmchat?.fetchMessages(dispatch);
+        }
 
         // const group = appRef.current.groups.get(appRef.current.currentGroupID);
         // console.log('fetch message for ', group);
