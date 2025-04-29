@@ -78,7 +78,7 @@ const MessageComponent = ({ message }: Prop) => {
     if (!user) return null;
 
     return (
-        <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-600 text-white flex-col max-w-full">
+        <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-700 text-white flex-col max-w-full">
             <div className="flex">
                 <UserIcon user={user}></UserIcon>
                 <div className="ml-2 m-0 p-0 flex-1">

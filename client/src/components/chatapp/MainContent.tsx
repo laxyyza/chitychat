@@ -48,7 +48,7 @@ const MainContent = () => {
     const channelName = getContentName(app);
 
     return (
-        <div className="flex flex-col flex-1 h-screen bg-gray-700">
+        <div className="flex flex-col flex-1 h-screen bg-gray-800">
             <HeaderBar name={channelName}></HeaderBar>
             {app.currentDMID === 'friends' ? <FriendList /> : <ChatWindow />}
             <div className="bg-gray-900 m-3 rounded-2xl text-white max-h-[50%] overflow-auto">

@@ -43,7 +43,7 @@ const Friend = ({ user }: FriendProp) => {
     return (
         <div
             key={'friend-' + user.id}
-            className="m-1 p-1 flex hover:bg-gray-600 rounded-xl text-white active:bg-gray-500"
+            className="m-1 p-1 flex hover:bg-gray-700 rounded-xl text-white active:bg-gray-500"
             onClick={onClick}
         >
             <UserIcon user={user} />
@@ -63,7 +63,7 @@ const PendingRequest = ({ user }: FriendProp) => {
     return (
         <div
             key={'friend-' + user.id}
-            className="m-1 p-1 flex hover:bg-gray-600 rounded-xl text-white group"
+            className="m-1 p-1 flex hover:bg-gray-700 rounded-xl text-white group"
         >
             <UserIcon user={user} />
             <div className="ml-2 flex-1">
@@ -87,7 +87,7 @@ const FriendRequest = ({ user }: FriendProp) => {
     return (
         <div
             key={'friend-' + user.id}
-            className="m-1 p-1 flex hover:bg-gray-600 rounded-xl text-white group"
+            className="m-1 p-1 flex hover:bg-gray-700 rounded-xl text-white group"
         >
             <UserIcon user={user} />
             <div className="ml-2 flex-1">

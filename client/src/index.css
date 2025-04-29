@@ -69,7 +69,7 @@
 .sidebar {
     display: flex;
     flex-direction: column;
-    width: 225px;
+    width: 250px;
 }
 
 .hub-list {

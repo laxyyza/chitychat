@@ -15,7 +15,7 @@ const SideBarList = () => {
     const [show, setShow] = useState(false);
 
     return (
-        <div className="flex flex-col bg-gray-900">
+        <div className="flex flex-col bg-gray-900 border-r-gray-700 border-r-1">
             <SideBarButton
                 ref={divref}
                 onClick={() => {
