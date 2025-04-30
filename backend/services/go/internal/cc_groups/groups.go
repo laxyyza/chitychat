@@ -243,7 +243,7 @@ func getGroupIDPath(path string) (uint32, error) {
 	split := strings.Split(path[1:], "/")
 	// e.g. HTTP GET /api/groups/69 = ["api", "groups", "69"]
 	
-	if len(split) == 3 || len(split) == 4 {
+	if len(split) >= 3 {
 		groupIDString := split[2]
 		var groupID uint64
 
@@ -303,21 +303,6 @@ func SingleGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 		return deleteGroup(s, req, groupID);
 	default:
 		return nil;
-	}
-}
-
-func broadcastEventSelectDB(s* service.Service[GroupsData], groupID uint32, event map[string]any) {
-	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;", groupID)
-	if err != nil {
-		fmt.Printf("broadcastEventFromDB: %v\n", err)
-		return
-	}
-
-	for rows.Next() {
-		var memberID uint32
-		rows.Scan(&memberID)
-
-		s.Mq.UserEvent(memberID, event)
 	}
 }
 
@@ -505,10 +490,11 @@ func AddMembers(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRes
 	})
 }
 
-func getGroupMembers(s* service.Service[GroupsData], groupID uint32, memberIDs []uint32) error {
+func getGroupMembers(s* service.Service[GroupsData], groupID uint32) ([]uint32, error) {
+	var memberIDs []uint32 = make([]uint32, 0)
 	rows, err := s.Db.Conn.Query(context.Background(), selectGroupMembers, groupID)
 	if err != nil {
-		return err
+		return memberIDs, err
 	}
 
 	for rows.Next() {
@@ -517,7 +503,7 @@ func getGroupMembers(s* service.Service[GroupsData], groupID uint32, memberIDs [
 		memberIDs = append(memberIDs, userID)
 	}
 
-	return nil
+	return memberIDs, nil
 }
 
 func DelMemberME(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
@@ -527,6 +513,12 @@ func DelMemberME(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
 			"error": "invalid group ID in path",
 		})
+	}
+
+	memberIDs, err := getGroupMembers(s, groupID)
+	if err != nil { 
+		fmt.Printf("getGroupMembers: %v\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, nil)
 	}
 
 	tag, err := s.Db.Conn.Exec(context.Background(), s.Db.SQL["delete_group_member"], groupID, req.UserID)
@@ -545,8 +537,7 @@ func DelMemberME(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 		"group_id": groupID,
 		"user_id": req.UserID,
 	}
-
-	broadcastEventSelectDB(s, groupID, userLeftEvent)
+	s.Mq.UsersEvent(memberIDs, userLeftEvent)
 
 	return mq.NewResponse(req, http.StatusOK, nil)
 }
