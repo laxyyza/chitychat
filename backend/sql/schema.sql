@@ -60,7 +60,7 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
-CREATE TABLE IF NOT EXISTS TextChannels_New(
+CREATE TABLE IF NOT EXISTS TextChannels(
     channel_id      SERIAL PRIMARY KEY,
     type            channel_type NOT NULL,
     last_message    TIMESTAMP DEFAULT now()

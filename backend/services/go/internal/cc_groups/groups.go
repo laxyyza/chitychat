@@ -21,6 +21,7 @@ type GroupsData struct {
 	SelectInvalidUserIDs string
 	SelectMsgs string
 	InsertMessage string
+	DeleteGroup string
 }
 
 type CreateGroupData struct {
@@ -196,6 +197,8 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	return resp
 }
 
+
+
 func Groups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	switch req.Method {
 	case "GET":
@@ -222,18 +225,12 @@ func getGroupIDPath(path string) (uint32, error) {
 	}
 }
 
-func GetGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func getGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
 	var group Group
-	groupID, err := getGroupIDPath(req.Path)
-	if err != nil {
-		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
-			"error": err.Error(),
-		})
-	}
 	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SelectGroup, groupID, req.UserID)
 	var createdAt pgtype.Timestamp
 	var lastMessage pgtype.Timestamp
-	err = row.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs, &lastMessage)
+	err := row.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs, &lastMessage)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
 			"error": "Group not found",
@@ -245,6 +242,39 @@ func GetGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRespo
 	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
 		"group": group,
 	})
+}
+
+func deleteGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
+	tag, err := s.Db.Conn.Exec(context.Background(), s.UserData.DeleteGroup, groupID, req.UserID)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	if tag.Delete() {
+		if tag.RowsAffected() == 1 {
+			return mq.NewResponse(req, http.StatusOK, nil)
+		}
+	}
+
+	return mq.NewResponse(req, http.StatusUnauthorized, nil)
+}
+
+func SingleGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	groupID, err := getGroupIDPath(req.Path)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+
+	switch req.Method {
+	case "GET":
+		return getGroup(s, req, groupID);
+	case "DELETE":
+		return deleteGroup(s, req, groupID);
+	default:
+		return nil;
+	}
 }
 
 func broadcastMsg(s* service.Service[GroupsData], message msg.Message, groupID uint32) {

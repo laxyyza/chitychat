@@ -49,14 +49,21 @@ func main() {
 	}
 	bservice.UserData.SelectMsgs = string(data)
 
+	data, err = os.ReadFile("backend/sql/delete_group.sql")
+	if err != nil {
+		fmt.Printf("ReadFile: %v\n", err)
+		os.Exit(-1)
+	}
+	bservice.UserData.DeleteGroup = string(data)
+
 	err = bservice.Register(service.PathMap[cc_groups.GroupsData]{
 		"/api/groups": service.CallbackAllow[cc_groups.GroupsData]{
 			Callback: cc_groups.Groups,
 			Allow: []string{"GET", "POST"},
 		},
 		"/api/groups/*": service.CallbackAllow[cc_groups.GroupsData]{
-			Callback: cc_groups.GetGroup,
-			Allow: []string{"GET"},
+			Callback: cc_groups.SingleGroup,
+			Allow: []string{"GET", "DELETE"},
 		},
 		"/api/groups/*/messages": service.CallbackAllow[cc_groups.GroupsData]{
 			Callback: cc_groups.GetMessages,
