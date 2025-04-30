@@ -6,12 +6,15 @@ import (
 	"backend/services/go/internal/service"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -22,11 +25,16 @@ type GroupsData struct {
 	SelectMsgs string
 	InsertMessage string
 	DeleteGroup string
+	AddGroupMembers string
 }
 
 type CreateGroupData struct {
 	Name string 		`json:"name"`
 	Desc string 		`json:"desc"`
+	UserIDs []uint32 	`json:"user_ids"`
+}
+
+type AddGroupMembersData struct {
 	UserIDs []uint32 	`json:"user_ids"`
 }
 
@@ -44,13 +52,22 @@ type Group struct {
 const insertGroupSQL = "INSERT INTO Groups(owner_id, channel_id, name, \"desc\") VALUES ($1::int, $2::int, $3::varchar(50), $4::text) RETURNING group_id;"
 const insertChannelSQL = "INSERT INTO TextChannels(type) VALUES ('GROUP') RETURNING channel_id;"
 const selectGroupMembers = "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;"
+const selectGroupMembersJson = "SELECT json_agg(user_id) FROM GroupMembers WHERE group_id = $1::int;"
 
-func mapToStruct(m map[string]interface{}, out* CreateGroupData) error {
+func mapToStruct(m map[string]interface{}, out any) error {
     b, err := json.Marshal(m)
     if err != nil {
         return err
     }
 	err = json.Unmarshal(b, out)
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func mapToStructCreateGroup(m map[string]interface{}, out* CreateGroupData) error {
+	err := mapToStruct(m, out)
 	if err != nil {
 		return err
 	}
@@ -62,7 +79,20 @@ func mapToStruct(m map[string]interface{}, out* CreateGroupData) error {
 		return fmt.Errorf("invalid 'user_ids'")
 	}
 
-	return err
+	return nil
+}
+
+func mapToStructAddMembers(m map[string]interface{}, out* AddGroupMembersData) error {
+	err := mapToStruct(m, out)
+	if err != nil {
+		return err
+	}
+
+	if (len(out.UserIDs) == 0) {
+		return fmt.Errorf("invalid 'user_ids'")
+	}
+
+	return nil
 }
 
 func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
@@ -112,6 +142,12 @@ func insertGroupMembers(s* service.Service[GroupsData], req* mq.HTTPRequest, gro
 		})
 	}
 
+	newUserEvent := map[string]any{
+		"cmd": "new_group",
+		"group_id": groupID,
+	}
+	s.Mq.UsersEvent(userIDs, newUserEvent)
+
 	return mq.NewResponse(req, http.StatusOK, &map[string]interface{}{
 		"group_id": groupID,
 	})
@@ -145,7 +181,7 @@ func getInvalidUserIDs(s* service.Service[GroupsData], data* CreateGroupData, ow
 func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	ownerID:= req.UserID
 	var data CreateGroupData
-	err := mapToStruct(req.Body, &data)
+	err := mapToStructCreateGroup(req.Body, &data)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]interface{}{
 			"error": err.Error(),
@@ -194,6 +230,7 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	} else {
 		tx.Commit(context.Background())
 	}
+
 	return resp
 }
 
@@ -369,4 +406,94 @@ func GetMessages(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	return mq.NewResponse(req, http.StatusOK, &map[string]any{
 		"messages": msgsJson,
 	}) 
+}
+
+func getMemberIDsJson(s* service.Service[GroupsData], memberIDs* []uint32, groupID uint32) error {
+	var jsonIDs []any
+	row := s.Db.Conn.QueryRow(context.Background(), selectGroupMembersJson, groupID)
+	err := row.Scan(&jsonIDs)
+	if err != nil {
+		return err
+	}
+
+	data, err := json.Marshal(jsonIDs)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(data, memberIDs)
+
+	return err
+}
+
+func AddMembers(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	groupID, err := getGroupIDPath(req.Path);
+	if err != nil {
+		fmt.Printf("getGroupIDPath: %v\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": "invalid group ID in path",
+		})
+	}
+	var data AddGroupMembersData
+	err = mapToStructAddMembers(req.Body, &data)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+	var memberIDs []uint32
+	err = getMemberIDsJson(s, &memberIDs, groupID) 
+	if err != nil {
+		fmt.Printf("getMemberIDsJson: %v\n", err)
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	var newUserIDs []uint32 = make([]uint32, 0)
+	var skippedUsers []uint32 = make([]uint32, 0)
+	for _, newID := range data.UserIDs {
+		if slices.Contains(memberIDs, newID) {
+			skippedUsers = append(skippedUsers, newID)
+		} else {
+			newUserIDs = append(newUserIDs, newID)
+		}
+	}
+
+	if len(newUserIDs) == 0 {
+		return mq.NewResponse(req, http.StatusConflict, nil)
+	}
+
+	tag, err := s.Db.Conn.Exec(context.Background(), s.UserData.AddGroupMembers, newUserIDs, groupID, req.UserID)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23503" {
+				return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+					"error": "Invalid user ID(s)",
+				})
+			}
+		}
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+	if tag.RowsAffected() == 0 {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": "Wrong group ID, user IDs or not group owner",
+		})
+	}
+
+	newUserEvent := map[string]any{
+		"cmd": "new_group",
+		"group_id": groupID,
+	}
+	s.Mq.UsersEvent(newUserIDs, newUserEvent)
+
+	userJoinEvent := map[string]any{
+		"cmd": "new_group_members",
+		"group_id": groupID,
+		"user_ids": newUserIDs,
+	}
+	s.Mq.UsersEvent(memberIDs, userJoinEvent)
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"users_added": newUserIDs,
+		"users_skipped": skippedUsers,
+	})
 }

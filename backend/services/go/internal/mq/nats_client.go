@@ -126,3 +126,9 @@ func (mq* MQ) UserEvent(userID uint32, event map[string]interface{}) {
 
 	mq.conn.Publish(fmt.Sprintf("realtime.user.%d", userID), data)
 }
+
+func (mq* MQ) UsersEvent(userIDs []uint32, event map[string]interface{}) {
+	for _, userID := range userIDs {
+		mq.UserEvent(userID, event)
+	}
+}

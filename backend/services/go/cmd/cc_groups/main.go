@@ -56,6 +56,13 @@ func main() {
 	}
 	bservice.UserData.DeleteGroup = string(data)
 
+	data, err = os.ReadFile("backend/sql/add_group_members.sql")
+	if err != nil {
+		fmt.Printf("ReadFile: %v\n", err)
+		os.Exit(-1)
+	}
+	bservice.UserData.AddGroupMembers = string(data)
+
 	err = bservice.Register(service.PathMap[cc_groups.GroupsData]{
 		"/api/groups": service.CallbackAllow[cc_groups.GroupsData]{
 			Callback: cc_groups.Groups,
@@ -68,6 +75,10 @@ func main() {
 		"/api/groups/*/messages": service.CallbackAllow[cc_groups.GroupsData]{
 			Callback: cc_groups.GetMessages,
 			Allow: []string{"GET"},
+		},
+		"/api/groups/*/members": service.CallbackAllow[cc_groups.GroupsData]{
+			Callback: cc_groups.AddMembers,
+			Allow: []string{"POST"},
 		},
 	})
 	if err != nil {
