@@ -1,10 +1,11 @@
-import { useState } from "react";
+import {  useState } from "react";
 import { DMChat } from "../../../models/dm";
 import Group from "../../../models/group";
 import { App, useApp } from "../AppProvider";
 import SelectableUser from "../SelectableUser";
 import User from "../User";
 import { fetchAddFriends } from "../../../services/groupApi";
+import Modal from "../../Modal";
 
 interface Props {
     dmchat: DMChat;
@@ -37,6 +38,7 @@ const AddGroupMembers = ({dmchat, onClose, ref}: Props) => {
     const {app} = useApp();
     const [selectedIDs, setSelectedIDs] = useState(new Set<number>());
     const [filter, setFilter] = useState('');
+    //const ref = useRef<HTMLDivElement | null>(null);
 
     if (dmchat.chat instanceof Group == false) {
         return null;
@@ -45,9 +47,7 @@ const AddGroupMembers = ({dmchat, onClose, ref}: Props) => {
     const friends = getFriendsNotInGroup(app, group, filter);
 
     return (
-        <div className="absolute left-0 top-0 flex justify-center items-center w-screen h-screen z-1001 backdrop-blur-xs" ref={ref} onClick={() => {
-            onClose();
-        }}>
+        <Modal ref={ref} onClose={onClose}>
             <div className='relative bg-gray-900 border-black w-100 border-1 p-5 rounded-xl' onClick={e => e.stopPropagation()}>
                 <h1>Add Friends to <span className="text-purple-500 font-bold">{group.name}</span></h1>
                 <div className="flex m-1">
@@ -88,7 +88,7 @@ const AddGroupMembers = ({dmchat, onClose, ref}: Props) => {
                     Add
                 </button>
             </div>
-        </div>
+        </Modal>
     );
 };
 

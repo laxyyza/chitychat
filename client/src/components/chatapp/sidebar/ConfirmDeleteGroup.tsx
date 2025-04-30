@@ -1,6 +1,7 @@
 import { DMChat } from "../../../models/dm";
 import Group from "../../../models/group";
 import fetchData from "../../../services/api";
+import Modal from "../../Modal";
 import { Action, useApp } from "../AppProvider";
 
 interface Props {
@@ -31,9 +32,7 @@ const ConfirmDeleteGroup = ({ dmchat, ref, onClose }: Props) => {
     };
 
     return (
-        <div className="absolute left-0 top-0 flex justify-center items-center w-screen h-screen z-1001 backdrop-blur-xs" ref={ref} onClick={() => {
-            onClose();
-        }}>
+        <Modal ref={ref} onClose={onClose}>
             <div className='relative bg-gray-900 border-black border-1 h-30 p-5 rounded-xl' onClick={e => e.stopPropagation()}>
                 <h1 className='text-xl'>
                     You sure you want to delete <span className='text-purple-500 font-bold'>{name}</span>?
@@ -53,7 +52,7 @@ const ConfirmDeleteGroup = ({ dmchat, ref, onClose }: Props) => {
                     </button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 

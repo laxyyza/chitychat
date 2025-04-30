@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { DMChat } from "../../../models/dm";
 import { useApp } from "../AppProvider";
 import Group from "../../../models/group";
 import ConfirmDeleteGroup from "./ConfirmDeleteGroup";
 import AddGroupMembers from "./AddGroupMembers";
+import useDismissTrigger from "../../../hooks/useDismissTrigger";
+import ConfirmLeaveGroup from "./ConfirmLeaveGroup";
 
 interface Props {
     ref: React.RefObject<HTMLButtonElement | null>;
@@ -21,6 +23,7 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
     var addFriends = false;
     const [showDeleteGroup, setShowDeleteGroup] = useState(false);
     const [showAddFriends, setShowAddFriends] = useState(false);
+    const [showLeaveGroup, setShowLeaveGroup] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const popupRef = useRef<HTMLDivElement | null>(null);
 
@@ -28,27 +31,34 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
         setShow(false);
         setShowDeleteGroup(false);
         setShowAddFriends(false);
+        setShowLeaveGroup(false);
     };
 
-    useEffect(() => {
-        const handleKeyEvent = (event: globalThis.KeyboardEvent) => {
-            if (event.key == 'Escape') escape();
-        };
-
-        const handleMouseEvent = (e: globalThis.MouseEvent) => {
-            if (!menuRef.current?.contains(e.target as Node) && !popupRef.current?.contains(e.target as Node)) {
-                escape();
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyEvent);
-        document.addEventListener('mousedown', handleMouseEvent)
-
-        return () => {
-            document.removeEventListener('keydown', handleKeyEvent);
-            document.removeEventListener('mousedown', handleMouseEvent);
+    useDismissTrigger(menuRef, () => {
+        if (popupRef.current === null) {
+            escape();
         }
-    }, []);
+    });
+
+    // useEffect(() => {
+    //     const handleKeyEvent = (event: globalThis.KeyboardEvent) => {
+    //         if (event.key == 'Escape') escape();
+    //     };
+    //
+    //     const handleMouseEvent = (e: globalThis.MouseEvent) => {
+    //         if (!menuRef.current?.contains(e.target as Node) && !popupRef.current?.contains(e.target as Node)) {
+    //             escape();
+    //         }
+    //     };
+    //
+    //     document.addEventListener('keydown', handleKeyEvent);
+    //     document.addEventListener('mousedown', handleMouseEvent)
+    //
+    //     return () => {
+    //         document.removeEventListener('keydown', handleKeyEvent);
+    //         document.removeEventListener('mousedown', handleMouseEvent);
+    //     }
+    // }, []);
 
     if (!show) {
         return null;
@@ -83,6 +93,7 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
                         {leaveGroup &&
                             <button className='border-[#FF000077] border-1 p-1 mb-1 w-full rounded-xl bg-[#FF000011] hover:bg-[#FF000044]'
                                 onClick={() => {
+                                    setShowLeaveGroup(true);
                                     // TODO: Implement
                                 }}>
                                 Leave Group
@@ -110,6 +121,9 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
             )}
             {showAddFriends && (
                 <AddGroupMembers ref={popupRef} dmchat={dmchat} onClose={escape}/>
+            )}
+            {showLeaveGroup && (
+                <ConfirmLeaveGroup ref={popupRef} dmchat={dmchat} onClose={escape}/>
             )}
         </>
     );
