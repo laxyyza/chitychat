@@ -11,3 +11,9 @@ export const fetchGroup = (groupID: number, dispatch: React.Dispatch<DispatchAct
         });
     })
 }
+
+export const fetchAddFriends = (groupID: number, userIDs: number[]) => {
+    fetchData(`/api/groups/${groupID}/members`, 'POST', {
+        "user_ids": userIDs,
+    })
+}

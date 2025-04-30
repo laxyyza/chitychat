@@ -43,10 +43,6 @@ class Group {
         this.scrollTop = -1;
     }
 
-    // addMemberIDs(newMemberIDs: number[]) {
-    //     this.memberIDs = [...new Set<number>([...this.memberIDs, ...newMemberIDs])];
-    // }
-
     clone(): Group {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
     }

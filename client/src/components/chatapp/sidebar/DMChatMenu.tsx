@@ -3,6 +3,7 @@ import { DMChat } from "../../../models/dm";
 import { useApp } from "../AppProvider";
 import Group from "../../../models/group";
 import ConfirmDeleteGroup from "./ConfirmDeleteGroup";
+import AddGroupMembers from "./AddGroupMembers";
 
 interface Props {
     ref: React.RefObject<HTMLButtonElement | null>;
@@ -19,12 +20,14 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
     var deleteGroup = false;
     var addFriends = false;
     const [showDeleteGroup, setShowDeleteGroup] = useState(false);
+    const [showAddFriends, setShowAddFriends] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const popupRef = useRef<HTMLDivElement | null>(null);
 
     const escape = () => {
         setShow(false);
         setShowDeleteGroup(false);
+        setShowAddFriends(false);
     };
 
     useEffect(() => {
@@ -72,6 +75,7 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
                             <button className='border-gray-600 border-1 p-1 mb-1 w-full rounded-xl hover:bg-gray-600'
                                 onClick={() => {
                                     // TODO: Implement
+                                    setShowAddFriends(true);
                                 }}>
                                 Add Friends
                             </button>}
@@ -103,6 +107,9 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
             </div>
             {showDeleteGroup && (
                 <ConfirmDeleteGroup ref={popupRef} dmchat={dmchat} onClose={escape}/>
+            )}
+            {showAddFriends && (
+                <AddGroupMembers ref={popupRef} dmchat={dmchat} onClose={escape}/>
             )}
         </>
     );
