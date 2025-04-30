@@ -128,7 +128,7 @@ class DMChat {
             })
     }
 
-    fetchMessages(dispatch: React.Dispatch<DispatchAction>, limit: number = 10) {
+    fetchMessages(dispatch: React.Dispatch<DispatchAction>, limit: number = 20) {
         var promise: Promise<Message[]> | undefined
         if (this.chat instanceof Group) {
             promise = this.fetchGroupMessages(this.chat, limit);

@@ -6,13 +6,15 @@ interface PopupProps {
     children: React.ReactNode;
     className?: string;
     onClose?: () => void;
+    where?: "right" | "bottom"
 }
 
 export default function Popup({
     targetRef,
     children,
     onClose,
-    className = ''
+    className = '',
+    where = 'right'
 }: PopupProps) {
     const popupRef = useRef<HTMLDivElement | null>(null);
     const [position, setPosition] = useState<{
@@ -47,11 +49,11 @@ export default function Popup({
 
                 if (rightOverflow())
                     newLeft = targetRect.left - popupRect.width;
-                else newLeft = targetRect.right;
+                else newLeft = (where === 'right') ? targetRect.right : targetRect.left;
 
                 if (bottomOverflow())
                     newTop = targetRect.top - popupRect.height;
-                else newTop = targetRect.top;
+                else newTop = (where === 'right') ? targetRect.top: targetRect.bottom;
                 // popupRef.current.getBoundingClientRect().height, // Below the target
                 // popupRef.current.getBoundingClientRect().width // Align left
 
@@ -91,6 +93,7 @@ export default function Popup({
         };
 
         document.addEventListener('keydown', handleKeyEvent);
+
         return () => {
             document.removeEventListener('mouseup', handleClickOutside);
             document.removeEventListener('keydown', handleKeyEvent);
