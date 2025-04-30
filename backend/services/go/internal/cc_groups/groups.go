@@ -19,13 +19,6 @@ import (
 )
 
 type GroupsData struct {
-	SelectUserGroups string
-	SelectGroup string
-	SelectInvalidUserIDs string
-	SelectMsgs string
-	InsertMessage string
-	DeleteGroup string
-	AddGroupMembers string
 }
 
 type CreateGroupData struct {
@@ -53,6 +46,7 @@ const insertGroupSQL = "INSERT INTO Groups(owner_id, channel_id, name, \"desc\")
 const insertChannelSQL = "INSERT INTO TextChannels(type) VALUES ('GROUP') RETURNING channel_id;"
 const selectGroupMembers = "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;"
 const selectGroupMembersJson = "SELECT json_agg(user_id) FROM GroupMembers WHERE group_id = $1::int;"
+const deleteGroupMember = "DELETE FROM GroupMembers WHERE group_id = $1::int AND user_id = $2::int;"
 
 func mapToStruct(m map[string]interface{}, out any) error {
     b, err := json.Marshal(m)
@@ -96,7 +90,7 @@ func mapToStructAddMembers(m map[string]interface{}, out* AddGroupMembersData) e
 }
 
 func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
-	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.SelectUserGroups, req.UserID)
+	rows, err := s.Db.Conn.Query(context.Background(), s.Db.SQL["select_user_groups"], req.UserID)
 	if err != nil {
 		fmt.Printf("SelectUserGroups: %v\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]interface{}{
@@ -154,7 +148,7 @@ func insertGroupMembers(s* service.Service[GroupsData], req* mq.HTTPRequest, gro
 }
 
 func getInvalidUserIDs(s* service.Service[GroupsData], data* CreateGroupData, ownerID uint32) []uint32 {
-	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.SelectInvalidUserIDs, data.UserIDs)
+	rows, err := s.Db.Conn.Query(context.Background(), s.Db.SQL["select_invalid_user_ids"], data.UserIDs)
 	if err != nil {
 		fmt.Printf("SelectInvalidUserIDs: %v\n", err)
 		return []uint32{}
@@ -234,8 +228,6 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	return resp
 }
 
-
-
 func Groups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
 	switch req.Method {
 	case "GET":
@@ -264,7 +256,7 @@ func getGroupIDPath(path string) (uint32, error) {
 
 func getGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
 	var group Group
-	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SelectGroup, groupID, req.UserID)
+	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["select_group"], groupID, req.UserID)
 	var createdAt pgtype.Timestamp
 	var lastMessage pgtype.Timestamp
 	err := row.Scan(&group.GroupID, &group.OwnerID, &group.ChannelID, &group.Name, &group.Desc, &createdAt, &group.MemberIDs, &lastMessage)
@@ -282,7 +274,7 @@ func getGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint3
 }
 
 func deleteGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
-	tag, err := s.Db.Conn.Exec(context.Background(), s.UserData.DeleteGroup, groupID, req.UserID)
+	tag, err := s.Db.Conn.Exec(context.Background(), s.Db.SQL["delete_group"], groupID, req.UserID)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
 	}
@@ -311,6 +303,21 @@ func SingleGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 		return deleteGroup(s, req, groupID);
 	default:
 		return nil;
+	}
+}
+
+func broadcastEventSelectDB(s* service.Service[GroupsData], groupID uint32, event map[string]any) {
+	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;", groupID)
+	if err != nil {
+		fmt.Printf("broadcastEventFromDB: %v\n", err)
+		return
+	}
+
+	for rows.Next() {
+		var memberID uint32
+		rows.Scan(&memberID)
+
+		s.Mq.UserEvent(memberID, event)
 	}
 }
 
@@ -353,7 +360,7 @@ func MsgGroup(s* service.Service[GroupsData], srcUserID uint32, payload map[stri
 	}
 	groupID := uint32(groupIDf64)
 
-	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.InsertMessage, msg.UserID, groupID, msg.Content)
+	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["insert_group_msg"], msg.UserID, groupID, msg.Content)
 	var timestamp pgtype.Timestamp
 	err = row.Scan(&msg.MsgID, &timestamp)
 	if err != nil {
@@ -392,7 +399,7 @@ func GetMessages(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	}
 
 	var msgsJson []any
-	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SelectMsgs, groupID, req.UserID, limit, offset)
+	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["select_group_msgs_json"], groupID, req.UserID, limit, offset)
 	err = row.Scan(&msgsJson)
 	if err != nil {
 		fmt.Printf("SelectMsgs: %v\n", err)
@@ -461,7 +468,7 @@ func AddMembers(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRes
 		return mq.NewResponse(req, http.StatusConflict, nil)
 	}
 
-	tag, err := s.Db.Conn.Exec(context.Background(), s.UserData.AddGroupMembers, newUserIDs, groupID, req.UserID)
+	tag, err := s.Db.Conn.Exec(context.Background(), s.Db.SQL["add_group_members"], newUserIDs, groupID, req.UserID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -496,4 +503,50 @@ func AddMembers(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRes
 		"users_added": newUserIDs,
 		"users_skipped": skippedUsers,
 	})
+}
+
+func getGroupMembers(s* service.Service[GroupsData], groupID uint32, memberIDs []uint32) error {
+	rows, err := s.Db.Conn.Query(context.Background(), selectGroupMembers, groupID)
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var userID uint32
+		rows.Scan(&userID)
+		memberIDs = append(memberIDs, userID)
+	}
+
+	return nil
+}
+
+func DelMemberME(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+	groupID, err := getGroupIDPath(req.Path);
+	if err != nil {
+		fmt.Printf("getGroupIDPath: %v\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": "invalid group ID in path",
+		})
+	}
+
+	tag, err := s.Db.Conn.Exec(context.Background(), s.Db.SQL["delete_group_member"], groupID, req.UserID)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
+			"error": "Not a group member or you're the owner",
+		})
+	}
+
+	userLeftEvent := map[string]any{
+		"cmd": "del_group_member",
+		"group_id": groupID,
+		"user_id": req.UserID,
+	}
+
+	broadcastEventSelectDB(s, groupID, userLeftEvent)
+
+	return mq.NewResponse(req, http.StatusOK, nil)
 }

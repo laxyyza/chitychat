@@ -14,54 +14,19 @@ func main() {
 		os.Exit(-1)
 	}
 
-	data, err := os.ReadFile("backend/sql/select_user_groups.sql")
+	err = bservice.Db.LoadSQLFiles([]string{
+		"select_user_groups",
+		"select_invalid_user_ids",
+		"insert_group_msg",
+		"select_group",
+		"select_group_msgs_json",
+		"delete_group",
+		"add_group_members",
+		"delete_group_member",
+	})
 	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
 		os.Exit(-1)
 	}
-	bservice.UserData.SelectUserGroups = string(data)
-
-	data, err = os.ReadFile("backend/sql/select_invalid_user_ids.sql")
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.SelectInvalidUserIDs = string(data)
-
-	data, err = os.ReadFile("backend/sql/insert_group_msg.sql")
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.InsertMessage = string(data)
-
-	data, err = os.ReadFile("backend/sql/select_group.sql")
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.SelectGroup = string(data)
-
-	data, err = os.ReadFile("backend/sql/select_group_msgs_json.sql")
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.SelectMsgs = string(data)
-
-	data, err = os.ReadFile("backend/sql/delete_group.sql")
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.DeleteGroup = string(data)
-
-	data, err = os.ReadFile("backend/sql/add_group_members.sql")
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.AddGroupMembers = string(data)
 
 	err = bservice.Register(service.PathMap[cc_groups.GroupsData]{
 		"/api/groups": service.CallbackAllow[cc_groups.GroupsData]{
@@ -79,6 +44,10 @@ func main() {
 		"/api/groups/*/members": service.CallbackAllow[cc_groups.GroupsData]{
 			Callback: cc_groups.AddMembers,
 			Allow: []string{"POST"},
+		},
+		"/api/groups/*/members/me": service.CallbackAllow[cc_groups.GroupsData]{
+			Callback: cc_groups.DelMemberME,
+			Allow: []string{"DELETE"},
 		},
 	})
 	if err != nil {
