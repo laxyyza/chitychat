@@ -99,6 +99,26 @@ const cmdNewGroupMembers = (packet: any, app: App, dispatch: React.Dispatch<Disp
     });
 }
 
+const cmdDelGroupMember = (packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
+    const groupID: number = packet.group_id;
+    const userID: number = packet.user_id;
+
+    if (userID === app.login_user.id) {
+        dispatch({
+            type: Action.DEL_DM,
+            payload: DMChat.GroupID(groupID)
+        })
+    } else {
+        dispatch({
+            type: Action.DEL_GROUP_MEMBER,
+            payload: {
+                groupID: groupID,
+                userID: userID
+            }
+        })
+    }
+}
+
 const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
     switch (cmd) {
         case 'client_user_info': {
@@ -144,6 +164,9 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
             break;
         case 'new_group_members':
             cmdNewGroupMembers(packet, app, dispatch);
+            break;
+        case 'del_group_member':
+            cmdDelGroupMember(packet, app, dispatch);
             break;
     }
 };

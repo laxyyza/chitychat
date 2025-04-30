@@ -51,6 +51,7 @@ enum Action {
     DEL_DM,
     ADD_DM_MSGS,
     ADD_GROUP_MEMBERS,
+    DEL_GROUP_MEMBER,
 }
 
 export type DispatchAction =
@@ -66,6 +67,7 @@ export type DispatchAction =
     | { type: Action.ADD_DMS; payload: DMChat[] }
     | { type: Action.DEL_DM; payload: string }
     | { type: Action.ADD_GROUP_MEMBERS; payload: {groupID: number, IDs: number[] } }
+    | { type: Action.DEL_GROUP_MEMBER; payload: {groupID: number, userID: number } }
     | {
           type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
           payload: number;
@@ -314,6 +316,18 @@ const appReducer = (state: App, action: DispatchAction): App => {
 
             const newDMs = new Map(state.dm);
             dmchat.chat = Group.addMemberIDs(dmchat.chat as Group, action.payload.IDs);
+            newDMs.set(dmchat.id, dmchat);
+            return {
+                ...state,
+                dm: newDMs
+            };
+        }
+        case Action.DEL_GROUP_MEMBER: {
+            const dmchat = state.dm.get(DMChat.GroupID(action.payload.groupID));
+            if (!dmchat) return state;
+
+            const newDMs = new Map(state.dm);
+            dmchat.chat = Group.delMemberID(dmchat.chat as Group, action.payload.userID);
             newDMs.set(dmchat.id, dmchat);
             return {
                 ...state,

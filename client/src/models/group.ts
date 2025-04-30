@@ -76,6 +76,14 @@ class Group {
 
         return newGroup;
     }
+
+    static delMemberID(group: Group, memberID: number): Group {
+        const newGroup = group.clone();
+
+        newGroup.memberIDs.delete(memberID);
+
+        return newGroup;
+    }
 }
 
 export default Group;
