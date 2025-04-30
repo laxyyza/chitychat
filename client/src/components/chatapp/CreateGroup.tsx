@@ -1,9 +1,9 @@
 import { FaUser } from "react-icons/fa6";
-import { Action, App, useApp } from "./AppProvider";
+import { App, useApp } from "./AppProvider";
 import User from "./User";
 import { useEffect, useState } from "react";
 import fetchData from "../../services/api";
-import { GroupProps } from "../../models/group";
+import { fetchGroup } from "../../services/groupApi";
 
 
 interface Prop {
@@ -72,16 +72,6 @@ const CreateGroup = ({onClose}: Prop) => {
     const friends = getFriends(app, filter);
     const [selectedIDs, setSelectedIDs] = useState(new Set());
 
-    const fetchGroup = (groupID: number) => {
-        fetchData(`/api/groups/${groupID}`).then((resp) => {
-            const group: GroupProps = resp.group;
-            dispatch({
-                type: Action.ADD_GROUPS,
-                payload: [group]
-            });
-        })
-    }
-
     const onSubmit = () => {
         setError('');
         fetchData("/api/groups", "POST", {
@@ -89,7 +79,7 @@ const CreateGroup = ({onClose}: Prop) => {
             desc: desc.trim(),
             user_ids: Array.from(selectedIDs)
         }).then(resp => {
-            fetchGroup(resp.group_id);
+            fetchGroup(resp.group_id, dispatch);
             onClose();
         }).catch(e => {
             setError(e);

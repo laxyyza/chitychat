@@ -37,7 +37,7 @@ const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
         })
     }
 
-    return group.memberIDs;
+    return Array.from(group.memberIDs);
 };
 
 const MemberList = () => {

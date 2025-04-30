@@ -1,4 +1,3 @@
-
 export const isDev = process.env.NODE_ENV === 'development';
 
 export const baseUrl = isDev ? "https://localhost:8080" : window.location.origin;

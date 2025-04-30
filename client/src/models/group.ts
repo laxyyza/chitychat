@@ -18,7 +18,7 @@ class Group {
     created_at: string;
     desc: string;
     messages: Map<number, Message>;
-    memberIDs: number[];
+    memberIDs: Set<number>;
     public detailsLoaded: boolean;
     public msgOffset: number;
     scrollTop: number;
@@ -37,15 +37,15 @@ class Group {
         this.created_at = created_at;
         this.desc = desc;
         this.messages = new Map();
-        this.memberIDs = memberIDs;
+        this.memberIDs = new Set(memberIDs);
         this.detailsLoaded = false;
         this.msgOffset = 0;
         this.scrollTop = -1;
     }
 
-    addMemberIDs(newMemberIDs: number[]) {
-        this.memberIDs = [...new Set<number>([...this.memberIDs, ...newMemberIDs])];
-    }
+    // addMemberIDs(newMemberIDs: number[]) {
+    //     this.memberIDs = [...new Set<number>([...this.memberIDs, ...newMemberIDs])];
+    // }
 
     clone(): Group {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
@@ -67,6 +67,16 @@ class Group {
         newGroup.memberIDs = group.memberIDs;
         newGroup.detailsLoaded = group.detailsLoaded;
         newGroup.msgOffset = group.msgOffset + msgs.length;
+
+        return newGroup;
+    }
+
+    static addMemberIDs(group: Group, newMemberIDs: number[]): Group {
+        const newGroup = group.clone();
+
+        newMemberIDs.forEach(id => {
+            newGroup.memberIDs.add(id);
+        })
 
         return newGroup;
     }

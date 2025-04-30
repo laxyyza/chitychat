@@ -2,6 +2,7 @@ import React from 'react';
 import { Action, App, DispatchAction } from '../components/chatapp/AppProvider';
 import { DM, DMChat } from '../models/dm';
 import Message from '../models/message';
+import { fetchGroup } from '../services/groupApi';
 
 const getDMChat = (packet: any, app: App, dispatch: React.Dispatch<DispatchAction>): DMChat | undefined => {
     const isUs = packet.user_id === app.login_user.id;
@@ -74,6 +75,30 @@ const cmdMsgGroup = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
     })
 }
 
+const cmdNewGroup = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
+    const groupID: number = packet.group_id;
+
+    fetchGroup(groupID, dispatch);
+}
+
+const cmdNewGroupMembers = (packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
+    const groupID: number = packet.group_id;
+    const userIDs: number[] = packet.user_ids;
+
+    if (app.dm.has(DMChat.GroupID(groupID)) == false) {
+        fetchGroup(groupID, dispatch);
+        return;
+    }
+
+    dispatch({
+        type: Action.ADD_GROUP_MEMBERS,
+        payload: {
+            groupID: groupID,
+            IDs: userIDs
+        }
+    });
+}
+
 const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
     switch (cmd) {
         case 'client_user_info': {
@@ -113,6 +138,12 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
         }
         case 'msg_user':
             cmdMsgUser(packet, app, dispatch);
+            break;
+        case 'new_group':
+            cmdNewGroup(packet, dispatch);
+            break;
+        case 'new_group_members':
+            cmdNewGroupMembers(packet, app, dispatch);
             break;
     }
 };
