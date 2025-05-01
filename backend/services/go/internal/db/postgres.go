@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -40,4 +42,34 @@ func (db* DB) LoadSQLFiles(names []string) error {
 		db.SQL[name] = string(data)
 	}
 	return nil
+}
+
+func (db* DB) Query(query_or_name string, args ...any) (pgx.Rows, error) {
+	var query string
+	query, ok := db.SQL[query_or_name]
+	if !ok {
+		query = query_or_name
+	}
+
+	return db.Conn.Query(context.Background(), query, args...) 
+}
+
+func (db* DB) QueryRow(query_or_name string, args ...any) pgx.Row {
+	var query string
+	query, ok := db.SQL[query_or_name]
+	if !ok {
+		query = query_or_name
+	}
+
+	return db.Conn.QueryRow(context.Background(), query, args...) 
+}
+
+func (db* DB) Exec(query_or_name string, args ...any) (pgconn.CommandTag, error) {
+	var query string
+	query, ok := db.SQL[query_or_name]
+	if !ok {
+		query = query_or_name
+	}
+
+	return db.Conn.Exec(context.Background(), query, args...) 
 }

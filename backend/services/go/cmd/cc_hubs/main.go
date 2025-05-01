@@ -12,15 +12,22 @@ func main() {
 		log.Panic("PANIC: ", err)
 	}
 
-	// err = bservice.Db.LoadSQLFiles([]string{})
-	// if err != nil {
-	// 	log.Panic("LoadSQLFiles: ", err)
-	// }
+	err = bservice.Db.LoadSQLFiles([]string{
+		"select_user_hubs_json",
+		"select_hub_detailed_json",
+	})
+	if err != nil {
+		log.Panic("LoadSQLFiles: ", err)
+	}
 
 	err = bservice.Register(service.PathMap{
 		"/api/hubs": service.CallbackAllow{
 			Callback: cc_hubs.Hubs,
 			Allow: []string{"GET", "POST"},
+		},
+		"/api/hubs/*": service.CallbackAllow{
+			Callback: cc_hubs.GetHub,
+			Allow: []string{"GET"},
 		},
 	})
 	if err != nil {
