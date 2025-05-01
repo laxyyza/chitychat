@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Action, useApp } from '../AppProvider';
 import { RiUserHeartFill } from 'react-icons/ri';
 import { GroupProps } from '../../../models/group';
@@ -9,6 +9,7 @@ import DMChatButton from './DMChatButton';
 
 const DMList = () => {
     const { app, dispatch } = useApp();
+    const dmlistRef = useRef<HTMLDivElement | null>(null);
     const dms = Array.from(app.dm.values()).sort((a, b) => (
         b.lastMessage.localeCompare(a.lastMessage)
     ));
@@ -69,12 +70,13 @@ const DMList = () => {
                 </div>
             </DMChatButton>
             <div className="text-center text-xs font-bold">Direct Messages</div>
-            <div className="p-1 overflow-auto flex-1 max-h-full">
+            <div className="p-1 overflow-auto flex-1 max-h-full" ref={dmlistRef}>
                 {dms.map((dmchat) => (
                     <li key={dmchat.id}>
                         <DMChatButton
                             dmchat={dmchat}
                             selected={app.currentDMID === dmchat.id}
+                            dmlistRef={dmlistRef}
                             onClick={() =>
                                 dispatch({
                                     type: Action.SELECT_DM,

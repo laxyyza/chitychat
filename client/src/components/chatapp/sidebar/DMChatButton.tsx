@@ -1,4 +1,4 @@
-import { ReactNode, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { DM, DMChat } from "../../../models/dm"
 import { useApp } from "../AppProvider";
 import { FaUser } from "react-icons/fa6";
@@ -10,6 +10,7 @@ interface Props {
     dmchat?: DMChat;
     onClick?: () => void;
     selected: boolean;
+    dmlistRef?: React.RefObject<HTMLDivElement | null>;
     children?: ReactNode;
 }
 
@@ -32,7 +33,7 @@ const Icon = (type: string) => {
 };
 
 
-const DMChatButton = ({ dmchat, onClick, selected, children }: Props) => {
+const DMChatButton = ({ dmchat, onClick, selected, children, dmlistRef }: Props) => {
     const { app } = useApp();
     const [show, setShow] = useState(false);
     const ref = useRef<HTMLButtonElement | null>(null);
@@ -46,32 +47,42 @@ const DMChatButton = ({ dmchat, onClick, selected, children }: Props) => {
         name = dmchat.chat.name;
     }
 
+    useEffect(() => {
+        if (!dmlistRef || !dmlistRef.current)
+            return;
+
+        // Disable scrolling when showing context menu.
+        if (show) {
+            dmlistRef.current.style.overflow = "hidden";
+        } else {
+            dmlistRef.current.style.overflow = "";
+        }
+    }, [show]);
+
     return (
-        <>
-            <button
-                ref={ref}
-                className={
-                    'flex mb-1 items-center rounded-[8px] hover:bg-gray-600 active:bg-gray-500 max-w-full w-full p-1 ' +
-                    (selected ? 'bg-gray-600' : '')
-                }
-                onClick={(e) => {
-                    setShow(false);
-                    onClick?.call(e);
-                }}
-                onContextMenu={(e) => {
-                    e.preventDefault();
-                    setShow(!show);
-                }}
-            >
-                {Icon(type)}
-                <div className="flex-1 ml-1 min-w-0">
-                    <div className="text-left text-nowrap text-ellipsis overflow-hidden">
-                        {name || children}
-                    </div>
+        <button
+            ref={ref}
+            className={
+                'relative flex mb-1 items-center rounded-[8px] hover:bg-gray-600 active:bg-gray-500 max-w-full w-full p-1 ' +
+                (selected ? 'bg-gray-600' : '')
+            }
+            onClick={(e) => {
+                setShow(false);
+                onClick?.call(e);
+            }}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                setShow(!show);
+            }}
+        >
+            {Icon(type)}
+            <div className="flex-1 ml-1 min-w-0">
+                <div className="text-left text-nowrap text-ellipsis overflow-hidden">
+                    {name || children}
                 </div>
-            </button>
+            </div>
             {dmchat?.chat && show && <DMChatMenu ref={ref} name={name || ''} dmchat={dmchat} setShow={setShow} />}
-        </>
+        </button>
     );
 };
 

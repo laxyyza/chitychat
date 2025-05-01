@@ -6,6 +6,7 @@ import ConfirmDeleteGroup from "./ConfirmDeleteGroup";
 import AddGroupMembers from "./AddGroupMembers";
 import useDismissTrigger from "../../../hooks/useDismissTrigger";
 import ConfirmLeaveGroup from "./ConfirmLeaveGroup";
+import Popup from "../Popup";
 
 type ModalType = "DELETE_GROUP" | "ADD_FRIENDS" | "LEAVE_GROUP" | null;
 
@@ -23,20 +24,20 @@ interface RenderModalProps {
     modalType: ModalType;
 };
 
-const RenderModal = ({ref, dmchat, onClose, modalType}: RenderModalProps) => {
+const RenderModal = ({ ref, dmchat, onClose, modalType }: RenderModalProps) => {
     switch (modalType) {
         case "DELETE_GROUP":
-            return <ConfirmDeleteGroup ref={ref} dmchat={dmchat} onClose={onClose}/>
+            return <ConfirmDeleteGroup ref={ref} dmchat={dmchat} onClose={onClose} />
         case "ADD_FRIENDS":
-            return <AddGroupMembers ref={ref} dmchat={dmchat} onClose={onClose}/>
+            return <AddGroupMembers ref={ref} dmchat={dmchat} onClose={onClose} />
         case "LEAVE_GROUP":
-            return <ConfirmLeaveGroup ref={ref} dmchat={dmchat} onClose={onClose}/>
+            return <ConfirmLeaveGroup ref={ref} dmchat={dmchat} onClose={onClose} />
         default:
             return null;
     }
 }
 
-const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
+const DMChatMenu = ({ ref, dmchat, name, setShow }: Props) => {
     const { app } = useApp();
     var leaveGroup = false;
     var block = false;
@@ -69,8 +70,8 @@ const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
     }
 
     return (
-        <>
-            <div className='absolute' ref={menuRef}>
+        <Popup targetRef={ref} where="bottom">
+            <div className='absolute z-1000' ref={menuRef}>
                 <div className='p-1'>
                     <div className='bg-gray-700 text-white border-1 p-1 border-gray-600 w-40 max-w-40 rounded-xl text-center'>
                         <span className='text-xs font-medium'>{name}</span>
@@ -107,8 +108,8 @@ const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
                     </div>
                 </div>
             </div>
-            <RenderModal ref={popupRef} dmchat={dmchat} onClose={escape} modalType={modalType}/>
-        </>
+            <RenderModal ref={popupRef} dmchat={dmchat} onClose={escape} modalType={modalType} />
+        </Popup>
     );
 };
 
