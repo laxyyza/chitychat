@@ -106,14 +106,26 @@ CREATE UNIQUE INDEX IF NOT EXISTS direct_messages_unique_idx ON DirectMessages (
     GREATEST(user1_id, user2_id)
 );
 
-CREATE TABLE IF NOT EXISTS HubChannels(
-    channel_id      SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS HubCategories (
+    category_id     SERIAL PRIMARY KEY,
     hub_id          int NOT NULL,
+    name            TEXT NOT NULL,
+    position        int NOT NULL DEFAULT 0,
+
+    FOREIGN KEY (hub_id) REFERENCES Hubs(hub_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS HubChannels(
+    channel_id      int PRIMARY KEY NOT NULL DEFAULT NULL,
+    hub_id          int NOT NULL,
+    category_id     int NOT NULL,
     name            TEXT NOT NULL,
     created_at      TIMESTAMP DEFAULT NOW(),
     settings        json DEFAULT '{}',
+    position        int NOT NULL DEFAULT 0,
 
     FOREIGN KEY (channel_id) REFERENCES TextChannels(channel_id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES HubCategories(category_id) ON DELETE CASCADE,
     FOREIGN KEY (hub_id) REFERENCES Hubs(hub_id) ON DELETE CASCADE
 );
 
@@ -175,6 +187,7 @@ CREATE TABLE IF NOT EXISTS Friendships(
     UNIQUE (source_user_id, target_user_id)
 );
 
+-- Insert owner ID in GroupMembers after INSERT INTO Groups.
 CREATE OR REPLACE FUNCTION insert_owner_group_member()
 RETURNS TRIGGER AS $$
 BEGIN 
@@ -189,6 +202,22 @@ AFTER INSERT ON Groups
 FOR EACH ROW
 EXECUTE FUNCTION insert_owner_group_member();
 
+-- Insert owner ID in HubMembers after INSERT INTO Hubs.
+CREATE OR REPLACE FUNCTION insert_owner_hub_member()
+RETURNS TRIGGER AS $$
+BEGIN 
+    INSERT INTO HubMembers(user_id, hub_id)
+    VALUES (NEW.owner_id, NEW.hub_id);
+    RETURN null;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER insert_owner_hub_member 
+AFTER INSERT ON Hubs 
+FOR EACH ROW 
+EXECUTE FUNCTION insert_owner_hub_member();
+
+-- After INSERT INTO Messages, update TextChannels(last_message) with Messages(timestamp)
 CREATE OR REPLACE FUNCTION update_textchannel_last_message()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -203,3 +232,26 @@ CREATE OR REPLACE TRIGGER update_last_message_at
 AFTER INSERT ON Messages 
 FOR EACH ROW
 EXECUTE FUNCTION update_textchannel_last_message();
+
+-- INSERT INTO TextChannels before INSERT INTO HubChannels.
+-- Then use that TextChannels(channel_id) in HubChannels(channel_id).
+CREATE OR REPLACE FUNCTION insert_text_channel_and_link() 
+RETURNS TRIGGER AS $$
+DECLARE
+    new_text_channel_id int;
+BEGIN
+    INSERT INTO TextChannels(type)
+    VALUES ('HUB')
+    RETURNING channel_id INTO new_text_channel_id;
+
+    NEW.channel_id = new_text_channel_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER hub_channel_insert
+BEFORE INSERT ON HubChannels 
+FOR EACH ROW
+WHEN (NEW.channel_id IS NULL)
+EXECUTE FUNCTION insert_text_channel_and_link();

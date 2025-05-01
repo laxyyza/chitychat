@@ -134,11 +134,8 @@ server_init_db(server_t* server)
     if (!server_db_load_sql(&cmd->select_user_json, "select_user_json"))
         return false;
 
-    if (!server_db_load_sql(&cmd->update_user, "update_user"))
-        return false;
-
-    if (!server_db_load_sql(&cmd->insert_userfiles, "insert_userfiles"))
-        return false;
+    // if (!server_db_load_sql(&cmd->update_user, "update_user"))
+    //     return false;
 
     if (!server_db_load_sql(&cmd->insert_remember_token, "insert_remember_token"))
         return false;
@@ -253,13 +250,6 @@ server_db_free(server_t* server)
     free((void*)cmd->select_user_json.sql);
     free((void*)cmd->select_connected_users.sql);
     free((void*)cmd->delete_user.sql);
-
-    free((void*)cmd->update_user.sql);
-    free((void*)cmd->insert_userfiles.sql);
-
-    free((void*)cmd->insert_session.sql);
-    free((void*)cmd->select_session.sql);
-
 
     free((void*)cmd->select_remember_token.sql);
     free((void*)cmd->insert_remember_token.sql);

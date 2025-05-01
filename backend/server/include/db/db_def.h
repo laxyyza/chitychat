@@ -41,13 +41,7 @@ typedef struct
     sql_query_t   select_user_json;
     sql_query_t   delete_user;
 
-    sql_query_t   update_user;
-
-    sql_query_t   insert_userfiles;
-
-    sql_query_t   insert_session;
-    sql_query_t   select_session;
-
+    //sql_query_t   update_user;
     sql_query_t   insert_remember_token;
     sql_query_t   select_remember_token;
     sql_query_t   update_remember_token;

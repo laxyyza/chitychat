@@ -73,11 +73,11 @@ server_ws_handle_text_frame(eworker_t* ew,
         return RECV_DISCONNECT;
     }
 
-    if (client->dbuser)
-    {
-        if ((error_msg = server_user_rate_limit_check(client->dbuser)))
-            goto send_error;
-    }
+    // if (client->dbuser)
+    // {
+    //     if ((error_msg = server_user_rate_limit_check(client->dbuser)))
+    //         goto send_error;
+    // }
 
     cmd_json = json_object_object_get(payload, "cmd");
     if (json_bad(cmd_json, json_type_string))
