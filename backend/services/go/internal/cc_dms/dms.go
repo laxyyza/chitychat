@@ -15,13 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type DMs struct {
-	SqlSelectDMs string
-	SqlInsertMsg string
-	SqlSelectMsgs string
-}
-
-func selectChannelID(s* service.Service[DMs], user1ID uint32, user2ID uint32) (uint32, error) {
+func selectChannelID(s* service.Service, user1ID uint32, user2ID uint32) (uint32, error) {
 	var channelID uint32
 	row := s.Db.Conn.QueryRow(context.Background(),
 				"SELECT channel_id FROM DirectMessages WHERE LEAST(user1_id, user2_id) = LEAST($1::int, $2::int) AND GREATEST(user1_id, user2_id) = GREATEST($1::int, $2::int);",
@@ -32,8 +26,8 @@ func selectChannelID(s* service.Service[DMs], user1ID uint32, user2ID uint32) (u
 	return channelID, err
 }
 
-func GetDMs(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse {
-	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.SqlSelectDMs, req.UserID)
+func GetDMs(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	rows, err := s.Db.Conn.Query(context.Background(), s.Db.SQL["select_dms"], req.UserID)
 	if err != nil {
 		fmt.Printf("%s %s: Failed: %s\n", req.Method, req.Path, err)
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
@@ -71,16 +65,16 @@ func getMsgPathUserID(path string) (uint32, error) {
 	}
 }
 
-func selectMessages(s* service.Service[DMs], channelID uint32, limit uint32, offset uint32) ([]interface{}, error) {
+func selectMessages(s* service.Service, channelID uint32, limit uint32, offset uint32) ([]interface{}, error) {
 	var msgsJson []interface{}
-	row := s.Db.Conn.QueryRow(context.Background(), s.UserData.SqlSelectMsgs, 
+	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["select_msgs_json"], 
 		channelID, limit, offset)
 	err := row.Scan(&msgsJson)
 
 	return msgsJson, err
 }
 
-func GetMessages(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse {
+func GetMessages(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	targetUserID, err := getMsgPathUserID(req.Path)
 	var limit uint32 = 10
 	var offset uint32
@@ -121,7 +115,7 @@ func GetMessages(s* service.Service[DMs], req* mq.HTTPRequest) *mq.HTTPResponse 
 	}) 
 }
 
-func MsgUser(s* service.Service[DMs], srcUserID uint32, payload map[string]any) error {
+func MsgUser(s* service.Service, srcUserID uint32, payload map[string]any) error {
 	// content := payload["content"].(string)
 	targetUserID := uint32(payload["user_id"].(float64))
 	// var msg = msg.Message{UserID: srcUserID, Content: content, Attachments: []string{}, ChannelType: "DM"}
@@ -162,7 +156,7 @@ func MsgUser(s* service.Service[DMs], srcUserID uint32, payload map[string]any) 
 	}
 
 	var pgTime pgtype.Timestamp
-	row = s.Db.Conn.QueryRow(context.Background(), s.UserData.SqlInsertMsg, 
+	row = s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["insert_msg"], 
 			srcUserID, msg.ChannelID, msg.Content, msg.Attachments)
 	err = row.Scan(&msg.MsgID, &pgTime)
 	if err != nil {

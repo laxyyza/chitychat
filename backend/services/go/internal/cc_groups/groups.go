@@ -18,9 +18,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type GroupsData struct {
-}
-
 type CreateGroupData struct {
 	Name string 		`json:"name"`
 	Desc string 		`json:"desc"`
@@ -89,7 +86,7 @@ func mapToStructAddMembers(m map[string]interface{}, out* AddGroupMembersData) e
 	return nil
 }
 
-func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func getGroups(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	rows, err := s.Db.Conn.Query(context.Background(), s.Db.SQL["select_user_groups"], req.UserID)
 	if err != nil {
 		fmt.Printf("SelectUserGroups: %v\n", err)
@@ -117,7 +114,7 @@ func getGroups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResp
 	})
 }
 
-func insertGroupMembers(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint32, userIDs []uint32) *mq.HTTPResponse {
+func insertGroupMembers(s* service.Service, req* mq.HTTPRequest, groupID uint32, userIDs []uint32) *mq.HTTPResponse {
 	rows := make([][]interface{}, len(userIDs))
 	for i, userID := range userIDs {
 		rows[i] = []interface{}{userID, groupID}
@@ -147,7 +144,7 @@ func insertGroupMembers(s* service.Service[GroupsData], req* mq.HTTPRequest, gro
 	})
 }
 
-func getInvalidUserIDs(s* service.Service[GroupsData], data* CreateGroupData, ownerID uint32) []uint32 {
+func getInvalidUserIDs(s* service.Service, data* CreateGroupData, ownerID uint32) []uint32 {
 	rows, err := s.Db.Conn.Query(context.Background(), s.Db.SQL["select_invalid_user_ids"], data.UserIDs)
 	if err != nil {
 		fmt.Printf("SelectInvalidUserIDs: %v\n", err)
@@ -172,7 +169,7 @@ func getInvalidUserIDs(s* service.Service[GroupsData], data* CreateGroupData, ow
 	return invalidUserIDs
 }
 
-func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func createGroup(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	ownerID:= req.UserID
 	var data CreateGroupData
 	err := mapToStructCreateGroup(req.Body, &data)
@@ -228,7 +225,7 @@ func createGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	return resp
 }
 
-func Groups(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func Groups(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	switch req.Method {
 	case "GET":
 		return getGroups(s, req)
@@ -254,7 +251,7 @@ func getGroupIDPath(path string) (uint32, error) {
 	}
 }
 
-func getGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
+func getGroup(s* service.Service, req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
 	var group Group
 	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["select_group"], groupID, req.UserID)
 	var createdAt pgtype.Timestamp
@@ -273,7 +270,7 @@ func getGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint3
 	})
 }
 
-func deleteGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
+func deleteGroup(s* service.Service, req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
 	tag, err := s.Db.Conn.Exec(context.Background(), s.Db.SQL["delete_group"], groupID, req.UserID)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
@@ -288,7 +285,7 @@ func deleteGroup(s* service.Service[GroupsData], req* mq.HTTPRequest, groupID ui
 	return mq.NewResponse(req, http.StatusUnauthorized, nil)
 }
 
-func SingleGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func SingleGroup(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
@@ -306,7 +303,7 @@ func SingleGroup(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	}
 }
 
-func broadcastMsg(s* service.Service[GroupsData], message msg.Message, groupID uint32) {
+func broadcastMsg(s* service.Service, message msg.Message, groupID uint32) {
 	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM GroupMembers WHERE group_id = $1::int;", groupID)
 	if err != nil {
 		fmt.Printf("broadcastMsg: %v\n", err)
@@ -333,7 +330,7 @@ func broadcastMsg(s* service.Service[GroupsData], message msg.Message, groupID u
 	}
 }
 
-func MsgGroup(s* service.Service[GroupsData], srcUserID uint32, payload map[string]any) error {
+func MsgGroup(s* service.Service, srcUserID uint32, payload map[string]any) error {
 	msg, err := msg.FromUser(srcUserID, payload, msg.Group)
 	if err != nil {
 		fmt.Printf("msg.FromUser: %v\n", err)
@@ -359,7 +356,7 @@ func MsgGroup(s* service.Service[GroupsData], srcUserID uint32, payload map[stri
 	return nil
 }
 
-func GetMessages(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func GetMessages(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path);
 	if err != nil {
 		fmt.Printf("getGroupIDPath: %v\n", err)
@@ -400,7 +397,7 @@ func GetMessages(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRe
 	}) 
 }
 
-func getMemberIDsJson(s* service.Service[GroupsData], memberIDs* []uint32, groupID uint32) error {
+func getMemberIDsJson(s* service.Service, memberIDs* []uint32, groupID uint32) error {
 	var jsonIDs []any
 	row := s.Db.Conn.QueryRow(context.Background(), selectGroupMembersJson, groupID)
 	err := row.Scan(&jsonIDs)
@@ -417,7 +414,7 @@ func getMemberIDsJson(s* service.Service[GroupsData], memberIDs* []uint32, group
 	return err
 }
 
-func AddMembers(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func AddMembers(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path);
 	if err != nil {
 		fmt.Printf("getGroupIDPath: %v\n", err)
@@ -490,7 +487,7 @@ func AddMembers(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPRes
 	})
 }
 
-func getGroupMembers(s* service.Service[GroupsData], groupID uint32) ([]uint32, error) {
+func getGroupMembers(s* service.Service, groupID uint32) ([]uint32, error) {
 	var memberIDs []uint32 = make([]uint32, 0)
 	rows, err := s.Db.Conn.Query(context.Background(), selectGroupMembers, groupID)
 	if err != nil {
@@ -506,7 +503,7 @@ func getGroupMembers(s* service.Service[GroupsData], groupID uint32) ([]uint32, 
 	return memberIDs, nil
 }
 
-func DelMemberME(s* service.Service[GroupsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func DelMemberME(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path);
 	if err != nil {
 		fmt.Printf("getGroupIDPath: %v\n", err)

@@ -8,40 +8,24 @@ import (
 )
 
 func main() {
-	bservice, err := service.New(cc_dms.DMs{})
+	bservice, err := service.New()
 	if err != nil {
 		fmt.Printf("Failed to create service: %s\n", err)
 		os.Exit(-1)
 	}
 
-	data, err := os.ReadFile("backend/sql/select_dms.sql")
-	if err != nil {
-		fmt.Printf("Failed to read file: %s\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.SqlSelectDMs = string(data)
+	bservice.Db.LoadSQLFiles([]string{
+		"select_dms",
+		"insert_msg",
+		"select_msgs_json",
+	})
 
-	data, err = os.ReadFile("backend/sql/insert_msg.sql")
-	if err != nil {
-		fmt.Printf("Failed to read file: %s\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.SqlInsertMsg = string(data)
-
-	data, err = os.ReadFile("backend/sql/select_msgs_json.sql")
-	if err != nil {
-		fmt.Printf("Failed to read file: %s\n", err)
-		os.Exit(-1)
-	}
-	bservice.UserData.SqlSelectMsgs = string(data)
-
-
-	err = bservice.Register(service.PathMap[cc_dms.DMs]{
-		"/api/dms": service.CallbackAllow[cc_dms.DMs]{
+	err = bservice.Register(service.PathMap{
+		"/api/dms": service.CallbackAllow{
 			Callback: cc_dms.GetDMs,
 			Allow: []string{"GET"},
 		},
-		"/api/dms/*": service.CallbackAllow[cc_dms.DMs]{
+		"/api/dms/*": service.CallbackAllow{
 			Callback: cc_dms.GetMessages,
 			Allow: []string{"GET"},
 		},
@@ -50,7 +34,7 @@ func main() {
 		fmt.Printf("Register: %s\n", err)
 		os.Exit(-1)
 	}
-	err = bservice.WSCmdRegister(service.CmdMap[cc_dms.DMs]{
+	err = bservice.WSCmdRegister(service.CmdMap{
 		"msg_user": cc_dms.MsgUser,
 	})
 	if err != nil {

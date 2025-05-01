@@ -1,7 +1,7 @@
 package service
 
 import (
-	"backend/services/go/internal/db"
+	"backend/services/go/internal/db" 
 	"backend/services/go/internal/mq"
 	"fmt"
 	"os"
@@ -10,26 +10,25 @@ import (
 	"path/filepath"
 )
 
-type CallbackAllow[T any] struct {
-	Callback FuncPathHandler[T]
+type CallbackAllow struct {
+	Callback FuncPathHandler
 	Allow []string
 }
 
-type FuncPathHandler[T any] func(*Service[T], *mq.HTTPRequest) *mq.HTTPResponse
-type PathMap[T any] map[string]CallbackAllow[T]
-type CmdMap[T any] map[string]func(*Service[T], uint32, map[string]any) error
+type FuncPathHandler func(*Service, *mq.HTTPRequest) *mq.HTTPResponse
+type PathMap map[string]CallbackAllow
+type CmdMap map[string]func(*Service, uint32, map[string]any) error
 
-type Service[T any] struct {
+type Service struct {
 	Mq mq.MQ
 	Db db.DB
 	name string
-	UserData T
-	paths PathMap[T]
+	paths PathMap
 }
 
-func New[T any](userData T) (*Service[T], error) {
+func New() (*Service, error) {
 	var err error
-	service := Service[T]{UserData: userData}
+	service := Service{}
 
 	exePath, err := os.Executable()
 	if err != nil {
@@ -50,7 +49,7 @@ func New[T any](userData T) (*Service[T], error) {
 	return &service, nil
 }
 
-func (s* Service[T]) Register(paths PathMap[T]) error {
+func (s* Service) Register(paths PathMap) error {
 	for path, route := range paths {
 		s.Mq.BindHTTP(path, route.Allow, func (req* mq.HTTPRequest) (*mq.HTTPResponse) {
 			return route.Callback(s, req)
@@ -60,7 +59,7 @@ func (s* Service[T]) Register(paths PathMap[T]) error {
 }
 
 // WebSocket Command Register
-func (s* Service[T]) WSCmdRegister(cmds CmdMap[T]) error {
+func (s* Service) WSCmdRegister(cmds CmdMap) error {
 	for cmd, callback := range cmds {
 		s.Mq.BindWSCMD(cmd, func(srcUserID uint32, payload map[string]any) error {
 			return callback(s, srcUserID, payload)
@@ -69,7 +68,7 @@ func (s* Service[T]) WSCmdRegister(cmds CmdMap[T]) error {
 	return nil
 }
 
-func (s* Service[T]) Run() {
+func (s* Service) Run() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigChan

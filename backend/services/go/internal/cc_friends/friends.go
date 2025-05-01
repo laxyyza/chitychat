@@ -10,15 +10,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type FriendsData struct {
-	Sql_select_friends string
-}
-
 // Get friends
-func GetFriends(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func GetFriends(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	fmt.Println("friends(): ", req)
 
-	rows, err := s.Db.Conn.Query(context.Background(), s.UserData.Sql_select_friends, req.UserID)
+	rows, err := s.Db.Conn.Query(context.Background(), s.Db.SQL["select_friends"], req.UserID)
 	if err != nil {
 		fmt.Printf("Query: %v\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
@@ -38,7 +34,7 @@ func GetFriends(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPRe
 }
 
 // Send friend request 
-func FriendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func FriendRequest(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	var username string = req.Body["username"].(string)
 	var userID uint32
 
@@ -83,7 +79,7 @@ func FriendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTT
 	})
 }
 
-func actionFriendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest, status string) *mq.HTTPResponse {
+func actionFriendRequest(s* service.Service, req* mq.HTTPRequest, status string) *mq.HTTPResponse {
 	sourceUserID := req.UserID
 
 	targetUserIDf64, ok := req.Body["user_id"].(float64)
@@ -132,7 +128,7 @@ func actionFriendRequest(s* service.Service[FriendsData], req* mq.HTTPRequest, s
 	})
 }
 
-func postFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func postFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	fmt.Println(req)
 	switch action := req.Body["action"]; action {
 	case "accept": 
@@ -146,7 +142,7 @@ func postFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *m
 	}
 }
 
-func getFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func getFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	var userID uint32 = req.UserID
 
 	rows, err := s.Db.Conn.Query(context.Background(),
@@ -171,7 +167,7 @@ func getFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq
 }
 
 // Get friend requests.
-func FriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func FriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	if (req.Method == "GET") {
 		return getFriendRequests(s, req)
 	} else if (req.Method == "POST") {
@@ -182,7 +178,7 @@ func FriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HT
 }
 
 // Get outgoing friend requests.
-func getOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func getOutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	sourceUserID := req.UserID
 
 	rows, err := s.Db.Conn.Query(context.Background(), 
@@ -207,7 +203,7 @@ func getOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequ
 	})
 }
 
-func deleteOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func deleteOutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	sourceUserID := req.UserID
 	targetUserIDf64 := req.Body["user_id"].(float64)
 	targetUserID := uint32(targetUserIDf64)
@@ -239,7 +235,7 @@ func deleteOutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPR
 	})
 }
 
-func OutgoingFriendRequests(s* service.Service[FriendsData], req* mq.HTTPRequest) *mq.HTTPResponse {
+func OutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	if req.Method == "GET" {
 		return getOutgoingFriendRequests(s, req)
 	} else if (req.Method == "DELETE") {

@@ -10,34 +10,30 @@ import (
 
 
 func main() {
-	bservice, err := service.New(cc_friends.FriendsData{})
+	bservice, err := service.New()
 	if err != nil {
 		fmt.Printf("Creating service: %v\n", err)
 		os.Exit(-1)
 	}
 
-	data, err := os.ReadFile("backend/sql/select_friends.sql")
-	if err != nil {
-		fmt.Printf("ReadFile: %v\n", err)
-		os.Exit(-1)
-	}
+	bservice.Db.LoadSQLFiles([]string{
+		"select_friends",
+	})
 
-	bservice.UserData.Sql_select_friends = string(data)
-
-	err = bservice.Register(service.PathMap[cc_friends.FriendsData]{
-		"/api/friends": service.CallbackAllow[cc_friends.FriendsData]{
+	err = bservice.Register(service.PathMap{
+		"/api/friends": service.CallbackAllow{
 			Callback: cc_friends.GetFriends, 
 			Allow: []string{"GET"},
 		},
-		"/api/friends/requests": service.CallbackAllow[cc_friends.FriendsData]{
+		"/api/friends/requests": service.CallbackAllow{
 			Callback: cc_friends.FriendRequests,
 			Allow: []string{"GET", "POST"},
 		},
-		"/api/friend-request": service.CallbackAllow[cc_friends.FriendsData]{
+		"/api/friend-request": service.CallbackAllow{
 			Callback: cc_friends.FriendRequest,
 			Allow: []string{"POST"},
 		},
-		"/api/friends/requests/outgoing": service.CallbackAllow[cc_friends.FriendsData]{
+		"/api/friends/requests/outgoing": service.CallbackAllow{
 			Callback: cc_friends.OutgoingFriendRequests,
 			Allow: []string{"GET", "DELETE"},
 		},

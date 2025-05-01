@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	bservice, err := service.New(cc_groups.GroupsData{})
+	bservice, err := service.New()
 	if err != nil {
 		fmt.Printf("Creating service: %v\n", err);
 		os.Exit(-1)
@@ -28,24 +28,24 @@ func main() {
 		os.Exit(-1)
 	}
 
-	err = bservice.Register(service.PathMap[cc_groups.GroupsData]{
-		"/api/groups": service.CallbackAllow[cc_groups.GroupsData]{
+	err = bservice.Register(service.PathMap{
+		"/api/groups": service.CallbackAllow{
 			Callback: cc_groups.Groups,
 			Allow: []string{"GET", "POST"},
 		},
-		"/api/groups/*": service.CallbackAllow[cc_groups.GroupsData]{
+		"/api/groups/*": service.CallbackAllow{
 			Callback: cc_groups.SingleGroup,
 			Allow: []string{"GET", "DELETE"},
 		},
-		"/api/groups/*/messages": service.CallbackAllow[cc_groups.GroupsData]{
+		"/api/groups/*/messages": service.CallbackAllow{
 			Callback: cc_groups.GetMessages,
 			Allow: []string{"GET"},
 		},
-		"/api/groups/*/members": service.CallbackAllow[cc_groups.GroupsData]{
+		"/api/groups/*/members": service.CallbackAllow{
 			Callback: cc_groups.AddMembers,
 			Allow: []string{"POST"},
 		},
-		"/api/groups/*/members/me": service.CallbackAllow[cc_groups.GroupsData]{
+		"/api/groups/*/members/me": service.CallbackAllow{
 			Callback: cc_groups.DelMemberME,
 			Allow: []string{"DELETE"},
 		},
@@ -55,7 +55,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	err = bservice.WSCmdRegister(service.CmdMap[cc_groups.GroupsData]{
+	err = bservice.WSCmdRegister(service.CmdMap{
 		"msg_group": cc_groups.MsgGroup,
 	})
 
