@@ -8,17 +8,22 @@ import (
 	"net/http"
 )
 
+type CreateHubRequest struct {
+	Name string `json:"name"`
+}
+
 const insertHub = "INSERT INTO Hubs(owner_id, name) VALUES ($1::int, $2::text) RETURNING hub_id;"
 const insertCategory = "INSERT INTO HubCategories(hub_id, name, position) VALUES ($1::int, $2::text, $3::int) RETURNING category_id;"
 const insertChannel = "INSERT INTO HubChannels(hub_id, category_id, name, position) VALUES ($1::int, $2::int, $3::text, $4::int) RETURNING channel_id;"
 
+// HTTP POST /api/hubs
 func createHub(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	var hubID uint32 
 	var categoryID uint32 
-	name, ok := req.Body["name"].(string)
-	if !ok {
-		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
-			"error": "Invalid 'name'",
+	reqData, err := service.MapToStruct[CreateHubRequest](req.Body)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]any{
+			"error": err.Error(),
 		})
 	}
 
@@ -28,7 +33,7 @@ func createHub(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
 	}
 
-	row := tx.QueryRow(context.Background(), insertHub, req.UserID, name)
+	row := tx.QueryRow(context.Background(), insertHub, req.UserID, reqData.Name)
 	err = row.Scan(&hubID)
 	if err != nil {
 		log.Printf("INSERT HUB: %v\n", err)

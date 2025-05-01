@@ -10,7 +10,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// Get friends
+type UserIDStruct struct {
+	UserID uint32 	`json:"user_id"`
+}
+
+// HTTP GET /api/friends
 func GetFriends(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	fmt.Println("friends(): ", req)
 
@@ -33,7 +37,7 @@ func GetFriends(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	})
 }
 
-// Send friend request 
+// HTTP POST /api/friend-request
 func FriendRequest(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	var username string = req.Body["username"].(string)
 	var userID uint32
@@ -128,8 +132,8 @@ func actionFriendRequest(s* service.Service, req* mq.HTTPRequest, status string)
 	})
 }
 
+// HTTP POST /api/friends/requests
 func postFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
-	fmt.Println(req)
 	switch action := req.Body["action"]; action {
 	case "accept": 
 		return actionFriendRequest(s, req, "ACCEPTED")
@@ -142,6 +146,7 @@ func postFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPRespons
 	}
 }
 
+// HTTP GET /api/friends/requests
 func getFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	var userID uint32 = req.UserID
 
@@ -166,18 +171,19 @@ func getFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse
 	})
 }
 
-// Get friend requests.
+// HTTP GET|POST /api/friends/requests
 func FriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
-	if (req.Method == "GET") {
+	switch (req.Method) {
+	case "GET":
 		return getFriendRequests(s, req)
-	} else if (req.Method == "POST") {
+	case "POST":
 		return postFriendRequests(s, req)
-	} else {
-		return nil
+	default:
+		return mq.NewResponse(req, http.StatusMethodNotAllowed, nil)
 	}
 }
 
-// Get outgoing friend requests.
+// HTTP GET /api/friends/requests/outgoing
 func getOutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	sourceUserID := req.UserID
 
@@ -203,12 +209,19 @@ func getOutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTP
 	})
 }
 
+// HTTP DELETE /api/friends/requests/outgoing
 func deleteOutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	sourceUserID := req.UserID
-	targetUserIDf64 := req.Body["user_id"].(float64)
-	targetUserID := uint32(targetUserIDf64)
 
-	_, err := s.Db.Conn.Exec(context.Background(), 
+	data, err := service.MapToStruct[UserIDStruct](req.Body)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+	targetUserID := data.UserID
+
+	_, err = s.Db.Conn.Exec(context.Background(), 
 								"DELETE FROM Friendships WHERE source_user_id = $1::int AND target_user_id = $2::int AND status = 'PENDING';",
 								sourceUserID, targetUserID)
 	if err != nil {
@@ -235,12 +248,14 @@ func deleteOutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.H
 	})
 }
 
+// HTTP GET|DELETE /api/friends/requests/outgoing
 func OutgoingFriendRequests(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
-	if req.Method == "GET" {
+	switch (req.Method) {
+	case "GET":
 		return getOutgoingFriendRequests(s, req)
-	} else if (req.Method == "DELETE") {
+	case "DELETE":
 		return deleteOutgoingFriendRequests(s, req)
-	} else {
-		return nil
+	default:
+		return mq.NewResponse(req,http.StatusMethodNotAllowed, nil)
 	}
 }

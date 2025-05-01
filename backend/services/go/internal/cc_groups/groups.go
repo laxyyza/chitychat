@@ -45,47 +45,6 @@ const selectGroupMembers = "SELECT user_id FROM GroupMembers WHERE group_id = $1
 const selectGroupMembersJson = "SELECT json_agg(user_id) FROM GroupMembers WHERE group_id = $1::int;"
 const deleteGroupMember = "DELETE FROM GroupMembers WHERE group_id = $1::int AND user_id = $2::int;"
 
-func mapToStruct(m map[string]interface{}, out any) error {
-    b, err := json.Marshal(m)
-    if err != nil {
-        return err
-    }
-	err = json.Unmarshal(b, out)
-	if err != nil {
-		return err
-	}
-	return err
-}
-
-func mapToStructCreateGroup(m map[string]interface{}, out* CreateGroupData) error {
-	err := mapToStruct(m, out)
-	if err != nil {
-		return err
-	}
-
-	if out.Name == "" {
-		return fmt.Errorf("invalid 'name'")
-	}
-	if len(out.UserIDs) == 0 {
-		return fmt.Errorf("invalid 'user_ids'")
-	}
-
-	return nil
-}
-
-func mapToStructAddMembers(m map[string]interface{}, out* AddGroupMembersData) error {
-	err := mapToStruct(m, out)
-	if err != nil {
-		return err
-	}
-
-	if (len(out.UserIDs) == 0) {
-		return fmt.Errorf("invalid 'user_ids'")
-	}
-
-	return nil
-}
-
 func getGroups(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	rows, err := s.Db.Conn.Query(context.Background(), s.Db.SQL["select_user_groups"], req.UserID)
 	if err != nil {
@@ -169,17 +128,17 @@ func getInvalidUserIDs(s* service.Service, data* CreateGroupData, ownerID uint32
 	return invalidUserIDs
 }
 
+// HTTP POST /api/groups
 func createGroup(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	ownerID:= req.UserID
-	var data CreateGroupData
-	err := mapToStructCreateGroup(req.Body, &data)
+	data, err := service.MapToStruct[CreateGroupData](req.Body)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusInternalServerError, &map[string]interface{}{
 			"error": err.Error(),
 		})
 	}
 
-	invalidUserIDs := getInvalidUserIDs(s, &data, ownerID)
+	invalidUserIDs := getInvalidUserIDs(s, data, ownerID)
 	if len(invalidUserIDs) > 0 {
 		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
 			"error": "Invalid User IDs",
@@ -225,6 +184,7 @@ func createGroup(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	return resp
 }
 
+// HTTP GET|POST /api/groups
 func Groups(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	switch req.Method {
 	case "GET":
@@ -251,6 +211,7 @@ func getGroupIDPath(path string) (uint32, error) {
 	}
 }
 
+// HTTP GET /api/groups/:group_id
 func getGroup(s* service.Service, req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
 	var group Group
 	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["select_group"], groupID, req.UserID)
@@ -270,6 +231,7 @@ func getGroup(s* service.Service, req* mq.HTTPRequest, groupID uint32) *mq.HTTPR
 	})
 }
 
+// HTTP DELETE /api/groups/:group_id
 func deleteGroup(s* service.Service, req* mq.HTTPRequest, groupID uint32) *mq.HTTPResponse {
 	tag, err := s.Db.Conn.Exec(context.Background(), s.Db.SQL["delete_group"], groupID, req.UserID)
 	if err != nil {
@@ -285,6 +247,7 @@ func deleteGroup(s* service.Service, req* mq.HTTPRequest, groupID uint32) *mq.HT
 	return mq.NewResponse(req, http.StatusUnauthorized, nil)
 }
 
+// HTTP GET|DELETE /api/groups/:group_id
 func SingleGroup(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path)
 	if err != nil {
@@ -356,6 +319,7 @@ func MsgGroup(s* service.Service, srcUserID uint32, payload map[string]any) erro
 	return nil
 }
 
+// HTTP GET /api/groups/:group_id/messages
 func GetMessages(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path);
 	if err != nil {
@@ -414,6 +378,7 @@ func getMemberIDsJson(s* service.Service, memberIDs* []uint32, groupID uint32) e
 	return err
 }
 
+// HTTP POST /api/groups/:group_id/members
 func AddMembers(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path);
 	if err != nil {
@@ -422,8 +387,7 @@ func AddMembers(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 			"error": "invalid group ID in path",
 		})
 	}
-	var data AddGroupMembersData
-	err = mapToStructAddMembers(req.Body, &data)
+	data, err := service.MapToStruct[AddGroupMembersData](req.Body)
 	if err != nil {
 		return mq.NewResponse(req, http.StatusBadRequest, &map[string]interface{}{
 			"error": err.Error(),
@@ -503,6 +467,7 @@ func getGroupMembers(s* service.Service, groupID uint32) ([]uint32, error) {
 	return memberIDs, nil
 }
 
+// HTTP DELETE /api/groups/:group_id/members/me
 func DelMemberME(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	groupID, err := getGroupIDPath(req.Path);
 	if err != nil {
