@@ -1,13 +1,14 @@
 package service
 
 import (
-	"backend/services/go/internal/db" 
+	"backend/services/go/internal/db"
 	"backend/services/go/internal/mq"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
-	"syscall"
 	"path/filepath"
+	"syscall"
 )
 
 type CallbackAllow struct {
@@ -26,6 +27,11 @@ type Service struct {
 	paths PathMap
 }
 
+func setupLog(name string) {
+	log.SetPrefix(name + ": ")
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
+
 func New() (*Service, error) {
 	var err error
 	service := Service{}
@@ -35,6 +41,7 @@ func New() (*Service, error) {
 		return nil, err
 	}
 	service.name = filepath.Base(exePath)
+	setupLog(service.name)
 
 	service.Mq, err = mq.New(service.name)
 	if err != nil {

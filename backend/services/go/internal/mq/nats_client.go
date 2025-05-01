@@ -2,6 +2,7 @@ package mq
 
 import (
 	"encoding/json"
+	"log"
 	"fmt"
 	"strings"
 
@@ -44,7 +45,7 @@ func toRequest(m* nats.Msg) (*HTTPRequest) {
 	var req HTTPRequest
 	err := json.Unmarshal(m.Data, &req)
 	if err != nil {
-		fmt.Printf("json.Unmarshal failed: %s\n", err)
+		log.Printf("json.Unmarshal failed: %s\n", err)
 		return nil
 	}
 
@@ -57,7 +58,7 @@ func New(queueName string) (MQ, error) {
 
 	mq.conn, err = nats.Connect(nats.DefaultURL)
 	if err != nil {
-		fmt.Printf("Failed to connect to NATS server: %s\n", err)
+		log.Printf("Failed to connect to NATS server: %s\n", err)
 		return MQ{}, err
 	}
 
@@ -69,7 +70,7 @@ func (mq* MQ) BindHTTP(endpoint string, methods []string, callback SubCallbackTy
 
 	for _, method := range methods {
 		var subject string = natsEndpoint + "." + method
-		fmt.Printf("SUB %s\n", subject)
+		log.Printf("SUB %s\n", subject)
 
 		mq.conn.QueueSubscribe(subject, mq.httpQueueName, func (m* nats.Msg) {
 			req := toRequest(m)
@@ -84,7 +85,7 @@ func (mq* MQ) BindHTTP(endpoint string, methods []string, callback SubCallbackTy
 
 			data, err := json.Marshal(resp)
 			if err != nil {
-				fmt.Printf("json.Marshal failed: %s\n", err)
+				log.Printf("json.Marshal failed: %s\n", err)
 				return
 			}
 			m.Respond(data)
@@ -95,12 +96,12 @@ func (mq* MQ) BindHTTP(endpoint string, methods []string, callback SubCallbackTy
 func (mq* MQ) BindWSCMD(cmd string, callback WSCallbackType) {
 	var natsSubject = "ws.cmd." + cmd
 
-	fmt.Printf("SUB %s\n", natsSubject)
+	log.Printf("SUB %s\n", natsSubject)
 	mq.conn.QueueSubscribe(natsSubject, mq.wsQueueName, func(m* nats.Msg) {
 		var req WSRequest
 		err := json.Unmarshal(m.Data, &req)
 		if err != nil {
-			fmt.Printf("ws: json.Unmarshal: %s\n", err)
+			log.Printf("ws: json.Unmarshal: %s\n", err)
 			return
 		}
 
@@ -120,7 +121,7 @@ func NewResponse(req* HTTPRequest, status int, body* map[string]interface{}) *HT
 func (mq* MQ) UserEvent(userID uint32, event map[string]interface{}) {
 	data, err := json.Marshal(event)
 	if err != nil {
-		fmt.Printf("RealTimeEvent json.Marshal failed: %s\n", err)
+		log.Printf("RealTimeEvent json.Marshal failed: %s\n", err)
 		return
 	}
 
