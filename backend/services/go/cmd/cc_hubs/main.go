@@ -15,6 +15,7 @@ func main() {
 	err = bservice.Db.LoadSQLFiles([]string{
 		"select_user_hubs_json",
 		"select_hub_detailed_json",
+		"select_roles_channel_id",
 	})
 	if err != nil {
 		log.Panic("LoadSQLFiles: ", err)

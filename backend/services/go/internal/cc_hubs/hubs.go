@@ -2,6 +2,7 @@ package cc_hubs
 
 import (
 	"backend/services/go/internal/mq"
+	"backend/services/go/internal/msg"
 	"backend/services/go/internal/service"
 	"context"
 	"fmt"
@@ -9,6 +10,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"encoding/json"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CreateHubRequest struct {
@@ -130,4 +134,82 @@ func GetHub(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 
 	return mq.NewResponse(req, http.StatusOK, &hub)
+}
+
+func mapGetUint32(payload map[string]any, fieldName string) (uint32, error) {
+	uint32f64, ok := payload[fieldName].(float64)
+	if !ok {
+		return 0, fmt.Errorf("invalid '%s'", fieldName)
+	}
+	return uint32(uint32f64), nil
+}
+
+func checkPermissions(s* service.Service, userID uint32, hubID uint32, channelID uint32) error {
+	var roles any // User ID roles.
+	var channelSettings any // Channel Settings.
+	row := s.Db.QueryRow("select_roles_channel_id", hubID, userID, channelID)
+	if err := row.Scan(&roles, &channelSettings); err != nil {
+		return err
+	}
+
+	// TODO: if roles and channel settings are implemented.
+
+	return nil
+}
+
+func broadcastMsg(s* service.Service, message msg.Message, hubID uint32) {
+	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM HubMembers WHERE hub_id = $1::int;", hubID)
+	if err != nil {
+		fmt.Printf("broadcastMsg: %v\n", err)
+		return
+	}
+
+	jsonData, err := json.Marshal(&message)
+	if err != nil {
+		fmt.Printf("broadcastMsg json: %v\n", err)
+		return
+	}
+	var eventCMD map[string]any
+	_ = json.Unmarshal(jsonData,&eventCMD) 
+	eventCMD["cmd"] = "msg_group"
+	eventCMD["hub_id"] = hubID
+	
+	delete(eventCMD, "channel_type")
+
+	for rows.Next() {
+		var memberID uint32
+		rows.Scan(&memberID)
+
+		s.Mq.UserEvent(memberID, eventCMD)
+	}
+}
+
+func MsgHub(s* service.Service, srcUserID uint32, payload map[string]any) error {
+	message, err := msg.FromUser(srcUserID, payload, msg.Hub)
+	if err != nil {
+		log.Printf("MsgHub msg.FromUser: %v\n", err)
+		return nil
+	}
+	hubID, err := mapGetUint32(payload, "hub_id")
+	if err != nil {
+		log.Printf("MsgHub: %v\n", err)
+		return nil
+	}
+	if err := checkPermissions(s, srcUserID, hubID, message.ChannelID); err != nil {
+		log.Printf("checkPermissions for USER_ID=%d HUB_ID=%d CHANNEL_ID=%d: %v\n",
+			srcUserID, hubID, message.ChannelID, err)
+		return nil
+	}
+
+	var timestamp pgtype.Timestamp
+	row := s.Db.QueryRow("insert_hub_msg", srcUserID, message.ChannelID, message.Content)
+	if err := row.Scan(&message.MsgID, &timestamp); err != nil {
+		log.Printf("Ainsert_hub_msg: %v\n", err)
+		return nil
+	}
+	message.Timestamp = timestamp.Time.String()
+
+	broadcastMsg(s, message, hubID)
+
+	return nil
 }
