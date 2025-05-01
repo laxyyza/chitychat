@@ -11,11 +11,10 @@ interface Props {
     ref: React.RefObject<HTMLButtonElement | null>;
     dmchat: DMChat;
     name: string;
-    show: boolean;
     setShow: (show: boolean) => void;
 }
 
-const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
+const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
     const { app } = useApp();
     var leaveGroup = false;
     var block = false;
@@ -33,6 +32,8 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
         setShowAddFriends(false);
         setShowLeaveGroup(false);
     };
+
+    console.log("DMChatMenu\n");
 
     useDismissTrigger(menuRef, () => {
         if (popupRef.current === null) {
@@ -59,10 +60,6 @@ const DMChatMenu = ({ dmchat, name, show, setShow }: Props) => {
     //         document.removeEventListener('mousedown', handleMouseEvent);
     //     }
     // }, []);
-
-    if (!show) {
-        return null;
-    }
 
     if (dmchat.chat instanceof Group) {
         if (dmchat.chat.owner_id === app.login_user.id) {

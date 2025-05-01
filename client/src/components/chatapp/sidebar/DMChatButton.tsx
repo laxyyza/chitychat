@@ -70,7 +70,7 @@ const DMChatButton = ({ dmchat, onClick, selected, children }: Props) => {
                     </div>
                 </div>
             </button>
-            {dmchat?.chat && <DMChatMenu ref={ref} name={name || ''} dmchat={dmchat} show={show} setShow={setShow} />}
+            {dmchat?.chat && show && <DMChatMenu ref={ref} name={name || ''} dmchat={dmchat} setShow={setShow} />}
         </>
     );
 };
