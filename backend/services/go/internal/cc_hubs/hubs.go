@@ -112,6 +112,8 @@ func Hubs(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 }
 
+// HTTP GET /api/hubs/:hub_id
+// -- Gets detailed info about that specific hub.
 func GetHub(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	hubID, err := getHubIDPath(req.Path)
 	if err != nil {
@@ -121,7 +123,7 @@ func GetHub(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 
 	var hub map[string]any
-	row := s.Db.QueryRow("select_hub_detailed_json", hubID)
+	row := s.Db.QueryRow("select_hub_detailed_json", hubID, req.UserID)
 	if err := row.Scan(&hub); err != nil {
 		log.Printf("select_hub_detailed_json (hub_id: %d): %v\n", hubID, err)
 		return mq.NewResponse(req, http.StatusBadRequest, nil)

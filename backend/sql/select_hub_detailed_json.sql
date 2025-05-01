@@ -26,5 +26,6 @@ FROM (
     ) AS categories
 
     FROM Hubs h 
-    WHERE h.hub_id = $1::int
+    JOIN HubMembers hm ON hm.hub_id = h.hub_id
+    WHERE h.hub_id = $1::int AND hm.user_id = $2::int
 ) AS hub_data;
