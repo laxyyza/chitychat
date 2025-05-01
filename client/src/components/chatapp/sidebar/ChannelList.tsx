@@ -1,100 +1,35 @@
-import { useEffect, useState } from 'react';
-import { useApp, Action } from '../AppProvider';
-import { Hub, Category } from '../../../models/hub';
-import { Channel } from '../../../models/channel';
-
-interface CategoryProp {
-    category: Category;
-}
-
-interface ChannelProp {
-    channel: Channel | undefined;
-}
-
-const ChannelComponent = ({ channel }: ChannelProp) => {
-    if (channel === undefined) return null;
-
-    const { app, dispatch } = useApp();
-
-    useEffect(() => {
-        const hub = app.hubs.get(app.currentHubID);
-        dispatch({
-            type: Action.SELECT_CHANNEL,
-            payload: hub ? hub.channelIDs[hub.channelIDIndex] : -1
-        });
-    }, [app.currentHubID]);
-
-    return (
-        <div
-            onClick={() => {
-                const hub = app.hubs.get(app.currentHubID);
-                if (hub) {
-                    hub.channelIDIndex =
-                        hub.channelIDs.findIndex((id) => id === channel.id) ||
-                        0;
-                }
-                dispatch({ type: Action.SELECT_CHANNEL, payload: channel.id });
-            }}
-            className={`hover:bg-gray-400 pl-2 pr-2 m-1 rounded-xl select-none ${
-                app.currentChannelID === channel.id ? 'bg-gray-500' : ''
-            }`}
-        >
-            {channel.name}
-        </div>
-    );
-};
-
-const CategoryComponent = ({ category }: CategoryProp) => {
-    const [open, setOpen] = useState(true);
-    const { app } = useApp();
-
-    return (
-        <>
-            <div
-                onClick={() => setOpen(!open)}
-                className="cursor-pointer select-none hover:bg-gray-400"
-            >
-                {open ? '▼' : '▶'} {category.name}
-            </div>
-
-            {open && (
-                <ul>
-                    {category.channelIDs.map((channelID) => (
-                        <li key={channelID}>
-                            <ChannelComponent
-                                channel={app.textChannels.get(channelID)}
-                            />
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </>
-    );
-};
+import { useEffect } from "react";
+import { Action, useApp } from "../AppProvider";
+import HubCategory from "./HubCategory";
+import fetchData from "../../../services/api";
+import { HubDetailedData } from "../../../models/hub";
 
 const ChannelList = () => {
-    const { app } = useApp();
-    let hub: Hub | undefined = app.hubs.get(app.currentHubID);
-    const [categories, setCategories] = useState<Category[] | null>(null);
+    const { app, dispatch } = useApp();
+    const hub = app.hubs.get(app.currentHubID);
+    const categories = Array.from(hub?.categories || [])
+        .sort((a, b) => a.position - b.position);
 
     useEffect(() => {
-        hub = app.hubs.get(app.currentHubID);
-        setCategories(hub ? hub.categories : null);
-    }, [app.currentChannelID, app.currentHubID]);
+        if (hub?.detailedLoaded === false) {
+            fetchData(`/api/hubs/${hub.id}`)
+                .then((json) => {
+                    const hubData: HubDetailedData = json;
+                    dispatch({
+                        type: Action.ADD_DETAILED_HUB,
+                        payload: hubData,
+                    });
+                })
+        }
+    }, [hub]);
 
     return (
         <>
-            {categories &&
-                Array.from(categories.entries()).map(
-                    ([id, category]) =>
-                        hub && (
-                            <li key={id}>
-                                <CategoryComponent
-                                    category={category}
-                                ></CategoryComponent>
-                            </li>
-                        )
-                )}
+            {categories.map((category => (
+                <li key={category.category_id}>
+                    <HubCategory category={category}/>
+                </li>
+            )))}
         </>
     );
 };

@@ -20,11 +20,18 @@ const Member = (user?: User) => {
 };
 
 const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
-    const group = app.dm.get(app.currentDMID)?.getGroup();
-    if (!group) return [];
+    let memberIDs: number[] = [];
+
+    if (app.currentHubID === -1) {
+        const group = app.dm.get(app.currentDMID)?.getGroup();
+        memberIDs = Array.from(group?.memberIDs || []);
+    } else {
+        const hub = app.hubs.get(app.currentHubID);
+        memberIDs = Array.from(hub?.memberIDs || []);
+    }
     const donthaveIDs: number[] = []
 
-    group.memberIDs.forEach((id) => {
+    memberIDs.forEach((id) => {
         if (!app.users.has(id)) {
             donthaveIDs.push(id);
         }
@@ -37,7 +44,7 @@ const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
         })
     }
 
-    return Array.from(group.memberIDs);
+    return memberIDs;
 };
 
 const MemberList = () => {

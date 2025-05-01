@@ -8,6 +8,7 @@ import websocketClient from './services/websocketClient';
 import useWebsocket from './components/WebSocket';
 import handleWebsocketMessage from './hooks/useWebsocket';
 import fetchData from './services/api';
+import { HubBasicData } from './models/hub';
 
 const loadAppData = (app: App, send: (msg: any) => void, dispatch: React.Dispatch<DispatchAction>) => {
     send({ cmd: "client_user_info" });
@@ -54,13 +55,15 @@ const loadAppData = (app: App, send: (msg: any) => void, dispatch: React.Dispatc
             });
         });
 
-    // if (process.env.NODE_ENV !== 'development') {
-    //     websocketClient.onStateChange((state: string) => {
-    //         if (state === 'error' || state === 'close') {
-    //             navigate('/login');
-    //         }
-    //     });
-    // }
+    fetchData('/api/hubs')
+        .then((json) => {
+            const basicData: HubBasicData[] = json.hubs;
+
+            dispatch({
+                type: Action.ADD_BASIC_HUBS,
+                payload: basicData
+            })
+        })
 
     return () => websocketClient.onStateChange(undefined);
 };

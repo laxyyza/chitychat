@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import User from './User';
-import { Hub } from '../../models/hub';
-import { TextChannel, ChannelType } from '../../models/channel';
+import { Hub, HubBasicData, HubDetailedData } from '../../models/hub';
+import { TextChannel } from '../../models/channel';
 import Message from '../../models/message';
 import Group, { GroupProps } from '../../models/group';
 import { DM, DMChat } from '../../models/dm';
@@ -36,7 +36,6 @@ enum Action {
     SET_LOGIN_USER,
     SELECT_CHANNEL,
     ADD_MSG,
-    ADD_HUB,
     ADD_USER,
     ADD_GROUPS,
     RECONNECT,
@@ -52,6 +51,8 @@ enum Action {
     ADD_DM_MSGS,
     ADD_GROUP_MEMBERS,
     DEL_GROUP_MEMBER,
+    ADD_BASIC_HUBS,
+    ADD_DETAILED_HUB,
 }
 
 export type DispatchAction =
@@ -62,12 +63,13 @@ export type DispatchAction =
     | { type: Action.ADD_USER; payload: User }
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_DM_MSGS; payload: {dmID: string, messages: Message[]} }
-    | { type: Action.ADD_HUB; payload: string }
     | { type: Action.ADD_GROUPS; payload: GroupProps[] }
     | { type: Action.ADD_DMS; payload: DMChat[] }
     | { type: Action.DEL_DM; payload: string }
     | { type: Action.ADD_GROUP_MEMBERS; payload: {groupID: number, IDs: number[] } }
     | { type: Action.DEL_GROUP_MEMBER; payload: {groupID: number, userID: number } }
+    | { type: Action.ADD_BASIC_HUBS; payload: HubBasicData[] }
+    | { type: Action.ADD_DETAILED_HUB; payload: HubDetailedData }
     | {
           type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
           payload: number;
@@ -144,66 +146,6 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 users: new Map(state.users).set(user.id, user)
             };
         }
-        // case Action.ADD_MSG: {
-        //     const msg = action.payload;
-        //     if (msg.channel_type === 'hub') {
-        //         const newTextChannels = new Map(
-        //             [...state.textChannels].map(([id, channel]) => {
-        //                 if (channel.id === msg.channel_id) {
-        //                     return [
-        //                         id,
-        //                         {
-        //                             ...channel,
-        //                             messages: [...channel.messages, msg]
-        //                         }
-        //                     ];
-        //                 }
-        //                 return [id, channel];
-        //             })
-        //         );
-        //         return { ...state, textChannels: newTextChannels };
-        //     } else if (msg.channel_type === 'group' || msg.channel_type === "dm") {
-        //         const newDMs: Map<string, DMChat> = new Map(
-        //             [...state.dm].map(([id, chat]) => {
-        //                 if (chat.chat instanceof Group) {
-        //                     return [
-        //                         id,
-        //                         new DMChat(Group.fromAddMessage(chat.chat, msg))
-        //                     ];
-        //                 } 
-        //             })
-        //         );
-        //         // [...state.dm].map(([id, group]) => {
-        //         //     if (msg.channel_id === id) {
-        //         //         return [id, Group.fromAddMessage(group, msg)];
-        //         //     }
-        //         //     return [id, group];
-        //         // })
-        //         return { ...state, dm: newDMs };
-        //     }
-        //
-        //     return { ...state };
-        // }
-        case Action.ADD_HUB: {
-            const hubID = state.hubs.size;
-            const channelID = state.textChannels.size;
-            return {
-                ...state,
-                textChannels: new Map(state.textChannels).set(channelID, {
-                    id: channelID,
-                    hub_id: hubID,
-                    name: 'General',
-                    messages: [],
-                    type: ChannelType.TEXT
-                }),
-                hubs: new Map(state.hubs).set(
-                    hubID,
-                    new Hub(hubID, state.login_user.id, action.payload, null, [
-                        channelID
-                    ])
-                )
-            };
-        }
         case Action.ADD_GROUPS: {
             const newDMs = new Map(state.dm);
             const groups = action.payload;
@@ -228,24 +170,6 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 dm: newDMs
             };
         }
-        // case Action.LOAD_GROUP_MSGS: {
-        //     const dmchat = state.dm.get(
-        //         DMChat.GroupID(action.payload.group_id)
-        //     );
-        //     if (dmchat && dmchat.chat instanceof Group) {
-        //         return {
-        //             ...state,
-        //             dm: new Map(state.dm).set(
-        //                 dmchat.id,
-        //                 new DMChat(
-        //                     Group.loadMessages(dmchat.chat, action.payload.msgs),
-        //
-        //                 )
-        //             )
-        //         };
-        //     }
-        //     return state;
-        // }
         case Action.ADD_FRIENDS: {
             const newSet = new Set(state.friendIDs);
             action.payload.forEach((id) => {
@@ -333,6 +257,25 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 ...state,
                 dm: newDMs
             };
+        }
+        case Action.ADD_BASIC_HUBS: {
+            const newHubs = new Map(state.hubs);
+            action.payload.forEach((hubData) => {
+                newHubs.set(hubData.hub_id, new Hub(hubData));
+            })
+            return {
+                ...state,
+                hubs: newHubs
+            }
+        }
+        case Action.ADD_DETAILED_HUB: {
+            const data = action.payload;
+            const newHubs = new Map(state.hubs);
+            newHubs.set(data.hub_id, Hub.fromDetailedData(data))
+            return {
+                ...state,
+                hubs: newHubs
+            }
         }
         default:
             return state;
