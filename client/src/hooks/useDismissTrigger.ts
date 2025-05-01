@@ -8,8 +8,6 @@ const useDismissTrigger = (ref: React.RefObject<HTMLDivElement | null>, callback
 
         const handleMouseEvent = (e: globalThis.MouseEvent) => {
             if (!ref.current?.contains(e.target as Node)) {
-                e.stopPropagation();
-                e.preventDefault();
                 callback();
             }
         };

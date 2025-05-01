@@ -7,11 +7,33 @@ import AddGroupMembers from "./AddGroupMembers";
 import useDismissTrigger from "../../../hooks/useDismissTrigger";
 import ConfirmLeaveGroup from "./ConfirmLeaveGroup";
 
+type ModalType = "DELETE_GROUP" | "ADD_FRIENDS" | "LEAVE_GROUP" | null;
+
 interface Props {
     ref: React.RefObject<HTMLButtonElement | null>;
     dmchat: DMChat;
     name: string;
     setShow: (show: boolean) => void;
+}
+
+interface RenderModalProps {
+    ref: React.RefObject<HTMLDivElement | null>;
+    dmchat: DMChat;
+    onClose: () => void;
+    modalType: ModalType;
+};
+
+const RenderModal = ({ref, dmchat, onClose, modalType}: RenderModalProps) => {
+    switch (modalType) {
+        case "DELETE_GROUP":
+            return <ConfirmDeleteGroup ref={ref} dmchat={dmchat} onClose={onClose}/>
+        case "ADD_FRIENDS":
+            return <AddGroupMembers ref={ref} dmchat={dmchat} onClose={onClose}/>
+        case "LEAVE_GROUP":
+            return <ConfirmLeaveGroup ref={ref} dmchat={dmchat} onClose={onClose}/>
+        default:
+            return null;
+    }
 }
 
 const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
@@ -20,46 +42,20 @@ const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
     var block = false;
     var deleteGroup = false;
     var addFriends = false;
-    const [showDeleteGroup, setShowDeleteGroup] = useState(false);
-    const [showAddFriends, setShowAddFriends] = useState(false);
-    const [showLeaveGroup, setShowLeaveGroup] = useState(false);
+    const [modalType, setModalType] = useState<ModalType>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const popupRef = useRef<HTMLDivElement | null>(null);
 
     const escape = () => {
         setShow(false);
-        setShowDeleteGroup(false);
-        setShowAddFriends(false);
-        setShowLeaveGroup(false);
+        setModalType(null);
     };
-
-    console.log("DMChatMenu\n");
 
     useDismissTrigger(menuRef, () => {
         if (popupRef.current === null) {
             escape();
         }
     });
-
-    // useEffect(() => {
-    //     const handleKeyEvent = (event: globalThis.KeyboardEvent) => {
-    //         if (event.key == 'Escape') escape();
-    //     };
-    //
-    //     const handleMouseEvent = (e: globalThis.MouseEvent) => {
-    //         if (!menuRef.current?.contains(e.target as Node) && !popupRef.current?.contains(e.target as Node)) {
-    //             escape();
-    //         }
-    //     };
-    //
-    //     document.addEventListener('keydown', handleKeyEvent);
-    //     document.addEventListener('mousedown', handleMouseEvent)
-    //
-    //     return () => {
-    //         document.removeEventListener('keydown', handleKeyEvent);
-    //         document.removeEventListener('mousedown', handleMouseEvent);
-    //     }
-    // }, []);
 
     if (dmchat.chat instanceof Group) {
         if (dmchat.chat.owner_id === app.login_user.id) {
@@ -81,8 +77,7 @@ const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
                         {addFriends &&
                             <button className='border-gray-600 border-1 p-1 mb-1 w-full rounded-xl hover:bg-gray-600'
                                 onClick={() => {
-                                    // TODO: Implement
-                                    setShowAddFriends(true);
+                                    setModalType("ADD_FRIENDS");
                                 }}>
                                 Add Friends
                             </button>}
@@ -90,8 +85,7 @@ const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
                         {leaveGroup &&
                             <button className='border-[#FF000077] border-1 p-1 mb-1 w-full rounded-xl bg-[#FF000011] hover:bg-[#FF000044]'
                                 onClick={() => {
-                                    setShowLeaveGroup(true);
-                                    // TODO: Implement
+                                    setModalType("LEAVE_GROUP");
                                 }}>
                                 Leave Group
                             </button>}
@@ -106,22 +100,14 @@ const DMChatMenu = ({ dmchat, name, setShow }: Props) => {
                             <button className='border-[#FF000077] border-1 p-1 w-full rounded-xl bg-[#FF000011] hover:bg-[#FF000044] active:bg-[#FF000088]'
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setShowDeleteGroup(true);
+                                    setModalType("DELETE_GROUP");
                                 }}>
                                 Delete Group
                             </button>}
                     </div>
                 </div>
             </div>
-            {showDeleteGroup && (
-                <ConfirmDeleteGroup ref={popupRef} dmchat={dmchat} onClose={escape}/>
-            )}
-            {showAddFriends && (
-                <AddGroupMembers ref={popupRef} dmchat={dmchat} onClose={escape}/>
-            )}
-            {showLeaveGroup && (
-                <ConfirmLeaveGroup ref={popupRef} dmchat={dmchat} onClose={escape}/>
-            )}
+            <RenderModal ref={popupRef} dmchat={dmchat} onClose={escape} modalType={modalType}/>
         </>
     );
 };
