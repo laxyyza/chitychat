@@ -3,6 +3,7 @@ import { Action, App, DispatchAction } from '../components/chatapp/AppProvider';
 import { DM, DMChat } from '../models/dm';
 import Message from '../models/message';
 import { fetchGroup } from '../services/groupApi';
+import { HubMessageData } from '../models/hub';
 
 const getDMChat = (packet: any, app: App, dispatch: React.Dispatch<DispatchAction>): DMChat | undefined => {
     const isUs = packet.user_id === app.login_user.id;
@@ -54,6 +55,14 @@ const cmdMsgUser = (packet: any, app: App, dispatch: React.Dispatch<DispatchActi
         })
     }
 };
+
+const cmdMsgHub = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
+    const msg: HubMessageData = packet;
+    dispatch({
+        type: Action.ADD_HUB_MSG,
+        payload: msg
+    })
+}
 
 const cmdMsgGroup = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
     const msg: Message = {
@@ -167,6 +176,9 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
             break;
         case 'del_group_member':
             cmdDelGroupMember(packet, app, dispatch);
+            break;
+        case 'msg_hub': 
+            cmdMsgHub(packet, dispatch);
             break;
     }
 };

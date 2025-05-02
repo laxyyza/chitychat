@@ -14,8 +14,6 @@ const HubCategory = ({ category }: Props) => {
     const channels = Array.from(category.channels.values()).sort((a, b) => a.position - b.position);
     const selectedChannel = channels.find((channel) => channel.id === hub?.selectedChannelID);
 
-    console.log("category: ", category);
-
     return (
         <>
             <div

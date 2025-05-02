@@ -47,6 +47,8 @@ export interface HubMessageData {
     content: string;
     attachments: any;
     timestamp: string;
+    hub_id: number;
+    channel_id: number;
 }
 
 export interface CategoryData {
@@ -186,6 +188,27 @@ class Hub {
 
         return newHub;
     }
+
+    static fromMessage(hub: Hub, msg: HubMessageData): Hub {
+        const newHub = hub.clone();
+
+        newHub.categories.forEach((cat) => {
+            const channel = cat.channels.get(msg.channel_id);
+            if (channel) {
+                channel.messages.set(msg.msg_id, {
+                    id: msg.msg_id,
+                    user_id: msg.user_id,
+                    channel_id: msg.channel_id,
+                    content: msg.content,
+                    timestamp: msg.timestamp,
+                    channel_type: 'hub',
+                    attachments: msg.attachments
+                })
+            }
+        });
+        return newHub;
+    }
+    
 }
 
 export { Hub };

@@ -1,6 +1,6 @@
 import { IoAddCircleOutline } from 'react-icons/io5';
 import React, { useState, useRef } from 'react';
-import { useApp } from './AppProvider';
+import { appGetFocusHub, useApp } from './AppProvider';
 import { DM } from '../../models/dm';
 import useWebsocket from '../WebSocket';
 import Group from '../../models/group';
@@ -87,37 +87,18 @@ const Input = ({
                 })
             }
         } else if (app.focus.type === "hub") {
-            console.log("IMPLEMENT 'msg_hub'!")
+            const hub = appGetFocusHub(app);
+            if (hub) {
+                send({
+                    cmd: 'msg_hub',
+                    hub_id: hub.id,
+                    channel_id: hub.selectedChannelID,
+                    content: message,
+                    attachments: []
+                })
+            }
         }
 
-        // const channel_type = app.currentHubID === -1 ? 'group' : 'hub';
-        // const channel_id =
-        //     channel_type === 'hub' ? app.currentChannelID : app.currentDMID;
-
-        // if (channel_type === 'hub') {
-        //     setCounter(counter + 1);
-        //     dispatch({
-        //         type: Action.ADD_MSG,
-        //         payload: {
-        //             id: counter,
-        //             user_id: app.login_user.id,
-        //             channel_id: channel_id,
-        //             channel_type: channel_type,
-        //             content: message,
-        //             attachments: [],
-        //             timestamp: '<timestamp>'
-        //         }
-        //     });
-        // } else {
-        //     send({
-        //         cmd: 'group_msg',
-        //         group_id: channel_id,
-        //         content: message,
-        //         attachments: []
-        //     });
-        // }
-
-        console.log('Sent:', message);
         setMessage(''); // Clear input after sending
         if (textareaRef.current) textareaRef.current.value = '';
         adjustHeight(); // Reset height

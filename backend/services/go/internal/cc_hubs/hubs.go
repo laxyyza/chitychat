@@ -241,6 +241,12 @@ func MsgHub(s* service.Service, srcUserID uint32, payload map[string]any) error 
 		log.Printf("MsgHub msg.FromUser: %v\n", err)
 		return nil
 	}
+	message.ChannelID, err = mapGetUint32(payload, "channel_id")
+	if err != nil {
+		log.Printf("Invalid 'channel_id'")
+		return nil
+	}
+
 	hubID, err := mapGetUint32(payload, "hub_id")
 	if err != nil {
 		log.Printf("MsgHub: %v\n", err)
