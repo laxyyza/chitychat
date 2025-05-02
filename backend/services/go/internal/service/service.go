@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"syscall"
 )
@@ -127,4 +128,16 @@ func MapToStruct[T any](m map[string]any) (*T, error) {
 	}
 
 	return &result, nil
+}
+
+func GetParamUint32(params map[string]string, name string, default_val uint32) uint32 {
+	ret := default_val
+	str, ok := params[name]
+	if ok {
+		num, err := strconv.ParseUint(str, 10, 32)
+		if err == nil {
+			ret = uint32(num)
+		}
+	}
+	return ret
 }

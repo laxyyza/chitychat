@@ -38,6 +38,27 @@ func getHubIDPath(path string) (uint32, error) {
 	}
 }
 
+// Returns Hub ID and Channel ID from path 
+func getHubIDChannelIDPath(path string) (uint32, uint32, error) {
+	split := strings.Split(path[1:], "/")
+	// e.g. HTTP GET /api/hubs/69/channels/420/messasges = ["api", "hubs", "69", "channels", "420", "messages"]
+	
+	if len(split) >= 5 {
+		groupIDString := split[2]
+		groupID, err := strconv.ParseUint(groupIDString, 10, 32)
+		if err != nil {
+			return 0, 0, err
+		}
+
+		channelIDString := split[4]
+		channelID, err := strconv.ParseUint(channelIDString, 10, 32)
+
+		return uint32(groupID), uint32(channelID), err
+	} else {
+		return 0, 0, fmt.Errorf("invalid path")
+	}
+}
+
 // HTTP POST /api/hubs
 func createHub(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	var hubID uint32 
@@ -136,6 +157,38 @@ func GetHub(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	return mq.NewResponse(req, http.StatusOK, &hub)
 }
 
+// HTTP GET /api/hubs/:hub_id/channels/:channel_id/messages
+// 	params: 
+//		- limit
+//		- offset
+func GetChannelMessages(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	limit := service.GetParamUint32(req.Params, "limit", 10)
+	offset := service.GetParamUint32(req.Params, "offset", 0)
+	hubID, channelID, err := getHubIDChannelIDPath(req.Path)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+
+	var msgsJson []any = make([]any, 0)
+	row := s.Db.QueryRow("select_hub_msgs_json", 
+		hubID, req.UserID, channelID, limit, offset)
+	err = row.Scan(&msgsJson)
+	if err != nil {
+		log.Printf("select_hub_msgs_json: USER_ID=%d, HUB_ID=%d, CHANNEL_ID=%d: %v\n",
+			req.UserID, hubID, channelID, err)
+		return mq.NewResponse(req, http.StatusUnauthorized, nil)
+	}
+	if len(msgsJson) == 0 {
+		return mq.NewResponse(req, http.StatusNoContent, nil)
+	}
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"messages": msgsJson,
+	})
+}
+
 func mapGetUint32(payload map[string]any, fieldName string) (uint32, error) {
 	uint32f64, ok := payload[fieldName].(float64)
 	if !ok {
@@ -158,7 +211,7 @@ func checkPermissions(s* service.Service, userID uint32, hubID uint32, channelID
 }
 
 func broadcastMsg(s* service.Service, message msg.Message, hubID uint32) {
-	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM HubMembers WHERE hub_id = $1::int;", hubID)
+	rows, err := s.Db.Query("SELECT user_id FROM HubMembers WHERE hub_id = $1::int;", hubID)
 	if err != nil {
 		fmt.Printf("broadcastMsg: %v\n", err)
 		return
@@ -171,7 +224,7 @@ func broadcastMsg(s* service.Service, message msg.Message, hubID uint32) {
 	}
 	var eventCMD map[string]any
 	_ = json.Unmarshal(jsonData,&eventCMD) 
-	eventCMD["cmd"] = "msg_group"
+	eventCMD["cmd"] = "msg_hub"
 	eventCMD["hub_id"] = hubID
 	
 	delete(eventCMD, "channel_type")
@@ -204,7 +257,7 @@ func MsgHub(s* service.Service, srcUserID uint32, payload map[string]any) error 
 	var timestamp pgtype.Timestamp
 	row := s.Db.QueryRow("insert_hub_msg", srcUserID, message.ChannelID, message.Content)
 	if err := row.Scan(&message.MsgID, &timestamp); err != nil {
-		log.Printf("Ainsert_hub_msg: %v\n", err)
+		log.Printf("insert_hub_msg: %v\n", err)
 		return nil
 	}
 	message.Timestamp = timestamp.Time.String()
