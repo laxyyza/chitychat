@@ -7,7 +7,7 @@ const ContentSideBar = () => {
 
     return (
         <div className="flex-1 bg-gray-900 text-white p-1">
-            {app.currentHubID === -1 ? <DMList /> : <ChannelList />}
+            {app.focus.type === "hub" ? <ChannelList /> : <DMList />}
         </div>
     );
 };

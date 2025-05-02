@@ -2,7 +2,7 @@ import Input from './Input';
 import ChatWindow from './ChatWindow';
 import { App, useApp } from './AppProvider';
 import FriendList from './FriendList';
-import { DM } from '../../models/dm';
+import Group from '../../models/group';
 
 interface HeaderBarProp {
     name: string;
@@ -15,32 +15,26 @@ const HeaderBar = ({ name }: HeaderBarProp) => {
 };
 
 const getContentName = (app: App): string => {
-    var channelName: string = '';
-    if (app.currentChannelID !== -1) {
-        const hub = app.hubs.get(app.currentHubID);
-        if (hub) {
-            const channel = app.textChannels.get(app.currentChannelID);
-            if (channel) {
-                channelName = channel.name;
-            } else {
-                channelName = hub.name;
+    switch (app.focus.type) {
+        case "friends":
+            return "Friends List";
+        case "hub": {
+            const hub = app.hubs.get(app.focus.hubID);
+            if (hub) {
+                return hub.name;
             }
+            return "";
+        }
+        case "dm": {
+            const dmchat = app.dm.get(app.focus.dmid);
+            if (dmchat) {
+                if (dmchat.chat instanceof Group) {
+                    return dmchat.chat.name;
+                }
+            }
+            return "";
         }
     }
-    if (app.currentDMID === 'friends') channelName = 'Friends List';
-    else {
-        const dmchat = app.dm.get(app.currentDMID);
-        if (dmchat?.chat instanceof DM) {
-            const user = app.users.get(dmchat.chat.targetUserID);
-            if (user) {
-                channelName = user.displayname;
-            }
-        } else if (dmchat) {
-            channelName = dmchat.chat.name;
-        }
-    }
-
-    return channelName;
 };
 
 const MainContent = () => {
@@ -50,7 +44,7 @@ const MainContent = () => {
     return (
         <div className="flex flex-col flex-1 h-screen bg-gray-800">
             <HeaderBar name={channelName}></HeaderBar>
-            {app.currentDMID === 'friends' ? <FriendList /> : <ChatWindow />}
+            {app.focus.type === 'friends' ? <FriendList /> : <ChatWindow />}
             <div className="bg-gray-900 m-3 rounded-2xl text-white max-h-[50%] overflow-auto border-gray-600 border-1 p-0.5">
                 <Input />
             </div>

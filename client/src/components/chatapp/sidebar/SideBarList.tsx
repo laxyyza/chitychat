@@ -19,10 +19,10 @@ const SideBarList = () => {
             <SideBarButton
                 ref={divref}
                 onClick={() => {
-                    dispatch({ type: Action.SELECT_HUB, payload: -1 });
+                    dispatch({ type: Action.SET_FOCUS, payload: {type: "friends"} });
                 }}
-                tooltip="Groups"
-                selected={app.currentHubID === -1}
+                tooltip="Direct Messages"
+                selected={app.focus.type !== "hub"}
                 pfp={logo}
             />
             <Divider />
@@ -33,13 +33,13 @@ const SideBarList = () => {
                         <SideBarButton
                             onClick={() => {
                                 dispatch({
-                                    type: Action.SELECT_HUB,
-                                    payload: hub.id
+                                    type: Action.SET_FOCUS,
+                                    payload: { type: "hub", hubID: hub.id }
                                 });
                             }}
                             tooltip={hub.name}
                             pfp={hub.pfp}
-                            selected={app.currentHubID === hub.id}
+                            selected={app.focus.type === "hub" && app.focus.hubID === hub.id}
                             name={hub.name}
                         />
                     </li>

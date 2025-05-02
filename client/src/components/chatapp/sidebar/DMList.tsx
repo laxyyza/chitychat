@@ -57,9 +57,9 @@ const DMList = () => {
     return (
         <div className='flex-col h-full'>
             <DMChatButton
-                selected={app.currentDMID === 'friends'}
+                selected={app.focus.type === 'friends'}
                 onClick={() =>
-                    dispatch({ type: Action.SELECT_DM, payload: 'friends' })
+                    dispatch({ type: Action.SET_FOCUS, payload: { type: "friends" } })
                 }
             >
                 <div className="flex items-center text-center justify-center">
@@ -75,12 +75,12 @@ const DMList = () => {
                     <li key={dmchat.id}>
                         <DMChatButton
                             dmchat={dmchat}
-                            selected={app.currentDMID === dmchat.id}
+                            selected={app.focus.type === "dm" && app.focus.dmid === dmchat.id}
                             dmlistRef={dmlistRef}
                             onClick={() =>
                                 dispatch({
-                                    type: Action.SELECT_DM,
-                                    payload: dmchat.id
+                                    type: Action.SET_FOCUS,
+                                    payload: { type: "dm", dmid: dmchat.id }
                                 })
                             }
                         />

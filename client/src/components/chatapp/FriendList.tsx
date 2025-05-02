@@ -27,16 +27,16 @@ interface FriendProp {
 }
 
 const Friend = ({ user }: FriendProp) => {
-    const {app, dispatch} = useApp();
+    const { app, dispatch } = useApp();
 
     const onClick = () => {
         const dmchat = app.dm.get("id-" + user.id);
         if (dmchat) {
-            dispatch({type: Action.SELECT_DM, payload: dmchat.id});
+            dispatch({ type: Action.SET_FOCUS, payload: { type: "dm", dmid: dmchat.id } });
         } else {
             const newDM = new DMChat(new DM(user.id), new Date().toISOString());
-            dispatch({type: Action.ADD_DMS, payload: [newDM]});
-            dispatch({type: Action.SELECT_DM, payload: newDM.id});
+            dispatch({ type: Action.ADD_DMS, payload: [newDM] });
+            dispatch({ type: Action.SET_FOCUS, payload: { type: "dm", dmid: newDM.id } });
         }
     };
 
@@ -57,7 +57,7 @@ const Friend = ({ user }: FriendProp) => {
 
 const PendingRequest = ({ user }: FriendProp) => {
     const deleteRequest = () => {
-        fetchData('/api/friends/requests/outgoing', 'DELETE', {user_id: user.id});
+        fetchData('/api/friends/requests/outgoing', 'DELETE', { user_id: user.id });
     }
 
     return (
@@ -81,7 +81,7 @@ const PendingRequest = ({ user }: FriendProp) => {
 
 const FriendRequest = ({ user }: FriendProp) => {
     const postRequest = (action: string) => {
-        fetchData('/api/friends/requests', 'POST', {user_id: user.id, action: action});
+        fetchData('/api/friends/requests', 'POST', { user_id: user.id, action: action });
     };
 
     return (

@@ -22,12 +22,14 @@ const Member = (user?: User) => {
 const getMemberIDs = (app: App, send: (data: any) => void): number[] => {
     let memberIDs: number[] = [];
 
-    if (app.currentHubID === -1) {
-        const group = app.dm.get(app.currentDMID)?.getGroup();
+    if (app.focus.type === "dm") {
+        const group = app.dm.get(app.focus.dmid)?.getGroup();
         memberIDs = Array.from(group?.memberIDs || []);
-    } else {
-        const hub = app.hubs.get(app.currentHubID);
+    } else if (app.focus.type === "hub") {
+        const hub = app.hubs.get(app.focus.hubID);
         memberIDs = Array.from(hub?.memberIDs || []);
+    } else {
+        return [];
     }
     const donthaveIDs: number[] = []
 
@@ -52,14 +54,14 @@ const MemberList = () => {
 
     const { send } = useWebsocket();
 
+    if (app.focus.type === "friends") return null;
+
     const memberIDs = getMemberIDs(app, send);
 
     return (
         <div className="relative max-h-screen w-60 bg-gray-900 overflow-auto border-l-gray-700 border-l-1">
             <div className="text-center text-white font-bold shadow-xl bg-gray-900">
-                {app.currentDMID === 'friends'
-                    ? app.friendIDs.size + ' friends'
-                    : memberIDs.length + ' members'}
+                {memberIDs.length + ' members'}
             </div>
             {memberIDs.map((member_id) => Member(app.users.get(member_id)))}
         </div>

@@ -1,17 +1,18 @@
 import { useState } from "react";
-import { CategoryData } from "../../../models/hub"
+import { Category } from "../../../models/hub"
 import HubChannel from "./HubChannel";
-import { useApp } from "../AppProvider";
 
 interface Props {
-    category: CategoryData;
+    category: Category;
 }
 
 const HubCategory = ({ category }: Props) => {
-    const { app } = useApp();
+    // const { app } = useApp();
     const [open, setOpen] = useState(true);
-    const channels = category.channels.sort((a, b) => a.position - b.position);
-    const selectedChannel = channels.find((channel) => channel.channel_id === app.currentChannelID);
+    const channels = Array.from(category.channels.values()).sort((a, b) => a.position - b.position);
+    //const selectedChannel = channels.find((channel) => channel.id === app.currentChannelID);
+
+    console.log("category: ", category);
 
     return (
         <>
@@ -25,15 +26,15 @@ const HubCategory = ({ category }: Props) => {
             {open && (
                 <ol>
                     {channels.map((channel) => (
-                        <li key={channel.channel_id}>
+                        <li key={channel.id}>
                             <HubChannel channel={channel}/>
                         </li>
                     ))}
                 </ol>
             )}
-            {!open && selectedChannel && (
-                <HubChannel channel={selectedChannel}/>
-            )}
+            {/* {!open && selectedChannel && ( */}
+            {/*     <HubChannel channel={selectedChannel}/> */}
+            {/* )} */}
         </>
     );
 }

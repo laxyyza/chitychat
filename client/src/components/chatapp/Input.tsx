@@ -37,6 +37,8 @@ const Input = ({
 
     const { send } = useWebsocket();
 
+    if (app.focus.type === "friends") return null;
+
     const adjustHeight = () => {
         const textarea = textareaRef.current;
         const div = divRef.current;
@@ -66,8 +68,8 @@ const Input = ({
     const sendMessage = () => {
         if (!message.trim()) return; // Prevent sending empty messages
 
-        if (app.currentDMID !== 'friends') {
-            const dmchat = app.dm.get(app.currentDMID);
+        if (app.focus.type === 'dm') {
+            const dmchat = app.dm.get(app.focus.dmid);
             if (!dmchat) return;
             if (dmchat.chat instanceof DM) {
                 send({
@@ -84,6 +86,8 @@ const Input = ({
                     attachments: []
                 })
             }
+        } else if (app.focus.type === "hub") {
+            console.log("IMPLEMENT 'msg_hub'!")
         }
 
         // const channel_type = app.currentHubID === -1 ? 'group' : 'hub';
@@ -118,13 +122,6 @@ const Input = ({
         if (textareaRef.current) textareaRef.current.value = '';
         adjustHeight(); // Reset height
     };
-
-    if (
-        !app.hubs.has(app.currentHubID) &&
-        !app.textChannels.has(app.currentChannelID) &&
-        !app.dm.get(app.currentDMID)
-    )
-        return null;
 
     return (
         <div className="relative h-10" ref={divRef}>

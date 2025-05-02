@@ -13,25 +13,30 @@ const requestChatMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAc
 const getMessages = (): Message[] => {
     const { app, dispatch } = useApp();
 
-    if (app.currentHubID !== -1) {
-        const channel = app.textChannels.get(app.currentChannelID);
-        if (channel) {
-            return channel.messages;
-        }
-    } else if (app.currentDMID !== 'friends') {
-        const dmchat = app.dm.get(app.currentDMID);
-        if (dmchat) {
-            const msgs = Array.from(dmchat.chat.messages.entries())
-                .map(([_, msg]) => {
-                    return msg;
-                })
-                .sort((a, b) => a.id - b.id);
+    switch (app.focus.type) {
+        case "dm": {
+            const dmchat = app.dm.get(app.focus.dmid);
+            if (dmchat) {
+                const msgs = Array.from(dmchat.chat.messages.entries())
+                    .map(([_, msg]) => {
+                        return msg;
+                    })
+                    .sort((a, b) => a.id - b.id);
 
-            if (msgs.length === 0 && dmchat.requestMsgs === false) {
-                requestChatMessages(dmchat, dispatch);
+                if (msgs.length === 0 && dmchat.requestMsgs === false) {
+                    requestChatMessages(dmchat, dispatch);
+                }
+
+                return msgs;
             }
-
-            return msgs;
+            break;
+        }
+        case "hub": {
+            const hub = app.hubs.get(app.focus.hubID);
+            if (hub) {
+                return hub.getMessages(dispatch);
+            }
+            break;
         }
     }
 
@@ -52,50 +57,20 @@ const ChatWindow = () => {
         appRef.current = app;
     }, [app]);
 
-    // useWebsocket((cmd, packet) => {
-    //     if (cmd === 'get_group_msgs') {
-    //         const packet_msgs: any[] = packet.messages;
-    //         const msgs: Message[] = packet_msgs.map((msg) => ({
-    //             id: msg.msg_id,
-    //             user_id: msg.user_id,
-    //             channel_id: msg.group_id,
-    //             channel_type: 'group',
-    //             content: msg.content,
-    //             attachments: msg.attachments,
-    //             timestamp: msg.timestamp
-    //         }));
-    //
-    //         dispatch({
-    //             type: Action.LOAD_GROUP_MSGS,
-    //             payload: { group_id: packet.group_id, msgs: msgs }
-    //         });
-    //     }
-    // });
-
-    function fetchMoreMessages(container: HTMLDivElement) {
+    const fetchMoreMessages = (container: HTMLDivElement) => {
         if (oldScroll === container.scrollHeight) {
             return;
         }
 
         setOldScroll(container.scrollHeight);
 
-
-        if (app.currentDMID !== 'friends') {
-            const dmchat = app.dm.get(app.currentDMID);
+        if (app.focus.type === "dm") {
+            const dmchat = app.dm.get(app.focus.dmid);
             dmchat?.fetchMessages(dispatch);
+        } else if (app.focus.type === "hub") {
+            // const hub = app.hubs.get(app.focus.hubID);
+            // hub?.fetchMessages(dispatch);
         }
-
-        // const group = appRef.current.groups.get(appRef.current.currentGroupID);
-        // console.log('fetch message for ', group);
-
-        // if (group && group.detailsLoaded) {
-        //     send({
-        //         cmd: 'get_group_msgs',
-        //         group_id: group.id,
-        //         limit: 10,
-        //         offset: group.msgOffset
-        //     });
-        // }
     }
 
     const handleScroll = () => {
@@ -141,13 +116,6 @@ const ChatWindow = () => {
             bottomRef.current?.scrollIntoView({ behavior: 'instant' });
         }
     }, [messages]);
-
-    // useEffect(() => {
-    //     const group = appRef.current.groups.get(appRef.current.currentGroupID);
-    //     if (group && group.scrollTop !== -1 && containerRef.current) {
-    //         containerRef.current.scrollTop = group.scrollTop;
-    //     }
-    // }, [app.currentGroupID]);
 
     return (
         <>

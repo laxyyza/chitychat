@@ -171,7 +171,7 @@ func GetChannelMessages(s* service.Service, req* mq.HTTPRequest) *mq.HTTPRespons
 		})
 	}
 
-	var msgsJson []any = make([]any, 0)
+	var msgsJson map[string]any = make(map[string]any)
 	row := s.Db.QueryRow("select_hub_msgs_json", 
 		hubID, req.UserID, channelID, limit, offset)
 	err = row.Scan(&msgsJson)
@@ -180,13 +180,11 @@ func GetChannelMessages(s* service.Service, req* mq.HTTPRequest) *mq.HTTPRespons
 			req.UserID, hubID, channelID, err)
 		return mq.NewResponse(req, http.StatusUnauthorized, nil)
 	}
-	if len(msgsJson) == 0 {
-		return mq.NewResponse(req, http.StatusNoContent, nil)
+	if msgsJson["messages"] == nil {
+		msgsJson["messages"] = []any{}
 	}
 
-	return mq.NewResponse(req, http.StatusOK, &map[string]any{
-		"messages": msgsJson,
-	})
+	return mq.NewResponse(req, http.StatusOK, &msgsJson)
 }
 
 func mapGetUint32(payload map[string]any, fieldName string) (uint32, error) {

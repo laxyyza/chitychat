@@ -3,7 +3,6 @@ import Message from "./message";
 interface BaseChannel {
     id: number;
     name: string;
-    hub_id: number;
 }
 
 enum ChannelType {

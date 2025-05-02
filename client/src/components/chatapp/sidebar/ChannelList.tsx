@@ -1,13 +1,13 @@
 import { useEffect } from "react";
-import { Action, useApp } from "../AppProvider";
+import { Action, appGetFocusHub, useApp } from "../AppProvider";
 import HubCategory from "./HubCategory";
 import fetchData from "../../../services/api";
 import { HubDetailedData } from "../../../models/hub";
 
 const ChannelList = () => {
     const { app, dispatch } = useApp();
-    const hub = app.hubs.get(app.currentHubID);
-    const categories = Array.from(hub?.categories || [])
+    const hub = appGetFocusHub(app);
+    const categories = Array.from(hub?.categories.values() || [])
         .sort((a, b) => a.position - b.position);
 
     useEffect(() => {
@@ -26,7 +26,7 @@ const ChannelList = () => {
     return (
         <>
             {categories.map((category => (
-                <li key={category.category_id}>
+                <li key={category.id}>
                     <HubCategory category={category}/>
                 </li>
             )))}

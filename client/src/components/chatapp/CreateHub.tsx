@@ -17,7 +17,7 @@ const CreateHub = ({ onClose }: Prop) => {
 
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
-        fetchData('/api/hubs', 'POST', 
+        fetchData('/api/hubs', 'POST',
             {
                 "name": hubName
             }).then((resp) => {
@@ -28,8 +28,8 @@ const CreateHub = ({ onClose }: Prop) => {
                         payload: hubData
                     });
                     dispatch({
-                        type: Action.SELECT_HUB,
-                        payload: hubID
+                        type: Action.SET_FOCUS,
+                        payload: { type: "hub", hubID: hubID }
                     });
                 })
             });

@@ -1,10 +1,15 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import User from './User';
-import { Hub, HubBasicData, HubDetailedData } from '../../models/hub';
+import { GetChannelMessagesData, Hub, HubBasicData, HubDetailedData, HubTextChannel } from '../../models/hub';
 import { TextChannel } from '../../models/channel';
 import Message from '../../models/message';
 import Group, { GroupProps } from '../../models/group';
 import { DM, DMChat } from '../../models/dm';
+
+type FocusState =
+    | { type: "hub"; hubID: number }
+    | { type: "dm"; dmid: string }
+    | { type: "friends" };
 
 export interface App {
     logged_in: boolean;
@@ -13,9 +18,7 @@ export interface App {
     hubs: Map<number, Hub>;
     textChannels: Map<number, TextChannel>;
     dm: Map<string, DMChat>;
-    currentHubID: number;
-    currentDMID: string;
-    currentChannelID: number;
+    focus: FocusState;
     friendIDs: Set<number>;
     friendRequests: Set<number>;
     pendingRequests: Set<number>;
@@ -31,10 +34,9 @@ interface AppContextProps {
 }
 
 enum Action {
-    SELECT_HUB,
-    SELECT_DM,
+    SET_FOCUS,
     SET_LOGIN_USER,
-    SELECT_CHANNEL,
+    SELECT_HUB_CHANNEL,
     ADD_MSG,
     ADD_USER,
     ADD_GROUPS,
@@ -53,38 +55,39 @@ enum Action {
     DEL_GROUP_MEMBER,
     ADD_BASIC_HUBS,
     ADD_DETAILED_HUB,
+    ADD_HUB_MSGS,
 }
 
 export type DispatchAction =
-    | { type: Action.SELECT_HUB; payload: number }
-    | { type: Action.SELECT_DM; payload: string }
-    | { type: Action.SELECT_CHANNEL; payload: number }
+    | { type: Action.SET_FOCUS; payload: FocusState }
     | { type: Action.SET_LOGIN_USER; payload: User }
+    | { type: Action.SELECT_HUB_CHANNEL; payload: {hub: Hub, channel: HubTextChannel } }
     | { type: Action.ADD_USER; payload: User }
     | { type: Action.ADD_MSG; payload: Message }
-    | { type: Action.ADD_DM_MSGS; payload: {dmID: string, messages: Message[]} }
+    | { type: Action.ADD_DM_MSGS; payload: { dmID: string, messages: Message[] } }
     | { type: Action.ADD_GROUPS; payload: GroupProps[] }
     | { type: Action.ADD_DMS; payload: DMChat[] }
     | { type: Action.DEL_DM; payload: string }
-    | { type: Action.ADD_GROUP_MEMBERS; payload: {groupID: number, IDs: number[] } }
-    | { type: Action.DEL_GROUP_MEMBER; payload: {groupID: number, userID: number } }
+    | { type: Action.ADD_GROUP_MEMBERS; payload: { groupID: number, IDs: number[] } }
+    | { type: Action.DEL_GROUP_MEMBER; payload: { groupID: number, userID: number } }
     | { type: Action.ADD_BASIC_HUBS; payload: HubBasicData[] }
     | { type: Action.ADD_DETAILED_HUB; payload: HubDetailedData }
+    | { type: Action.ADD_HUB_MSGS; payload: GetChannelMessagesData }
     | {
-          type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
-          payload: number;
-      }
+        type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
+        payload: number;
+    }
     | {
-          type:
-              | Action.ADD_FRIENDS
-              | Action.ADD_FRIEND_REQUESTS
-              | Action.ADD_PENDING_FRIEND_REQUESTS;
-          payload: number[];
-      }
+        type:
+        | Action.ADD_FRIENDS
+        | Action.ADD_FRIEND_REQUESTS
+        | Action.ADD_PENDING_FRIEND_REQUESTS;
+        payload: number[];
+    }
     | {
-          type: Action.LOAD_GROUP_MSGS;
-          payload: { group_id: number; msgs: Message[] };
-      };
+        type: Action.LOAD_GROUP_MSGS;
+        payload: { group_id: number; msgs: Message[] };
+    };
 
 const AppCtx = createContext<AppContextProps | undefined>(undefined);
 
@@ -108,35 +111,32 @@ const appReducer = (state: App, action: DispatchAction): App => {
                     dm: new Map(state.dm).set(dmchat.id, DMChat.From(dmchat, Group.loadMessages(dmchat.chat, action.payload.messages)))
                 };
             }
-            return {...state};
+            return { ...state };
         }
-        case Action.SELECT_HUB: {
-            const hub = state.hubs.get(action.payload);
-            if (hub) {
-                return {
-                    ...state,
-                    currentHubID: action.payload
-                };
-            }
+        case Action.SET_FOCUS: {
             return {
                 ...state,
-                currentHubID: action.payload
+                focus: action.payload
             };
         }
-        case Action.SELECT_DM: {
-            return {
-                ...state,
-                currentDMID: action.payload
-            };
-        }
-        case Action.SELECT_CHANNEL:
-            return { ...state, currentChannelID: action.payload };
         case Action.SET_LOGIN_USER: {
             const user = action.payload;
             return {
                 ...state,
                 login_user: user,
                 users: new Map(state.users).set(user.id, user)
+            };
+        }
+        case Action.SELECT_HUB_CHANNEL: {
+            const hub = action.payload.hub;
+            const channel = action.payload.channel;
+            const newHubs = new Map(state.hubs);
+            hub.selectedChannelID = channel.id;
+            hub.channelCategoryID = channel.categoryID;
+            newHubs.set(hub.id, hub);
+            return {
+                ...state,
+                hubs: newHubs
             };
         }
         case Action.ADD_USER: {
@@ -277,6 +277,18 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 hubs: newHubs
             }
         }
+        case Action.ADD_HUB_MSGS: {
+            const newHubs = new Map(state.hubs);
+            const hub = newHubs.get(action.payload.hub_id);
+            if (hub) {
+                const newHub = Hub.fromGetMessages(hub, action.payload);
+                newHubs.set(newHub.id, newHub);
+            }
+            return {
+                ...state,
+                hubs: newHubs
+            }
+        }
         default:
             return state;
     }
@@ -290,6 +302,16 @@ const useApp = (): AppContextProps => {
     }
 
     return ctx;
+};
+
+const appGetFocusHub = (app: App): Hub | undefined => {
+    if (app.focus.type !== "hub") return undefined;
+    return app.hubs.get(app.focus.hubID);
+};
+
+const appGetFocusDM = (app: App): DMChat | undefined => {
+    if (app.focus.type !== "dm") return undefined;
+    return app.dm.get(app.focus.dmid);
 };
 
 const AppProvider = ({ children }: Prop) => {
@@ -306,9 +328,7 @@ const AppProvider = ({ children }: Prop) => {
         users: new Map(),
         hubs: new Map(),
         textChannels: new Map(),
-        currentHubID: -1,
-        currentDMID: 'friends',
-        currentChannelID: -1,
+        focus: { type: "friends" },
         dm: new Map(),
         friendIDs: new Set<number>(),
         friendRequests: new Set<number>(),
@@ -322,4 +342,4 @@ const AppProvider = ({ children }: Prop) => {
     );
 };
 
-export { useApp, AppProvider, Action };
+export { useApp, AppProvider, Action, appGetFocusDM, appGetFocusHub };
