@@ -2,7 +2,7 @@ export const isDev = process.env.NODE_ENV === 'development';
 
 export const baseUrl = isDev ? "https://localhost:8080" : window.location.origin;
 
-const fetchData = async (
+const doFetchData = async (
     url: string, 
     method: string = 'GET', 
     body?: any, 
@@ -20,14 +20,39 @@ const fetchData = async (
         opts.body = JSON.stringify(body);
     }
 
-    const resp = await fetch(baseUrl + url, opts);
+    return await fetch(baseUrl + url, opts);
+}
+
+const throwError= async (resp: Response) => {
+    const data = await resp.json();
+    if (data.error)
+        throw data.error;
+    else 
+        throw `${resp.status} ${resp.statusText}`;
+}
+
+const fetchData = async (
+    url: string, 
+    method: string = 'GET', 
+    body?: any, 
+    headers: Record<string, string> = { 
+        'Content-Type': 'application/json' 
+    }
+) => {
+    let resp = await doFetchData(url, method, body, headers);
 
     if (!resp.ok) {
-        const data = await resp.json();
-        if (data.error)
-            throw data.error;
-        else 
-            throw `${resp.status} ${resp.statusText}`;
+        if (resp.status === 401) {
+            // Most likely because session expired, try to get session again.
+            const remember_resp = await doFetchData('/api/auth/remember');
+            if (remember_resp.ok) {
+                resp = await doFetchData(url, method, body, headers);
+            } else {
+                await throwError(resp);
+            }
+        } else {
+            await throwError(resp);
+        }
     }
 
     const contentType = resp.headers.get('Content-Type');
