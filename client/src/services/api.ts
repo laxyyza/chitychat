@@ -42,7 +42,7 @@ const fetchData = async (
     let resp = await doFetchData(url, method, body, headers);
 
     if (!resp.ok) {
-        if (resp.status === 401) {
+        if (resp.status === 401 && url !== '/api/auth/remember') {
             // Most likely because session expired, try to get session again.
             const remember_resp = await doFetchData('/api/auth/remember');
             if (remember_resp.ok) {
