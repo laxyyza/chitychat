@@ -1,4 +1,5 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import Popup from '../Popup';
 
 interface Prop {
     tooltip: string;
@@ -40,16 +41,26 @@ const SideBarButton = ({
     selected,
     name
 }: Prop) => {
+    const [hovered, setHovered] = useState(false);
+    const [scale, setScale] = useState(false);
+    if (!ref) {
+        ref = useRef<HTMLButtonElement | null>(null);
+    }
+
+    useEffect(() => {
+        setScale(hovered);
+    }, [hovered]);
+
     return (
-        <button ref={ref} className="hub-icon group" onClick={onClick}>
+        <button ref={ref} className="hub-icon group" onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
             <SideBarIcon name={name} pfp={pfp} />
-            <span className="hub-tooltip group-hover:scale-100 pointer-events-none">
-                {tooltip}
-            </span>
+            {hovered && <Popup targetRef={ref}>
+                <span className={`hub-tooltip pointer-events-none ${scale ? "scale-100" : ""}`}>
+                    {tooltip}
+                </span>
+            </Popup>}
             <span
-                className={`hub-highlight ${
-                    selected ? 'hub-highlight-selected' : ''
-                }`}
+                className={`hub-highlight ${selected ? 'hub-highlight-selected' : ''} ${scale ? "scale-100" : ""}`}
             ></span>
         </button>
     );

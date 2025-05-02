@@ -27,7 +27,7 @@ const SideBarList = () => {
             />
             <Divider />
 
-            <div className="flex-1">
+            <div className="flex-1 overflow-auto">
                 {hubs.map((hub) => (
                     <li key={hub.id}>
                         <SideBarButton
