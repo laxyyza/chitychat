@@ -7,14 +7,16 @@ import { FaUserAlt } from 'react-icons/fa';
 interface Prop {
     user: User;
     className?: string;
+    size?: string;
 }
 
 interface IconImgProp {
     pfp: string;
     profile: boolean;
+    size?: string;
 }
 
-const IconImgChooser = ({ pfp, profile }: IconImgProp) => {
+const IconImgChooser = ({ pfp, profile, size = "32" }: IconImgProp) => {
     const [big, setBig] = useState(false);
 
     const addClass = () => {
@@ -56,7 +58,7 @@ const IconImgChooser = ({ pfp, profile }: IconImgProp) => {
         } else {
             return (
                 <div className="p-2.5 rounded-full bg-gray-400 flex items-center justify-center">
-                    <FaUserAlt size="32" />
+                    <FaUserAlt size={size} />
                 </div>
             );
         }
@@ -65,7 +67,7 @@ const IconImgChooser = ({ pfp, profile }: IconImgProp) => {
 
 const UserDetails = ({ user }: Prop) => {
     return (
-        <div className="bg-gray-900 top-0 w-100 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
+        <div className="bg-gray-900 top-0 w-80 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
             <IconImgChooser pfp={user.pfp} profile={true} />
             <div className="">
                 <div className="font-bold text-2xl text-left">
@@ -86,7 +88,7 @@ const UserDetails = ({ user }: Prop) => {
     );
 };
 
-const UserIcon = ({ user, className = 'max-w-13 max-h-13' }: Prop) => {
+const UserIcon = ({ user, className = 'max-w-13 max-h-13', size }: Prop) => {
     const [showDetails, setShowDetails] = useState(false);
     const ref = useRef<HTMLDivElement | null>(null);
     const [canOpen, setCanOpen] = useState(true);
@@ -99,7 +101,7 @@ const UserIcon = ({ user, className = 'max-w-13 max-h-13' }: Prop) => {
             ref={ref}
             className={className}
         >
-            <IconImgChooser pfp={user.pfp} profile={false} />
+            <IconImgChooser pfp={user.pfp} profile={false} size={size} />
             {showDetails && ref.current && (
                 <Popup
                     targetRef={ref}

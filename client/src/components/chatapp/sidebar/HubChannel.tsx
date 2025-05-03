@@ -1,3 +1,4 @@
+import { BsChatRightText, BsThreeDotsVertical } from "react-icons/bs";
 import { HubTextChannel } from "../../../models/hub";
 import { Action, appGetFocusHub, useApp } from "../AppProvider";
 
@@ -11,14 +12,26 @@ const HubChannel = ({ channel }: Props) => {
 
     if (!hub) return null;
 
+    const selected = hub.selectedChannelID === channel.id;
+
     return (
         <div
             onClick={() => {
                 dispatch({ type: Action.SELECT_HUB_CHANNEL, payload: { hub: hub, channel: channel } });
             }}
-            className={`hover:bg-gray-400 pl-2 pr-2 m-1 rounded-xl select-none ${hub.selectedChannelID === channel.id ? 'bg-gray-500' : ''}`}
+            className={`pl-2 pr-1 m-1 rounded-xl select-none group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
         >
-            {channel.name}
+            <div className="flex items-center">
+                <span className='p-1'>
+                    <BsChatRightText />
+                </span> 
+                <span className={`p-1 flex-1 group-hover:text-white ${(selected) ? "text-white" : "text-gray-400"}`}>
+                    {channel.name}
+                </span>
+                <span className={`text-gray-400 hover:bg-gray-700 p-1 rounded-xl hover:text-white group-hover:scale-100 ${selected ? "scale-100" : "scale-0"}`}>
+                    <BsThreeDotsVertical />
+                </span>
+            </div>
         </div>
     );
 }

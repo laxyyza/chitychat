@@ -25,11 +25,16 @@ const ChannelList = () => {
 
     return (
         <>
-            {categories.map((category => (
-                <li key={category.id}>
-                    <HubCategory category={category}/>
-                </li>
-            )))}
+            <div className="border-b-1 pb-1 select-none border-gray-600 text-xl font-bold text-center">
+                {hub?.name}
+            </div>
+            <div className="h-full overflow-auto">
+                {categories.map((category => (
+                    <li key={category.id}>
+                        <HubCategory category={category} />
+                    </li>
+                )))}
+            </div>
         </>
     );
 };

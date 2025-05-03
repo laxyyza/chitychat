@@ -78,32 +78,33 @@ const MessageComponent = ({ message }: Prop) => {
     if (!user) return null;
 
     return (
-        <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-700 text-white flex-col max-w-full">
-            <div className="flex">
-                <UserIcon user={user}></UserIcon>
-                <div className="ml-2 m-0 p-0 flex-1">
-                    <div>
-                        <span className="font-bold text-xl align-middle">
+        <div className="relative m-2 rounded-2xl p-2 hover:bg-gray-700 text-white flex max-w-full">
+            <div className='h-full'>
+                <UserIcon user={user} size='24'></UserIcon>
+            </div>
+            <div className='pl-2'>
+                <div className="">
+                    <div className="flex-1">
+                        <span className="font-bold pb-0 text-[16px] align-middle">
                             {user.displayname}
                         </span>
-                        <span className="ml-4 text-xs font-normal align-middle">
+                        <span className="ml-4 text-xs text-gray-400 font-normal align-middle">
                             {Timestamp(message.timestamp)}
                         </span>
                     </div>
-                    <div className="text-xs align-top">{user.username}</div>
                 </div>
-            </div>
-            <div className="whitespace-pre-wrap">
-                <Text>{message.content}</Text>
-            </div>
-            <div className="flex flex-wrap">
-                {message.attachments &&
-                    message.attachments.map((url) => (
-                        <Attachment
-                            url={url}
-                            type={url.endsWith('.mp4') ? 'video' : 'image'}
-                        ></Attachment>
-                    ))}
+                <div className="whitespace-pre-wrap text-[14px]">
+                    <Text>{message.content}</Text>
+                </div>
+                <div className="flex flex-wrap">
+                    {message.attachments &&
+                        message.attachments.map((url) => (
+                            <Attachment
+                                url={url}
+                                type={url.endsWith('.mp4') ? 'video' : 'image'}
+                            ></Attachment>
+                        ))}
+                </div>
             </div>
         </div>
     );

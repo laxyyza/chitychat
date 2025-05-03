@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Category } from "../../../models/hub"
 import HubChannel from "./HubChannel";
 import { appGetFocusHub, useApp } from "../AppProvider";
+import { IoMdAdd, IoMdArrowDropdown, IoMdArrowDropright } from "react-icons/io";
 
 interface Props {
     category: Category;
@@ -17,23 +18,34 @@ const HubCategory = ({ category }: Props) => {
     return (
         <>
             <div
-                onClick={() => setOpen(!open)}
-                className="cursor-pointer select-none hover:bg-gray-400"
+                className="relative cursor-pointer text-[12px] select-none flex items-center"
             >
-                {open ? '▼' : '▶'} {category.name}
+                <span
+                    className="text-gray-300 hover:text-white flex-1 flex items-center"
+                    onClick={() => setOpen(!open)}
+                >
+                    {category.name} {open ? <IoMdArrowDropdown size='24' /> : <IoMdArrowDropright size='24' />} 
+                </span>
+                <span className='text-gray-400 hover:text-white right-0 mr-3 font-bold'
+                    onClick={() => {
+
+                    }}
+                >
+                    <IoMdAdd size="16"/>
+                </span>
             </div>
 
             {open && (
                 <ol>
                     {channels.map((channel) => (
                         <li key={channel.id}>
-                            <HubChannel channel={channel}/>
+                            <HubChannel channel={channel} />
                         </li>
                     ))}
                 </ol>
             )}
             {!open && selectedChannel && (
-                <HubChannel channel={selectedChannel}/>
+                <HubChannel channel={selectedChannel} />
             )}
         </>
     );
