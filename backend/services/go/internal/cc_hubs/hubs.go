@@ -19,6 +19,21 @@ type CreateHubRequest struct {
 	Name string `json:"name"`
 }
 
+type HubChannel struct {
+	ChannelID 	uint32 	`json:"channel_id"`
+	HubID 		uint32  `json:"hub_id"`
+	CategoryID 	uint32  `json:"category_id"`
+	Name 		string 	`json:"name"`
+	CreatedAT 	string 	`json:"created_at"`
+	Settings 	any 	`json:"settings"`
+	Position 	int 	`json:"position"`
+}
+
+type CreateChannelData struct {
+	Name string `json:"name"`
+	Position int `json:"position"`
+}
+
 const insertHub = "INSERT INTO Hubs(owner_id, name) VALUES ($1::int, $2::text) RETURNING hub_id;"
 const insertCategory = "INSERT INTO HubCategories(hub_id, name, position) VALUES ($1::int, $2::text, $3::int) RETURNING category_id;"
 const insertChannel = "INSERT INTO HubChannels(hub_id, category_id, name, position) VALUES ($1::int, $2::int, $3::text, $4::int) RETURNING channel_id;"
@@ -269,4 +284,60 @@ func MsgHub(s* service.Service, srcUserID uint32, payload map[string]any) error 
 	broadcastMsg(s, message, hubID)
 
 	return nil
+}
+
+func broadcastEvent(s* service.Service, cmd string, payload any, hubID uint32) {
+	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM HubMembers WHERE hub_id = $1::int;", hubID)
+	if err != nil {
+		fmt.Printf("broadcastMsg: %v\n", err)
+		return
+	}
+
+	jsonData, err := json.Marshal(&payload)
+	if err != nil {
+		fmt.Printf("broadcastMsg json: %v\n", err)
+		return
+	}
+	var eventCMD map[string]any
+	_ = json.Unmarshal(jsonData,&eventCMD) 
+	eventCMD["cmd"] = cmd;
+
+	for rows.Next() {
+		var memberID uint32
+		rows.Scan(&memberID)
+
+		s.Mq.UserEvent(memberID, eventCMD)
+	}
+}
+
+func CreateChannel(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	hubID, categoryID, err := getHubIDChannelIDPath(req.Path)
+	if err != nil {
+		log.Printf("CreateChannel: %v\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+	data, err := service.MapToStruct[CreateChannelData](req.Body)
+	if err != nil {
+		log.Printf("CreateChannel: MapToStruct: %v\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+
+	var c HubChannel
+	var timestamp pgtype.Timestamp
+	row:= s.Db.QueryRow("insert_hub_channel", 
+		hubID, categoryID, data.Name, data.Position, req.UserID)
+	err = row.Scan(&c.ChannelID, &c.HubID, &c.CategoryID, &c.Name, &timestamp, &c.Settings, &c.Position)
+	if err != nil {
+		log.Printf("insert_hub_channel: %v\n", err)
+		return mq.NewResponse(req, http.StatusBadRequest, nil)
+	}
+	c.CreatedAT = timestamp.Time.String()
+
+	broadcastEvent(s, "new_hub_channel", c, hubID)
+
+	return mq.NewResponse(req, http.StatusOK, nil)
 }
