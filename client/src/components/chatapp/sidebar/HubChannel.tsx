@@ -19,13 +19,13 @@ const HubChannel = ({ channel }: Props) => {
             onClick={() => {
                 dispatch({ type: Action.SELECT_HUB_CHANNEL, payload: { hub: hub, channel: channel } });
             }}
-            className={`pl-2 pr-1 m-1 rounded-xl select-none group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
+            className={`pl-2 pr-1 m-1 rounded-xl select-none max-w-42 group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
         >
-            <div className="flex items-center">
+            <div className="flex items-center w-full max-w-full">
                 <span className='p-1'>
                     <BsChatRightText />
-                </span> 
-                <span className={`p-1 flex-1 group-hover:text-white ${(selected) ? "text-white" : "text-gray-400"}`}>
+                </span>
+                <span className={`text-left text-nowrap text-ellipsis overflow-hidden p-1 grow min-w-0 group-hover:text-white ${(selected) ? "text-white" : "text-gray-400"}`}>
                     {channel.name}
                 </span>
                 <span className={`text-gray-400 hover:bg-gray-700 p-1 rounded-xl hover:text-white group-hover:scale-100 ${selected ? "scale-100" : "scale-0"}`}>

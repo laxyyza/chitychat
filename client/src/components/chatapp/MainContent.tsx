@@ -21,7 +21,7 @@ const getContentName = (app: App): string => {
         case "hub": {
             const hub = app.hubs.get(app.focus.hubID);
             if (hub) {
-                return hub.name;
+                return hub.categories.get(hub.channelCategoryID)?.channels.get(hub.selectedChannelID)?.name || "";
             }
             return "";
         }

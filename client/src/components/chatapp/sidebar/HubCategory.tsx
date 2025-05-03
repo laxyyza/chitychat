@@ -3,6 +3,7 @@ import { Category } from "../../../models/hub"
 import HubChannel from "./HubChannel";
 import { appGetFocusHub, useApp } from "../AppProvider";
 import { IoMdAdd, IoMdArrowDropdown, IoMdArrowDropright } from "react-icons/io";
+import CreateChannel from "../CreateChannel";
 
 interface Props {
     category: Category;
@@ -14,6 +15,7 @@ const HubCategory = ({ category }: Props) => {
     const hub = appGetFocusHub(app);
     const channels = Array.from(category.channels.values()).sort((a, b) => a.position - b.position);
     const selectedChannel = channels.find((channel) => channel.id === hub?.selectedChannelID);
+    const [showCreate, setShowCreate] = useState(false);
 
     return (
         <>
@@ -28,7 +30,7 @@ const HubCategory = ({ category }: Props) => {
                 </span>
                 <span className='text-gray-400 hover:text-white right-0 mr-3 font-bold'
                     onClick={() => {
-
+                        setShowCreate(true);
                     }}
                 >
                     <IoMdAdd size="16"/>
@@ -46,6 +48,13 @@ const HubCategory = ({ category }: Props) => {
             )}
             {!open && selectedChannel && (
                 <HubChannel channel={selectedChannel} />
+            )}
+            {showCreate && hub && (
+                <CreateChannel 
+                    hub={hub} 
+                    category={category} 
+                    onClose={() => setShowCreate(false)}
+                />
             )}
         </>
     );

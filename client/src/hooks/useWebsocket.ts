@@ -128,6 +128,13 @@ const cmdDelGroupMember = (packet: any, app: App, dispatch: React.Dispatch<Dispa
     }
 }
 
+const cmdNewHubChannel = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
+    dispatch({
+        type: Action.ADD_HUB_CHANNEL,
+        payload: packet
+    })
+}
+
 const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
     switch (cmd) {
         case 'client_user_info': {
@@ -179,6 +186,9 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
             break;
         case 'msg_hub': 
             cmdMsgHub(packet, dispatch);
+            break;
+        case 'new_hub_channel':
+            cmdNewHubChannel(packet, dispatch);
             break;
     }
 };

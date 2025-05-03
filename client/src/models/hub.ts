@@ -106,17 +106,7 @@ class Hub {
                         channels: new Map(cat.channels.map((channel) => (
                             [
                                 channel.channel_id,
-                                {
-                                    id: channel.channel_id,
-                                    hubID: channel.hub_id,
-                                    categoryID: channel.category_id,
-                                    name: channel.name,
-                                    position: channel.position,
-                                    createdAt: channel.created_at,
-                                    messagesLoaded: false,
-                                    messages: new Map(),
-                                    offset: 0
-                                }
+                                Hub.newChannel(channel)
                             ]
                         )))
                     }
@@ -209,6 +199,27 @@ class Hub {
         return newHub;
     }
     
+    static fromAddChannel(hub: Hub, c: HubChannelData): Hub {
+        const newHub = hub.clone();
+        const category = newHub.categories.get(c.category_id);
+        category?.channels.set(c.channel_id, Hub.newChannel(c));
+        return newHub;
+    }
+
+    static newChannel(c: HubChannelData): HubTextChannel {
+        return {
+            id: c.channel_id,
+            hubID: c.hub_id,
+            categoryID: c.category_id,
+            name: c.name,
+            position: c.position,
+            createdAt: c.created_at,
+            messagesLoaded: false,
+            messages: new Map(),
+            offset: 0
+        };
+    }
 }
+
 
 export { Hub };
