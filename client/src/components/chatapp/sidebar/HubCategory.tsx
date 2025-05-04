@@ -23,19 +23,19 @@ const HubCategory = ({ category, hub }: Props) => {
             <div
                 className="relative cursor-pointer text-[12px] select-none flex items-center"
             >
-                <span
+                <button
                     className="text-gray-300 hover:text-white flex-1 flex items-center"
                     onClick={() => setOpen(!open)}
                 >
                     {category.name} {open ? <IoMdArrowDropdown size='24' /> : <IoMdArrowDropright size='24' />} 
-                </span>
-                <span className='text-gray-400 hover:text-white right-0 mr-3 font-bold'
+                </button>
+                <button className='text-gray-400 hover:text-white right-0 mr-3 font-bold'
                     onClick={() => {
                         setShowCreate(true);
                     }}
                 >
                     <IoMdAdd size="16"/>
-                </span>
+                </button>
             </div>
 
             {open && (

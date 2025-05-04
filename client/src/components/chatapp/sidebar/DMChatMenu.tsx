@@ -52,11 +52,11 @@ const DMChatMenu = ({ ref, dmchat, name, setShow }: Props) => {
         setModalType(null);
     };
 
-    useDismissTrigger(menuRef, () => {
+    useDismissTrigger(() => {
         if (popupRef.current === null) {
             escape();
         }
-    });
+    }, [menuRef]);
 
     if (dmchat.chat instanceof Group) {
         if (dmchat.chat.owner_id === app.login_user.id) {

@@ -15,11 +15,11 @@ const HubChannel = ({ channel }: Props) => {
     const selected = hub.selectedChannelID === channel.id;
 
     return (
-        <div
+        <button
             onClick={() => {
                 dispatch({ type: Action.SELECT_HUB_CHANNEL, payload: { hub: hub, channelID: channel.id } });
             }}
-            className={`pl-2 pr-1 m-1 rounded-xl select-none max-w-42 group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
+            className={`pl-2 w-full pr-1 m-1 rounded-xl select-none max-w-42 group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
         >
             <div className="flex items-center w-full max-w-full">
                 <span className='p-1'>
@@ -32,7 +32,7 @@ const HubChannel = ({ channel }: Props) => {
                     <BsThreeDotsVertical />
                 </span>
             </div>
-        </div>
+        </button>
     );
 }
 

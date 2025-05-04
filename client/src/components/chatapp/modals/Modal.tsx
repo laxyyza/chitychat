@@ -8,7 +8,7 @@ interface Props {
 };
 
 const Modal = ({ children, onClose, ref }: Props) => {
-    useDismissTrigger(ref, onClose);
+    useDismissTrigger(onClose, [ref]);
 
     return createPortal(
         <div ref={ref} className="absolute text-white left-0 top-0 flex justify-center items-center w-screen h-screen z-1001 backdrop-blur-xs" onClick={() => {

@@ -1,15 +1,23 @@
 import { useEffect } from "react";
 
-const useDismissTrigger = (ref: React.RefObject<HTMLDivElement | null>, callback: () => void) => {
+const useDismissTrigger = (
+    callback: () => void,
+    refs: React.RefObject<HTMLElement | null>[], 
+) => {
     useEffect(() => {
         const handleKeyEvent = (event: globalThis.KeyboardEvent) => {
             if (event.key == 'Escape') callback();
         };
 
         const handleMouseEvent = (e: globalThis.MouseEvent) => {
-            if (!ref.current?.contains(e.target as Node)) {
+            var contains = false;
+            refs.forEach((ref) => {
+                if (ref.current?.contains(e.target as Node)) {
+                    contains = true;
+                }
+            });
+            if (!contains)
                 callback();
-            }
         };
 
         document.addEventListener('keydown', handleKeyEvent);

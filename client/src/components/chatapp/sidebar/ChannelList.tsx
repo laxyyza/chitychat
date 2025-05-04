@@ -1,14 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Action, appGetFocusHub, useApp } from "../AppProvider";
 import HubCategory from "./HubCategory";
 import fetchData from "../../../services/api";
 import { HubDetailedData } from "../../../models/hub";
+import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import HubDropdownMenu from "./HubDropdownMenu";
+import { IoMdClose } from "react-icons/io";
 
 const ChannelList = () => {
     const { app, dispatch } = useApp();
     const hub = appGetFocusHub(app);
+    const [showMore, setShowMore] = useState(false);
     const categories = Array.from(hub?.categories.values() || [])
         .sort((a, b) => a.position - b.position);
+    const dropDownButtonRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         if (hub?.detailedLoaded === false) {
@@ -27,10 +32,26 @@ const ChannelList = () => {
 
     return (
         <>
-            <div className="border-b-1 pb-1 select-none border-gray-600 text-xl font-bold text-center">
-                {hub.name}
+            <div
+                className="shadow-xl relative select-none border-gray-600 text-xl font-bold text-center h-10"
+            >
+                <button 
+                    className="flex justify-center items-center w-full h-full"
+                    ref={dropDownButtonRef}
+                    onClick={() => {
+                        setShowMore(!showMore);
+                    }}
+                >
+                    <div className="flex-1">
+                        {hub.name}
+                    </div>
+                    <div className="pr-2">
+                        {showMore ? <IoMdClose /> : <MdOutlineKeyboardArrowDown />}
+                    </div>
+                </button>
+                <HubDropdownMenu show={showMore} buttonRef={dropDownButtonRef} hub={hub} onClose={() => setShowMore(false)}/>
             </div>
-            <div className="h-full overflow-auto max-w-full">
+            <div className="h-full p-1 overflow-auto max-w-full">
                 {categories.map((category => (
                     <li key={category.id}>
                         <HubCategory hub={hub} category={category} />

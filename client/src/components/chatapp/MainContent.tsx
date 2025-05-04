@@ -10,7 +10,11 @@ interface HeaderBarProp {
 
 const HeaderBar = ({ name }: HeaderBarProp) => {
     return (
-        <div className="bg-gray-800 text-center text-white shadow">{name}</div>
+        <div className="bg-gray-900 text-center text-white h-10 shadow-xl flex select-none justify-center items-center">
+            <span>
+                {name}
+            </span>
+        </div>
     );
 };
 

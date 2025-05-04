@@ -59,11 +59,15 @@ const MemberList = () => {
     const memberIDs = getMemberIDs(app, send);
 
     return (
-        <div className="relative max-h-screen w-60 bg-gray-900 overflow-auto border-l-gray-700 border-l-1">
-            <div className="text-center text-white font-bold shadow-xl bg-gray-900">
-                {memberIDs.length + ' members'}
+        <div className="relative max-h-screen w-60 bg-gray-900 h-screen border-l-gray-700 border-l-1">
+            <div className="flex select-none shadow-xl bg-gray-900 h-10 items-center justify-center">
+                <span className='text-center text-white font-bold'>
+                    {memberIDs.length + ' members'}
+                </span>
             </div>
-            {memberIDs.map((member_id) => Member(app.users.get(member_id)))}
+            <div className='overflow-auto'>
+                {memberIDs.map((member_id) => Member(app.users.get(member_id)))}
+            </div>
         </div>
     );
 };
