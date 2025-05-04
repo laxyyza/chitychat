@@ -1,13 +1,13 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import User from './User';
-import { GetChannelMessagesData, Hub, HubBasicData, HubChannelData, HubDetailedData, HubMessageData, HubTextChannel } from '../../models/hub';
+import { GetChannelMessagesData, Hub, HubBasicData, HubChannelData, HubDetailedData, HubMessageData } from '../../models/hub';
 import { TextChannel } from '../../models/channel';
 import Message from '../../models/message';
 import Group, { GroupProps } from '../../models/group';
 import { DM, DMChat } from '../../models/dm';
 
 type FocusState =
-    | { type: "hub"; hubID: number }
+    | { type: "hub"; hubID: number; channelID: number }
     | { type: "dm"; dmid: string }
     | { type: "friends" };
 
@@ -63,7 +63,7 @@ enum Action {
 export type DispatchAction =
     | { type: Action.SET_FOCUS; payload: FocusState }
     | { type: Action.SET_LOGIN_USER; payload: User }
-    | { type: Action.SELECT_HUB_CHANNEL; payload: {hub: Hub, channel: HubTextChannel } }
+    | { type: Action.SELECT_HUB_CHANNEL; payload: { hub: Hub, channelID: number } }
     | { type: Action.ADD_USER; payload: User }
     | { type: Action.ADD_MSG; payload: Message }
     | { type: Action.ADD_DM_MSGS; payload: { dmID: string, messages: Message[] } }
@@ -133,14 +133,14 @@ const appReducer = (state: App, action: DispatchAction): App => {
         }
         case Action.SELECT_HUB_CHANNEL: {
             const hub = action.payload.hub;
-            const channel = action.payload.channel;
+            const channelID = action.payload.channelID;
             const newHubs = new Map(state.hubs);
-            hub.selectedChannelID = channel.id;
-            hub.channelCategoryID = channel.categoryID;
+            hub.selectedChannelID = channelID;
             newHubs.set(hub.id, hub);
             return {
                 ...state,
-                hubs: newHubs
+                hubs: newHubs,
+                focus: { type: "hub", hubID: hub.id, channelID: channelID },
             };
         }
         case Action.ADD_USER: {

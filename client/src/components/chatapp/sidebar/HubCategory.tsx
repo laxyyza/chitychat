@@ -1,19 +1,20 @@
 import { useState } from "react";
-import { Category } from "../../../models/hub"
+import { Category, Hub } from "../../../models/hub"
 import HubChannel from "./HubChannel";
-import { appGetFocusHub, useApp } from "../AppProvider";
 import { IoMdAdd, IoMdArrowDropdown, IoMdArrowDropright } from "react-icons/io";
 import CreateChannel from "../modals/CreateChannel";
 
 interface Props {
     category: Category;
+    hub: Hub;
 }
 
-const HubCategory = ({ category }: Props) => {
-    const { app } = useApp();
+const HubCategory = ({ category, hub }: Props) => {
     const [open, setOpen] = useState(true);
-    const hub = appGetFocusHub(app);
-    const channels = Array.from(category.channels.values()).sort((a, b) => a.position - b.position);
+    const channels = Array.from(hub.channels.values())
+        .filter((channel) => channel.categoryID === category.id)
+        .sort((a, b) => a.position - b.position);
+
     const selectedChannel = channels.find((channel) => channel.id === hub?.selectedChannelID);
     const [showCreate, setShowCreate] = useState(false);
 

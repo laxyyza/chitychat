@@ -339,5 +339,7 @@ func CreateChannel(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 
 	broadcastEvent(s, "new_hub_channel", c, hubID)
 
-	return mq.NewResponse(req, http.StatusOK, nil)
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"channel_id": c.ChannelID,
+	})
 }

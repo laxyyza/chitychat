@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Category, Hub } from "../../../models/hub";
 import Modal from "../modals/Modal";
 import fetchData from "../../../services/api";
+import { Action, useApp } from "../AppProvider";
 
 interface Props {
     hub: Hub;
@@ -9,25 +10,32 @@ interface Props {
     onClose: () => void;
 }
 
-const CreateChannel = ({hub, category, onClose}: Props) => {
+const CreateChannel = ({ hub, category, onClose }: Props) => {
+    const { dispatch } = useApp();
     const ref = useRef<HTMLDivElement | null>(null);
     const [channelName, setChannelName] = useState('');
 
     const onSubmit = () => {
         if (!channelName) return;
 
-        fetchData(`/api/hubs/${hub.id}/categories/${category.id}/channels`, 'POST', 
+        fetchData(`/api/hubs/${hub.id}/categories/${category.id}/channels`, 'POST',
             {
                 name: channelName,
-                position: category.channels.size + 1
+                position: category.channelIDs.size + 1
+            }).then((resp) => {
+                const channelID: number = resp.channel_id;
+                dispatch({
+                    type: Action.SELECT_HUB_CHANNEL,
+                    payload: { hub: hub, channelID: channelID }
+                });
             });
         onClose();
     };
 
     return (
         <Modal onClose={onClose} ref={ref}>
-            <div 
-                className="bg-gray-900 p-5 border-1 border-black rounded-xl w-100" 
+            <div
+                className="bg-gray-900 p-5 border-1 border-black rounded-xl w-100"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className='text-xl'>

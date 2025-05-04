@@ -38,7 +38,7 @@ export interface Category {
     id: number;
     name: string;
     position: number;
-    channels: Map<number, HubTextChannel>;
+    channelIDs: Set<number>;
 }
 
 export interface HubMessageData {
@@ -81,11 +81,11 @@ class Hub {
     name: string;
     pfp: string | null;
     categories: Map<number, Category>;
+    channels: Map<number, HubTextChannel>;
     memberIDs: Set<number>;
     createdAt: string;
     detailedLoaded: boolean;
     selectedChannelID: number;
-    channelCategoryID: number;
 
     constructor(data: HubBasicData, categoryData?: CategoryData[], memberIDs?: number[]) {
         this.id = data.hub_id;
@@ -93,7 +93,7 @@ class Hub {
         this.name = data.name;
         this.pfp = null;
         this.selectedChannelID = -1;
-        this.channelCategoryID = -1;
+        this.channels = new Map();
 
         if (categoryData) {
             this.categories = new Map(categoryData.map((cat) => (
@@ -103,12 +103,10 @@ class Hub {
                         id: cat.category_id,
                         name: cat.name,
                         position: cat.position,
-                        channels: new Map(cat.channels.map((channel) => (
-                            [
-                                channel.channel_id,
-                                Hub.newChannel(channel)
-                            ]
-                        )))
+                        channelIDs: new Set(cat.channels.map((channel) => {
+                            this.channels.set(channel.channel_id, Hub.newChannel(channel))
+                            return channel.channel_id;
+                        }))
                     }
                 ]
             )))
@@ -134,10 +132,7 @@ class Hub {
     }
 
     getMessages(dispatch?: React.Dispatch<DispatchAction>): Message[] {
-        const cat = this.categories.get(this.channelCategoryID);
-        if (!cat) return [];
-
-        const channel = cat.channels.get(this.selectedChannelID);
+        const channel = this.channels.get(this.selectedChannelID);
         if (!channel) return [];
         if (dispatch && channel.messagesLoaded === false) {
             this.fetchChannelMessages(channel, dispatch);
@@ -155,12 +150,7 @@ class Hub {
 
     static fromGetMessages(hub: Hub, resp: GetChannelMessagesData): Hub {
         const newHub = hub.clone();
-        let channel: HubTextChannel | undefined = undefined;
-        newHub.categories.forEach((cat) => {
-            if (channel)
-                return;
-            channel = cat.channels.get(resp.channel_id);
-        });
+        const channel = newHub.channels.get(resp.channel_id);
         if (!channel)
             return hub;
 
@@ -181,28 +171,23 @@ class Hub {
 
     static fromMessage(hub: Hub, msg: HubMessageData): Hub {
         const newHub = hub.clone();
-
-        newHub.categories.forEach((cat) => {
-            const channel = cat.channels.get(msg.channel_id);
-            if (channel) {
-                channel.messages.set(msg.msg_id, {
-                    id: msg.msg_id,
-                    user_id: msg.user_id,
-                    channel_id: msg.channel_id,
-                    content: msg.content,
-                    timestamp: msg.timestamp,
-                    channel_type: 'hub',
-                    attachments: msg.attachments
-                })
-            }
+        const channel = newHub.channels.get(msg.channel_id);
+        channel?.messages.set(msg.msg_id, {
+            id: msg.msg_id,
+            user_id: msg.user_id,
+            channel_id: msg.channel_id,
+            content: msg.content,
+            timestamp: msg.timestamp,
+            channel_type: 'hub',
+            attachments: msg.attachments
         });
         return newHub;
     }
     
     static fromAddChannel(hub: Hub, c: HubChannelData): Hub {
         const newHub = hub.clone();
-        const category = newHub.categories.get(c.category_id);
-        category?.channels.set(c.channel_id, Hub.newChannel(c));
+        newHub.categories.get(c.category_id)?.channelIDs.add(c.channel_id);
+        newHub.channels.set(c.channel_id, Hub.newChannel(c));
         return newHub;
     }
 

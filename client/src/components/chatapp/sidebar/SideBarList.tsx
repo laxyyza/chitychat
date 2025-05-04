@@ -34,7 +34,7 @@ const SideBarList = () => {
                             onClick={() => {
                                 dispatch({
                                     type: Action.SET_FOCUS,
-                                    payload: { type: "hub", hubID: hub.id }
+                                    payload: { type: "hub", hubID: hub.id, channelID: hub.selectedChannelID }
                                 });
                             }}
                             tooltip={hub.name}

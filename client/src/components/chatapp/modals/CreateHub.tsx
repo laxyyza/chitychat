@@ -29,7 +29,7 @@ const CreateHub = ({ onClose }: Prop) => {
                     });
                     dispatch({
                         type: Action.SET_FOCUS,
-                        payload: { type: "hub", hubID: hubID }
+                        payload: { type: "hub", hubID: hubID, channelID: 0 }
                     });
                 })
             });

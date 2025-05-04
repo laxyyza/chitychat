@@ -23,15 +23,17 @@ const ChannelList = () => {
         }
     }, [hub]);
 
+    if (!hub) return null;
+
     return (
         <>
             <div className="border-b-1 pb-1 select-none border-gray-600 text-xl font-bold text-center">
-                {hub?.name}
+                {hub.name}
             </div>
             <div className="h-full overflow-auto max-w-full">
                 {categories.map((category => (
                     <li key={category.id}>
-                        <HubCategory category={category} />
+                        <HubCategory hub={hub} category={category} />
                     </li>
                 )))}
             </div>

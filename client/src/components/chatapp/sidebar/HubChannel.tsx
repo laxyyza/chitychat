@@ -17,7 +17,7 @@ const HubChannel = ({ channel }: Props) => {
     return (
         <div
             onClick={() => {
-                dispatch({ type: Action.SELECT_HUB_CHANNEL, payload: { hub: hub, channel: channel } });
+                dispatch({ type: Action.SELECT_HUB_CHANNEL, payload: { hub: hub, channelID: channel.id } });
             }}
             className={`pl-2 pr-1 m-1 rounded-xl select-none max-w-42 group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
         >
