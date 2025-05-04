@@ -13,7 +13,7 @@ import useWebsocket from '../WebSocket';
 import { DM, DMChat } from '../../models/dm';
 import fetchData from '../../services/api';
 import { MdGroupAdd } from "react-icons/md";
-import CreateGroup from './CreateGroup';
+import CreateGroup from './modals/CreateGroup';
 
 enum Selection {
     ALL,

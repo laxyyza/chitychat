@@ -3,7 +3,7 @@ import { Category } from "../../../models/hub"
 import HubChannel from "./HubChannel";
 import { appGetFocusHub, useApp } from "../AppProvider";
 import { IoMdAdd, IoMdArrowDropdown, IoMdArrowDropright } from "react-icons/io";
-import CreateChannel from "../CreateChannel";
+import CreateChannel from "../modals/CreateChannel";
 
 interface Props {
     category: Category;

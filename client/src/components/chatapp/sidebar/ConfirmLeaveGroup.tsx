@@ -1,7 +1,7 @@
 import { DMChat } from '../../../models/dm';
 import Group from '../../../models/group';
 import fetchData from '../../../services/api';
-import Modal from './../../Modal';
+import Modal from './../modals/Modal';
 
 interface Props {
     onClose: () => void;

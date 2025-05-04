@@ -70,7 +70,7 @@ const DMList = () => {
                 </div>
             </DMChatButton>
             <div className="text-center text-xs font-bold">Direct Messages</div>
-            <div className="p-1 overflow-hidden hover:overflow-auto flex-1 max-h-full" ref={dmlistRef}>
+            <div className="p-1 overflow-hidden hover:overflow-auto flex-1 max-h-full scroll-container" ref={dmlistRef}>
                 {dms.map((dmchat) => (
                     <li key={dmchat.id}>
                         <DMChatButton

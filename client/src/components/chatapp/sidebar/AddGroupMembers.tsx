@@ -5,7 +5,7 @@ import { App, useApp } from "../AppProvider";
 import SelectableUser from "../SelectableUser";
 import User from "../User";
 import { fetchAddFriends } from "../../../services/groupApi";
-import Modal from "../../Modal";
+import Modal from "../modals/Modal";
 
 interface Props {
     dmchat: DMChat;

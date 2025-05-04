@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react';
-import { Action, useApp } from './AppProvider';
 import { CiCamera } from 'react-icons/ci';
 import { FaPlus } from 'react-icons/fa6';
-import fetchData from '../../services/api';
-import { HubDetailedData } from '../../models/hub';
+import { Action, useApp } from '../AppProvider';
+import fetchData from '../../../services/api';
+import { HubDetailedData } from '../../../models/hub';
 
 interface Prop {
     onClose: () => void;

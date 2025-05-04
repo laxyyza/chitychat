@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import useDismissTrigger from "../hooks/useDismissTrigger";
+import useDismissTrigger from "../../../hooks/useDismissTrigger";
 
 interface Props {
     children: React.ReactNode;

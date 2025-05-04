@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useApp, Action } from '../AppProvider';
-import CreateHub from '../CreateHub';
+import CreateHub from '../modals/CreateHub';
 import logo from '../../../assets/logo.svg';
 import SideBarButton from './SideBarButton';
 
@@ -27,7 +27,7 @@ const SideBarList = () => {
             />
             <Divider />
 
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto hidden-scroll-container">
                 {hubs.map((hub) => (
                     <li key={hub.id}>
                         <SideBarButton

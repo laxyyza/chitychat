@@ -1,9 +1,9 @@
-import { App, useApp } from "./AppProvider";
-import User from "./User";
+import { App, useApp } from "./../AppProvider";
+import User from "./../User";
 import { useState } from "react";
-import fetchData from "../../services/api";
-import { fetchGroup } from "../../services/groupApi";
-import SelectableUser from "./SelectableUser";
+import fetchData from "../../../services/api";
+import { fetchGroup } from "../../../services/groupApi";
+import SelectableUser from "./../SelectableUser";
 
 
 interface Prop {

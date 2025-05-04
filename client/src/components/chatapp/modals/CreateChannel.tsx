@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
-import { Category, Hub } from "../../models/hub";
-import Modal from "../Modal";
-import fetchData from "../../services/api";
+import { Category, Hub } from "../../../models/hub";
+import Modal from "../modals/Modal";
+import fetchData from "../../../services/api";
 
 interface Props {
     hub: Hub;
