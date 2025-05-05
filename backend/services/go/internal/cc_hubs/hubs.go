@@ -136,6 +136,10 @@ func getHubs(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
 	}
 
+	if len(hubs) == 0 {
+		hubs = []any{}
+	}
+
 	return mq.NewResponse(req, http.StatusOK, &map[string]any{
 		"hubs": hubs,
 	})
@@ -342,4 +346,37 @@ func CreateChannel(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	return mq.NewResponse(req, http.StatusOK, &map[string]any{
 		"channel_id": c.ChannelID,
 	})
+}
+
+func CreateCategory(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	hubID, err := getHubIDPath(req.Path)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+
+	data, err := service.MapToStruct[CreateChannelData](req.Body)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+
+	var categoryID uint32
+	row := s.Db.QueryRow("insert_hub_category", hubID, data.Name, data.Position, req.UserID)
+	err = row.Scan(&categoryID)
+	if err != nil {
+		log.Printf("insert_category: %v\n", err)
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	broadcastEvent(s, "new_hub_category", map[string]any{
+		"category_id": categoryID,
+		"hub_id": hubID,
+		"name": data.Name,
+		"position": data.Position,
+	}, hubID)
+
+	return mq.NewResponse(req, http.StatusOK, nil)
 }

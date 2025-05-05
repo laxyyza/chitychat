@@ -14,11 +14,11 @@ FROM (
                 'category_id', c.category_id,
                 'name', c.name,
                 'position', c.position,
-                'channels', (
+                'channels', COALESCE((
                     SELECT json_agg(ch)
                     FROM HubChannels ch
                     WHERE ch.category_id = c.category_id
-                )
+                ), '[]'::json)
             )
         )
         FROM HubCategories c

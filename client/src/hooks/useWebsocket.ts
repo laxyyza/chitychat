@@ -135,6 +135,13 @@ const cmdNewHubChannel = (packet: any, dispatch: React.Dispatch<DispatchAction>)
     })
 }
 
+const cmdNewHubCategory = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
+    dispatch({
+        type: Action.ADD_HUB_CATEGORY,
+        payload: packet
+    })
+}
+
 const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
     switch (cmd) {
         case 'client_user_info': {
@@ -189,6 +196,9 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
             break;
         case 'new_hub_channel':
             cmdNewHubChannel(packet, dispatch);
+            break;
+        case 'new_hub_category':
+            cmdNewHubCategory(packet, dispatch);
             break;
     }
 };

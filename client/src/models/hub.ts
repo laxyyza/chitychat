@@ -58,6 +58,13 @@ export interface CategoryData {
     channels: HubChannelData[];
 }
 
+export interface NewCategoryData {
+    category_id: number;
+    hub_id: number;
+    name: string;
+    position: number;
+}
+
 export interface HubDetailedData {
     hub_id: number;
     owner_id: number;
@@ -188,6 +195,17 @@ class Hub {
         const newHub = hub.clone();
         newHub.categories.get(c.category_id)?.channelIDs.add(c.channel_id);
         newHub.channels.set(c.channel_id, Hub.newChannel(c));
+        return newHub;
+    }
+    
+    static fromAddCategory(hub: Hub, c: NewCategoryData): Hub {
+        const newHub = hub.clone();
+        newHub.categories.set(c.category_id, {
+            id: c.category_id,
+            name: c.name,
+            position: c.position,
+            channelIDs: new Set(),
+        })
         return newHub;
     }
 

@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, ReactNode } from 'react';
 import User from './User';
-import { GetChannelMessagesData, Hub, HubBasicData, HubChannelData, HubDetailedData, HubMessageData } from '../../models/hub';
+import { GetChannelMessagesData, Hub, HubBasicData, HubChannelData, HubDetailedData, HubMessageData, NewCategoryData } from '../../models/hub';
 import { TextChannel } from '../../models/channel';
 import Message from '../../models/message';
 import Group, { GroupProps } from '../../models/group';
@@ -58,6 +58,7 @@ enum Action {
     ADD_HUB_MSGS,
     ADD_HUB_MSG,
     ADD_HUB_CHANNEL,
+    ADD_HUB_CATEGORY,
 }
 
 export type DispatchAction =
@@ -77,6 +78,7 @@ export type DispatchAction =
     | { type: Action.ADD_HUB_MSGS; payload: GetChannelMessagesData }
     | { type: Action.ADD_HUB_MSG; payload: HubMessageData }
     | { type: Action.ADD_HUB_CHANNEL; payload: HubChannelData }
+    | { type: Action.ADD_HUB_CATEGORY; payload: NewCategoryData }
     | {
         type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
         payload: number;
@@ -311,6 +313,18 @@ const appReducer = (state: App, action: DispatchAction): App => {
             const hub = newHubs.get(c.hub_id);
             if (hub) {
                 newHubs.set(hub.id, Hub.fromAddChannel(hub, c));
+            }
+            return {
+                ...state,
+                hubs: newHubs
+            };
+        }
+        case Action.ADD_HUB_CATEGORY: {
+            const c = action.payload;
+            const newHubs = new Map(state.hubs);
+            const hub = newHubs.get(c.hub_id);
+            if (hub) {
+                newHubs.set(hub.id, Hub.fromAddCategory(hub, c));
             }
             return {
                 ...state,
