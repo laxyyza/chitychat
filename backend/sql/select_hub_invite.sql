@@ -3,6 +3,7 @@ SELECT
     (
         SELECT COUNT (*) FROM HubMembers hm WHERE hm.hub_id = h.hub_id 
     ) AS members_count,
+    i.hub_id,
     i.expires_at,
     u.username,
     u.displayname

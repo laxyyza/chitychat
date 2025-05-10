@@ -142,6 +142,13 @@ const cmdNewHubCategory = (packet: any, dispatch: React.Dispatch<DispatchAction>
     })
 }
 
+const cmdNewHubMember = (packet: any, dispatch: React.Dispatch<DispatchAction>) => {
+    dispatch({
+        type: Action.ADD_HUB_MEMBER,
+        payload: {hubID: packet.hub_id, userID: packet.user_id}
+    })
+}
+
 const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: React.Dispatch<DispatchAction>) => {
     switch (cmd) {
         case 'client_user_info': {
@@ -199,6 +206,9 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
             break;
         case 'new_hub_category':
             cmdNewHubCategory(packet, dispatch);
+            break;
+        case 'new_hub_member':
+            cmdNewHubMember(packet, dispatch);
             break;
     }
 };

@@ -25,7 +25,7 @@ const doFetchData = async (
 
 const throwError= async (resp: Response) => {
     const data = await resp.json();
-    if (data.error)
+    if (data && data.error)
         throw data.error;
     else 
         throw `${resp.status} ${resp.statusText}`;

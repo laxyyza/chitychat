@@ -59,6 +59,7 @@ enum Action {
     ADD_HUB_MSG,
     ADD_HUB_CHANNEL,
     ADD_HUB_CATEGORY,
+    ADD_HUB_MEMBER
 }
 
 export type DispatchAction =
@@ -79,6 +80,7 @@ export type DispatchAction =
     | { type: Action.ADD_HUB_MSG; payload: HubMessageData }
     | { type: Action.ADD_HUB_CHANNEL; payload: HubChannelData }
     | { type: Action.ADD_HUB_CATEGORY; payload: NewCategoryData }
+    | { type: Action.ADD_HUB_MEMBER; payload: {hubID: number, userID: number}}
     | {
         type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
         payload: number;
@@ -329,6 +331,17 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return {
                 ...state,
                 hubs: newHubs
+            };
+        }
+        case Action.ADD_HUB_MEMBER: {
+            const newHubs = new Map(state.hubs);
+            const hub = newHubs.get(action.payload.hubID);
+            if (hub) {
+                newHubs.set(hub.id, Hub.fromAddMember(hub, action.payload.userID));
+            }
+            return {
+                ...state,
+                hubs: newHubs,
             };
         }
         default:

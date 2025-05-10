@@ -291,7 +291,7 @@ func MsgHub(s* service.Service, srcUserID uint32, payload map[string]any) error 
 	return nil
 }
 
-func broadcastEvent(s* service.Service, cmd string, payload any, hubID uint32) {
+func broadcastEvent(s* service.Service, cmd string, payload any, hubID uint32, ignoreID uint32) {
 	rows, err := s.Db.Conn.Query(context.Background(), "SELECT user_id FROM HubMembers WHERE hub_id = $1::int;", hubID)
 	if err != nil {
 		fmt.Printf("broadcastMsg: %v\n", err)
@@ -311,7 +311,9 @@ func broadcastEvent(s* service.Service, cmd string, payload any, hubID uint32) {
 		var memberID uint32
 		rows.Scan(&memberID)
 
-		s.Mq.UserEvent(memberID, eventCMD)
+		if memberID != ignoreID {
+			s.Mq.UserEvent(memberID, eventCMD)
+		}
 	}
 }
 
@@ -342,7 +344,7 @@ func CreateChannel(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 	c.CreatedAT = timestamp.Time.String()
 
-	broadcastEvent(s, "new_hub_channel", c, hubID)
+	broadcastEvent(s, "new_hub_channel", c, hubID, 0)
 
 	return mq.NewResponse(req, http.StatusOK, &map[string]any{
 		"channel_id": c.ChannelID,
@@ -377,7 +379,7 @@ func CreateCategory(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 		"hub_id": hubID,
 		"name": data.Name,
 		"position": data.Position,
-	}, hubID)
+	}, hubID, 0)
 
 	return mq.NewResponse(req, http.StatusOK, nil)
 }
@@ -392,24 +394,35 @@ func getTextPath(path string, idx int) (string, error) {
 	return slices[idx], nil
 }
 
-// HTTP GET /api/hubs/invites/:code
-func getInvite(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
-	code, err := getTextPath(req.Path, 4)
+func userIsHubMember(s* service.Service, userID uint32, hubID uint32) bool {
+	var isMember bool
+
+	err := s.Db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM HubMembers
+			WHERE user_id = $1::int AND hub_id = $2::int
+		);
+		`, userID, hubID).Scan(&isMember);
 	if err != nil {
-		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
-			"error": err.Error(),
-		})
+		log.Printf("userIsHubMember: %v\n", err)
 	}
 
+	return isMember
+}
+
+// HTTP GET /api/hubs/invites/:code
+func getInvite(s* service.Service, req* mq.HTTPRequest, code string) *mq.HTTPResponse {
 	var hubName string 
+	var hubID uint32
 	var membersCount int 
 	var expiresAt pgtype.Timestamp
 	var username string 
 	var displayname string
 	var expiresAtString any
-	err = s.Db.QueryRow("select_hub_invite", code).Scan(
+	err := s.Db.QueryRow("select_hub_invite", code).Scan(
 		&hubName,
 		&membersCount,
+		&hubID,
 		&expiresAt,
 		&username,
 		&displayname)
@@ -429,21 +442,72 @@ func getInvite(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 		expiresAtString = nil
 	}
 
+	isMember := userIsHubMember(s, req.UserID, hubID)
+
 	return mq.NewResponse(req, http.StatusOK, &map[string]any{
 		"hub_name": hubName,
 		"members_count": membersCount,
 		"expired_at": expiresAtString,
 		"username": username,
 		"displayname": displayname,
+		"already_joined": isMember,
 	});
 }
 
+// HTTP POST /api/hubs/invites/:code
+func postInvite(s* service.Service, req* mq.HTTPRequest, code string) *mq.HTTPResponse {
+	var hubID uint32
+	err := s.Db.QueryRow(`
+		SELECT hub_id FROM HubInvites 
+		WHERE code = $1::text;`, code).Scan(&hubID)
+	if err != nil {
+		log.Printf("postInvite SELECT hub_id CODE='%s': %v\n", code, err)
+		return mq.NewResponse(req, http.StatusNotFound, nil)
+	}
+
+	_, err = s.Db.Exec(`
+		INSERT INTO HubMembers(user_id, hub_id)
+		VALUES ($1::int, $2::int);`, req.UserID, hubID)
+	if err != nil {
+		log.Printf("INSERT INTO HubMembers user_id=%d, hub_id=%d, code='%s': %v\n",
+			req.UserID, hubID, code, err)
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": "Already member or internal error",
+		})
+	}
+
+	_, err = s.Db.Exec(`
+		INSERT INTO HubInviteUses(code, user_id)
+		VALUES ($1::text, $2::int);`, 
+		code, req.UserID)
+	if err != nil {
+		log.Printf("INSERT INTO HubInviteUses: user_id=%d, code='%s': %v\n", req.UserID, code, err)
+	}
+
+	broadcastEvent(s, "new_hub_member", map[string]any{
+		"hub_id": hubID,
+		"user_id": req.UserID,
+	}, hubID, req.UserID)
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"hub_id": hubID,
+	})
+}
+
+// HTTP GET|POST /api/hubs/invites/:code
 func Invites(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	code, err := getTextPath(req.Path, 4)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+
 	switch req.Method {
 	case "GET":
-		return getInvite(s, req)
-	// case "POST":
-	// 	return postInvite(s, req)
+		return getInvite(s, req, code)
+	case "POST":
+		return postInvite(s, req, code)
 	default:
 		return nil
 	}

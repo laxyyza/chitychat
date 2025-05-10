@@ -222,6 +222,12 @@ class Hub {
             offset: 0
         };
     }
+
+    static fromAddMember(hub: Hub, userID: number): Hub {
+        const newHub = hub.clone();
+        newHub.memberIDs.add(userID);
+        return newHub;
+    }
 }
 
 
