@@ -7,6 +7,7 @@ interface PopupProps {
     className?: string;
     onClose?: () => void;
     where?: "right" | "bottom"
+    container?: HTMLElement;
 }
 
 export default function Popup({
@@ -14,7 +15,8 @@ export default function Popup({
     children,
     onClose,
     className = '',
-    where = 'right'
+    where = 'right',
+    container = document.body,
 }: PopupProps) {
     const popupRef = useRef<HTMLDivElement | null>(null);
     const [position, setPosition] = useState<{
@@ -116,6 +118,6 @@ export default function Popup({
         >
             {children}
         </div>,
-        document.body
+        container
     );
 }

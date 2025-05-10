@@ -51,6 +51,10 @@ func main() {
 			Callback: cc_hubs.Invites,
 			Allow: []string{"GET", "POST"},
 		},
+		"/api/hubs/*/invites": service.CallbackAllow{
+			Callback: cc_hubs.CreateInvite,
+			Allow: []string{"POST"},
+		},
 	})
 	if err != nil {
 		log.Panic("bservice.Register: ", err)

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"math/rand"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -33,6 +34,10 @@ type HubChannel struct {
 type CreateChannelData struct {
 	Name string `json:"name"`
 	Position int `json:"position"`
+}
+
+type CreateInviteData struct {
+	MaxUses uint32 `json:"max_uses"`
 }
 
 const insertHub = "INSERT INTO Hubs(owner_id, name) VALUES ($1::int, $2::text) RETURNING hub_id;"
@@ -512,3 +517,66 @@ func Invites(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 		return nil
 	}
 }
+
+
+func generateRandomString(length int) string {
+	// Define the characters to choose from
+	const charset = "abcdefghijklmnopqrstuvwxyz1234567890"
+	var result []byte
+	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
+
+	for i := 0; i < length; i++ {
+		randomIndex := rand.Intn(len(charset)) // Get a random index
+		result = append(result, charset[randomIndex]) // Append the character at the index
+	}
+
+	return string(result)
+}
+
+// HTTP POST /api/hubs/:hub_id/invites
+func CreateInvite(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	hubID, err := getHubIDPath(req.Path)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+
+	var data CreateInviteData 
+	if maxUsesf64, ok := req.Body["max_uses"].(float64); !ok {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": "Missing 'max_uses'",
+		})
+	} else {
+		data.MaxUses = uint32(maxUsesf64)
+	}
+
+	if !userIsHubMember(s, req.UserID, hubID) {
+		return mq.NewResponse(req, http.StatusForbidden, &map[string]any{
+			"error": "Not a member",
+		})
+	}
+
+	code := generateRandomString(6)
+	maxUses := pgtype.Uint32{}
+	if data.MaxUses == 0 {
+		maxUses.Valid = false
+	} else {
+		maxUses.Uint32 = data.MaxUses
+	}
+
+	_, err = s.Db.Exec(`
+		INSERT INTO HubInvites(code, hub_id, created_by, max_uses)
+		VALUES ($1::text, $2::int, $3::int, $4::int);`, 
+		code, hubID, req.UserID, maxUses)
+	if err != nil {
+		log.Printf("INSERT INTO HubInvites: code='%s', user_id=%d, hub_id=%d: %v\n",
+			code, req.UserID, hubID, err)
+		return mq.NewResponse(req, http.StatusInternalServerError, nil)
+	}
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"code": code,
+	})
+}
+

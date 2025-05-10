@@ -1,13 +1,17 @@
 import { createPortal } from "react-dom";
 import useDismissTrigger from "../../../hooks/useDismissTrigger";
+import { useRef } from "react";
 
 interface Props {
     children: React.ReactNode;
     onClose: () => void;
-    ref: React.RefObject<HTMLDivElement | null>;
+    ref?: React.RefObject<HTMLDivElement | null>;
 };
 
 const Modal = ({ children, onClose, ref }: Props) => {
+    if (ref === undefined) {
+        ref = useRef<HTMLDivElement | null>(null);
+    }
     useDismissTrigger(onClose, [ref]);
 
     return createPortal(

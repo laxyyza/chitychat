@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Category, Hub } from "../../../models/hub";
 import Modal from "../modals/Modal";
 import fetchData from "../../../services/api";
@@ -12,7 +12,6 @@ interface Props {
 
 const CreateChannel = ({ hub, category, onClose }: Props) => {
     const { dispatch } = useApp();
-    const ref = useRef<HTMLDivElement | null>(null);
     const [channelName, setChannelName] = useState('');
 
     const onSubmit = () => {
@@ -33,7 +32,7 @@ const CreateChannel = ({ hub, category, onClose }: Props) => {
     };
 
     return (
-        <Modal onClose={onClose} ref={ref}>
+        <Modal onClose={onClose}>
             <div
                 className="bg-gray-900 p-5 border-1 border-black rounded-xl w-100"
                 onClick={(e) => e.stopPropagation()}

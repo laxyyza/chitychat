@@ -36,7 +36,7 @@ const ChannelList = () => {
                 className="shadow-xl relative select-none border-gray-600 text-xl font-bold text-center h-10"
             >
                 <button 
-                    className="flex justify-center items-center w-full h-full"
+                    className="flex hover:bg-gray-800 justify-center items-center w-full h-full"
                     ref={dropDownButtonRef}
                     onClick={() => {
                         setShowMore(!showMore);
