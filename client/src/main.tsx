@@ -7,27 +7,31 @@ import Login from './components/Login.tsx';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Loading from './components/Loading.tsx';
 import fetchData from './services/api.ts';
+import InvitePage from './components/InvitePage.tsx';
 
 const Main = () => {
     const navigator = useNavigate();
     const location = useLocation();
 
     useEffect(() => {
-        if (location.pathname !== "/login") {
-            navigator("/");
+        if (location.pathname === "/login") return;
+        if (location.pathname.startsWith("/i/")) return;
+        
+        //navigator("/");
 
-            fetchData('/api/auth/remember').then(() => {
-                navigator("/app")
-            }).catch(() => {
-                navigator("/login")
-            });
-        }
+        fetchData('/api/auth/remember').then(() => {
+            if (!location.pathname.startsWith("/app"))
+                navigator("/app");
+        }).catch(() => {
+            navigator("/login");
+        });
     }, []);
 
     return (
         <Routes>
             <Route path="/app" element={<MainApp />}></Route>
             <Route path="/login" element={<Login />}></Route>
+            <Route path="/i/:code" element={<InvitePage />}></Route>
             <Route path="/" element={<Loading />}></Route>
         </Routes>
     );

@@ -7,7 +7,7 @@ const SideBar = () => {
     const { app } = useApp();
 
     return (
-        <div className="sidebar h-screen max-h-screen border-r-gray-700 border-r-1">
+        <div className="sidebar h-screen max-h-screen border-r-gray-700 border-r-1 bg-gray-900">
             <div className="flex h-full max-h-full overflow-hidden">
                 <SideBarList />
                 <ContentSideBar />

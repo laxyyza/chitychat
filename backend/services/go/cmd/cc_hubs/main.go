@@ -20,6 +20,7 @@ func main() {
 		"select_hub_msgs_json",
 		"insert_hub_channel",
 		"insert_hub_category",
+		"select_hub_invite",
 	})
 	if err != nil {
 		log.Panic("LoadSQLFiles: ", err)
@@ -45,6 +46,10 @@ func main() {
 		"/api/hubs/*/categories": service.CallbackAllow{
 			Callback: cc_hubs.CreateCategory,
 			Allow: []string{"POST"},
+		},
+		"/api/hubs/invites/*": service.CallbackAllow{
+			Callback: cc_hubs.Invites,
+			Allow: []string{"GET", "POST"},
 		},
 	})
 	if err != nil {

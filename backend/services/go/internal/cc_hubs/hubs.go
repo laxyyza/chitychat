@@ -5,12 +5,13 @@ import (
 	"backend/services/go/internal/msg"
 	"backend/services/go/internal/service"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
-	"encoding/json"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -379,4 +380,71 @@ func CreateCategory(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}, hubID)
 
 	return mq.NewResponse(req, http.StatusOK, nil)
+}
+
+func getTextPath(path string, idx int) (string, error) {
+	slices := strings.Split(path, "/")
+
+	if len(slices) < idx {
+		return "", fmt.Errorf("invalid path")
+	}
+
+	return slices[idx], nil
+}
+
+// HTTP GET /api/hubs/invites/:code
+func getInvite(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	code, err := getTextPath(req.Path, 4)
+	if err != nil {
+		return mq.NewResponse(req, http.StatusBadRequest, &map[string]any{
+			"error": err.Error(),
+		})
+	}
+
+	var hubName string 
+	var membersCount int 
+	var expiresAt pgtype.Timestamp
+	var username string 
+	var displayname string
+	var expiresAtString any
+	err = s.Db.QueryRow("select_hub_invite", code).Scan(
+		&hubName,
+		&membersCount,
+		&expiresAt,
+		&username,
+		&displayname)
+	if err != nil {
+		log.Printf("select_hub_invite: CODE='%s': %v\n", code, err)
+		return mq.NewResponse(req, http.StatusNotFound, nil)
+	}
+
+	if expiresAt.Valid {
+		if expiresAt.Time.UTC().Before(time.Now().UTC()) {
+			return mq.NewResponse(req, http.StatusGone, &map[string]any{
+				"error": "Link expired",
+			})
+		}
+		expiresAtString = expiresAt.Time.String()
+	} else {
+		expiresAtString = nil
+	}
+
+	return mq.NewResponse(req, http.StatusOK, &map[string]any{
+		"hub_name": hubName,
+		"members_count": membersCount,
+		"expired_at": expiresAtString,
+		"username": username,
+		"displayname": displayname,
+	});
+}
+
+func Invites(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
+	switch req.Method {
+	case "GET":
+		return getInvite(s, req)
+	// case "POST":
+	// 	return postInvite(s, req)
+	default:
+		return nil
+	}
 }

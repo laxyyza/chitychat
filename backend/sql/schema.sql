@@ -187,6 +187,38 @@ CREATE TABLE IF NOT EXISTS Friendships(
     UNIQUE (source_user_id, target_user_id)
 );
 
+CREATE TABLE IF NOT EXISTS HubInvites(
+    code        text        PRIMARY KEY,
+    hub_id      int         NOT NULL REFERENCES Hubs(hub_id) ON DELETE CASCADE,
+    created_by  int         NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    created_at  timestamp   DEFAULT now(),
+    expires_at  timestamp,  -- nullable, means no expiration
+    max_uses    int,        -- nullable, means unlimited uses
+    use_count   int         NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS HubInviteUses(
+    code        text NOT NULL REFERENCES HubInvites(code) ON DELETE CASCADE,
+    user_id     int NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    joined_at   timestamp NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (code, user_id)
+);
+
+CREATE OR REPLACE FUNCTION increment_invite_use_count()
+RETURNS TRIGGER AS $$
+BEGIN 
+    UPDATE HubInvites
+    SET use_count = use_count + 1 
+    WHERE code = NEW.code;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_increment_use_count 
+AFTER INSERT ON HubInviteUses
+FOR EACH ROW
+EXECUTE FUNCTION increment_invite_use_count();
+
 -- Insert owner ID in GroupMembers after INSERT INTO Groups.
 CREATE OR REPLACE FUNCTION insert_owner_group_member()
 RETURNS TRIGGER AS $$
