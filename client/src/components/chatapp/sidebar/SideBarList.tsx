@@ -3,6 +3,7 @@ import { useApp, Action } from '../AppProvider';
 import CreateHub from '../modals/CreateHub';
 import logo from '../../../assets/logo.svg';
 import SideBarButton from './SideBarButton';
+import { useNavigate } from 'react-router-dom';
 
 const Divider = () => {
     return <div className="w-[80%] h-[1px] bg-gray-600 self-center m-1" />;
@@ -13,6 +14,7 @@ const SideBarList = () => {
     const hubs = Array.from(app.hubs.values());
     const divref = useRef<HTMLDivElement | null>(null);
     const [show, setShow] = useState(false);
+    const navigator = useNavigate();
 
     return (
         <div className="flex flex-col bg-gray-900 border-r-gray-700 border-r-1">
@@ -36,6 +38,11 @@ const SideBarList = () => {
                                     type: Action.SET_FOCUS,
                                     payload: { type: "hub", hubID: hub.id, channelID: hub.selectedChannelID }
                                 });
+                                if (hub.selectedChannelID === -1) {
+                                    navigator(`/app/hubs/${hub.id}`);
+                                } else {
+                                    navigator(`/app/hubs/${hub.id}/channels/${hub.selectedChannelID}`);
+                                }
                             }}
                             tooltip={hub.name}
                             pfp={hub.pfp}

@@ -29,7 +29,12 @@ const Main = () => {
 
     return (
         <Routes>
-            <Route path="/app" element={<MainApp />}></Route>
+            <Route path="/app" element={<MainApp />}>
+                <Route path="hubs/:hub_id" />
+                <Route path="hubs/:hub_id/channels/:channel_id" />
+                <Route path="dms/:dm_id" />
+                <Route path="groups/:group_id" />
+            </Route>
             <Route path="/login" element={<Login />}></Route>
             <Route path="/i/:code" element={<InvitePage />}></Route>
             <Route path="/" element={<Loading />}></Route>

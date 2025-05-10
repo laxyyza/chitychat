@@ -14,6 +14,7 @@ import { DM, DMChat } from '../../models/dm';
 import fetchData from '../../services/api';
 import { MdGroupAdd } from "react-icons/md";
 import CreateGroup from './modals/CreateGroup';
+import { useNavigate } from 'react-router-dom';
 
 enum Selection {
     ALL,
@@ -28,6 +29,11 @@ interface FriendProp {
 
 const Friend = ({ user }: FriendProp) => {
     const { app, dispatch } = useApp();
+    const navigator = useNavigate();
+
+    useEffect(() => {
+        navigator('/app');
+    }, []);
 
     const onClick = () => {
         const dmchat = app.dm.get("id-" + user.id);

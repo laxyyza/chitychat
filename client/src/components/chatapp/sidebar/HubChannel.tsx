@@ -1,6 +1,7 @@
 import { BsChatRightText, BsThreeDotsVertical } from "react-icons/bs";
 import { HubTextChannel } from "../../../models/hub";
 import { Action, appGetFocusHub, useApp } from "../AppProvider";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
     channel: HubTextChannel;
@@ -9,6 +10,7 @@ interface Props {
 const HubChannel = ({ channel }: Props) => {
     const { app, dispatch } = useApp();
     const hub = appGetFocusHub(app);
+    const navigator = useNavigate();
 
     if (!hub) return null;
 
@@ -18,6 +20,7 @@ const HubChannel = ({ channel }: Props) => {
         <button
             onClick={() => {
                 dispatch({ type: Action.SELECT_HUB_CHANNEL, payload: { hub: hub, channelID: channel.id } });
+                navigator(`/app/hubs/${hub.id}/channels/${channel.id}`);
             }}
             className={`pl-2 w-full pr-1 m-1 rounded-xl select-none max-w-42 group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
         >

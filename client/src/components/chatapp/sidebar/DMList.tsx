@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { Action, useApp } from '../AppProvider';
 import { RiUserHeartFill } from 'react-icons/ri';
-import { GroupProps } from '../../../models/group';
+import Group, { GroupProps } from '../../../models/group';
 import { DM, DMChat } from '../../../models/dm';
 import useWebsocket from '../../WebSocket';
 import fetchData from '../../../services/api';
 import DMChatButton from './DMChatButton';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const DMList = () => {
     const { app, dispatch } = useApp();
@@ -15,8 +16,12 @@ const DMList = () => {
     ));
     // const groups = Array.from(app.groups.entries());
     // const friends = app.friendIDs.map((friend_id) => app.users.get(friend_id));
+    const navigator = useNavigate();
 
     const { send } = useWebsocket();
+    const {dm_id, group_id} = useParams();
+    const paramDMID = dm_id ? parseInt(dm_id) : undefined;
+    const paramGroupID = group_id ? parseInt(group_id) : undefined;
 
     const fetchDMs = () => {
         fetchData('/api/dms')
@@ -31,6 +36,10 @@ const DMList = () => {
                         dontHaveIDs.push(userID);
                     }
                     dmChats.push(dmchat);
+
+                    if (paramDMID === userID) {
+                        dispatch({type: Action.SET_FOCUS, payload: {type: "dm", dmid: DMChat.DmID(paramDMID)}})
+                    }
                 })
 
                 dispatch({ type: Action.ADD_DMS, payload: dmChats })
@@ -42,6 +51,12 @@ const DMList = () => {
         fetchData('/api/groups')
             .then((json) => {
                 const groups: GroupProps[] = json.groups;
+
+                groups.forEach((group) => {
+                    if (group.group_id === paramGroupID) {
+                        dispatch({type: Action.SET_FOCUS, payload: {type: "dm", dmid: DMChat.GroupID(paramGroupID)}})
+                    }
+                });
 
                 dispatch({
                     type: Action.ADD_GROUPS,
@@ -58,9 +73,9 @@ const DMList = () => {
         <div className='flex-col h-full'>
             <DMChatButton
                 selected={app.focus.type === 'friends'}
-                onClick={() =>
-                    dispatch({ type: Action.SET_FOCUS, payload: { type: "friends" } })
-                }
+                onClick={() => {
+                    dispatch({ type: Action.SET_FOCUS, payload: { type: "friends" } });
+                }}
             >
                 <div className="flex items-center text-center justify-center">
                     <div>
@@ -77,12 +92,17 @@ const DMList = () => {
                             dmchat={dmchat}
                             selected={app.focus.type === "dm" && app.focus.dmid === dmchat.id}
                             dmlistRef={dmlistRef}
-                            onClick={() =>
+                            onClick={() => {
                                 dispatch({
                                     type: Action.SET_FOCUS,
                                     payload: { type: "dm", dmid: dmchat.id }
                                 })
-                            }
+                                if (dmchat.chat instanceof Group) {
+                                    navigator(`/app/groups/${dmchat.chat.id}`);
+                                } else if (dmchat.chat instanceof DM) {
+                                    navigator(`/app/dms/${dmchat.chat.targetUserID}`);
+                                }
+                            }}
                         />
                     </li>
                 ))}

@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Action, appGetFocusHub, useApp } from "../AppProvider";
+import { appGetFocusHub, useApp } from "../AppProvider";
 import HubCategory from "./HubCategory";
-import fetchData from "../../../services/api";
-import { HubDetailedData } from "../../../models/hub";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import HubDropdownMenu from "./HubDropdownMenu";
 import { IoMdClose } from "react-icons/io";
+import { getHubDetails } from "../../../services/hubApi";
 
 const ChannelList = () => {
     const { app, dispatch } = useApp();
@@ -16,15 +15,8 @@ const ChannelList = () => {
     const dropDownButtonRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
-        if (hub?.detailedLoaded === false) {
-            fetchData(`/api/hubs/${hub.id}`)
-                .then((json) => {
-                    const hubData: HubDetailedData = json;
-                    dispatch({
-                        type: Action.ADD_DETAILED_HUB,
-                        payload: hubData,
-                    });
-                })
+        if (hub && hub.detailedLoaded === false) {
+            getHubDetails(hub.id, dispatch);
         }
     }, [hub]);
 

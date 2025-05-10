@@ -9,10 +9,17 @@ import useWebsocket from './components/WebSocket';
 import handleWebsocketMessage from './hooks/useWebsocket';
 import fetchData from './services/api';
 import { HubBasicData } from './models/hub';
+import { useParams } from 'react-router-dom';
+import { getHubDetails } from './services/hubApi';
 
-const loadAppData = (app: App, send: (msg: any) => void, dispatch: React.Dispatch<DispatchAction>) => {
+const loadAppData = (
+    app: App, 
+    send: (msg: any) => void, 
+    dispatch: React.Dispatch<DispatchAction>,
+    hub_id: string | undefined,
+    channel_id: string | undefined
+) => {
     send({ cmd: "client_user_info" });
-    send({ cmd: 'client_groups' });
 
     fetchData('/api/friends')
         .then(json => {
@@ -63,6 +70,14 @@ const loadAppData = (app: App, send: (msg: any) => void, dispatch: React.Dispatc
                 type: Action.ADD_BASIC_HUBS,
                 payload: basicData
             })
+
+            if (hub_id) {
+                getHubDetails(parseInt(hub_id), dispatch);
+                dispatch({
+                    type: Action.SET_FOCUS,
+                    payload: {type: "hub", hubID: parseInt(hub_id), channelID: parseInt(channel_id || "-1")}
+                })
+            }
         })
 
     return () => websocketClient.onStateChange(undefined);
@@ -73,12 +88,14 @@ function MainApp() {
     // const [test, setTest] = useState(0);
     // const navigate = useNavigate();
 
+    const {hub_id, channel_id} = useParams();
+
     const { send } = useWebsocket((cmd, packet) => {
         handleWebsocketMessage(cmd, packet, app, dispatch);
     });
 
     useEffect(() => {
-        loadAppData(app, send, dispatch);
+        loadAppData(app, send, dispatch, hub_id, channel_id);
     }, []);
 
     return (

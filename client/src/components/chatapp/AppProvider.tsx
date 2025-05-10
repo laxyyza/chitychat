@@ -122,6 +122,19 @@ const appReducer = (state: App, action: DispatchAction): App => {
             return { ...state };
         }
         case Action.SET_FOCUS: {
+            if (action.payload.type === 'hub') {
+                const newHubs = new Map(state.hubs);
+                const hub = newHubs.get(action.payload.hubID);
+                if (hub) {
+                    hub.selectedChannelID = action.payload.channelID;
+                    return {
+                        ...state,
+                        focus: action.payload,
+                        hubs: newHubs
+                    };
+                }
+            }
+
             return {
                 ...state,
                 focus: action.payload
@@ -279,7 +292,15 @@ const appReducer = (state: App, action: DispatchAction): App => {
         case Action.ADD_DETAILED_HUB: {
             const data = action.payload;
             const newHubs = new Map(state.hubs);
-            newHubs.set(data.hub_id, Hub.fromDetailedData(data))
+            const newHub = Hub.fromDetailedData(data);
+            const oldHub = newHubs.get(newHub.id);
+            if (state.focus.type === "hub" && 
+                state.focus.hubID === newHub.id && 
+                oldHub && 
+                oldHub.selectedChannelID !== -1) {
+                newHub.selectedChannelID = oldHub.selectedChannelID;
+            }
+            newHubs.set(newHub.id, newHub);
             return {
                 ...state,
                 hubs: newHubs
