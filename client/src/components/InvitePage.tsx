@@ -32,9 +32,8 @@ const JoinPage = ({ data, code, setErrorMsg }: JoinProps) => {
         if (joined) return;
 
         fetchData(`/api/hubs/invites/${code}`, 'POST')
-            .then(() => {
-                // TODO: navigator(`/app/hubs/${resp.hub_id}`);
-                navigator('/app');
+            .then((resp) => {
+                navigator(`/app/hubs/${resp.hub_id}`);
             })
             .catch((err) => {
                 setErrorMsg(err);
