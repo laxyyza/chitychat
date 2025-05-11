@@ -305,7 +305,7 @@ func MsgGroup(s* service.Service, srcUserID uint32, payload map[string]any) erro
 	}
 	groupID := uint32(groupIDf64)
 
-	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["insert_group_msg"], msg.UserID, groupID, msg.Content)
+	row := s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["insert_group_msg"], msg.UserID, groupID, msg.Content, msg.Attachments)
 	var timestamp pgtype.Timestamp
 	err = row.Scan(&msg.MsgID, &timestamp)
 	if err != nil {

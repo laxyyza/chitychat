@@ -1,6 +1,7 @@
 package msg
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -38,6 +39,9 @@ func FromUser(srcUserID uint32, wsPayload map[string]any, channelType ChannelTyp
 	msg.Content, ok = wsPayload["content"].(string)
 	if !ok {
 		return msg, fmt.Errorf("invalid content")
+	}
+	if d, err := json.Marshal(wsPayload["attachments"]); err == nil {
+		json.Unmarshal(d, &msg.Attachments)
 	}
 
 	return msg, nil

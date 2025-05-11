@@ -155,6 +155,8 @@ func MsgUser(s* service.Service, srcUserID uint32, payload map[string]any) error
 		tx.Commit(context.Background())
 	}
 
+	fmt.Println("attachments: ", msg.Attachments)
+
 	var pgTime pgtype.Timestamp
 	row = s.Db.Conn.QueryRow(context.Background(), s.Db.SQL["insert_msg"], 
 			srcUserID, msg.ChannelID, msg.Content, msg.Attachments)

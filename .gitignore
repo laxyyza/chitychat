@@ -98,3 +98,7 @@ dist-ssr
 *.sln
 *.sw?
 bin
+sfs_data/
+*.pem
+*.key
+*.crt

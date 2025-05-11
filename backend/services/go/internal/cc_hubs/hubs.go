@@ -284,7 +284,7 @@ func MsgHub(s* service.Service, srcUserID uint32, payload map[string]any) error 
 	}
 
 	var timestamp pgtype.Timestamp
-	row := s.Db.QueryRow("insert_hub_msg", srcUserID, message.ChannelID, message.Content)
+	row := s.Db.QueryRow("insert_hub_msg", srcUserID, message.ChannelID, message.Content, message.Attachments)
 	if err := row.Scan(&message.MsgID, &timestamp); err != nil {
 		log.Printf("insert_hub_msg: %v\n", err)
 		return nil
