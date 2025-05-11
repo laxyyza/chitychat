@@ -72,6 +72,7 @@ const InvitePage = () => {
     const [data, setData] = useState<InviteData | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
     const {app, dispatch} = useApp();
+    const navigator = useNavigate();
 
     const { send } = useWebsocket((cmd, packet) => {
         handleWebsocketMessage(cmd, packet, app, dispatch);
@@ -93,7 +94,7 @@ const InvitePage = () => {
                 });
             })
         .catch(() => {
-            setErrorMsg("Not logged in!");
+            navigator('/login?redirect=' + location.pathname);
         });
     }, []);
     

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import fetchData from '../services/api';
 import websocketClient from '../services/websocketClient';
@@ -67,12 +67,22 @@ const Login = () => {
         msg: ''
     });
     const navigator = useNavigate()
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         // close websocket connection when logging in,
         // bc the backend binds user account to websocket connection.
         websocketClient.close();
     }, []);
+
+    const doNavigate = () => {
+        const redirect = searchParams.get("redirect");
+        if (redirect) {
+            navigator(redirect);
+        } else {
+            navigator('/app');
+        }
+    };
 
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -84,7 +94,7 @@ const Login = () => {
                 password: password,
                 remember_me: rememberMe
             }).then(() => {
-                navigator("/app");
+                doNavigate();
             }).catch((e) => {
                 setStatusMsg({
                     type: 'error',
@@ -97,7 +107,7 @@ const Login = () => {
                 password: password,
                 remember_me: rememberMe
             }).then(() => {
-                navigator("/app");
+                doNavigate();
             }).catch((e) => {
                 setStatusMsg({
                     type: 'error',
