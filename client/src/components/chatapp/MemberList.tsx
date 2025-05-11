@@ -59,7 +59,7 @@ const MemberList = () => {
     const memberIDs = getMemberIDs(app, send);
 
     return (
-        <div className="relative max-h-screen w-60 bg-gray-900 h-screen border-l-gray-700 border-l-1">
+        <div className="relative max-h-screen w-60 bg-gray-900 h-screen border-l-gray-700 border-l-1 shrink-0">
             <div className="flex select-none shadow-xl bg-gray-900 h-10 items-center justify-center">
                 <span className='text-center text-white font-bold'>
                     {memberIDs.length + ' members'}

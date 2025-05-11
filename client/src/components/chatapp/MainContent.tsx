@@ -46,10 +46,10 @@ const MainContent = () => {
     const channelName = getContentName(app);
 
     return (
-        <div className="flex flex-col flex-1 h-screen bg-gray-800">
+        <div className="flex flex-col h-screen grow-1 bg-gray-800 min-w-0">
             <HeaderBar name={channelName}></HeaderBar>
             {app.focus.type === 'friends' ? <FriendList /> : <ChatWindow />}
-            <div className="bg-gray-900 m-3 rounded-2xl text-white max-h-[50%] overflow-auto border-gray-600 border-1 p-0.5">
+            <div className="bg-gray-900 m-3 rounded-2xl text-white max-h-[50%] border-gray-600 border-1 p-0.5">
                 <Input />
             </div>
         </div>
