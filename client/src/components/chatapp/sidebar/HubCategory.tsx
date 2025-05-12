@@ -41,7 +41,7 @@ const HubCategory = ({ category, hub }: Props) => {
             {open && (
                 <ol>
                     {channels.map((channel) => (
-                        <li key={channel.id}>
+                        <li className="flex" key={channel.id}>
                             <HubChannel channel={channel} />
                         </li>
                     ))}

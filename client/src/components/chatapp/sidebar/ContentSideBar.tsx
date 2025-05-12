@@ -6,7 +6,7 @@ const ContentSideBar = () => {
     const { app } = useApp();
 
     return (
-        <div className="grow bg-gray-900 text-white max-w-full">
+        <div className="flex flex-col bg-gray-900 text-white min-w-0">
             {app.focus.type === "hub" ? <ChannelList /> : <DMList />}
         </div>
     );

@@ -2,6 +2,7 @@ import { BsChatRightText, BsThreeDotsVertical } from "react-icons/bs";
 import { HubTextChannel } from "../../../models/hub";
 import { Action, appGetFocusHub, useApp } from "../AppProvider";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 interface Props {
     channel: HubTextChannel;
@@ -11,31 +12,32 @@ const HubChannel = ({ channel }: Props) => {
     const { app, dispatch } = useApp();
     const hub = appGetFocusHub(app);
     const navigator = useNavigate();
+    const [hover, setHover] = useState(false);
 
     if (!hub) return null;
 
     const selected = hub.selectedChannelID === channel.id;
 
     return (
-        <button
+        <div
             onClick={() => {
                 dispatch({ type: Action.SELECT_HUB_CHANNEL, payload: { hub: hub, channelID: channel.id } });
                 navigator(`/app/hubs/${hub.id}/channels/${channel.id}`);
             }}
-            className={`pl-2 w-full pr-1 m-1 rounded-xl select-none max-w-42 group ${selected ? 'bg-gray-600' : 'hover:bg-gray-800'}`}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            className={`flex grow items-center p-1.5 mb-1 rounded-xl min-w-0 ${selected ? "bg-gray-700" : "hover:bg-gray-800"}`}
         >
-            <div className="flex items-center w-full max-w-full">
-                <span className='p-1'>
-                    <BsChatRightText />
-                </span>
-                <span className={`text-left text-nowrap text-ellipsis overflow-hidden p-1 grow min-w-0 group-hover:text-white ${(selected) ? "text-white" : "text-gray-400"}`}>
-                    {channel.name}
-                </span>
-                <span className={`text-gray-400 hover:bg-gray-700 p-1 rounded-xl hover:text-white group-hover:scale-100 ${selected ? "scale-100" : "scale-0"}`}>
+            <button className={`flex grow items-center text-left min-w-0 space-x-2 ${selected ? "text-white" : "text-gray-300 hover:text-white"}`}>
+                <BsChatRightText size="18" className="shrink-0" />
+                <span className="text-nowrap text-ellipsis overflow-hidden">{channel.name}</span>
+            </button>
+            {(hover || selected) &&
+                <button className={`shrink-0 p-1 text-gray-500 hover:text-white`}>
                     <BsThreeDotsVertical />
-                </span>
-            </div>
-        </button>
+                </button>
+            }
+        </div>
     );
 }
 

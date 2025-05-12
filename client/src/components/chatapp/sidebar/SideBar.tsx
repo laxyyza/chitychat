@@ -7,12 +7,14 @@ const SideBar = () => {
     const { app } = useApp();
 
     return (
-        <div className="sidebar h-screen max-h-screen border-r-gray-700 border-r-1 bg-gray-900 shrink-0">
-            <div className="flex h-full max-h-full overflow-hidden">
+        <div className="flex flex-col h-screen max-h-screen border-r-gray-700 border-r-1 bg-gray-900 shrink-0 w-70 max-w-70">
+            <div className="flex grow-1 min-w-0 overflow-hidden">
                 <SideBarList />
                 <ContentSideBar />
             </div>
-            <UserProfile user={app.login_user} />
+            <div className='shrink-0'>
+                <UserProfile user={app.login_user} />
+            </div>
         </div>
     );
 };
