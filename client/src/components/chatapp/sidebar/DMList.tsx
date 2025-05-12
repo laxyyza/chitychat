@@ -19,7 +19,7 @@ const DMList = () => {
     const navigator = useNavigate();
 
     const { send } = useWebsocket();
-    const {dm_id, group_id} = useParams();
+    const { dm_id, group_id } = useParams();
     const paramDMID = dm_id ? parseInt(dm_id) : undefined;
     const paramGroupID = group_id ? parseInt(group_id) : undefined;
 
@@ -38,7 +38,7 @@ const DMList = () => {
                     dmChats.push(dmchat);
 
                     if (paramDMID === userID) {
-                        dispatch({type: Action.SET_FOCUS, payload: {type: "dm", dmid: DMChat.DmID(paramDMID)}})
+                        dispatch({ type: Action.SET_FOCUS, payload: { type: "dm", dmid: DMChat.DmID(paramDMID) } })
                     }
                 })
 
@@ -54,7 +54,7 @@ const DMList = () => {
 
                 groups.forEach((group) => {
                     if (group.group_id === paramGroupID) {
-                        dispatch({type: Action.SET_FOCUS, payload: {type: "dm", dmid: DMChat.GroupID(paramGroupID)}})
+                        dispatch({ type: Action.SET_FOCUS, payload: { type: "dm", dmid: DMChat.GroupID(paramGroupID) } })
                     }
                 });
 
@@ -70,44 +70,46 @@ const DMList = () => {
     }, [])
 
     return (
-        <div className='flex-col h-full'>
-            <DMChatButton
-                selected={app.focus.type === 'friends'}
-                onClick={() => {
-                    dispatch({ type: Action.SET_FOCUS, payload: { type: "friends" } });
-                }}
-            >
-                <div className="flex items-center text-center justify-center">
-                    <div>
-                        <RiUserHeartFill size="22" />
+        <>
+            <div className='h-full p-1'>
+                <DMChatButton
+                    selected={app.focus.type === 'friends'}
+                    onClick={() => {
+                        dispatch({ type: Action.SET_FOCUS, payload: { type: "friends" } });
+                    }}
+                >
+                    <div className="flex items-center text-center justify-center">
+                        <div>
+                            <RiUserHeartFill size="22" />
+                        </div>
+                        <div className="ml-1 font-bold p-1">Friends</div>
                     </div>
-                    <div className="ml-1 font-bold p-1">Friends</div>
+                </DMChatButton>
+                <div className="text-center text-xs font-bold">Direct Messages</div>
+                <div className="p-1 overflow-hidden hover:overflow-auto flex-1 w-full max-h-full scroll-container" ref={dmlistRef}>
+                    {dms.map((dmchat) => (
+                        <li key={dmchat.id}>
+                            <DMChatButton
+                                dmchat={dmchat}
+                                selected={app.focus.type === "dm" && app.focus.dmid === dmchat.id}
+                                dmlistRef={dmlistRef}
+                                onClick={() => {
+                                    dispatch({
+                                        type: Action.SET_FOCUS,
+                                        payload: { type: "dm", dmid: dmchat.id }
+                                    })
+                                    if (dmchat.chat instanceof Group) {
+                                        navigator(`/app/groups/${dmchat.chat.id}`);
+                                    } else if (dmchat.chat instanceof DM) {
+                                        navigator(`/app/dms/${dmchat.chat.targetUserID}`);
+                                    }
+                                }}
+                            />
+                        </li>
+                    ))}
                 </div>
-            </DMChatButton>
-            <div className="text-center text-xs font-bold">Direct Messages</div>
-            <div className="p-1 overflow-hidden hover:overflow-auto flex-1 max-h-full scroll-container" ref={dmlistRef}>
-                {dms.map((dmchat) => (
-                    <li key={dmchat.id}>
-                        <DMChatButton
-                            dmchat={dmchat}
-                            selected={app.focus.type === "dm" && app.focus.dmid === dmchat.id}
-                            dmlistRef={dmlistRef}
-                            onClick={() => {
-                                dispatch({
-                                    type: Action.SET_FOCUS,
-                                    payload: { type: "dm", dmid: dmchat.id }
-                                })
-                                if (dmchat.chat instanceof Group) {
-                                    navigator(`/app/groups/${dmchat.chat.id}`);
-                                } else if (dmchat.chat instanceof DM) {
-                                    navigator(`/app/dms/${dmchat.chat.targetUserID}`);
-                                }
-                            }}
-                        />
-                    </li>
-                ))}
             </div>
-        </div>
+        </>
     );
 };
 

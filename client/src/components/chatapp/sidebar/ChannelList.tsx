@@ -43,7 +43,7 @@ const ChannelList = () => {
                 </button>
                 <HubDropdownMenu show={showMore} buttonRef={dropDownButtonRef} hub={hub} onClose={() => setShowMore(false)}/>
             </div>
-            <div className="grow-1 flex flex-col min-w-0 p-1 overflow-auto">
+            <div className="flex flex-col min-w-0 p-1 overflow-auto">
                 {categories.map((category => (
                     <li key={category.id}>
                         <HubCategory hub={hub} category={category} />
