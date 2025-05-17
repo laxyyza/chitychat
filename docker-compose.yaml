@@ -18,6 +18,7 @@ services:
       - db
       - nats
       - redis
+    restart: unless-stopped
 
   cc_sfs:
     image: chitychat/cc_sfs 
@@ -35,6 +36,7 @@ services:
     depends_on:
       - db
       - nats
+    restart: unless-stopped
 
   cc_groups:
     image: chitychat/cc_groups 
@@ -48,6 +50,7 @@ services:
     depends_on:
       - db
       - nats
+    restart: unless-stopped
 
   cc_friends:
     image: chitychat/cc_friends 
@@ -61,6 +64,7 @@ services:
     depends_on:
       - db
       - nats
+    restart: unless-stopped
 
   cc_dms:
     image: chitychat/cc_dms 
@@ -74,6 +78,7 @@ services:
     depends_on:
       - db
       - nats
+    restart: unless-stopped
 
   cc_hubs:
     image: chitychat/cc_hubs 
@@ -87,6 +92,7 @@ services:
     depends_on:
       - db
       - nats
+    restart: unless-stopped
 
   db:
     image: postgres:latest
