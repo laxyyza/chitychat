@@ -61,8 +61,8 @@ typedef struct server_config
 typedef struct server
 {
     struct {
-        i32 eventfd;    /* eventfd (used to wake up threads from epoll_wait()) */
-        i32 sigfd;      /* signalfd */
+        server_event_t* eventfd;    /* eventfd (used to wake up threads from epoll_wait()) */
+        server_event_t* signalfd;
     };
     server_config_t conf;
     server_db_commands_t db_commands;

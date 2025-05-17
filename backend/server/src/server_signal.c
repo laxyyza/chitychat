@@ -11,7 +11,7 @@ server_shutdown_and_notify(server_t* server, i32 return_code)
     {
         atomic_store(&server->running, false);
         server->ret = return_code;
-        eventfd_write(server->eventfd, 1);
+        eventfd_write(server->eventfd->fd, 1);
     }
 }
 
@@ -52,18 +52,10 @@ signal_read(eworker_t* ew, server_event_t* ev)
     return SE_OK;
 }
 
-static enum se_status
-signal_close(eworker_t* ew, server_event_t* ev)
-{
-    close(ev->fd);
-    if (ew->server->running)
-        ew->server->running = false;
-    return SE_OK;
-}
-
 bool 
 server_init_signal(eworker_t* ew)
 {
+    i32 sigfd;
     sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGINT);
@@ -71,23 +63,23 @@ server_init_signal(eworker_t* ew)
     sigaddset(&mask, SIGPIPE);
     sigprocmask(SIG_BLOCK, &mask, NULL);
     
-    ew->server->sigfd = signalfd(-1, &mask, 0);
-    if (ew->server->sigfd == -1)
+    sigfd = signalfd(-1, &mask, 0);
+    if (sigfd == -1)
     {
         error("signalfd: %s\n", ERRSTR);
         return false;
     }
 
     add_event_args_t args = {
-        .fd = ew->server->sigfd,
+        .fd = sigfd,
         .data = NULL,
         .read_cb = signal_read,
-        .close_cb = signal_close,
+        .close_cb = NULL,
         .write_cb = NULL,
         .name = "signalfd",
         .type = FD_SHARED
     };
-    server_epoll_add_event(ew, &args);
+    ew->server->signalfd = server_epoll_add_event(ew, &args);
 
-    return true;
+    return ew->server->signalfd != NULL;
 }

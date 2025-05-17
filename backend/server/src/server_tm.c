@@ -6,17 +6,6 @@
  * TM - "Thread Manager"
  */
 
-void* 
-tm_worker(void* arg)
-{
-    if (server_eworker_init(arg) == false)
-        return NULL;
-    server_eworker_async_run(arg);
-    server_eworker_cleanup(arg);
-
-    return NULL;
-}
-
 bool    
 server_init_tm(server_t* server, i32 n_workers)
 {
@@ -82,7 +71,7 @@ server_tm_shutdown_threads(server_t* server)
      * If workers are not busy, they will block in epoll_wait()
      * to wake them up from that, write something to eventfd.
      */
-    eventfd_write(server->eventfd, 1);
+    eventfd_write(server->eventfd->fd, 1);
 
     for (i32 i = 1; i < tm->n_workers; i++)
     {
@@ -96,7 +85,7 @@ server_tm_shutdown(server_t* server)
 {
     server_tm_t* tm = &server->tm;
 
-    if (server->eventfd <= 0)
+    if (server->eventfd == NULL)
         return;
 
     server_tm_shutdown_threads(server);

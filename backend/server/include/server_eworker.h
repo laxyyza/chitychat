@@ -31,6 +31,10 @@ typedef struct eworker
     server_t*   server;
     struct epoll_event ep_events[EWORKER_MAX_EVENTS];
     bool        ignore_http_free;
+
+    struct {
+        server_event_t* socket;
+    } events;
 } server_eworker_t, eworker_t;
 
 void* eworker_main(void* arg);

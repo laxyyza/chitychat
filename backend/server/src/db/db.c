@@ -255,6 +255,7 @@ server_db_free(server_t* server)
     free((void*)cmd->insert_remember_token.sql);
     free((void*)cmd->insert_remember_token_usage.sql);
     free((void*)cmd->insert_login_attempt.sql);
+    free((void*)cmd->update_remember_token.sql);
 }
 
 void 

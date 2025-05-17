@@ -163,6 +163,7 @@ typedef struct server_db
     plq_t   queue;
     dbctx_t ctx;
     const server_db_commands_t* cmd;
+    server_event_t* se;
 } server_db_t;
 
 bool        server_init_db(server_t* server);

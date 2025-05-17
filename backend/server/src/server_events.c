@@ -63,7 +63,8 @@ do_epoll_del(const eworker_t* ew, server_event_t* se)
     i32 ret;
     ret = epoll_ctl(ew->epfd, EPOLL_CTL_DEL, se->fd, NULL);
     if (ret == -1)
-        error("%s epoll_ctl DEL EPFD=%d FD=%d: %s\n", ew->name, ew->epfd, se->fd, ERRSTR);
+        error("%s epoll_ctl DEL EPFD=%d FD=%d (%s): %s\n", 
+              ew->name, ew->epfd, se->fd, se->debug_name, ERRSTR);
     return ret;
 }
 
@@ -288,8 +289,9 @@ server_epoll_add_event(eworker_t* ew, add_event_args_t* args)
         se->close = NULL;
 
     se->new_listen_events = se->listen_events = listen_events;
-    se->keep_data = false;
+    se->flags = 0;
     se->type = args->type;
+    se->err = 0;
     atomic_init(&se->interests, 0);
 
     if (eworker_epoll_add(ew, se) == -1)
@@ -319,9 +321,11 @@ eworker_del_event(eworker_t* ew, server_event_t* se)
     {
         if (se->close)
             se->close(ew, se);
-        else
+        else if ((se->flags & SE_DONT_CLOSE_FD) == 0)
+        {
             if (close(se->fd) == -1)
                 error("del_event: close(%d): %s\n", se->fd, ERRSTR);
+        }
 
         free(se);
     }

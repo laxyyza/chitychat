@@ -77,9 +77,10 @@ nats_set_poll_write(void* user_data, bool add)
 }
 
 natsStatus
-nats_detach(UNUSED void* user_data)
+nats_detach(void* user_data)
 {
-	warn("nats detach: Implement NATS Detach!\n", user_data);
+    server_nats_t* nats = user_data;
+    eworker_del_event(nats->server->main_ew, nats->ev);
 	return NATS_OK;
 }
 
@@ -110,6 +111,19 @@ server_init_nats(eworker_t* ew)
 	natsStatus s;
     server_t* server = ew->server;
 
+    /*
+     * Because the NATS.C library is a fucking stupid library that insists on creating threads
+     * (seriously, what the fuck — you don’t need threads for a networking library!
+     * Ever heard of I/O multiplexing?!),
+     * I have to block SIGINT and SIGTERM on *all* threads (including NATS threads),
+     * so I can catch signals myself and perform a proper graceful shutdown.
+     */
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGTERM);
+    pthread_sigmask(SIG_SETMASK, &mask, NULL);
+
 	s = natsOptions_Create(&server->nats.opts);
 	if (s != NATS_OK)
 	{
@@ -134,6 +148,7 @@ server_init_nats(eworker_t* ew)
 		fatal("Failed to connect to NATS server!\n");
 		return false;
 	}
+    natsOptions_Destroy(server->nats.opts);
 
 	natsConnection_GetClientID(server->nats.conn, &server->nats.client_id);
 
@@ -142,8 +157,6 @@ server_init_nats(eworker_t* ew)
 	snprintf(server->nats.subj_http, SUBJECT_LEN - 1, "cc_server.http.%lu", server->nats.client_id);
 	snprintf(server->nats.subj_ws, SUBJECT_LEN - 1, "cc_server.ws.%lu", server->nats.client_id);
 
-	natsConnection_PublishString(server->nats.conn, "new_cc_server", "Yup a new one!");
-
 	natsConnection_Subscribe(&server->nats.sub_http, server->nats.conn, server->nats.subj_http, (void*)cc_server_http_msg, server);
 
 	natsSubscription_SetPendingLimits(server->nats.sub_http, -1, -1);
@@ -151,3 +164,11 @@ server_init_nats(eworker_t* ew)
 	return true;
 }
 
+void 
+server_deinit_nats(server_t* server)
+{
+    info("deinit_nats()\n");
+    natsSubscription_Destroy(server->nats.sub_http);
+    natsConnection_Destroy(server->nats.conn);
+    nats_Close();
+}

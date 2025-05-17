@@ -20,5 +20,6 @@ typedef struct
 } server_nats_t;
 
 bool server_init_nats(eworker_t* ew);
+void server_deinit_nats(server_t* server);
 
 #endif // _SERVER_NATS_H_

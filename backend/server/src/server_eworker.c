@@ -88,6 +88,7 @@ static bool
 eworker_create_socket(eworker_t* ew)
 {
     i32 sock;
+    i32 opt = 1;
     server_t* server = ew->server;
 
     sock = socket(server->domain, SOCK_STREAM, 0);
@@ -97,8 +98,7 @@ eworker_create_socket(eworker_t* ew)
         return false;
     }
 
-    int opt = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, server->addr_len) == -1)
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(i32)) == -1)
         error("setsockopt: %s\n", strerror(errno));
 
     opt = 1;
@@ -130,7 +130,7 @@ eworker_create_socket(eworker_t* ew)
         .name = "Accept Connection",
         .type = FD_EXCLUSIVE
     };
-    if (server_epoll_add_event(ew, &args) == NULL)
+    if ((ew->events.socket = server_epoll_add_event(ew, &args)) == NULL)
         return false;
 
     return true;
@@ -158,15 +158,16 @@ eworker_add_db_fd(eworker_t* ew)
 {
     add_event_args_t args = {
         .fd = ew->db.fd,
-        .data = NULL,
+        .data = &ew->db,
         .read_cb = eworker_db_read,
         .write_cb = NULL,
         .close_cb = NULL,
         .name = "PostgreSQL",
         .type = FD_EXCLUSIVE
     };
-    if (server_epoll_add_event(ew, &args) == NULL)
+    if ((ew->db.se = server_epoll_add_event(ew, &args)) == NULL)
         return false;
+    ew->db.se->flags |= SE_DONT_CLOSE_FD;
     return true;
 }
 
@@ -174,8 +175,6 @@ bool
 server_eworker_init(eworker_t* ew)
 {
     ew->tid = gettid();
-    char* name = malloc(100);
-    sprintf(name, "%s:event_ht", ew->name);
 
     if (!eworker_init_epoll(ew))
         return false;
@@ -214,9 +213,14 @@ server_eworker_async_run(eworker_t* ew)
 void 
 server_eworker_cleanup(eworker_t* ew)
 {
+    if (ew == NULL) return;
+
+    debug("%s shutdown.\n", ew->name);
+
+    eworker_del_event(ew, ew->db.se);
     server_db_close(&ew->db);
     server_deinit_redis(ew);
+    eworker_del_event(ew, ew->events.socket);
     close(ew->epfd);
-    debug("%s shutdown.\n", ew->name);
 }
 

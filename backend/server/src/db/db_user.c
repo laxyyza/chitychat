@@ -4,7 +4,7 @@
 #include "db/db_pipeline.h"
 #include <libpq-fe.h>
 
-static void 
+UNUSED static void 
 user_event(UNUSED natsConnection* nc, UNUSED natsSubscription* sub, natsMsg* msg, void* closuer)
 {
     const char* data = natsMsg_GetData(msg);
@@ -51,6 +51,9 @@ db_get_user_result(eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ct
 
                 char user_subject[SUBJECT_LEN];
                 snprintf(user_subject, SUBJECT_LEN - 1, "realtime.user.%u", user_id);
+                
+                // TODO: Cleaner why of finding an existing or allocating new users.
+                // TODO: Free user->sub.
 
                 natsConnection_Subscribe(&user->sub, ew->server->nats.conn, user_subject, user_event, user);
             }

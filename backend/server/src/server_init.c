@@ -318,51 +318,44 @@ server_init_ht(server_t* server)
 }
 
 static enum se_status
-eventfd_dummy_read(eworker_t* ew, UNUSED server_event_t* ev)
+eventfd_read_cb(UNUSED eworker_t* ew, server_event_t* ev)
 {
-    /*
-     * Won't read eventfd.
-     * Make all threads wake up from epoll_wait().
-     */
-    verbose("eventfd_dummy_read() from %d\n", ew->tid);
+    i64 r;
+
+    if (read(ev->fd, &r, sizeof(i64)) == -1) 
+        error("eventfd_read: %s\n", ERRSTR);
+    else
+        eventfd_write(ev->fd, 1);
+
     return SE_OK;
 }
 
 static bool
 server_init_eventfd(eworker_t* ew)
 {
-    server_event_t* se;
     server_t* server = ew->server;
 
-    server->eventfd = eventfd(0, 0);
-    if (server->eventfd == -1)
+    i32 efd = eventfd(0, 0);
+    if (efd == -1)
     {
         fatal("eventfd: %s\n", ERRSTR);
         return false;
     }
 
+    info("Event FD: %d\n", efd);
+
     add_event_args_t args = {
-        .fd = server->eventfd,
+        .fd = efd,
         .data = NULL,
-        .read_cb = eventfd_dummy_read,
+        .read_cb = eventfd_read_cb,
         .write_cb = NULL,
         .close_cb = NULL,
         .name = "eventfd",
         .type = FD_SHARED
     };
-    se = server_epoll_add_event(ew, &args);
-    if (se == NULL)
-        return false;
+    server->eventfd = server_epoll_add_event(ew, &args);
 
-    /*
-     * Default server_new_event() will use EPOLLONESHOT,
-     * in this case we don't, we want all threads get this event.
-     */
-    // se->new_listen_events = EPOLLIN;
-    // if (server_epoll_rearm_all(server, se) == -1)
-    //     return false;
-
-    return true;
+    return server->eventfd != NULL;
 }
 
 static inline bool 
@@ -371,7 +364,7 @@ server_wait_for_workers(server_t* server)
     i32 online_workers;
     hr_time_t start_time, current_time;
     nano_gettime(&start_time);
-    i32 wait_seconds = 5;
+    i32 wait_seconds = 30;
 
     // busy wait
     while ((online_workers = atomic_load(&server->tm.online_workers)) < server->tm.n_workers)

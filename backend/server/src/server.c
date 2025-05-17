@@ -59,8 +59,17 @@ server_cleanup(server_t* server)
     if (!server)
         return;
 
-    server_eworker_cleanup(server->main_ew);
+    info("server_cleanup()\n");
+
+    atomic_store(&server->running, false);
+
+    server_deinit_nats(server);
     server_tm_shutdown(server);
+
+    eworker_del_event(server->main_ew, server->eventfd);
+    eworker_del_event(server->main_ew, server->signalfd);
+
+    server_eworker_cleanup(server->main_ew);
     server_ght_destroy(&server->chat_cmd_ht);
     // server_del_all_shared_events(server);
     server_del_all_clients(server);
@@ -68,9 +77,7 @@ server_cleanup(server_t* server)
     server_close_magic(server);
 
     SSL_CTX_free(server->ssl_ctx);
-
-    if (server->sigfd)
-        close(server->sigfd);
+    OSSL_LIB_CTX_free(OSSL_LIB_CTX_get0_global_default());
 
     debug("Server stopped.\n");
 

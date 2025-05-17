@@ -11,6 +11,8 @@
 #define FD_EXCLUSIVE    0
 #define FD_SHARED       1
 
+#define SE_DONT_CLOSE_FD 0x01
+
 enum se_status 
 {
     SE_OK,
@@ -32,7 +34,7 @@ typedef struct server_event
     u32 listen_events;
     u32 new_listen_events;
     void* data;
-    bool  keep_data;
+    i32 flags;
     se_read_callback_t read;
     se_write_callback_t write;
     se_close_callback_t close;

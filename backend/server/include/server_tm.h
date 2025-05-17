@@ -20,7 +20,6 @@ typedef struct
     pthread_cond_t  cond;
 } server_tm_t;
 
-void*   tm_worker(void* arg);
 bool    server_init_tm(server_t* server, i32 n_threads);
 bool    server_tm_start_threads(server_t* server);
 void    server_tm_shutdown(server_t* server);
