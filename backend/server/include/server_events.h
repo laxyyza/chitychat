@@ -59,6 +59,7 @@ server_event_t* server_epoll_add_event(eworker_t* ew, add_event_args_t* args);
 void            eworker_del_event(eworker_t* ew, server_event_t* se);
 void            server_process_event(eworker_t* ew, server_event_t* se);
 void            server_wait_for_events(eworker_t* ew);
+void            server_do_free_event(eworker_t* ew, server_event_t* se);
 
 i32 eworker_epoll_rearm(const eworker_t* ew, server_event_t* ev);
 i32 server_epoll_rearm_all(const server_t* server, server_event_t* se);

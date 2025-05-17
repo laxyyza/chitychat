@@ -304,6 +304,20 @@ server_epoll_add_event(eworker_t* ew, add_event_args_t* args)
 }
 
 void 
+server_do_free_event(eworker_t* ew, server_event_t* se)
+{
+    if (se->close)
+        se->close(ew, se);
+    else if ((se->flags & SE_DONT_CLOSE_FD) == 0)
+    {
+        if (close(se->fd) == -1)
+            error("del_event: close(%d): %s\n", se->fd, ERRSTR);
+    }
+
+    free(se);
+}
+
+void 
 eworker_del_event(eworker_t* ew, server_event_t* se)
 {
     server_t* server = ew->server;
@@ -318,17 +332,7 @@ eworker_del_event(eworker_t* ew, server_event_t* se)
     eworker_epoll_remove(ew, se);
 
     if (atomic_fetch_sub(&se->interests, 1) == 1)
-    {
-        if (se->close)
-            se->close(ew, se);
-        else if ((se->flags & SE_DONT_CLOSE_FD) == 0)
-        {
-            if (close(se->fd) == -1)
-                error("del_event: close(%d): %s\n", se->fd, ERRSTR);
-        }
-
-        free(se);
-    }
+        server_do_free_event(ew, se);
 }
 
 void 

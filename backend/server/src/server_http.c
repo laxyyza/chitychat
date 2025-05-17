@@ -464,6 +464,7 @@ server_http_switch_to_websocket(client_t* client)
     http_free(http);
     free(client->websocket_key);
     client->websocket_key = NULL;
+    client->se->debug_name = "Websocket Client";
 }
 
 static enum client_recv_status

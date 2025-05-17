@@ -19,7 +19,7 @@ nats_write(UNUSED eworker_t* ew, server_event_t* ev)
 static enum se_status
 nats_close(UNUSED eworker_t* ew, UNUSED server_event_t* ev)
 {
-	warn("nats_close. TODO: Implement NATS Close!\n");
+	debug("nats_close. TODO: Implement NATS Close!\n");
 	return SE_OK;
 }
 

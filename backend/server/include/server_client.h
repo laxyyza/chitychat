@@ -49,7 +49,7 @@ typedef struct client
     char*       websocket_key;
     char        session_uuid[UUID_LEN];
     bool        dev_origin;
-    char        user_agent[USER_AGENT_LEN];
+    char        user_agent[USER_AGENT_LEN + 1];
     server_event_t* se;
 } client_t;
 

@@ -31,7 +31,7 @@ server_del_all_clients(server_t* server)
 
     GHT_FOREACH(client_t* client, ht, {
         if (client->se)
-            eworker_del_event(server->main_ew, client->se);
+            server_do_free_event(server->main_ew, client->se);
         else
             server_free_client(server->main_ew, client);
     });
