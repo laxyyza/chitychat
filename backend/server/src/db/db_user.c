@@ -7,25 +7,18 @@
 static void 
 db_get_user_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
 {
-    i32 rows;
-    dbuser_t* user = NULL;
+    dbuser_t* user;
+    ctx->ret = DB_ASYNC_ERROR;
 
-    if (status == PGRES_TUPLES_OK)
+    if (status == PGRES_TUPLES_OK && PQntuples(res) > 0)
     {
-        rows = PQntuples(res);
-        if (rows == 0)
-            return;
-
         user = calloc(1, sizeof(dbuser_t));
         db_row_to_user(user, res, 0);
         ctx->ret = DB_ASYNC_OK;
+        ctx->data = user;
     }
-    else
-    {
+    else if (status == PGRES_FATAL_ERROR)
         error("get_user: %s\n", PQresultErrorMessage(res));
-        ctx->ret = DB_ASYNC_ERROR;
-    }
-    ctx->data = user;
 }
 
 static void

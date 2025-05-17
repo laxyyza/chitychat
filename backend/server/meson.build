@@ -9,7 +9,7 @@ libcutils = cutils_proj.get_variable('libcutils')
 
 cmake = import('cmake', required: true)
 nats_proj = cmake.subproject('nats.c', required: true)
-nats_dep = nats_proj.dependency('nats')
+nats_dep = nats_proj.dependency('nats_static')
 nats_inc = nats_proj.include_directories('nats')
 
 openssl_dep = dependency('openssl')

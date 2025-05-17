@@ -191,7 +191,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
         fatal("Invalid CC_REDIS_PORT: %s\n", redis_port_str);
         return false;
     }
-    server->conf.redis_ip = getenvd("CC_REDIS_IP", "127.0.0.1");
+    server->conf.redis_ip = getenvd("CC_REDIS_IP", "localhost");
 
     if (!strcmp(loglevel_str, "fatal"))
         log_level = SERVER_FATAL;

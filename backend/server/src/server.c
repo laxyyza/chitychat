@@ -39,23 +39,6 @@ server_del_all_clients(server_t* server)
     server_ght_destroy(&server->user_ht);
 }
 
-// void
-// server_del_all_shared_events(server_t* server)
-// {
-//     server_ght_t* ht = &server->shared_event_ht;
-//     ht->ignore_resize = true;
-//
-//     GHT_FOREACH(server_event_t* ev, ht, {
-//         for (i32 i = 0; i < server->tm.n_workers; i++)
-//         {
-//             eworker_t* ew = server->tm.workers + i;
-//             eworker_del_event(ew, ev);
-//         }
-//     });
-//
-//     server_ght_destroy(&server->shared_event_ht);
-// }
-
 void 
 server_cleanup(server_t* server)
 {

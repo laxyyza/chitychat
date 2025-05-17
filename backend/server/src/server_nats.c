@@ -110,6 +110,7 @@ server_init_nats(eworker_t* ew)
 {
 	natsStatus s;
     server_t* server = ew->server;
+    const char* url;
 
     /*
      * Because the NATS.C library is a fucking stupid library that insists on creating threads
@@ -130,6 +131,10 @@ server_init_nats(eworker_t* ew)
 		fatal("Failed to create NATS Options. Out of memory?\n");
 		return false;
 	}
+
+    url = getenvd("NATS_URL", NATS_DEFAULT_URL);
+
+    natsOptions_SetURL(server->nats.opts, url);
 
 	s = natsOptions_SetEventLoop(ew->server->nats.opts, ew, 
 						nats_attach, 
