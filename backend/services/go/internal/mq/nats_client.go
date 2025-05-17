@@ -2,8 +2,9 @@ package mq
 
 import (
 	"encoding/json"
-	"log"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/nats-io/nats.go"
@@ -56,7 +57,12 @@ func New(queueName string) (MQ, error) {
 	var mq MQ = MQ{httpQueueName: queueName + ".http", wsQueueName: queueName + ".ws"}
 	var err error
 
-	mq.conn, err = nats.Connect(nats.DefaultURL)
+	natsUrl := os.Getenv("NATS_URL")
+	if natsUrl == "" {
+		natsUrl = nats.DefaultURL
+	}
+
+	mq.conn, err = nats.Connect(natsUrl)
 	if err != nil {
 		log.Printf("Failed to connect to NATS server: %s\n", err)
 		return MQ{}, err

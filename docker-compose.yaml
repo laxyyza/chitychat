@@ -19,17 +19,75 @@ services:
       - nats
       - redis
 
-  # cc_hubs:
-  #   image: chitychat/cc_hubs 
-  #   environment:
-  #     - NATS_URL=nats
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - db
-  #     - nats
-  #   restart: unless-stopped
-  #
+  cc_sfs:
+    image: chitychat/cc_sfs 
+    command: cc_sfs
+    ports:
+      - "8081:8081"
+    environment:
+      - SFS_ROOT_PATH=/srv/sfs_data
+    env_file:
+      - .env
+    volumes:
+      - ./backend/server/server.crt:/app/backend/server/server.crt
+      - ./backend/server/server.key:/app/backend/server/server.key
+      - sfs_data:/srv/sfs_data
+    depends_on:
+      - db
+      - nats
+
+  cc_groups:
+    image: chitychat/cc_groups 
+    command: cc_groups
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    volumes:
+      - ./backend/sql:/app/backend/sql
+    depends_on:
+      - db
+      - nats
+
+  cc_friends:
+    image: chitychat/cc_friends 
+    command: cc_friends
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    volumes:
+      - ./backend/sql:/app/backend/sql
+    depends_on:
+      - db
+      - nats
+
+  cc_dms:
+    image: chitychat/cc_dms 
+    command: cc_dms
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    volumes:
+      - ./backend/sql:/app/backend/sql
+    depends_on:
+      - db
+      - nats
+
+  cc_hubs:
+    image: chitychat/cc_hubs 
+    command: cc_hubs
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    volumes:
+      - ./backend/sql:/app/backend/sql
+    depends_on:
+      - db
+      - nats
+
   db:
     image: postgres:latest
     ports:
@@ -60,3 +118,4 @@ services:
 
 volumes:
   pg_data:
+  sfs_data:
