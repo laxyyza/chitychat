@@ -65,7 +65,7 @@ const Main = () => {
                 <Route path="groups/:group_id" />
             </Route>
             <Route path="/login" element={<Login />}></Route>
-            <Route path="/i/::code" element={<InvitePage />}></Route>
+            <Route path="/i/:code" element={<InvitePage />}></Route>
             <Route path="/test" element={<Test />}></Route>
             <Route path="/" element={<Loading />}></Route>
         </Routes>
