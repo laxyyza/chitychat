@@ -8,6 +8,37 @@
 #include "server_websocket.h"
 #include "nano_timer.h"
 
+void 
+server_free_user(dbuser_t* user)
+{
+    if (user == NULL)
+        return;
+
+    array_del(&user->connected_clients);
+    natsSubscription_Destroy(user->sub);
+    free(user);
+}
+
+void 
+server_init_new_user(UNUSED eworker_t* ew, dbuser_t* user)
+{
+    array_init(&user->connected_clients, sizeof(client_t*), 5);
+
+    // TODO: Message tokens for rate limitng.
+
+    char user_subject[SUBJECT_LEN];
+    snprintf(user_subject, 
+                SUBJECT_LEN - 1, 
+                "realtime.user.%u", 
+                user->user_id);
+
+    natsConnection_Subscribe(&user->sub, 
+                                ew->server->nats.conn, 
+                                user_subject, 
+                                server_nats_user_event, 
+                                user);
+}
+
 dbuser_t* 
 server_new_user(eworker_t* ew, u32 user_id)
 {

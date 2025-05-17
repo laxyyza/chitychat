@@ -167,8 +167,30 @@ server_init_nats(eworker_t* ew)
 void 
 server_deinit_nats(server_t* server)
 {
-    info("deinit_nats()\n");
     natsSubscription_Destroy(server->nats.sub_http);
     natsConnection_Destroy(server->nats.conn);
     nats_Close();
 }
+
+void 
+server_nats_user_event(UNUSED natsConnection* nc, UNUSED natsSubscription* sub, natsMsg* msg, void* closuer)
+{
+    const char* data = natsMsg_GetData(msg);
+    const u32 size = natsMsg_GetDataLength(msg);
+    dbuser_t* user = closuer;
+
+    json_tokener* tok = json_tokener_new();
+    json_object* json = json_tokener_parse_ex(tok, data, size);
+    json_tokener_free(tok);
+
+    if (json == NULL)
+        goto free_msg;
+
+    server_user_send(user, json);
+
+    json_object_put(json);
+
+free_msg:
+    natsMsg_Destroy(msg);
+}
+

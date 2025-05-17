@@ -35,6 +35,7 @@ typedef struct
     http_t* http;
 } recv_buf_t;
 
+// TODO: Implement reference counting for client_t and maybe other objects too. 
 typedef struct client
 {
     net_addr_t  addr;

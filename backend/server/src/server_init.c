@@ -308,7 +308,7 @@ server_init_ht(server_t* server)
     if (server_ght_init(&server->client_ht, ht_size, NULL) == false)
         return false;
 
-    if (server_ght_init(&server->user_ht, ht_size, NULL) == false)
+    if (server_ght_init(&server->user_ht, ht_size, (ght_free_t)server_free_user) == false)
         return false;
 
     if (server_init_chatcmd(server) == false)
@@ -341,8 +341,6 @@ server_init_eventfd(eworker_t* ew)
         fatal("eventfd: %s\n", ERRSTR);
         return false;
     }
-
-    info("Event FD: %d\n", efd);
 
     add_event_args_t args = {
         .fd = efd,

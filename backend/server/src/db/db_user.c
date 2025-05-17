@@ -4,33 +4,11 @@
 #include "db/db_pipeline.h"
 #include <libpq-fe.h>
 
-UNUSED static void 
-user_event(UNUSED natsConnection* nc, UNUSED natsSubscription* sub, natsMsg* msg, void* closuer)
-{
-    const char* data = natsMsg_GetData(msg);
-    const u32 size = natsMsg_GetDataLength(msg);
-    dbuser_t* user = closuer;
-
-    json_tokener* tok = json_tokener_new();
-    json_object* json = json_tokener_parse_ex(tok, data, size);
-    json_tokener_free(tok);
-
-    if (json == NULL)
-        return;
-
-    server_user_send(user, json);
-
-    json_object_put(json);
-}
-
 static void 
-db_get_user_result(eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
+db_get_user_result(UNUSED eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ctx_t* ctx)
 {
     i32 rows;
-    ctx->ret = DB_ASYNC_ERROR;
     dbuser_t* user = NULL;
-    u32 user_id;
-    char* endptr;
 
     if (status == PGRES_TUPLES_OK)
     {
@@ -38,34 +16,15 @@ db_get_user_result(eworker_t* ew, PGresult* res, ExecStatusType status, dbcmd_ct
         if (rows == 0)
             return;
 
-        const char* id_str = PQgetvalue(res, 0, 0);
-        if (id_str)
-        {
-            user_id = strtoul(id_str, &endptr, 10);
-            ctx->ret = DB_ASYNC_OK;
-
-            if ((user = server_ght_get(&ew->server->user_ht, user_id)) == NULL)
-            {
-                user = server_new_user(ew, 0);
-                db_row_to_user(user, res, 0);
-
-                char user_subject[SUBJECT_LEN];
-                snprintf(user_subject, SUBJECT_LEN - 1, "realtime.user.%u", user_id);
-                
-                // TODO: Cleaner why of finding an existing or allocating new users.
-                // TODO: Free user->sub.
-
-                natsConnection_Subscribe(&user->sub, ew->server->nats.conn, user_subject, user_event, user);
-            }
-        }
-        else
-        {
-            ctx->ret = DB_ASYNC_ERROR;
-            return;
-        }
+        user = calloc(1, sizeof(dbuser_t));
+        db_row_to_user(user, res, 0);
+        ctx->ret = DB_ASYNC_OK;
     }
     else
+    {
         error("get_user: %s\n", PQresultErrorMessage(res));
+        ctx->ret = DB_ASYNC_ERROR;
+    }
     ctx->data = user;
 }
 

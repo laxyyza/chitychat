@@ -21,5 +21,6 @@ typedef struct
 
 bool server_init_nats(eworker_t* ew);
 void server_deinit_nats(server_t* server);
+void server_nats_user_event(natsConnection* nc, natsSubscription* sub, natsMsg* msg, void* closuer);
 
 #endif // _SERVER_NATS_H_

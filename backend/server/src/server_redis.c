@@ -65,7 +65,7 @@ redis_del_write(server_redis_t* r)
 static void 
 redis_cleanup(UNUSED server_redis_t* r)
 {
-    warn("TODO: Implement: redis_cleanup()!\n");
+    debug("TODO: Implement: redis_cleanup()!\n");
 }
 
 static void 

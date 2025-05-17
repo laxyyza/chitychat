@@ -42,6 +42,8 @@ typedef struct dbuser
 } dbuser_t;
 
 dbuser_t* server_new_user(eworker_t* ew, u32 user_id);
+void      server_free_user(dbuser_t* user);
+void      server_init_new_user(eworker_t* ew, dbuser_t* user);
 bool      server_userid_send(eworker_t* ew, u32 user_id, json_object* packet);
 void      server_user_send(dbuser_t* user, json_object* packet);
 

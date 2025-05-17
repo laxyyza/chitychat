@@ -30,7 +30,10 @@ server_del_all_clients(server_t* server)
     ht->ignore_resize = true;
 
     GHT_FOREACH(client_t* client, ht, {
-        server_free_client(server->main_ew, client);
+        if (client->se)
+            eworker_del_event(server->main_ew, client->se);
+        else
+            server_free_client(server->main_ew, client);
     });
     server_ght_destroy(ht);
     server_ght_destroy(&server->user_ht);
@@ -59,12 +62,12 @@ server_cleanup(server_t* server)
     if (!server)
         return;
 
-    info("server_cleanup()\n");
-
     atomic_store(&server->running, false);
 
-    server_deinit_nats(server);
     server_tm_shutdown(server);
+    server_del_all_clients(server);
+
+    server_deinit_nats(server);
 
     eworker_del_event(server->main_ew, server->eventfd);
     eworker_del_event(server->main_ew, server->signalfd);
@@ -72,7 +75,6 @@ server_cleanup(server_t* server)
     server_eworker_cleanup(server->main_ew);
     server_ght_destroy(&server->chat_cmd_ht);
     // server_del_all_shared_events(server);
-    server_del_all_clients(server);
     server_db_free(server);
     server_close_magic(server);
 

@@ -58,6 +58,33 @@ err:
     return NULL;
 }
 
+static inline void 
+server_free_client_user(eworker_t* ew, client_t* client)
+{
+    dbuser_t* user;
+
+    if ((user = client->dbuser) == NULL)
+        return;
+
+    for (u32 i = 0; i < user->connected_clients.count; i++)
+    {
+        client_t* other_client = *(client_t**)array_idx(&user->connected_clients, i);
+        if (other_client == client)
+        {
+            array_erase(&user->connected_clients, i);
+            break;
+        }
+    }
+
+    if (ew->server->running)
+        server_rtusm_user_disconnect(ew, user);
+
+    if (user->connected_clients.count == 0)
+    {
+        server_ght_del(&ew->server->user_ht, user->user_id);
+    }
+}
+
 void 
 server_free_client(eworker_t* ew, client_t* client)
 {
@@ -89,29 +116,8 @@ server_free_client(eworker_t* ew, client_t* client)
 
     if (client->recv.data)
         free(client->recv.data);
-    if (client->dbuser)
-    {
-        for (u32 i = 0; i < client->dbuser->connected_clients.count; i++)
-        {
-            client_t* other_client = *(client_t**)array_idx(&client->dbuser->connected_clients, i);
-            if (other_client == client)
-            {
-                array_erase(&client->dbuser->connected_clients, i);
-                break;
-            }
-        }
-
-        if (ew->server->running)
-            server_rtusm_user_disconnect(ew, client->dbuser);
-
-        if (client->dbuser->connected_clients.count == 0 && client->dbuser->msg_tokens.tokens > 0)
-        {
-            natsSubscription_Unsubscribe(client->dbuser->sub);
-            server_ght_del(&ew->server->user_ht, client->dbuser->user_id);
-        }
-    }
+    server_free_client_user(ew, client);
     close(client->addr.sock);
-
     free(client);
 }
 

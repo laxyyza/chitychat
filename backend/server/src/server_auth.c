@@ -327,7 +327,9 @@ server_handle_auth(eworker_t* ew, client_t* client, http_t* http)
 static void 
 bind_user_to_client(eworker_t* ew, client_t* client, dbuser_t* user)
 {
-    server_ght_insert(&ew->server->user_ht, user->user_id, user);
+    if (server_ght_insert(&ew->server->user_ht, user->user_id, user))
+        server_init_new_user(ew, user);
+
     server_rtusm_user_connect(ew, user);
     array_add_voidp(&user->connected_clients, client);
     client->dbuser = user;
