@@ -56,4 +56,4 @@ RUN apk --no-cache add file
 
 EXPOSE 443
 
-CMD ["backend/cc_server", "-T", "1"]
+CMD ["backend/cc_server"]
