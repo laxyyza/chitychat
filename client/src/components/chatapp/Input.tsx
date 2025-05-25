@@ -150,6 +150,7 @@ const Input = ({
                                 <div className='absolute overflow-hidden bottom-full rounded-xl bg-gray-900 border-1 border-gray-600 mb-2'>
                                     <button className='hover:bg-gray-800 p-3 rounded-xl text-nowrap' onClick={() => {
                                         inputFileRef.current?.click();
+                                        setShowPopup(false);
                                     }} >
                                         Upload File
                                     </button>
