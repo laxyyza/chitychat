@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import fetchData from "../services/api";
 import { useApp } from "./chatapp/AppProvider";
 import UserProfile from "./chatapp/sidebar/UserProfile";
@@ -56,6 +56,12 @@ const JoinPage = ({ data, code, setErrorMsg }: JoinProps) => {
                     Joining as
                 </div>
                 <UserProfile user={app.login_user} showSettings={false} />
+                <Link 
+                    to={`/login?redirect=${location.pathname}`} 
+                    className="text-xs text-blue-500 hover:text-blue-400 hover:border-b-1 border-blue-400"
+                >
+                    Not you?
+                </Link>
             </div>
             <button 
                 className={`${joined ? "bg-gray-700 text-gray-400" : "bg-blue-500 hover:bg-blue-400 active:bg-blue-300"} p-3 text-xl rounded-xl font-bold mt-auto`}
