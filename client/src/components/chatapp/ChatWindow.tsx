@@ -124,8 +124,8 @@ const ChatWindow = () => {
                 <div ref={bottomRef} />
             </div>
             {isBottom || (
-                <div
-                    className="bg-gray-800 border-1 border-black text-white self-center p-1 rounded-full hover:text-blue-400 active:bg-gray-700"
+                <button
+                    className="absolute bottom-15 bg-gray-800 border-1 border-black text-white self-center p-1 rounded-full hover:text-blue-400 active:bg-gray-700"
                     onClick={() =>
                         bottomRef.current?.scrollIntoView({
                             behavior: 'smooth'
@@ -133,7 +133,7 @@ const ChatWindow = () => {
                     }
                 >
                     <FaArrowDown size="24" />
-                </div>
+                </button>
             )}
         </>
     );
