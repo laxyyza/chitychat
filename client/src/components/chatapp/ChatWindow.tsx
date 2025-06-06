@@ -4,13 +4,15 @@ import ChannelMessages from './ChannelMessages';
 import { FaArrowDown } from 'react-icons/fa';
 import Message from '../../models/message';
 import { DMChat } from '../../models/dm';
+import Input from './Input';
+import { Hub } from '../../models/hub';
 
 const requestChatMessages = (dmChat: DMChat, dispatch: React.Dispatch<DispatchAction>) => {
     dmChat.requestMsgs = true;
     dmChat.fetchMessages(dispatch);
 }
 
-const getMessages = (): Message[] => {
+const getMessages = (): [Message[], Hub | DMChat | null] => {
     const { app, dispatch } = useApp();
 
     switch (app.focus.type) {
@@ -27,20 +29,20 @@ const getMessages = (): Message[] => {
                     requestChatMessages(dmchat, dispatch);
                 }
 
-                return msgs;
+                return [msgs, dmchat];
             }
             break;
         }
         case "hub": {
             const hub = app.hubs.get(app.focus.hubID);
             if (hub) {
-                return hub.getMessages(dispatch);
+                return [hub.getMessages(dispatch), hub];
             }
             break;
         }
     }
 
-    return [];
+    return [[], null];
 };
 
 const ChatWindow = () => {
@@ -49,7 +51,7 @@ const ChatWindow = () => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isBottom, setIsBottom] = useState(true);
     const bottomRef = useRef<HTMLDivElement | null>(null);
-    const messages = getMessages();
+    const [messages, target] = getMessages();
     const [isTop, setIsTop] = useState(false);
     const [oldScroll, setOldScroll] = useState(0);
 
@@ -117,6 +119,9 @@ const ChatWindow = () => {
         }
     }, [messages]);
 
+    if (!target)
+        return null;
+
     return (
         <>
             <div className="flex-1 overflow-y-auto" ref={containerRef}>
@@ -135,6 +140,9 @@ const ChatWindow = () => {
                     <FaArrowDown size="24" />
                 </button>
             )}
+            <div className="bg-gray-900 m-3 rounded-2xl text-white max-h-[50%] border-gray-600 border-1">
+                <Input target={target} attachments placeholder="Type a message..." />
+            </div>
         </>
     );
 };

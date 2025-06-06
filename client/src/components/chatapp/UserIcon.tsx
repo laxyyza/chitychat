@@ -3,6 +3,8 @@ import Popup from './Popup';
 import User from './User';
 import Input from './Input';
 import { FaUserAlt } from 'react-icons/fa';
+import { DM, DMChat } from '../../models/dm';
+import { Action, useApp } from './AppProvider';
 
 interface Prop {
     user: User;
@@ -66,6 +68,13 @@ const IconImgChooser = ({ pfp, profile, size = "32" }: IconImgProp) => {
 };
 
 const UserDetails = ({ user }: Prop) => {
+    const {app, dispatch} = useApp();
+
+    let dmchat = app.dm.get(DMChat.DmID(user.id));
+    if (!dmchat) {
+        dmchat = new DMChat(new DM(user.id), new Date().toISOString());
+    };
+
     return (
         <div className="bg-gray-900 top-0 w-80 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
             <IconImgChooser pfp={user.pfp} profile={true} />
@@ -80,9 +89,15 @@ const UserDetails = ({ user }: Prop) => {
             </div>
             <div className="bg-gray-800 rounded-xl text-white mt-3 max-h-50 overflow-auto pl-2">
                 <Input
-                    attachments={false}
                     placeholder={'Message @' + user.username}
-                ></Input>
+                    target={dmchat}
+                    afterMessageSent={() => {
+                        dispatch({type: Action.SET_FOCUS, payload: {
+                            type: 'dm',
+                            dmid: DMChat.DmID(user.id)
+                        }});
+                    }}
+                />
             </div>
         </div>
     );
