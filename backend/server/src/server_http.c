@@ -74,7 +74,7 @@ set_client_connection(client_t* client, http_header_t* header)
             client->state |= CLIENT_STATE_KEEP_ALIVE;
         else if (!strncmp(token, "close", HTTP_HEAD_VAL_LEN))
             client->state = CLIENT_STATE_SHORT_LIVE;
-        else if (!strncmp(token, "Upgrade", HTTP_HEAD_VAL_LEN))
+        else if (!strncmp(token, "upgrade", HTTP_HEAD_VAL_LEN))
             client->state |= CLIENT_STATE_UPGRADE_PENDING;
         else
             warn("HTTP Connection: '%s' not implemented.\n", token);
@@ -155,17 +155,17 @@ handle_user_agent(client_t* client, http_header_t* header)
 static void 
 handle_http_header(client_t* client, http_t* http, http_header_t* header)
 {
-    if (NAME_CMP("Content-Length"))
+    if (NAME_CMP("content-length"))
         http_handle_content_len(http, header);
-    else if (NAME_CMP("Connection"))
+    else if (NAME_CMP("connection"))
         set_client_connection(client, header);
-    else if (NAME_CMP("Sec-WebSocket-Key"))
+    else if (NAME_CMP("sec-websocket-key"))
         handle_websocket_key(http, header);
-    else if (NAME_CMP("Cookie"))
+    else if (NAME_CMP("cookie"))
         handle_cookie(http, header);
-    else if (NAME_CMP("Origin"))
+    else if (NAME_CMP("origin"))
         handle_origin(client, http, header);
-    else if (NAME_CMP("User-Agent"))
+    else if (NAME_CMP("user-agent"))
         handle_user_agent(client, header);
 }
 
@@ -218,6 +218,8 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     char* strtok_saveptr;
     size_t header_len;
     size_t actual_body_len;
+
+    printf("\n\n%s\n\n", buf);
 
     http = calloc(1, sizeof(http_t));
 
@@ -310,7 +312,7 @@ parse_http(client_t* client, char* buf, size_t buf_len)
             token++;
         val = token;
 
-        strncpy(http_header->name, name, HTTP_HEAD_NAME_LEN - 1);
+        strncpy_tolower(http_header->name, name, HTTP_HEAD_NAME_LEN - 1);
         strncpy(http_header->val, val, HTTP_HEAD_VAL_LEN - 1);
 
         header_line = strsplit(NULL, HTTP_NL, &saveptr);
@@ -622,7 +624,7 @@ static enum client_recv_status
 server_handle_http_options(client_t* client, http_t* http)
 {
     http_t* resp = http_new_resp(HTTP_CODE_NO_CONTENT, NULL, 0);
-    const http_header_t* req_headers = http_get_header(http, "Access-Control-Request-Headers");
+    const http_header_t* req_headers = http_get_header(http, "access-control-request-headers");
     if (req_headers)
         http_add_header(resp, "Access-Control-Allow-Headers", req_headers->val);
     http_add_header(resp, "Access-Control-Allow-Methods", "*");

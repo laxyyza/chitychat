@@ -88,7 +88,7 @@ static inline u32
 get_accept_encoding_flags(http_t* http)
 {
     u32 ret = ACCEPT_ENCODING_PLAIN;
-    http_header_t* accept_encoding_header = http_get_header(http, "Accept-Encoding");
+    http_header_t* accept_encoding_header = http_get_header(http, "accept-encoding");
     char* endptr;
     char* token;
     if (accept_encoding_header == NULL)

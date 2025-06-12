@@ -20,7 +20,7 @@
 #define HTTP_CODE_LEN       6
 #define HTTP_STATUS_MSG_LEN 128
 
-#define HTTP_MAX_HEADERS    20
+#define HTTP_MAX_HEADERS    30
 #define HTTP_MAX_PARAMS     10
 
 /* 1XX information response */
@@ -76,10 +76,10 @@
 #define HTTP_CODE_NOT_EXTENDED      510
 #define HTTP_CODE_NET_AUTH_REQUIRED 511
 
-#define HTTP_HEAD_CONTENT_LEN "Content-Length"
-#define HTTP_HEAD_WS_ACCEPT   "Sec-WebSocket-Accept"
-#define HTTP_HEAD_CONN_UPGRADE "Upgrade"
-#define HTTP_HEAD_CONTENT_TYPE "Content-Type"
+#define HTTP_HEAD_CONTENT_LEN "content-length"
+#define HTTP_HEAD_WS_ACCEPT   "sec-webSocket-accept"
+#define HTTP_HEAD_CONN_UPGRADE "upgrade"
+#define HTTP_HEAD_CONTENT_TYPE "content-type"
 
 #define HTTP_CMP_METHOD(x) strncmp(http->req.method, x, HTTP_METHOD_LEN)
 

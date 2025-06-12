@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <ctype.h>
 
 bool 
 str_startwith(const char* restrict str, 
@@ -301,4 +302,11 @@ strncpy_replace(char* dst, const char* src, u32 n, char old, char new)
     dst[i] = 0x00;
 
     return i;
+}
+
+void 
+strncpy_tolower(char* dst, const char* src, u64 n)
+{
+    for (u64 i = 0; i < n && src[i] != 0x00; i++)
+        dst[i] = tolower(src[i]);
 }
