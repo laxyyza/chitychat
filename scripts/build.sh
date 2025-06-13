@@ -78,7 +78,7 @@ case $ARG in
         print_help
         ;;
     *)
-        echo "Unkown service: '$ARG'"
+        echo "Unknown service: '$ARG'"
         exit -1
         ;;
 esac
