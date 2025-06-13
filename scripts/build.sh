@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-ARG=${1-all}
+ARG=${1-default}
 BUILD_DIR=${BUILD_DIR:=build}
 GO_DIR=${GO_DIR:=backend/services/go}
 SERVICES_OUT=${SERVICES_OUT:=$BUILD_DIR/backend/services}
