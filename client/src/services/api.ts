@@ -3,11 +3,11 @@ export const isDev = process.env.NODE_ENV === 'development';
 export const baseUrl = isDev ? "https://localhost:8080" : window.location.origin;
 
 const doFetchData = async (
-    url: string, 
-    method: string = 'GET', 
-    body?: any, 
-    headers: Record<string, string> = { 
-        'Content-Type': 'application/json' 
+    url: string,
+    method: string = 'GET',
+    body?: any,
+    headers: Record<string, string> = {
+        'Content-Type': 'application/json'
     }
 ) => {
     const opts: RequestInit = {
@@ -23,20 +23,33 @@ const doFetchData = async (
     return await fetch(baseUrl + url, opts);
 }
 
-const throwError= async (resp: Response) => {
-    const data = await resp.json();
-    if (data && data.error)
-        throw data.error;
-    else 
-        throw `${resp.status} ${resp.statusText}`;
+const validJson = (text: string): Boolean => {
+    try {
+        JSON.parse(text);
+        return true;
+    } catch (e) {
+        return false;
+    }
+};
+
+const throwError = async (resp: Response) => {
+    const text = await resp.text();
+    if (validJson(text)) {
+        const json = JSON.parse(text);
+        if (json.error) {
+            throw `${resp.status} ${resp.statusText}: ${json.error}`;
+        }
+    }
+
+    throw `${resp.status} ${resp.statusText}`;
 }
 
 const fetchData = async (
-    url: string, 
-    method: string = 'GET', 
-    body?: any, 
-    headers: Record<string, string> = { 
-        'Content-Type': 'application/json' 
+    url: string,
+    method: string = 'GET',
+    body?: any,
+    headers: Record<string, string> = {
+        'Content-Type': 'application/json'
     }
 ) => {
     let resp = await doFetchData(url, method, body, headers);
@@ -56,8 +69,7 @@ const fetchData = async (
     }
 
     const contentType = resp.headers.get('Content-Type');
-    if (contentType === "application/json")
-    {
+    if (contentType === "application/json") {
         const json = await resp.json();
         return json;
     }
