@@ -57,8 +57,9 @@ const Vid = ({ url }: VideoProp) => {
 
 const File = ({ info }: FileProp) => {
     function formatBytes(bytes: number) {
+        const k = 1000;
         if (bytes === 0) return '0 B';
-        const k = 1024;
+        else if (bytes < k) return `${bytes} Bytes`;
         const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         const size = bytes / Math.pow(k, i);
