@@ -45,8 +45,6 @@ services:
       - NATS_URL=nats
     env_file:
       - .env
-    volumes:
-      - ./backend/sql:/app/backend/sql
     depends_on:
       - db
       - nats
@@ -59,8 +57,6 @@ services:
       - NATS_URL=nats
     env_file:
       - .env
-    volumes:
-      - ./backend/sql:/app/backend/sql
     depends_on:
       - db
       - nats
@@ -73,8 +69,6 @@ services:
       - NATS_URL=nats
     env_file:
       - .env
-    volumes:
-      - ./backend/sql:/app/backend/sql
     depends_on:
       - db
       - nats
@@ -87,8 +81,6 @@ services:
       - NATS_URL=nats
     env_file:
       - .env
-    volumes:
-      - ./backend/sql:/app/backend/sql
     depends_on:
       - db
       - nats

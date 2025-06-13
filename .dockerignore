@@ -9,6 +9,7 @@
 !backend/server/server.key
 !backend/server/server.crt
 !backend/sql
+!backend/services/go
 !scripts/run.sh
 !client
 client/node_modules

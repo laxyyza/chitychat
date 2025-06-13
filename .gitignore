@@ -69,7 +69,7 @@ __*
 
 client/public/upload/imgs/*
 !client/public/upload/imgs/default.png
-.env
+.env*
 .vscode/
 coredumps/
 # Logs
@@ -102,3 +102,4 @@ sfs_data/
 *.pem
 *.key
 *.crt
+local/
