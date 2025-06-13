@@ -103,3 +103,5 @@ sfs_data/
 *.key
 *.crt
 local/
+
+k8s-local/
