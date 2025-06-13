@@ -67,7 +67,7 @@ const File = ({ info }: FileProp) => {
     }
 
     return (
-        <div className='bg-gray-900 rounded-xl p-1 m-1 border-1 border-black flex items-center max-h-20 w-70 max-w-70'>
+        <div className='bg-gray-900 rounded-xl p-1 m-1 flex items-center max-h-20 w-70 max-w-70'>
             <div className='mr-2 shrink-0'>
                 <FaFile size={42} />
             </div>
