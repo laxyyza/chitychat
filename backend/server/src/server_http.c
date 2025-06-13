@@ -70,11 +70,11 @@ set_client_connection(client_t* client, http_header_t* header)
 
     while (token)
     {
-        if (!strncmp(token, "keep-alive", HTTP_HEAD_VAL_LEN))
+        if (!strncmp_s1lower(token, "keep-alive", HTTP_HEAD_VAL_LEN))
             client->state |= CLIENT_STATE_KEEP_ALIVE;
-        else if (!strncmp(token, "close", HTTP_HEAD_VAL_LEN))
+        else if (!strncmp_s1lower(token, "close", HTTP_HEAD_VAL_LEN))
             client->state = CLIENT_STATE_SHORT_LIVE;
-        else if (!strncmp(token, "upgrade", HTTP_HEAD_VAL_LEN))
+        else if (!strncmp_s1lower(token, "upgrade", HTTP_HEAD_VAL_LEN))
             client->state |= CLIENT_STATE_UPGRADE_PENDING;
         else
             warn("HTTP Connection: '%s' not implemented.\n", token);

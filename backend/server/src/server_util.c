@@ -310,3 +310,25 @@ strncpy_tolower(char* dst, const char* src, u64 n)
     for (u64 i = 0; i < n && src[i] != 0x00; i++)
         dst[i] = tolower(src[i]);
 }
+
+i32
+strncmp_s1lower(char* s1, const char* s2, u64 n)
+{
+    u64 i = 0;
+
+    while (i < n)
+    {
+        const u8 c1 = tolower(s1[i]);
+        const u8 c2 = s2[i];
+
+        if (c1 != c2) 
+            return c1 - c2;
+
+        if (c1 == 0x00)
+            return 0;
+
+        i++;
+    }
+
+    return 0;
+}
