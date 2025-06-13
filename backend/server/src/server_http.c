@@ -6,7 +6,7 @@
 // Vite server
 #define DEV_ORIGIN_URI "http://localhost:5173"
 
-#define NAME_CMP(x) !strncmp(header->name, x, HTTP_HEAD_NAME_LEN)
+#define NAME_CMP(x) !strncmp_s1lower(x, header->name, HTTP_HEAD_NAME_LEN)
 #define HEADER_LINE_LEN (sizeof(http_header_t) + sizeof(HTTP_NL) + sizeof(": "))
 
 http_to_str_t 
@@ -218,8 +218,6 @@ parse_http(client_t* client, char* buf, size_t buf_len)
     char* strtok_saveptr;
     size_t header_len;
     size_t actual_body_len;
-
-    printf("\n\n%s\n\n", buf);
 
     http = calloc(1, sizeof(http_t));
 
@@ -438,7 +436,7 @@ http_add_header_adv(http_t* http, const char* name, const char* val, bool overri
         http->n_headers++;
     }
 
-    strncpy(to_header->name, name, HTTP_HEAD_NAME_LEN - 1);
+    strncpy_tolower(to_header->name, name, HTTP_HEAD_NAME_LEN - 1);
     if (val)
         strncpy(to_header->val, val, HTTP_HEAD_VAL_LEN - 1);
 

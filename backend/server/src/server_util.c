@@ -312,7 +312,7 @@ strncpy_tolower(char* dst, const char* src, u64 n)
 }
 
 i32
-strncmp_s1lower(char* s1, const char* s2, u64 n)
+strncmp_s1lower(const char* s1, const char* s2, u64 n)
 {
     u64 i = 0;
 

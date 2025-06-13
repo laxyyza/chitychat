@@ -17,7 +17,7 @@ const char* getenvd(const char* var, const char* default_val);
 void        uuid_to_u64_2(const char* uuid_str, u64 out[2]);
 u32         strncpy_replace(char* dst, const char* src, u32 n, char old, char new);
 void        strncpy_tolower(char* dst, const char* src, u64 n);
-i32         strncmp_s1lower(char* s1, const char* s2, u64 n);
+i32         strncmp_s1lower(const char* s1, const char* s2, u64 n);
 
 // Copy n bytes swapped order
 void        swpcpy(u8* restrict dest, const u8* restrict src, size_t n);
