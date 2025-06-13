@@ -2,7 +2,7 @@ export const isDev = process.env.NODE_ENV === 'development';
 
 export const baseUrl = isDev ? "https://localhost:8080" : window.location.origin;
 
-const doFetchData = async (
+export const doFetchData = async (
     url: string,
     method: string = 'GET',
     body?: any,
@@ -20,6 +20,9 @@ const doFetchData = async (
         opts.body = JSON.stringify(body);
     }
 
+    if (url.startsWith("http")) {
+        return await fetch(url, opts);
+    }
     return await fetch(baseUrl + url, opts);
 }
 
