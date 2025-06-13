@@ -44,7 +44,7 @@ COMMANDS:
     backend     -   Build backend 'cc_server' + Go services (backend/)
     frontend    -   Build frontend (client/)
     go          -   BUild Go backend services (backend/services/go/)
-    image       -   Run '$BUILD_DOCKER' with \$2 as argument
+    image       -   Run '$BUILD_DOCKER' with \$2+ as arguments
     help        -   Print this message
     default     -   Build backend and frontend (default when no arguments)
     "
