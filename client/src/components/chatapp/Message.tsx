@@ -79,12 +79,13 @@ const File = ({ info }: FileProp) => {
                     {info.type}
                 </div>
             </div>
-            <button 
-                className='flex items-center p-2 hover:bg-gray-800 rounded-xl shrink-0'
-                onClick={() => window.open(info.url, '_blank')}
-            >
-                <FiDownload size={24} />
-            </button>
+            <a href={info.url} download>
+                <button
+                    className='flex items-center p-2 hover:bg-gray-800 rounded-xl shrink-0'
+                >
+                    <FiDownload size={24} />
+                </button>
+            </a>
         </div>
     )
 };
