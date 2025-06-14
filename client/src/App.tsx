@@ -11,6 +11,7 @@ import fetchData from './services/api';
 import { HubBasicData } from './models/hub';
 import { useParams } from 'react-router-dom';
 import { getHubDetails } from './services/hubApi';
+import Settings from './components/chatapp/Settings';
 
 const loadAppData = (
     app: App, 
@@ -100,9 +101,10 @@ function MainApp() {
 
     return (
         <div className="flex">
-            <SideBar></SideBar>
-            <MainContent></MainContent>
-            <MemberList></MemberList>
+            <SideBar />
+            <MainContent />
+            <MemberList />
+            <Settings />
         </div>
     );
 }

@@ -22,6 +22,7 @@ export interface App {
     friendIDs: Set<number>;
     friendRequests: Set<number>;
     pendingRequests: Set<number>;
+    showSettings: boolean;
 }
 
 interface Prop {
@@ -59,7 +60,8 @@ enum Action {
     ADD_HUB_MSG,
     ADD_HUB_CHANNEL,
     ADD_HUB_CATEGORY,
-    ADD_HUB_MEMBER
+    ADD_HUB_MEMBER,
+    SET_SHOW_SETTINGS,
 }
 
 export type DispatchAction =
@@ -80,6 +82,7 @@ export type DispatchAction =
     | { type: Action.ADD_HUB_MSG; payload: HubMessageData }
     | { type: Action.ADD_HUB_CHANNEL; payload: HubChannelData }
     | { type: Action.ADD_HUB_CATEGORY; payload: NewCategoryData }
+    | { type: Action.SET_SHOW_SETTINGS; payload: boolean }
     | { type: Action.ADD_HUB_MEMBER; payload: {hubID: number, userID: number}}
     | {
         type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
@@ -365,6 +368,12 @@ const appReducer = (state: App, action: DispatchAction): App => {
                 hubs: newHubs,
             };
         }
+        case Action.SET_SHOW_SETTINGS: {
+            return {
+                ...state,
+                showSettings: action.payload,
+            };
+        };
         default:
             return state;
     }
@@ -395,8 +404,8 @@ const AppProvider = ({ children }: Prop) => {
         logged_in: false,
         login_user: {
             id: 0,
-            username: 'longusername123434567890cool69420',
-            displayname: 'Long Display Name That Will be Cutted off',
+            username: '?',
+            displayname: '?',
             pfp: '',
             about_me: '?',
             created_at: '?'
@@ -408,7 +417,8 @@ const AppProvider = ({ children }: Prop) => {
         dm: new Map(),
         friendIDs: new Set<number>(),
         friendRequests: new Set<number>(),
-        pendingRequests: new Set<number>()
+        pendingRequests: new Set<number>(),
+        showSettings: false,
     });
 
     return (

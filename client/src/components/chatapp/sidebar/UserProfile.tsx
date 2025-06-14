@@ -1,13 +1,16 @@
-import { CiSettings } from 'react-icons/ci';
 import UserIcon from '../UserIcon';
 import User from '../User';
+import { IoSettingsSharp } from 'react-icons/io5';
+import { Action, useApp } from '../AppProvider';
 
 interface Prop {
     user: User;
     showSettings?: boolean;
 }
 
-const UserProfile = ({ user, showSettings = true }: Prop) => {
+const UserProfile = ({ user }: Prop) => {
+    const { dispatch } = useApp();
+
     return (
         <div className="text-white p-1">
             <div className='flex bg-gray-800 rounded-xl border-gray-600 border-1'>
@@ -22,7 +25,12 @@ const UserProfile = ({ user, showSettings = true }: Prop) => {
                         {user.username}
                     </div>
                 </div>
-                {showSettings && <CiSettings className="g-black m-auto" size="32"></CiSettings>}
+                <button
+                    className='m-auto mr-3 hover:bg-gray-700 active:bg-gray-500 p-1 rounded-xl hover:rotate-180 transition-all duration-500'
+                    onClick={() => dispatch({type: Action.SET_SHOW_SETTINGS, payload: true }) }
+                >
+                    <IoSettingsSharp size="24" />
+                </button>
             </div>
         </div>
     );

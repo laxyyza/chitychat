@@ -97,6 +97,7 @@ const Attachment = ({ url }: AttachmentProp) => {
     const fetchHead = async (): Promise<Attachment> => {
         const resp = await fetch(url, {
             method: 'HEAD',
+            cache: 'force-cache',
         });
         const type = resp.headers.get('Content-Type') || '';
         const size = parseInt(resp.headers.get('Content-length') || '0');
