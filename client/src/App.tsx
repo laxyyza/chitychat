@@ -3,7 +3,6 @@ import MainContent from './components/chatapp/MainContent';
 import MemberList from './components/chatapp/MemberList';
 import { Action, App, DispatchAction, useApp } from './components/chatapp/AppProvider';
 import { useEffect } from 'react';
-// import { useNavigate } from 'react-router-dom';
 import websocketClient from './services/websocketClient';
 import useWebsocket from './components/WebSocket';
 import handleWebsocketMessage from './hooks/useWebsocket';
@@ -11,7 +10,7 @@ import fetchData from './services/api';
 import { HubBasicData } from './models/hub';
 import { useParams } from 'react-router-dom';
 import { getHubDetails } from './services/hubApi';
-import Settings from './components/chatapp/Settings';
+import Settings from './components/chatapp/settings/Settings';
 
 const loadAppData = (
     app: App, 
