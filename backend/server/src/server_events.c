@@ -320,14 +320,8 @@ server_do_free_event(eworker_t* ew, server_event_t* se)
 void 
 eworker_del_event(eworker_t* ew, server_event_t* se)
 {
-    server_t* server = ew->server;
-
-    if (!server || !se)
-    {
-        warn("server_del_event(%p, %p): Something is NULL!\n",
-                server, se);
+    if (!ew || !se)
         return;
-    }
 
     eworker_epoll_remove(ew, se);
 

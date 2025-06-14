@@ -99,18 +99,17 @@ db_notice_processor(UNUSED void* arg, const char* msg)
 static bool 
 db_exec_schema(server_t* server)
 {
-    bool ret = true;
     server_db_t db;
 
     if (!server_db_open(&db, &server->conf, (server->conf.retry_db_connect) ? DB_TRY_RECONNECT : DB_DEFAULT))
-        ret = false;
+        return false;
 
-    if (ret && !db_exec_sql(&db, server->db_commands.schema.sql))
-        ret = false;
+    if (!db_exec_sql(&db, server->db_commands.schema.sql))
+        return false;
 
     server_db_close(&db);
 
-    return ret;
+    return true;
 }
 
 bool 
@@ -204,7 +203,7 @@ retry:
 
         error("Failed connect to database: %s\n", 
                 PQerrorMessage(db->conn));
-        return false;
+        goto err;
     }
 
     PQsetNoticeProcessor(db->conn, db_notice_processor, NULL);
