@@ -54,8 +54,6 @@ func PatchUserME(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 
 	if patch.Username != nil {
-		log.Println("UPADTE USERNAME!")
-
 		_, err = tx.Exec(context.Background(), updateUsernameSQL, patch.Username, userID)
 		if err != nil {
 			log.Printf("Update Username: %v\n", err)
@@ -65,8 +63,6 @@ func PatchUserME(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 
 	if patch.DisplayName != nil {
-		log.Println("UPDATE DISPLAY NAME")
-
 		_, err = tx.Exec(context.Background(), updateDisplayNameSQL, patch.DisplayName, userID)
 		if err != nil {
 			log.Printf("Update Display Name: %v\n", err)
@@ -76,8 +72,6 @@ func PatchUserME(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 
 	if patch.PfpURL != nil {
-		log.Println("UPDATE PFP URL")
-
 		_, err = tx.Exec(context.Background(), updatePfpUrlSQL, patch.PfpURL, userID)
 		if err != nil {
 			log.Printf("Update PFP URL: %v\n", err)
@@ -87,8 +81,6 @@ func PatchUserME(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 	}
 
 	if patch.AboutME != nil {
-		log.Println("UPDATE ABOUT ME")
-
 		_, err = tx.Exec(context.Background(), updateAboutMeSQL, patch.AboutME, userID)
 		if err != nil {
 			log.Printf("Update About ME: %v\n", err)
@@ -102,6 +94,8 @@ func PatchUserME(s* service.Service, req* mq.HTTPRequest) *mq.HTTPResponse {
 		log.Printf("commit: %v\n", err)
 		return mq.NewResponse(req, http.StatusInternalServerError, nil)
 	}
+
+	// TODO: Broadcast event 
 
 	return mq.NewResponse(req, http.StatusOK, structToMap(patch))
 }
