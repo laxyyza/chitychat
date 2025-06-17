@@ -23,13 +23,9 @@ do_rtusm_broadcast(eworker_t* ew, dbcmd_ctx_t* ctx)
     rtusm_new_t new;
     json_object* json;
     const char* status_str;
-    const char* pfp_hash = ctx->param.rtusm.pfp_hash;
 
     if (ctx->ret == DB_ASYNC_ERROR || ctx->data_size == 0)
-    {
-        free((void*)pfp_hash);
         return NULL;
-    }
 
     user_ids = ctx->data;
     size = ctx->data_size;
@@ -57,30 +53,21 @@ do_rtusm_broadcast(eworker_t* ew, dbcmd_ctx_t* ctx)
                                json_object_new_int(status->typing_group_id));
     }
 
-    if (new.pfp)
-    {
-        json_object_object_add(json, "pfp_name",
-                               json_object_new_string(pfp_hash));
-    }
-
     for (u32 i = 0; i < size; i++)
         server_userid_send(ew, user_ids[i], json);
 
     json_object_put(json);
-    free((void*)pfp_hash);
     return NULL;
 }
 
 static void 
 rtusm_broadcast(eworker_t* ew, dbuser_t* user, rtusm_new_t new)
 {
-    const char* pfp_hash = (new.pfp) ? strndup(user->pfp_hash, DB_PFP_HASH_MAX) : NULL;
     dbcmd_ctx_t ctx = {
         .exec = do_rtusm_broadcast,
         .param.rtusm.new = new,
         .param.rtusm.user_id = user->user_id,
-        .param.rtusm.status = user->rtusm,
-        .param.rtusm.pfp_hash = pfp_hash
+        .param.rtusm.status = user->rtusm
     };
     db_async_get_connected_users(&ew->db, user->user_id, &ctx);
 }
@@ -107,7 +94,6 @@ server_rtusm_user_disconnect(eworker_t* ew, dbuser_t* user)
     const rtusm_new_t new = {
         .status = 1,
         .typing = 0,
-        .pfp    = 0 
     };
 
     rtusm_broadcast(ew, user, new);
@@ -121,7 +107,6 @@ server_rtusm_user_connect(eworker_t* ew, dbuser_t* user)
     const rtusm_new_t new = {
         .status = 1,
         .typing = 0,
-        .pfp    = 0 
     };
 
     rtusm_broadcast(ew, user, new);
@@ -139,7 +124,6 @@ server_rtusm_user_pfp_change(eworker_t* ew, dbuser_t* user)
     const rtusm_new_t new = {
         .status = 0,
         .typing = 0,
-        .pfp    = 1
     };
 
     rtusm_broadcast(ew, user, new);

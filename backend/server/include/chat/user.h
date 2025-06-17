@@ -30,7 +30,7 @@ typedef struct dbuser
     u8      hash[SERVER_HASH_SIZE];
     u8      salt[SERVER_SALT_SIZE];
     char    created_at[DB_TIMESTAMP_MAX];
-    char    pfp_hash[DB_PFP_HASH_MAX];
+    char    pfp_url[DB_PFP_URL_MAX];
     i32     flags;
     rtusm_t rtusm;
 

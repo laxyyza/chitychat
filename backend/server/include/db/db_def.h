@@ -15,10 +15,10 @@
 #define DB_BIO_MAX          256
 #define DB_DESC_MAX         256
 #define DB_PASSWORD_MAX     50
-#define DB_PFP_HASH_MAX     SERVER_HASH256_STR_SIZE
 #define DB_PFP_NAME_MAX     NAME_MAX
 #define DB_MIME_TYPE_LEN    32 
 #define DB_GROUP_CODE_MAX   8
+#define DB_PFP_URL_MAX      1024
 
 #define DB_CONNINTO_LEN     1024
 #define DB_ADDRESS_LEN      256

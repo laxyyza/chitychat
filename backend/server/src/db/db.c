@@ -309,7 +309,7 @@ db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
     // if (flags_str)
     //     user->flags = atoi(flags_str);
     // else
-    //     warn("flags is NULL!\n");
+    //     warn("flags is NULL!\n");These are for reference only and not intended for production use.
 
     const char* created_at = PQgetvalue(res, row, 6);
     if (created_at)
@@ -317,7 +317,7 @@ db_row_to_user(dbuser_t* user, PGresult* res, i32 row)
     else
         warn("created_at is NULL!\n");
 
-    const char* pfp_hash = PQgetvalue(res, row, 7);
-    if (pfp_hash)
-        strncpy(user->pfp_hash, pfp_hash, DB_PFP_HASH_MAX - 1);
+    const char* pfp_url = PQgetvalue(res, row, 7);
+    if (pfp_url)
+        strncpy(user->pfp_url, pfp_url, DB_PFP_URL_MAX - 1);
 }

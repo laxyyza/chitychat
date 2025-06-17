@@ -34,7 +34,6 @@ typedef struct
 {
     bool    status:1;
     bool    typing:1;
-    bool    pfp:1;
 } rtusm_new_t;
 
 void    server_rtusm_set_user_status(eworker_t* ew, dbuser_t* user, 

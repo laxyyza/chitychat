@@ -93,8 +93,10 @@ server_add_user_in_json(dbuser_t* dbuser, json_object* json)
                            json_object_new_string(dbuser->bio));
     json_object_object_add(json, "created_at", 
                            json_object_new_string(dbuser->created_at));
-    json_object_object_add(json, "pfp_name", 
-                           json_object_new_string(dbuser->pfp_hash));
+    json_object_object_add(json, "pfp_url", 
+                           (dbuser->pfp_url[0] == 0x00) ? 
+                                    json_object_new_null() : 
+                                    json_object_new_string(dbuser->pfp_url));
     json_object_object_add(json, "status", 
                            json_object_new_string(rtusm_get_status_str(dbuser->rtusm.status)));
 }

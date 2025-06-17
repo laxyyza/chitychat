@@ -65,7 +65,6 @@ typedef struct
     u32 user_id;
     rtusm_new_t new;
     rtusm_t status;
-    const char* pfp_hash;
 } rtusm_param_t;
 
 typedef struct 

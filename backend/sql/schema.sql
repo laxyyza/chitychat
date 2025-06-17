@@ -2,18 +2,6 @@ SET CONSTRAINTS ALL DEFERRED;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TABLE IF NOT EXISTS Attachments(
-    attachment_id   SERIAL PRIMARY KEY,
-    user_id         int NOT NULL,
-    file_name       text NOT NULL,
-    file_size       bigint NOT NULL,
-    mime_type       text NOT NULL,
-    storage_path    text NOT NULL,
-    created_at      TIMESTAMP DEFAULT NOW()
-
-    -- CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES Users(user_id) DEFERRABLE INITIALLY DEFERRED
-);
-
 CREATE TABLE IF NOT EXISTS Users(
     user_id         SERIAL PRIMARY KEY,
     username        varchar(50) NOT null UNIQUE,
@@ -22,15 +10,8 @@ CREATE TABLE IF NOT EXISTS Users(
     hash            bytea NOT null,
     salt            bytea NOT null, 
     created_at      timestamp DEFAULT CURRENT_TIMESTAMP,
-    pfp             int,
-    FOREIGN KEY (pfp) REFERENCES Attachments(attachment_id)
+    pfp_url         text
 );
-
-DO $$ BEGIN
-    ALTER TABLE Attachments ADD CONSTRAINT user_id_fkey FOREIGN KEY (user_id) REFERENCES Users(user_id);
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
 
 CREATE TABLE IF NOT EXISTS Hubs(
     hub_id      SERIAL PRIMARY KEY,
