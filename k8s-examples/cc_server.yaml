@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cc-server-deploy
+  labels:
+    name: cc-server-deploy
+    app: chitychat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: cc-server-pod
+      app: chitychat
+
+  template:
+    metadata:
+      name: cc-server-pod
+      labels:
+        name: cc-server-pod
+        app: chitychat
+    spec:
+      containers:
+        - image: 192.168.69.1:5000/chitychat/cc_server:2.0-dev
+          imagePullPolicy: Always
+          name: cc-server
+          envFrom:
+            - secretRef:
+                name: chitychat-secrets
+          resources:
+            requests:
+              cpu: "100m"
+            limits:
+              cpu: "900m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cc-server-svc
+  labels:
+spec:
+  selector:
+    name: cc-server-pod
+    app: chitychat
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+
+

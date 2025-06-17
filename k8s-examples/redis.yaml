@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deploy
+  labels:
+    name: redis-deploy
+    app: chitychat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: redis-pod
+      app: chitychat
+  template:
+    metadata:
+      name: redis-pod
+      labels:
+        name: redis-pod
+        app: chitychat
+    spec:
+      containers: 
+        - name: redis-pod
+          image: redis
+          ports:
+            - containerPort: 6379
+          envFrom:
+            - secretRef:
+                name: chitychat-secrets
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector:
+    name: redis-pod
+    app: chitychat
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP

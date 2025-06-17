@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chitychat-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    secretName: chitychat-tls
+  rules:
+    - host: chitychat.local
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: cc-server-svc
+              port:
+                number: 80
+    - host: cc-sfs.local
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service: 
+              name: cc-sfs-svc
+              port: 
+                number: 80

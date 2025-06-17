@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats-deploy
+  labels:
+    name: nats-deploy
+    app: chitychat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: nats-pod
+      app: chitychat
+  template:
+    metadata:
+      name: nats-pod
+      labels:
+        name: nats-pod
+        app: chitychat
+    spec:
+      containers: 
+        - name: nats-pod
+          image: nats
+          ports:
+            - containerPort: 4222
+            - containerPort: 8222
+            - containerPort: 6222
+          envFrom:
+            - secretRef:
+                name: chitychat-secrets
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+spec:
+  selector:
+    name: nats-pod
+    app: chitychat
+  ports:
+    - name: client
+      port: 4222
+      targetPort: 4222
+    - name: http
+      port: 8222
+      targetPort: 8222
+    - name: routing
+      port: 6222
+      targetPort: 6222
+  type: ClusterIP
