@@ -43,6 +43,7 @@ typedef struct server_config
     char vid_dir[CONFIG_PATH_LEN];
     char file_dir[CONFIG_PATH_LEN];
     char addr_ip[INET6_ADDRSTRLEN];
+    const char* sfs_url;
     uint16_t addr_port;
     enum ip_version addr_version;
     bool fork;

@@ -634,6 +634,21 @@ server_handle_http_options(client_t* client, http_t* http)
     return RECV_OK;
 }
 
+static enum client_recv_status
+server_handle_sfs(eworker_t* ew, client_t* client, http_t* http)
+{
+    if (strcmp(http->req.method, "GET") == 0)
+    {
+        server_http_resp_json_single(client, HTTP_CODE_OK, "sfs_url", ew->server->conf.sfs_url);
+        return RECV_OK;
+    }
+    else 
+    {
+        server_http_resp(client, HTTP_CODE_METH_NOT_ALLOW);
+        return RECV_DISCONNECT;
+    }
+}
+
 static enum client_recv_status 
 server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
 {
@@ -646,6 +661,8 @@ server_handle_http_req(eworker_t* th, client_t* client, http_t* http)
     {
         if (str_startwith(http->req.url, "/api/auth/"))
             return server_handle_auth(th, client, http);
+        if (strcmp(http->req.url, "/api/sfs") == 0)
+            return server_handle_sfs(th, client, http);
         if (backend_route(th, client, http))
             return RECV_OK;
     }

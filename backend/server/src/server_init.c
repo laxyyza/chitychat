@@ -192,6 +192,7 @@ server_load_config(server_t* server, int argc, char* const* argv)
         return false;
     }
     server->conf.redis_ip = getenvd("CC_REDIS_IP", "localhost");
+    server->conf.sfs_url = getenvd("SFS_URL", "https://localhost:8081");
 
     if (!strcmp(loglevel_str, "fatal"))
         log_level = SERVER_FATAL;
