@@ -17,6 +17,7 @@ type Sfs struct {
 	fs http.Handler
 	addr string
 	mux* http.ServeMux
+	tls bool
 }
 
 func setupLog() {
@@ -118,6 +119,10 @@ func New() (*Sfs, error) {
 	if !exists {
 		addr = ":8081"
 	}
+	tls, exists := os.LookupEnv("SFS_TLS")
+	if !exists {
+		tls = "0"
+	}
 
 	sfs := Sfs{
 		rootPath: rootPath,
@@ -129,10 +134,21 @@ func New() (*Sfs, error) {
 	sfs.mux.Handle("/f/", loggingMiddleware(http.StripPrefix("/f/", sfs.fs)))
 	sfs.mux.HandleFunc("/api/upload/", sfs.uploadHandler)
 
+	if tls == "0" {
+		sfs.tls = false
+	} else if tls == "1" {
+		sfs.tls = true
+	}
+
 	return &sfs, nil
 }
 
 func (sfs* Sfs) Run() error {
-	log.Printf("Listening on %s\n", sfs.addr)
-	return http.ListenAndServeTLS(sfs.addr, "backend/server/server.crt", "backend/server/server.key", withCORS(sfs.mux))
+	if sfs.tls {
+		log.Printf("Listening on %s (TLS)\n", sfs.addr)
+		return http.ListenAndServeTLS(sfs.addr, "backend/server/server.crt", "backend/server/server.key", withCORS(sfs.mux))
+	} else {
+		log.Printf("Listening on %s\n", sfs.addr)
+		return http.ListenAndServe(sfs.addr, withCORS(sfs.mux))
+	}
 }
