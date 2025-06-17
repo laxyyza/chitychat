@@ -13,14 +13,18 @@ import { getHubDetails } from './services/hubApi';
 import Settings from './components/chatapp/settings/Settings';
 
 const loadAppData = (
-    app: App, 
-    send: (msg: any) => void, 
+    app: App,
+    send: (msg: any) => void,
     dispatch: React.Dispatch<DispatchAction>,
     hub_id: string | undefined,
     channel_id: string | undefined
 ) => {
     send({ cmd: "client_user_info" });
 
+    fetchData('/api/sfs')
+        .then((json) => {
+            dispatch({ type: Action.SET_SFS_URL, payload: json.sfs_url });
+        });
     fetchData('/api/friends')
         .then(json => {
             const friendIDs: number[] = json.friends;
@@ -75,7 +79,7 @@ const loadAppData = (
                 getHubDetails(parseInt(hub_id), dispatch);
                 dispatch({
                     type: Action.SET_FOCUS,
-                    payload: {type: "hub", hubID: parseInt(hub_id), channelID: parseInt(channel_id || "-1")}
+                    payload: { type: "hub", hubID: parseInt(hub_id), channelID: parseInt(channel_id || "-1") }
                 })
             }
         })
@@ -88,7 +92,7 @@ function MainApp() {
     // const [test, setTest] = useState(0);
     // const navigate = useNavigate();
 
-    const {hub_id, channel_id} = useParams();
+    const { hub_id, channel_id } = useParams();
 
     const { send } = useWebsocket((cmd, packet) => {
         handleWebsocketMessage(cmd, packet, app, dispatch);

@@ -23,6 +23,7 @@ export interface App {
     friendRequests: Set<number>;
     pendingRequests: Set<number>;
     showSettings: boolean;
+    sfsUrl: string;
 }
 
 interface Prop {
@@ -62,6 +63,7 @@ enum Action {
     ADD_HUB_CATEGORY,
     ADD_HUB_MEMBER,
     SET_SHOW_SETTINGS,
+    SET_SFS_URL,
 }
 
 export type DispatchAction =
@@ -83,7 +85,8 @@ export type DispatchAction =
     | { type: Action.ADD_HUB_CHANNEL; payload: HubChannelData }
     | { type: Action.ADD_HUB_CATEGORY; payload: NewCategoryData }
     | { type: Action.SET_SHOW_SETTINGS; payload: boolean }
-    | { type: Action.ADD_HUB_MEMBER; payload: {hubID: number, userID: number}}
+    | { type: Action.ADD_HUB_MEMBER; payload: { hubID: number, userID: number } }
+    | { type: Action.SET_SFS_URL; payload: string }
     | {
         type: Action.DEL_FRIEND_REQUEST | Action.DEL_PENDING_FRIEND_REQUEST;
         payload: number;
@@ -104,6 +107,12 @@ const AppCtx = createContext<AppContextProps | undefined>(undefined);
 
 const appReducer = (state: App, action: DispatchAction): App => {
     switch (action.type) {
+        case Action.SET_SFS_URL: {
+            return {
+                ...state,
+                sfsUrl: action.payload
+            };
+        }
         case Action.ADD_DM_MSGS: {
             const dmchat = state.dm.get(action.payload.dmID);
             if (!dmchat) return state;
@@ -297,9 +306,9 @@ const appReducer = (state: App, action: DispatchAction): App => {
             const newHubs = new Map(state.hubs);
             const newHub = Hub.fromDetailedData(data);
             const oldHub = newHubs.get(newHub.id);
-            if (state.focus.type === "hub" && 
-                state.focus.hubID === newHub.id && 
-                oldHub && 
+            if (state.focus.type === "hub" &&
+                state.focus.hubID === newHub.id &&
+                oldHub &&
                 oldHub.selectedChannelID !== -1) {
                 newHub.selectedChannelID = oldHub.selectedChannelID;
             }
@@ -419,6 +428,7 @@ const AppProvider = ({ children }: Prop) => {
         friendRequests: new Set<number>(),
         pendingRequests: new Set<number>(),
         showSettings: false,
+        sfsUrl: ''
     });
 
     return (

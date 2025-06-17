@@ -5,6 +5,7 @@ import useWebsocket from '../WebSocket';
 import Attachment from './Attachment';
 import { Hub } from '../../models/hub';
 import User from './User';
+import { useApp } from './AppProvider';
 // import useWebsocket from '../WebSocket';
 
 interface Props {
@@ -20,6 +21,7 @@ const Input = ({
     attachments = false,
     afterMessageSent
 }: Props) => {
+    const { app } = useApp();
     const [message, setMessage] = useState('');
     const inputFileRef = useRef<HTMLInputElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -46,13 +48,12 @@ const Input = ({
         const formData = new FormData();
         formData.append('file', file);
 
-        // TODO: DONT HARD CODE URL!
-        return await fetch('https://localhost:8081/api/upload/' + file.name, {
+        return await fetch(`${app.sfsUrl}/api/upload/${file.name}`, {
             method: 'POST',
             body: formData,
         }).then(async (resp) => {
             const ret = await resp.json();
-            return `https://localhost:8081${ret.endpoint}`;
+            return `${app.sfsUrl}${ret.endpoint}`;
         });
     };
 
