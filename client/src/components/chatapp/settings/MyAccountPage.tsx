@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useApp } from "../AppProvider";
+import { Action, useApp } from "../AppProvider";
 import UserIcon from "../UserIcon";
-import useDismissTrigger from "../../../hooks/useDismissTrigger";
+//import useDismissTrigger from "../../../hooks/useDismissTrigger";
+import fetchData from "../../../services/api";
 
 interface EditSectionProps {
     name: string;
     value: string;
     resizable?: boolean;
-    submit: (newValue: string) => void;
+    submit: (newValue: string) => Promise<boolean>;
 }
 
 const EditSection = ({ name, value, resizable = false, submit }: EditSectionProps) => {
@@ -19,14 +20,10 @@ const EditSection = ({ name, value, resizable = false, submit }: EditSectionProp
         setNewValue(value);
     }, [value]);
 
-    const dismiss = () => {
-        setNewValue(value);
-        setEdit(false);
-    };
-
-    useDismissTrigger(() => {
-        dismiss();
-    }, [ref]);
+    // const dismiss = () => {
+    //     setNewValue(value);
+    //     setEdit(false);
+    // };
 
     return (
         <div className="m-3 flex items-center" ref={ref}>
@@ -40,7 +37,6 @@ const EditSection = ({ name, value, resizable = false, submit }: EditSectionProp
                     rows={1}
                     className={`w-full outline-0 rounded-md ${(edit) ? 'bg-gray-950 p-1' : ''} ${resizable ? 'resize-y' : 'resize-none'}`}
                     disabled={!edit}
-                    onBlur={dismiss}
                 />
             </div>
             <button
@@ -48,7 +44,11 @@ const EditSection = ({ name, value, resizable = false, submit }: EditSectionProp
                 onClick={(e) => {
                     e.preventDefault();
                     if (edit && newValue !== value) {
-                        submit(newValue);
+                        submit(newValue).then((ret) => {
+                            if (!ret) {
+                                setNewValue(value);
+                            }
+                        });
                     }
                     setEdit(!edit);
                 }}
@@ -60,20 +60,40 @@ const EditSection = ({ name, value, resizable = false, submit }: EditSectionProp
 };
 
 const MyAccountPage = () => {
-    const { app } = useApp();
+    const { app, dispatch } = useApp();
     const [user, setUser] = useState(app.login_user);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         setUser(app.login_user);
-    }, [app]);
+    }, [app, app.login_user]);
 
-    if (app.showSettings === false) {
-        return null;
-    }
+    const patchMe = async (patch: any) => {
+        return fetchData('/api/users/me', 'PATCH', patch)
+            .then((json) => {
+                const newUser = {...user, ...json};
+                console.log("NewUser: ", newUser);
+                dispatch({
+                    type: Action.SET_LOGIN_USER,
+                    payload: newUser,
+                });
+                setError('');
+                return true;
+            })
+            .catch((error: any) => {
+                setError(error);
+                return false;
+            });
+    };
 
     return (
         <div className="p-10">
             <div className="bg-gray-950 rounded-xl p-3 w-150">
+                {error && (
+                    <div className="p-3 bg-red-500 rounded-md m-1 text-xl">
+                        {error}
+                    </div>
+                )}
                 <div className="flex p-3 select-none">
                     <UserIcon user={user} />
                     <div className="text-xl self-end ml-3 grow-1">{user.displayname}</div>
@@ -86,18 +106,24 @@ const MyAccountPage = () => {
                     <EditSection
                         name={'Display Name'}
                         value={user.displayname}
-                        submit={() => { }}
+                        submit={(newDisplayName) => {
+                            return patchMe({ displayname: newDisplayName });
+                        }}
                     />
                     <EditSection
                         name={'Username'}
                         value={user.username}
-                        submit={() => { }}
+                        submit={(newUsername) => {
+                            return patchMe({ username: newUsername });
+                        }}
                     />
                     <EditSection
                         name={'About Me'}
                         value={user.about_me}
                         resizable
-                        submit={() => { }}
+                        submit={(newAboutMe) => {
+                            return patchMe({ about_me: newAboutMe });
+                        }}
                     />
                 </div>
             </div>

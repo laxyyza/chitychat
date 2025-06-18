@@ -51,6 +51,9 @@ const Settings = () => {
 
     useDismissTrigger(() => dispatch({ type: Action.SET_SHOW_SETTINGS, payload: false }), [ref]);
 
+    if (app.showSettings === false)
+        return null;
+
     return createPortal(
         <div
             className={`fixed text-sm top-0 left-0 h-screen w-screen bg-gray-900 duration-300 transition-all ${scale} text-white flex`}
