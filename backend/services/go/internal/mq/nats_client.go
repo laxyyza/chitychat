@@ -17,7 +17,7 @@ type HTTPRequest struct {
 	Path 	string 					`json:"path"`
 	Headers map[string]string 		`json:"headers"`
 	Params  map[string]string 		`json:"params"`
-	Body	map[string]interface{} 	`json:"body"`
+	Body	map[string]any 			`json:"body"`
 }
 
 type HTTPResponse struct {
@@ -25,7 +25,7 @@ type HTTPResponse struct {
 	Fd 		int 					`json:"fd"`
 	Status 	int 					`json:"status"`
 	Headers map[string]string 		`json:"headers"`
-	Body*	map[string]interface{} 	`json:"body"`
+	Body*	map[string]any 			`json:"body,omitempty"`
 }
 
 type WSRequest struct {
@@ -115,12 +115,23 @@ func (mq* MQ) BindWSCMD(cmd string, callback WSCallbackType) {
 	})
 }
 
-func NewResponse(req* HTTPRequest, status int, body* map[string]interface{}) *HTTPResponse {
-	return &HTTPResponse{
-		Type: req.Method, Fd: req.Fd, Status: status, Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: body,
+func NewResponse(req* HTTPRequest, status int, body* map[string]any) *HTTPResponse {
+	if body != nil {
+		return &HTTPResponse{
+			Type: req.Method, 
+			Fd: req.Fd, 
+			Status: status, 
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			Body: body,
+		}
+	} else {
+		return &HTTPResponse{
+			Type: req.Method,
+			Fd: req.Fd,
+			Status: status,
+		}
 	}
 }
 

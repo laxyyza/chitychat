@@ -10,8 +10,8 @@ backend_read(server_t* server, json_object* json)
     json_object* json_status = json_object_object_get(json, "status");
     i32 fd;
     i32 status;
-    const char* body;
-    size_t payload_len;
+    const char* body = NULL;
+    u64 payload_len = 0;
     client_t* client;
     http_t* http;
 
@@ -24,20 +24,24 @@ backend_read(server_t* server, json_object* json)
     }
 
     status = json_object_get_int(json_status);
-    body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE, &payload_len);
+    if (json_object_is_type(json_body, json_type_object))
+        body = json_object_to_json_string_length(json_body, JSON_C_TO_STRING_NOSLASHESCAPE, &payload_len);
 
     http = http_new_resp(status, body, payload_len);
     http_add_cross_origin_headers(client, http);
 
-    json_object_object_foreach(json_headers, key, val) {
-        const char* val_string;
+    if (json_headers)
+    {
+        json_object_object_foreach(json_headers, key, val) {
+            const char* val_string;
 
-        if (json_object_is_type(val, json_type_string))
-            val_string = json_object_get_string(val);
-        else
-            val_string = json_object_to_json_string_ext(val, JSON_C_TO_STRING_NOSLASHESCAPE);
+            if (json_object_is_type(val, json_type_string))
+                val_string = json_object_get_string(val);
+            else
+                val_string = json_object_to_json_string_ext(val, JSON_C_TO_STRING_NOSLASHESCAPE);
 
-        http_add_header(http, key, val_string);
+            http_add_header(http, key, val_string);
+        }
     }
 
     http_send(client, http);
