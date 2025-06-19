@@ -1,3 +1,6 @@
-[submodule "server/lib/cutils"]
-	path = server/lib/cutils
+[submodule "backend/server/lib/cutils"]
+	path = backend/server/lib/cutils
 	url = https://github.com/laxyyza/cutils.git
+[submodule "backend/server/lib/nats.c"]
+	path = backend/server/lib/nats.c
+	url = https://github.com/nats-io/nats.c.git

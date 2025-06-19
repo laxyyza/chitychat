@@ -1,0 +1,26 @@
+#ifndef _SERVER_NATS_H_
+#define _SERVER_NATS_H_
+
+#include "common.h"
+#include <nats.h>
+#include "server_events.h"
+
+#define SUBJECT_LEN 128
+
+typedef struct 
+{
+	natsConnection* conn;
+	natsOptions* opts;
+	server_t* server;
+	server_event_t* ev;
+	u64 client_id;
+	char subj_http[SUBJECT_LEN];
+	char subj_ws[SUBJECT_LEN];
+	natsSubscription* sub_http;
+} server_nats_t;
+
+bool server_init_nats(eworker_t* ew);
+void server_deinit_nats(server_t* server);
+void server_nats_user_event(natsConnection* nc, natsSubscription* sub, natsMsg* msg, void* closuer);
+
+#endif // _SERVER_NATS_H_

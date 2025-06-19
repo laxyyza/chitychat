@@ -25,20 +25,14 @@ class CTTest:
     def __init__(self, session_uuid = None, do_session: bool=True):
         self.do_session: bool = do_session
         self.session_uuid = session_uuid
-        if session_uuid:
-            self.path: str = '/'
-        else:
-            self.path: str = '/login'
         self.set_uri()
 
         self.ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         self.ssl_context.check_hostname = False
         self.ssl_context.verify_mode = ssl.CERT_NONE
 
-    def set_uri(self, path = None) -> None:
-        if path:
-            self.path = path
-        self.uri: str = os.getenv("URI", f"wss://{host}:{port}{self.path}")
+    def set_uri(self) -> None:
+        self.uri: str = os.getenv("URI", f"wss://{host}:{port}")
     
     async def request(self, request: dict) -> None:
         print("Sending ", str(request))
@@ -65,11 +59,11 @@ class CTTest:
                 recv_cmd = recv_packet["cmd"]
         return recv_packet
 
-    async def connect(self, path=None) -> None:
-        self.set_uri(path)
+    async def connect(self) -> None:
+        self.set_uri()
         cookie_headers = None
         if self.session_uuid:
-            cookie_headers = [('Cookie', f'session_id={self.session_uuid}')]
+            cookie_headers = [('Cookie', f'session={self.session_uuid}')]
         print("Connecting to ", self.uri)
 
         if version.parse(websockets.version.version) >= version.parse("14"):

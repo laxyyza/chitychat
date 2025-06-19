@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cc-friends-deploy
+  labels:
+    name: cc-friends-deploy
+    app: chitychat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: cc-friends-pod
+      app: chitychat
+
+  template:
+    metadata:
+      name: cc-friends-pod
+      labels:
+        name: cc-friends-pod
+        app: chitychat
+    spec:
+      containers:
+        - image: 192.168.69.1:5000/chitychat/cc_friends:2.0-dev
+          imagePullPolicy: Always
+          name: cc-friends
+          command: 
+            - cc_friends
+          envFrom:
+            - secretRef:
+                name: chitychat-secrets
+

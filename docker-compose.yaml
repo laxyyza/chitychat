@@ -1,21 +1,91 @@
 services:
-  app:
-    image: laxyy/chitychat
+  cc_server:
+    image: chitychat/cc_server
     ports:
       - "${APP_PORT:-8080}:${APP_PORT:-8080}"
     environment:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_USER=${DB_USER}
       - DB_HOST=db
+      - NATS_URL=nats
+      - CC_REDIS_IP=redis
     env_file:
       - .env
     volumes: 
-      - ./server/server.crt:/app/server/server.crt:ro
-      - ./server/server.key:/app/server/server.key:ro
-      - ./client/public:/app/client/public:rw
+      - ./backend/server/server.crt:/app/backend/server/server.crt:ro
+      - ./backend/server/server.key:/app/backend/server/server.key:ro
     depends_on:
       - db
+      - nats
+      - redis
     restart: unless-stopped
+
+  cc_sfs:
+    image: chitychat/cc_sfs 
+    command: cc_sfs
+    ports:
+      - "8081:8081"
+    environment:
+      - SFS_ROOT_PATH=/srv/sfs_data
+    env_file:
+      - .env
+    volumes:
+      - ./backend/server/server.crt:/app/backend/server/server.crt
+      - ./backend/server/server.key:/app/backend/server/server.key
+      - sfs_data:/srv/sfs_data
+    depends_on:
+      - db
+      - nats
+    restart: unless-stopped
+
+  cc_groups:
+    image: chitychat/cc_groups 
+    command: cc_groups
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - nats
+    restart: unless-stopped
+
+  cc_friends:
+    image: chitychat/cc_friends 
+    command: cc_friends
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - nats
+    restart: unless-stopped
+
+  cc_dms:
+    image: chitychat/cc_dms 
+    command: cc_dms
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - nats
+    restart: unless-stopped
+
+  cc_hubs:
+    image: chitychat/cc_hubs 
+    command: cc_hubs
+    environment:
+      - NATS_URL=nats
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - nats
+    restart: unless-stopped
+
   db:
     image: postgres:latest
     ports:
@@ -28,5 +98,22 @@ services:
       - pg_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+      - "6222:6222"
+      - "8222:8222"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    ports: 
+      - "6379:6379"
+    restart: unless-stopped
+
 volumes:
   pg_data:
+  sfs_data:

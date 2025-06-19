@@ -1,0 +1,139 @@
+@import 'tailwindcss';
+
+:root {
+    --green: rgb(50, 85, 50);
+    --blue: rgb(39, 39, 65);
+    --red: rgb(78, 44, 44);
+}
+
+@theme {
+    --color-gray-950: #0c0c0c;
+    --color-gray-900: #111111;
+    --color-gray-800: #222222;
+    --color-gray-700: #333333;
+    --color-gray-600: #444444;
+}
+
+@layer components {
+    .hub-icon {
+        @apply relative flex
+        justify-center items-center 
+        bg-gray-800 rounded-3xl
+        hover:rounded-xl transition-all 
+        duration-100 cursor-pointer ease-linear
+        h-12 w-12 mb-1 mt-1 mr-2 ml-2 mx-auto shadow-lg text-white 
+        select-none hover:bg-blue-400;
+    }
+
+    .hub-tooltip {
+        @apply absolute w-auto p-2 m-1 min-w-max left-0 top-0 rounded-md
+            shadow-md text-white bg-gray-800 scale-0
+            text-[15px] font-bold transition-all border-1 border-black
+            duration-100 origin-left z-1000;
+    }
+
+    .hub-highlight {
+        @apply absolute -left-2 shadow-md bg-white  
+            transition-all w-[3px] h-4 
+            group-active:h-8 
+            group-hover:scale-100
+            rounded-r-[5px]
+            duration-100 scale-0 z-1000;
+    }
+
+    .hub-highlight-selected {
+        @apply h-8 
+        	scale-100
+            w-[5px];
+    }
+
+    .hub-selected {
+        @apply rounded-xl bg-blue-400;
+    }
+
+    .custom-rounded-inherit {
+        border-radius: inherit;
+    }
+}
+
+/*
+ * I forgot a lot of CSS, so writing CSS here for now.
+ */
+
+.br {
+    border-color: black;
+    border-width: 3px;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 250px;
+}
+
+.hub-list {
+    background-color: var(--red);
+    width: 50px;
+}
+
+.channels {
+    background-color: var(--blue);
+    flex: 1;
+}
+
+.user-profile {
+    height: 50px;
+    display: flex;
+    background-color: var(--green);
+    color: white;
+    width: 100%;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    background-color: var(--blue);
+    height: 100vh;
+}
+
+.chat-window {
+    flex: 1;
+    background-color: var(--red);
+}
+
+.input {
+    background-color: var(--green);
+    height: 40px;
+    margin: 5px;
+}
+
+.member-list {
+    position: fiexd;
+    background-color: var(--green);
+    width: 200px;
+    right: 0;
+    top: 0;
+}
+
+.user-icon {
+    anchor-name: --usericon;
+}
+
+.popover-test {
+    position-anchor: --usericon;
+    margin: 0;
+    inset: 0;
+}
+
+.popover-test:popover-open {
+}
+
+.hidden-scroll-container {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE 10+ */
+}
+
+.hidden-scroll-container::-webkit-scrollbar {
+  display: none;              /* Chrome, Safari, Opera */
+}
