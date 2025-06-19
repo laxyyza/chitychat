@@ -106,4 +106,4 @@ Infrastructure:
 
 > ✅ TODO: Add architecture diagram to visually illustrate the backend structure.
 
-> ✅ TODO: Add step-by-step guide for building ChityChat and running it on a host machine, in a Docker container, and on Kubernetes.
+> ✅ TODO: Add step-by-step guide for building ChityChat and running it on a host machine, in a Docker containers, and on Kubernetes.
