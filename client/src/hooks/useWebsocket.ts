@@ -160,7 +160,7 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
                     displayname: packet.displayname,
                     created_at: packet.create_at,
                     about_me: packet.bio,
-                    pfp: packet.pfp_url
+                    pfp_url: packet.pfp_url
                 }
             });
             break;
@@ -175,7 +175,7 @@ const handleWebsocketMessage = (cmd: string, packet: any, app: App, dispatch: Re
                         username: user['username'],
                         displayname: user['displayname'],
                         about_me: user['bio'],
-                        pfp: user['pfp_url'],
+                        pfp_url: user['pfp_url'],
                         created_at: user['created_at']
                     }
                 });

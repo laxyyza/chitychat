@@ -77,7 +77,7 @@ const UserDetails = ({ user }: Prop) => {
 
     return (
         <div className="bg-gray-900 top-0 w-80 shadow-2xl p-3 rounded-2xl z-10 text-white border-1 border-black">
-            <IconImgChooser pfp={user.pfp} profile={true} />
+            <IconImgChooser pfp={user.pfp_url} profile={true} />
             <div className="">
                 <div className="font-bold text-2xl text-left">
                     {user.displayname}
@@ -116,7 +116,7 @@ const UserIcon = ({ user, className = 'max-w-13 max-h-13', size }: Prop) => {
             ref={ref}
             className={className}
         >
-            <IconImgChooser pfp={user.pfp} profile={false} size={size} />
+            <IconImgChooser pfp={user.pfp_url} profile={false} size={size} />
             {showDetails && ref.current && (
                 <Popup
                     targetRef={ref}

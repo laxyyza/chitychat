@@ -415,7 +415,7 @@ const AppProvider = ({ children }: Prop) => {
             id: 0,
             username: '?',
             displayname: '?',
-            pfp: '',
+            pfp_url: '',
             about_me: '?',
             created_at: '?'
         },
