@@ -1,129 +1,109 @@
-### Table of Contents
-1. [Chity Chat](#chity-chat)
-2. [Chat App Features](#chat-app-features)
-3. [Web Server Features](#web-server-features)
-4. [Web Server Limitations](#web-server-limitations)
-5. [Current Web Server Challenges](#current-web-server-challenges)
-6. [Planned Features](#planned-features)
-7. [Learning Experience](#learning-experience)
-8. [Project Directory Structure](#project-directory-structure)
-9. [Running ChityChat server (Docker Compose)](#running-chitychat-server-docker-compose)
-10. [Coding Style](#coding-style)
+# ChityChat
 
-# Chity Chat
-### This is a simple Chat App with the purpose of learning.
-* Fullstack Project
-   * Frontend: In JavaScript, HTML and CSS. (My first time)
-   * Backend: Custom web server written in C.
-> Though the front-end is my initial venture into web development, the standout feature lies in the C-written backend.
+ChityChat is a simple fullstack chat application originally built as a learning project. It began as a personal exploration into web development and databases. Over time, it has grown into a more complex system aimed at expanding my knowledge in modern software architecture, DevOps, and scalable backend design.
 
-## Chat App Features
-* **Private/Public Groups:** Users have the option to join public groups or enter private ones using specific codes.
-* **Real-time Communication:** Messages are sent and received instantly.
-* **Real-time User Staus Updates:** Instantly see if users comes online and offline.
+## Project History
 
-## Web Server Features
-* **HTTP/1.1 Parsing:** Basic parsing with support for GET and POST requests.
-* **Web Sockets Implementation:** Real-time communication support.
-* **SSL/TLS via OpenSSL:** Secure connections.
-* **Password Security:** Salting and hashing using SHA512.
-* **I/O Multiplexing:** Utilizes [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) for efficient I/O.
-* **Database Management:** Uses PostgreSQL for SQL database.
-* **Session Management:** Users receive session IDs for persistent login.
-* **Multi-Threaded:** Utilizes a thread pool to efficiently manage concurrent events.
-* **IP Versions:** Supports both IPv4 and IPv6.
+The project started as a monolithic application:
 
-## Web Server limitations
-* Exclusively designed for this Chat App.
-* **Basic HTTP Parsing:** Limited to handling only GET and POST requests.
-* **Monolithic Architecture:** Combines web server and chat server functionalities within a single process.
+* **Frontend**: Pure JavaScript, HTML, and CSS.
+* **Backend**: A custom web and chat server written in C.
+* **Database**: Initially used SQLite3, later migrated to PostgreSQL.
 
-## Current Web Server Challenges
-* ~~Experiences significant slowdowns with only approximately 100 concurrent users.~~ Fixed.
-* ~~Encounters unexpected errors when multiple clients disconnect simultaneously.~~ Fixed.
-* ~~Worker threads are heavly I/O bound to PostgreSQL. Non-blocking postgres connection maybe?~~ 
-* Faces potential deadlock issues during high load, resulting in server unresponsiveness.
+This was my first attempt at web development, my first web server written in C, and my first time working with SQL.
 
-## Planned Features
-- [x] **Private Groups:** Invitation-only groups.
-   - [X] Mark group as private, only group members can get it.
-   - [X] Implement Invite Codes
-   - [ ] Implement Invite Links
-- [ ] **Group Member Roles:** Admins, mods, etc.
-- [ ] **User Account Management:** Change username, display name, bio, and password.
-- [ ] **Deletion:** Ability to delete accounts, messages, and groups.
-   - [x] Delete messages.
-   - [ ] Delete accounts.
-   - [x] Detete groups. 
-- [x] **Direct Messaging (DM):** Private messaging between users (Create Private Group with only 2 users).
-- [ ] **Enhanced Messaging:** Send photos, videos, files, reply to messages, and edit messages.
-   - [X] Front-end implementation (images)
-      - [X] Add images and paste image from clipboard.
-   - [X] Back-end implementation (images) 
-- [ ] **Mobile Compatibility:** Improve usability on mobile devices.
-- [X] **URL Parameters Support:** Support HTTP URL parameters.
-- [ ] **Real-Time User Status Management:** Online, Offline, Away, busy, typing, etc.
-   - [x] User Online/Offline
-   - [ ] Typing.
-   - [ ] User set status
-- [x] **Upload File Management:** Avoid duplication user files.
-   - [x] Default profile pic
-- [ ] **Real-Time User Profile Updates:** Receive instant updates for user profile changes like usernames, display names, bio, and profile pictures.
-   - [x] Profile pictures.
-   - [ ] Username / Displayname
-   - [ ] Bio 
+In early 2025, I returned to ChityChat as part of a CI/CD learning initiative at work. While setting up pipelines, I decided to modernize the project and use it as a platform to learn newer technologies like React.js and Go. The project now transitions from a monolithic architecture to a hybrid microservice-based backend.
 
-## Learning experience
-> Through building Chity Chat, I learned:
-* **Web Server Implementation:**
-    * HTTP
-    * Web Sockets
-    * SSL/TLS
-    * Multi-Threading
-* **SQL Database Management:** SQLite3, later migrated to PostgreSQL.
-* **Frontend Development:** JavaScript, HTML, and CSS.
-* **Password Security:** SHA512 hashing.
-* **CI/CD with GitHub Actions:** Docker-based pipeline.
+For clarity:
 
-## Project Directory Structure
+* **Version 1 (v1)**: Original app using JS/CSS/HTML and a monolithic C backend.
+* **Version 2 (v2)**: Modernized app using React.js, C, and Go in a hybrid architecture.
+
+>🔧 There are still many missing features, planned improvements, and ongoing code refactoring in progress. Development is slower now since I sometimes work on it in my free time.
+
+---
+
+## Version 1 – Original Design
+
+The initial version featured:
+
+* Basic group chats: Users could create groups and invite others via access codes.
+* Messaging: Text and image messages.
+* API Design: All interactions used a custom WebSocket protocol with JSON-formatted messages.
+
+---
+
+## Version 2 – Redesign (In Progress)
+
+>[!NOTE]
+>Version 2 is a work-in-progress. Many features are incomplete or unstable.
+
+The new design is inspired by platforms like Discord:
+
+* **Hubs**: A new concept that allows multiple channels within a single server, alongside traditional groups.
+* **Social Features**: Friends, direct messages (DMs), and user profiles.
+* **Tech Stack**:
+
+  * API design moved from pure WebSockets to a combination of HTTP REST and WebSockets.
+  * Backend logic moved into scalable microservices.
+  * Frontend rewritten in React.js.
+
+---
+
+## Backend Design (v2)
+
+ChityChat now uses a hybrid/microservice architecture. The backend consists of two main layers:
+
+### 1. Frontend Layer
+
+Handles user connections, API routing, and static asset serving.
+
+* **`cc_server`**: The original C backend, now serves as an API gateway, handling authentication, WebSocket connections, and static files.
+* **`cc_sfs`**: A simple file server written in Go for managing user-uploaded attachments.
+
+### 2. Backend Services
+
+Handle application logic, written entirely in Go:
+
+* **`cc_user`** – User account management.
+* **`cc_friends`** – Friends and friend requests.
+* **`cc_dms`** – Direct messages between users.
+* **`cc_groups`** – Group management.
+* **`cc_hubs`** – Hub and channel functionality.
+
+All backend components are prefixed with `cc_`, short for **ChityChat**.
+
+---
+
+## Backend Architecture
+
+**Core components:**
+
 ```
-# chitychat's root
-/
-├── server/        # Server/Backend 
-│   ├── src/       # Server C source code
-│   ├── include/   # Server Header Files
-│   └── sql/       # SQL schema and queries
-│
-├── client/        # Client/Frontend
-│   ├── public/    # Default Public Directory & Website source code
-│   └── headless/  # Headless client; bot source code
-│
-└── tests/         # Currently only have load_balance_bots.sh
+Frontend:
+  - cc_server
+  - cc_sfs
+
+Backend Services:
+  - cc_user
+  - cc_friends
+  - cc_dms
+  - cc_groups
+  - cc_hubs
+
+Infrastructure:
+  - PostgreSQL (relational database)
+  - Redis (session management)
+  - NATS (message broker)
 ```
 
-# Running ChityChat server (Docker Compose)
-1. **Clone the repository and navigate to the project directory:**
-```
-git clone --recursive https://github.com/laxyyza/chitychat.git && cd chitychat
-```
-2. Copy `.env-example` to `.env`, then edit it to configure your settings. Be sure to set `DB_USER`, `DB_PASSWORD`, and any other necessary options.
-```
-cp .env-example .env
-```
-3. **Generate SSL certificates** for secure communication:
-```
-openssl req -x509 -newkey rsa:4096 -keyout server/server.key -out server/server.crt -days 365 -nodes
-```
-4. **Build the Docker image:**
-```
-docker build -t laxyy/chitychat .
-```
-5. **Start the ChityChat server and PostgreSQL** using Docker Compose:
-```
-docker-compose up -d
-```
-6. **Access the server:** Open your browser and go to: https://localhost:8080.
-Note: You'll get a warning because of the self-signed SSL certificate.
+### Flow (Simplified):
 
-## Coding Style
-* https://github.com/laxyyza/stdcode
+1. Client sends an HTTP request to `cc_server`.
+2. `cc_server` publishes the request to a NATS topic.
+3. A backend service subscribed to that topic receives the request, processes it, and replies.
+4. `cc_server` forwards the response back to the client.
+
+> ✅ TODO: Add architecture diagram to visually illustrate the backend structure.
+
+> ✅ TODO: Add step-by-step guide for building ChityChat and running it on a host machine, in a Docker container, and on Kubernetes.
