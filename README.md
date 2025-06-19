@@ -116,6 +116,8 @@ Infrastructure:
   - NATS (message broker)
 ```
 
+### Simple Diagram
+
 ```mermaid
 graph TB;
     subgraph Frontend
@@ -146,6 +148,69 @@ graph TB;
     hubs --- pg
     groups --- pg
     user --- pg
+```
+
+### When you scale
+
+```mermaid
+graph TB;
+    subgraph Frontend
+        server_a[cc_server]
+        server_b[cc_server]
+        server_c[cc_server]
+        sfs[cc_sfs]
+    end
+
+    subgraph Pub/Sub
+        nats{NATS}
+    end
+
+    subgraph Services
+    	subgraph cc_friends
+            nats --- friends_a[[cc_friends 0]]
+            nats --- friends_b[[cc_friends 1]]
+            nats --- friends_c[[cc_friends 2]]
+        end
+        subgraph cc_hubs
+            nats --- hubs_a[[cc_hubs 0]]
+            nats --- hubs_b[[cc_hubs 1]]
+            nats --- hubs_c[[cc_hubs 2]]
+        end
+        subgraph cc_groups
+            nats --- groups_a[[cc_groups 0]]
+            nats --- groups_b[[cc_groups 1]]
+            nats --- groups_c[[cc_groups 2]]
+        end
+        subgraph cc_dms
+            nats --- dms_a[[cc_dms 0]]
+            nats --- dms_b[[cc_dms 1]]
+            nats --- dms_c[[cc_dms 2]]
+        end
+        subgraph cc_user
+            nats --- user_a[[cc_user 0]]
+            nats --- user_b[[cc_user 1]]
+            nats --- user_c[[cc_user 2]]
+        end
+    end
+
+    subgraph Data Stores
+        server_a --- pg[(PostgreSQL)]
+        server_b --- pg
+        server_c --- pg
+        server_a --- redis@{ shape: card, label: "Redis" }
+        server_b --- redis
+        server_c --- redis
+    end
+
+    server_a --- nats
+    server_b --- nats
+    server_c --- nats
+
+    user_a & user_b & user_c --- pg
+    groups_a & groups_b & groups_c --- pg
+    friends_a & friends_b & friends_c --- pg
+    hubs_a & hubs_b & hubs_c --- pg
+    dms_a & dms_b & dms_c --- pg
 ```
 
 ### Flow (Simplified):
