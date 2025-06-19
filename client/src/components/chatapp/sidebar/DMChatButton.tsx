@@ -14,7 +14,15 @@ interface Props {
     children?: ReactNode;
 }
 
-const Icon = (type: string) => {
+const Icon = (type: string, imageUrl?: string) => {
+    if (imageUrl) {
+        return (
+            <div className="bg-purple-500 rounded-full w-8 h-8 overflow-hidden flex items-center justify-center">
+                <img src={imageUrl} className="w-full h-full" />
+            </div>
+        );
+    }
+
     if (type === 'group') {
         return (
             <div className="bg-purple-500 rounded-full w-8 h-8 overflow-hidden flex items-center justify-center">
@@ -39,9 +47,12 @@ const DMChatButton = ({ dmchat, onClick, selected, children, dmlistRef }: Props)
     const ref = useRef<HTMLButtonElement | null>(null);
     var type: string = "other";
     var name: string | undefined;
+    var imageUrl: string | undefined
     if (dmchat?.chat instanceof DM) {
         type = "user";
-        name = app.users.get(dmchat.chat.targetUserID)?.displayname;
+        const user = app.users.get(dmchat.chat.targetUserID);
+        name = user?.displayname;
+        imageUrl = user?.pfp_url || undefined;
     } else if (dmchat?.chat instanceof Group) {
         type = "group";
         name = dmchat.chat.name;
@@ -75,7 +86,7 @@ const DMChatButton = ({ dmchat, onClick, selected, children, dmlistRef }: Props)
                 setShow(!show);
             }}
         >
-            {Icon(type)}
+            {Icon(type, imageUrl)}
             <div className="flex-1 ml-1 min-w-0">
                 <div className="text-left text-nowrap text-ellipsis overflow-hidden">
                     {name || children}

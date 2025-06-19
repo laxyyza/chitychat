@@ -158,7 +158,7 @@ const MyAccountPage = () => {
                     <button onClick={() => {
                         inputFileRef.current?.click();
                     }}>
-                        <UserIcon className="w-16" user={user} />
+                        <UserIcon className="w-16 cursor-pointer" user={user} />
                     </button>
                     <input ref={inputFileRef} className='absolute opacity-0' type='file' onChange={(e) => {
                         if (e.target.files) {
