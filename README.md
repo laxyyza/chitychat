@@ -120,10 +120,13 @@ Infrastructure:
 
 ```mermaid
 graph TB;
+    client{client}
     subgraph Frontend
         B[cc_server]
         sfs[cc_sfs]
     end
+    client -->|HTTP/WebSocket| B
+    client -->|HTTP| sfs
 
     subgraph Pub/Sub
         D{NATS}
