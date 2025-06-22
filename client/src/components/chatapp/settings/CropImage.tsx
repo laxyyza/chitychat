@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import useDismissTrigger from "../../../hooks/useDismissTrigger";
+import { IoMdClose } from "react-icons/io";
 
 interface Props {
     image: File;
@@ -122,7 +123,13 @@ const CropImage = ({ image, onClose }: Props) => {
 
     return (
         <div className="fixed top-0 left-0 w-screen h-screen flex justify-center items-center">
-            <div ref={ref} className="w-150 h-150 rounded-xl bg-gray-900 border-1 border-gray-700 flex flex-col">
+            <div ref={ref} className="relative w-150 h-150 rounded-xl bg-gray-900 border-1 border-gray-700 flex flex-col">
+                <button 
+                    className="absolute right-0 p-1 rounded-bl-xl hover:bg-gray-700 rounded-tr-xl hover:text-red-500"
+                    onClick={() => onClose()}
+                >
+                    <IoMdClose size="20" />
+                </button>
                 <div className="grow-1 flex items-center justify-center">
                     <div className="relative min-w-120 min-h-120 w-120 h-120">
                         {renderContent()}
